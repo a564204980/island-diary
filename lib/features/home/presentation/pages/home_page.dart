@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/features/home/presentation/widgets/sparkling_water_effect.dart';
 import 'package:island_diary/shared/widgets/bottom_nav_bar.dart';
 
 class HomePage extends StatefulWidget {
@@ -21,13 +22,13 @@ class _HomePageState extends State<HomePage>
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-    // 岛屿缓慢上下浮动动画：4秒一个来回，无限循环
+    // 岛屿缓慢上下浮动动画：8秒一个来回，极缓慢悬浮
     _floatController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4),
+      duration: const Duration(seconds: 8),
     )..repeat(reverse: true); // 往返循环
 
-    _floatAnimation = Tween<double>(begin: -12.0, end: 12.0).animate(
+    _floatAnimation = Tween<double>(begin: -7.0, end: 7.0).animate(
       CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
     );
   }
@@ -50,6 +51,9 @@ class _HomePageState extends State<HomePage>
               fit: BoxFit.cover,
             ),
           ),
+
+          // 1.5 湖面波光粼粼特效层 (叠在图片上)
+          const Positioned.fill(child: SparklingWaterEffect()),
 
           // 2. 用户名 —— 左上角
           SafeArea(
