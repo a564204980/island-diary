@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:island_diary/shared/widgets/sprite_animation.dart';
+import 'package:island_diary/shared/widgets/center_mood_button.dart';
 
 /// 将底栏裁剪为带圆角矩形 + 中心顶凹口的形状（使用严格几何相切圆，完美贴合）
 class _NavBarClipper extends CustomClipper<Path> {
@@ -201,36 +201,12 @@ class BottomNavBar extends StatelessWidget {
             ),
           ),
 
-          // ── 中心凸出精灵按钮 ──
+          // ── 中心凸出精灵按钮（已抽离独立管理） ──
           Positioned(
-            top: 0,
-            child: GestureDetector(
+            top: -16, // 👈 向上偏移 12 像素，使其产生“悬浮”间距感
+            child: CenterMoodButton(
+              radius: centerButtonRadius, // 半径 32.0 (外部定义)
               onTap: () => onTap(2),
-              child: Container(
-                width: centerButtonRadius * 2,
-                height: centerButtonRadius * 2,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFFF0C0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFFD97D).withOpacity(0.7),
-                      blurRadius: 16,
-                      spreadRadius: 4,
-                    ),
-                  ],
-                  border: Border.all(color: Colors.white, width: 3),
-                ),
-                child: const Center(
-                  // 挂载动态精灵图：预设为 12 帧，如果实际序列图不是 12 帧或速度不对可以直接修改这两个参数！
-                  child: SpriteAnimation(
-                    assetPath: 'assets/images/emoji/weixiao.png',
-                    frameCount: 9, // 通常微表情贴图可能有 8-15 帧
-                    duration: Duration(milliseconds: 800), // 一个微笑动画周期 1.5 秒
-                    size: 34.0, // 根据圆圈大小设定动图尺寸
-                  ),
-                ),
-              ),
             ),
           ),
         ],
