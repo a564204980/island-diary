@@ -202,7 +202,7 @@ class BottomNavBar extends StatelessWidget {
             ),
           ),
 
-          // ── 中心凸出精灵按钮 ──
+          // ── 中心凸出精灵按钮（已抽离独立管理） ──
           Positioned(
             top: 0,
             child: GestureDetector(

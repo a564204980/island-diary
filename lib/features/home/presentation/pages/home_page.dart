@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -90,11 +91,61 @@ class _HomePageState extends State<HomePage>
                 ),
               );
             },
-            // child: Image.asset(
-            //   'assets/images/home_island_small.png',
-            //   width: MediaQuery.of(context).size.width * 1,
-            //   fit: BoxFit.contain,
-            // ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // 底层：环境光大范围光晕，铺垫冷色发光氛围
+                // Container(
+                //   width: MediaQuery.of(context).size.width * 0.7,
+                //   height: MediaQuery.of(context).size.width * 0.35,
+                //   decoration: BoxDecoration(
+                //     shape: BoxShape.rectangle,
+                //     borderRadius: BorderRadius.circular(200),
+                //     boxShadow: [
+                //       BoxShadow(
+                //         color: const Color(0xFF55CCFF).withOpacity(0.4),
+                //         blurRadius: 60.0,
+                //         spreadRadius: 25.0,
+                //       ),
+                //       BoxShadow(
+                //         color: const Color.fromARGB(
+                //           255,
+                //           250,
+                //           255,
+                //           255,
+                //         ).withOpacity(0.6),
+                //         blurRadius: 30.0,
+                //         spreadRadius: 10.0,
+                //       ),
+                //     ],
+                //   ),
+                // ),
+                // 中间层：贴合小岛原图轮廓的强发光层（提高不透明度与稍微放大尺寸进行背光投射）
+                Transform.translate(
+                  offset: const Offset(0, 5.0), // 偏移量：正数向下，负数向上，目前设定偏下 5 像素
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.4),
+                    child: Image.asset(
+                      'assets/images/home_island_small.png',
+                      width: MediaQuery.of(context).size.width * 1.05,
+                      fit: BoxFit.contain,
+                      color: const Color.fromARGB(
+                        255,
+                        255,
+                        255,
+                        255,
+                      ).withOpacity(0.9), // 高亮度的冰蓝背光
+                    ),
+                  ),
+                ),
+                // 顶层：原图
+                Image.asset(
+                  'assets/images/home_island_small.png',
+                  width: MediaQuery.of(context).size.width * 1,
+                  fit: BoxFit.contain,
+                ),
+              ],
+            ),
           ),
 
           // 4. 底部导航栏
