@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/sprite_animation.dart';
+import 'package:island_diary/shared/widgets/mood_picker.dart';
 
 /// 将底栏裁剪为带圆角矩形 + 中心顶凹口的形状（使用严格几何相切圆，完美贴合）
 class _NavBarClipper extends CustomClipper<Path> {
@@ -205,7 +206,18 @@ class BottomNavBar extends StatelessWidget {
           Positioned(
             top: 0,
             child: GestureDetector(
-              onTap: () => onTap(2),
+              onTap: () {
+                showGeneralDialog(
+                  context: context,
+                  barrierDismissible: true,
+                  barrierLabel: 'MoodPicker',
+                  barrierColor: Colors.transparent,
+                  transitionDuration: const Duration(milliseconds: 300),
+                  pageBuilder: (context, anim1, anim2) {
+                    return const MoodPickerSheet();
+                  },
+                );
+              },
               child: Container(
                 width: centerButtonRadius * 2,
                 height: centerButtonRadius * 2,
@@ -227,7 +239,7 @@ class BottomNavBar extends StatelessWidget {
                     assetPath: 'assets/images/emoji/weixiao.png',
                     frameCount: 9, // 通常微表情贴图可能有 8-15 帧
                     duration: Duration(milliseconds: 800), // 一个微笑动画周期 1.5 秒
-                    size: 34.0, // 根据圆圈大小设定动图尺寸
+                    size: 44.0, // 根据圆圈大小设定动图尺寸
                   ),
                 ),
               ),

@@ -90,11 +90,11 @@ class _HomePageState extends State<HomePage>
                 ),
               );
             },
-            child: Image.asset(
-              'assets/images/home_island_small.png',
-              width: MediaQuery.of(context).size.width * 1,
-              fit: BoxFit.contain,
-            ),
+            // child: Image.asset(
+            //   'assets/images/home_island_small.png',
+            //   width: MediaQuery.of(context).size.width * 1,
+            //   fit: BoxFit.contain,
+            // ),
           ),
 
           // 4. 底部导航栏
