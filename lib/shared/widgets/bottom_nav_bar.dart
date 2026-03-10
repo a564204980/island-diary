@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/shared/widgets/sprite_animation.dart';
+import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/shared/widgets/mood_picker/mood_picker_sheet.dart';
 
 class BottomNavBar extends StatefulWidget {
@@ -135,6 +136,12 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 ],
               ),
             ),
+          ),
+
+          // ── 精灵球气泡对话系统 ──
+          Positioned(
+            top: -60, // 在精灵球头顶约 60px 处
+            child: const SpriteDialogue(text: '今天过得好吗？摸摸我的头，把心情种进岛里吧。'),
           ),
 
           // ── 中心凸出精灵按钮 ──

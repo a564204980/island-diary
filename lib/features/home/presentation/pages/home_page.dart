@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/features/home/presentation/widgets/sparkling_water_effect.dart';
+
 import 'package:island_diary/shared/widgets/bottom_nav_bar.dart';
 
 class HomePage extends StatefulWidget {
@@ -141,9 +141,6 @@ class _HomePageState extends State<HomePage>
               ),
             ),
           ),
-
-          // 1.5 湖面波光粼粼特效层 (叠在图片上)
-          const Positioned.fill(child: SparklingWaterEffect()),
 
           // 2. 用户名 —— 左上角
           SafeArea(
