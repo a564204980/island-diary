@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/sprite_animation.dart';
-import 'package:island_diary/shared/widgets/mood_picker.dart';
+import 'package:island_diary/shared/widgets/mood_picker/mood_picker_sheet.dart';
 
 /// 将底栏裁剪为带圆角矩形 + 中心顶凹口的形状（使用严格几何相切圆，完美贴合）
 class _NavBarClipper extends CustomClipper<Path> {
@@ -211,8 +211,25 @@ class BottomNavBar extends StatelessWidget {
                   context: context,
                   barrierDismissible: true,
                   barrierLabel: 'MoodPicker',
-                  barrierColor: Colors.transparent,
-                  transitionDuration: const Duration(milliseconds: 300),
+                  barrierColor: Colors.black.withOpacity(0.6),
+                  transitionDuration: const Duration(milliseconds: 500),
+                  transitionBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                        // 使用自带弹簧感的缓冲曲线，让面板“啵”地弹出来
+                        final curvedAnimation = CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutBack,
+                        );
+                        return Transform.scale(
+                          scale: curvedAnimation.value,
+                          // 将缩放原点设置在屏幕中下方（正对精灵按钮的位置）
+                          alignment: const Alignment(0.0, 0.8),
+                          child: FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          ),
+                        );
+                      },
                   pageBuilder: (context, anim1, anim2) {
                     return const MoodPickerSheet();
                   },
