@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 class MoodItem {
@@ -20,6 +21,7 @@ class MoodItem {
   final Offset? textOffset; // 文字相对于圆盘中心的绝对偏移
   final double? iconRotation; // 图标自身的旋转
   final double? textRotation; // 文字自身的旋转
+  final Color? glowColor; // 选中时的外圈发光色
 
   const MoodItem({
     required this.label,
@@ -38,6 +40,7 @@ class MoodItem {
     this.textOffset,
     this.iconRotation,
     this.textRotation,
+    this.glowColor,
   });
 }
 
@@ -58,6 +61,7 @@ const List<MoodItem> kMoods = [
     fontSize: 14,
     iconOffset: const Offset(-28, -84),
     textOffset: const Offset(-26, -60),
+    glowColor: const Color(0xFFFFA4A4), // 粉红色
   ),
   MoodItem(
     label: '厌恶',
@@ -75,14 +79,15 @@ const List<MoodItem> kMoods = [
     fontSize: 14,
     iconOffset: const Offset(-74, -38),
     textOffset: const Offset(-72, -14),
+    glowColor: const Color(0xFFA4E4A4), // 浅绿色
   ),
   MoodItem(
     label: '恐惧',
     imagePath: 'assets/images/icons/select3.png',
     angle: 270,
     imageRotation: 90,
-    imageTop: -58,
-    imageLeft: 74,
+    imageTop: -60,
+    imageLeft: 72,
     width: 324,
     height: 241,
     scale: 0.33,
@@ -92,6 +97,7 @@ const List<MoodItem> kMoods = [
     fontSize: 14,
     iconOffset: const Offset(-76, 28),
     textOffset: const Offset(-76, 50),
+    glowColor: const Color(0xFFC4A4E4), // 紫色
   ),
   MoodItem(
     label: '惊喜',
@@ -102,13 +108,14 @@ const List<MoodItem> kMoods = [
     imageLeft: 123,
     width: 230,
     height: 345,
-    scale: 0.33,
+    scale: 0.35,
     // 图文绝对坐标偏移
     iconPath: 'assets/images/icons/star.png',
     iconSize: 40,
     fontSize: 14,
     iconOffset: const Offset(-28, 78),
     textOffset: const Offset(-28, 102),
+    glowColor: const Color(0xFFFFC484), // 橘黄色
   ),
   MoodItem(
     label: '平静',
@@ -126,6 +133,7 @@ const List<MoodItem> kMoods = [
     fontSize: 14,
     iconOffset: const Offset(34, 78),
     textOffset: const Offset(34, 102),
+    glowColor: const Color(0xFFA4D4E4), // 浅蓝色
   ),
   MoodItem(
     label: '愤怒',
@@ -143,6 +151,7 @@ const List<MoodItem> kMoods = [
     fontSize: 14,
     iconOffset: const Offset(86, 28),
     textOffset: const Offset(86, 52),
+    glowColor: const Color(0xFFFF8484), // 红色
   ),
   MoodItem(
     label: '悲伤',
@@ -160,6 +169,7 @@ const List<MoodItem> kMoods = [
     fontSize: 14,
     iconOffset: const Offset(86, -42),
     textOffset: const Offset(86, -14),
+    glowColor: const Color(0xFF84A4E4), // 深蓝色
   ),
   MoodItem(
     label: '开心',
@@ -177,11 +187,125 @@ const List<MoodItem> kMoods = [
     fontSize: 14,
     iconOffset: const Offset(33, -88),
     textOffset: const Offset(33, -60),
+    glowColor: const Color(0xFFFFE484), // 黄色
   ),
 ];
 
-class MoodPickerSheet extends StatelessWidget {
+class MoodPickerSheet extends StatefulWidget {
   const MoodPickerSheet({super.key});
+
+  @override
+  State<MoodPickerSheet> createState() => _MoodPickerSheetState();
+}
+
+class _MoodPickerSheetState extends State<MoodPickerSheet> {
+  int? _selectedIndex;
+
+  void _handleTap(Offset localPosition, double baseWheelSize) {
+    // 中心点就是宽度/高度的一半
+    final double center = baseWheelSize / 2;
+    final double dx = localPosition.dx - center;
+    final double dy = localPosition.dy - center;
+    final double distance = math.sqrt(dx * dx + dy * dy);
+
+    // 如果点击实在太靠近中心（小白点区域）或者太靠外，忽略它
+    if (distance < 20 || distance > baseWheelSize / 2) {
+      if (_selectedIndex != null) {
+        setState(() => _selectedIndex = null);
+      }
+      return;
+    }
+
+    // 以中心点为原点，计算手指触摸的角度 (-pi to pi)
+    final double tapAngle = math.atan2(dy, dx);
+
+    int? bestIndex;
+    double minAngleDiff = double.infinity;
+
+    for (int i = 0; i < kMoods.length; i++) {
+      final item = kMoods[i];
+      // 我们用对应图标的向量位置来代表该切片最准确的极座标分布方向
+      final offset = item.iconOffset ?? Offset.zero;
+      final itemAngle = math.atan2(offset.dy, offset.dx);
+
+      double diff = (tapAngle - itemAngle).abs();
+      // 将差值约束在 0 到 pi 之间，寻找最短几何夹角
+      if (diff > math.pi) {
+        diff = 2 * math.pi - diff;
+      }
+
+      if (diff < minAngleDiff) {
+        minAngleDiff = diff;
+        bestIndex = i;
+      }
+    }
+
+    if (bestIndex != null) {
+      setState(() {
+        if (_selectedIndex == bestIndex) {
+          _selectedIndex = null; // 再次点击取消高亮
+        } else {
+          _selectedIndex = bestIndex;
+        }
+      });
+    }
+  }
+
+  // 构建一个包含外围阴影发光的辅助图层组件，通过 8 个圆周方向偏移生成等厚度的外轮廓
+  Widget _buildGlowLayer({
+    required Widget child,
+    required Color color,
+    required double strokeWidth,
+    double blurRadius = 0,
+  }) {
+    Widget coloredImage = ColorFiltered(
+      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      child: child,
+    );
+
+    if (blurRadius > 0) {
+      coloredImage = ImageFiltered(
+        imageFilter: ui.ImageFilter.blur(
+          sigmaX: blurRadius,
+          sigmaY: blurRadius,
+        ),
+        child: coloredImage,
+      );
+    }
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        for (double angle = 0; angle < 2 * math.pi; angle += math.pi / 4)
+          Transform.translate(
+            offset: Offset(
+              math.cos(angle) * strokeWidth,
+              math.sin(angle) * strokeWidth,
+            ),
+            child: coloredImage,
+          ),
+      ],
+    );
+  }
+
+  // 辅助函数：当某个切片被选中时，沿其图文所在的极座标径向向外推离中心一段距离
+  Offset _getPopOutOffset(int index) {
+    if (_selectedIndex != index) return Offset.zero;
+    final item = kMoods[index];
+    final offset = item.iconOffset ?? Offset.zero;
+    if (offset.dx == 0 && offset.dy == 0) return Offset.zero;
+
+    // 向外弹射的位移量 (像素)
+    const double popDistance = 15.0;
+
+    // 计算方向 (弧度)
+    final double angleRad = math.atan2(offset.dy, offset.dx);
+
+    return Offset(
+      math.cos(angleRad) * popDistance,
+      math.sin(angleRad) * popDistance,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +313,7 @@ class MoodPickerSheet extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
 
     // 设定转盘占屏幕宽度的比例 (1.25 表示超出屏幕一点，显得更饱满)
-    final displaySize = screenWidth * 1.2;
+    final displaySize = screenWidth * 1;
 
     // 微调各种偏移量的基准画布大小
     const double baseWheelSize = 400.0;
@@ -217,8 +341,8 @@ class MoodPickerSheet extends StatelessWidget {
                     children: [
                       // 底层白色圆盘背景 (增加透明度，呈现磨砂质感)
                       Container(
-                        width: 280,
-                        height: 280,
+                        width: 320,
+                        height: 320,
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(
                             0.30,
@@ -249,111 +373,238 @@ class MoodPickerSheet extends StatelessWidget {
                         ),
                       ),
 
-                      // 心情选项图标层 (向左上平移微调，使其相对于背景居中)
-                      Transform.translate(
-                        offset: const Offset(-5, -4), // 向左，向上
-                        child: Stack(
-                          alignment: Alignment.center,
-                          clipBehavior: Clip.none,
-                          children: [
-                            ...List.generate(kMoods.length, (index) {
-                              final item = kMoods[index];
-                              if (item.imagePath == null) {
-                                return const SizedBox.shrink();
-                              }
-
-                              return Transform.rotate(
-                                angle: item.angle * math.pi / 180,
+                      // 全盘手势接管层区
+                      GestureDetector(
+                        onTapUp: (details) {
+                          _handleTap(details.localPosition, baseWheelSize);
+                        },
+                        child: Container(
+                          width: baseWheelSize,
+                          height: baseWheelSize,
+                          color: Colors.transparent, // 设置透明色拦截手指事件
+                          child: Stack(
+                            alignment: Alignment.center,
+                            clipBehavior: Clip.none,
+                            children: [
+                              // 心情选项图标层 (因为原来的切片偏右下一点，所以全局往左上平移一点来纠正视觉居中)
+                              Transform.translate(
+                                offset: const Offset(-5, -4),
                                 child: Stack(
                                   alignment: Alignment.center,
                                   clipBehavior: Clip.none,
                                   children: [
-                                    Positioned(
-                                      bottom:
-                                          (baseWheelSize / 2) +
-                                          (item.imageTop ?? 0),
-                                      left: item.imageLeft,
-                                      right: 0,
-                                      child: Transform.rotate(
-                                        angle:
-                                            (item.imageRotation ?? 0) *
-                                            math.pi /
-                                            180,
-                                        child: Transform.scale(
-                                          scale: item.scale ?? 1.0,
-                                          alignment: Alignment.bottomCenter,
-                                          child: Image.asset(
-                                            item.imagePath!,
-                                            width: item.width,
-                                            height: item.height,
-                                            fit:
-                                                (item.width != null ||
-                                                    item.height != null)
-                                                ? BoxFit.contain
-                                                : BoxFit.none,
-                                            alignment: Alignment.bottomCenter,
+                                    // 1. 独立渲染在最底层的“扇形图片块”
+                                    ...List.generate(kMoods.length, (index) {
+                                      final item = kMoods[index];
+                                      if (item.imagePath == null) {
+                                        return const SizedBox.shrink();
+                                      }
+
+                                      final offset = _getPopOutOffset(index);
+
+                                      return AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 300,
+                                        ),
+                                        curve: Curves.easeOutBack,
+                                        transform: Matrix4.translationValues(
+                                          offset.dx,
+                                          offset.dy,
+                                          0,
+                                        ),
+                                        child: Transform.rotate(
+                                          angle: item.angle * math.pi / 180,
+                                          child: Stack(
+                                            alignment: Alignment.center,
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              Positioned(
+                                                bottom:
+                                                    (baseWheelSize / 2) +
+                                                    (item.imageTop ?? 0),
+                                                left: item.imageLeft,
+                                                right: 0,
+                                                child: Transform.rotate(
+                                                  angle:
+                                                      (item.imageRotation ??
+                                                          0) *
+                                                      math.pi /
+                                                      180,
+                                                  child: Transform.scale(
+                                                    scale: item.scale ?? 1.0,
+                                                    alignment:
+                                                        Alignment.bottomCenter,
+                                                    child: Stack(
+                                                      alignment: Alignment
+                                                          .bottomCenter,
+                                                      children: [
+                                                        // 1. 最外层的柔和彩色发光
+                                                        if (_selectedIndex ==
+                                                            index)
+                                                          _buildGlowLayer(
+                                                            child: Image.asset(
+                                                              item.imagePath!,
+                                                              width: item.width,
+                                                              height:
+                                                                  item.height,
+                                                              fit:
+                                                                  (item.width !=
+                                                                          null ||
+                                                                      item.height !=
+                                                                          null)
+                                                                  ? BoxFit
+                                                                        .contain
+                                                                  : BoxFit.none,
+                                                              alignment: Alignment
+                                                                  .bottomCenter,
+                                                            ),
+                                                            color:
+                                                                item.glowColor ??
+                                                                Colors.white,
+                                                            strokeWidth: 6.0,
+                                                            blurRadius: 8.0,
+                                                          ),
+                                                        // 2. 内层的锐利白色描边
+                                                        if (_selectedIndex ==
+                                                            index)
+                                                          _buildGlowLayer(
+                                                            child: Image.asset(
+                                                              item.imagePath!,
+                                                              width: item.width,
+                                                              height:
+                                                                  item.height,
+                                                              fit:
+                                                                  (item.width !=
+                                                                          null ||
+                                                                      item.height !=
+                                                                          null)
+                                                                  ? BoxFit
+                                                                        .contain
+                                                                  : BoxFit.none,
+                                                              alignment: Alignment
+                                                                  .bottomCenter,
+                                                            ),
+                                                            color: Colors.white,
+                                                            strokeWidth: 6.0,
+                                                          ),
+                                                        // 3. 原本的图片
+                                                        Image.asset(
+                                                          item.imagePath!,
+                                                          width: item.width,
+                                                          height: item.height,
+                                                          fit:
+                                                              (item.width !=
+                                                                      null ||
+                                                                  item.height !=
+                                                                      null)
+                                                              ? BoxFit.contain
+                                                              : BoxFit.none,
+                                                          alignment: Alignment
+                                                              .bottomCenter,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                    // 仅保留底部切片图片的渲染
+                                      );
+                                    }),
+
+                                    // 2. 独立渲染在层上的“图标”
+                                    ...List.generate(kMoods.length, (index) {
+                                      final item = kMoods[index];
+                                      if (item.iconPath == null)
+                                        return const SizedBox.shrink();
+
+                                      final offsetAnim = _getPopOutOffset(
+                                        index,
+                                      );
+
+                                      return AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 300,
+                                        ),
+                                        curve: Curves.easeOutBack,
+                                        transform: Matrix4.translationValues(
+                                          offsetAnim.dx,
+                                          offsetAnim.dy,
+                                          0,
+                                        ),
+                                        child: Center(
+                                          child: Transform.translate(
+                                            offset:
+                                                item.iconOffset ?? Offset.zero,
+                                            child: Transform.rotate(
+                                              angle:
+                                                  (item.iconRotation ?? 0) *
+                                                  math.pi /
+                                                  180,
+                                              child: Image.asset(
+                                                item.iconPath!,
+                                                width: item.iconSize ?? 40,
+                                                height: item.iconSize ?? 40,
+                                                fit: BoxFit.contain,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+
+                                    // 3. 独立渲染在层上的“文字”
+                                    ...List.generate(kMoods.length, (index) {
+                                      final item = kMoods[index];
+                                      if (item.label.isEmpty)
+                                        return const SizedBox.shrink();
+
+                                      final offsetAnim = _getPopOutOffset(
+                                        index,
+                                      );
+
+                                      return AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 300,
+                                        ),
+                                        curve: Curves.easeOutBack,
+                                        transform: Matrix4.translationValues(
+                                          offsetAnim.dx,
+                                          offsetAnim.dy,
+                                          0,
+                                        ),
+                                        child: Center(
+                                          child: Transform.translate(
+                                            offset:
+                                                item.textOffset ?? Offset.zero,
+                                            child: Transform.rotate(
+                                              angle:
+                                                  (item.textRotation ?? 0) *
+                                                  math.pi /
+                                                  180,
+                                              child: Text(
+                                                item.label,
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  color: const Color(
+                                                    0xFF4A3424,
+                                                  ), // 深棕色字体
+                                                  fontSize: item.fontSize ?? 16,
+                                                  fontWeight: FontWeight.w600,
+                                                  height: 1.0, // 去除默认行高间隙
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }),
                                   ],
                                 ),
-                              );
-                            }),
-
-                            // 2. 独立渲染在切片上方的“图标”
-                            ...List.generate(kMoods.length, (index) {
-                              final item = kMoods[index];
-                              if (item.iconPath == null)
-                                return const SizedBox.shrink();
-                              return Center(
-                                child: Transform.translate(
-                                  offset: item.iconOffset ?? Offset.zero,
-                                  child: Transform.rotate(
-                                    angle:
-                                        (item.iconRotation ?? 0) *
-                                        math.pi /
-                                        180,
-                                    child: Image.asset(
-                                      item.iconPath!,
-                                      width: item.iconSize ?? 40,
-                                      height: item.iconSize ?? 40,
-                                      fit: BoxFit.contain,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
-
-                            // 3. 独立渲染在切片上方的“文字”
-                            ...List.generate(kMoods.length, (index) {
-                              final item = kMoods[index];
-                              if (item.label.isEmpty)
-                                return const SizedBox.shrink();
-                              return Center(
-                                child: Transform.translate(
-                                  offset: item.textOffset ?? Offset.zero,
-                                  child: Transform.rotate(
-                                    angle:
-                                        (item.textRotation ?? 0) *
-                                        math.pi /
-                                        180,
-                                    child: Text(
-                                      item.label,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: const Color(0xFF4A3424), // 深棕色字体
-                                        fontSize: item.fontSize ?? 16,
-                                        fontWeight: FontWeight.w600,
-                                        height: 1.0, // 去除默认行高间隙
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
 
