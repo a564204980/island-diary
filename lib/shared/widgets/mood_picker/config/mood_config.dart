@@ -19,6 +19,7 @@ List<MoodItem> kMoods = [
     iconOffset: Offset(-28, -84),
     textOffset: Offset(-26, -60),
     glowColor: Color(0xFFFFA4A4), // 粉红色
+    popAngle: -110.0, // 补偿自身重力和形状非对称导致的视觉向右偏移
   ),
   const MoodItem(
     label: '厌恶',
@@ -35,8 +36,9 @@ List<MoodItem> kMoods = [
     iconSize: 40,
     fontSize: 14,
     iconOffset: Offset(-74, -38),
-    textOffset: Offset(-72, -14),
+    textOffset: Offset(-80, -14),
     glowColor: Color(0xFFA4E4A4), // 浅绿色
+    popAngle: -154.3, // 厌恶
   ),
   const MoodItem(
     label: '恐惧',
@@ -53,8 +55,9 @@ List<MoodItem> kMoods = [
     iconSize: 52,
     fontSize: 14,
     iconOffset: Offset(-76, 28),
-    textOffset: Offset(-76, 50),
+    textOffset: Offset(-84, 54),
     glowColor: Color(0xFFC4A4E4), // 紫色
+    popAngle: 158.45, // 恐惧
   ),
   const MoodItem(
     label: '惊喜',
@@ -71,7 +74,7 @@ List<MoodItem> kMoods = [
     iconSize: 40,
     fontSize: 14,
     iconOffset: Offset(-28, 78),
-    textOffset: Offset(-28, 102),
+    textOffset: Offset(-32, 112),
     glowColor: Color(0xFFFFC484), // 橘黄色
   ),
   const MoodItem(
@@ -89,8 +92,9 @@ List<MoodItem> kMoods = [
     iconSize: 56,
     fontSize: 14,
     iconOffset: Offset(34, 78),
-    textOffset: Offset(34, 102),
+    textOffset: Offset(38, 112),
     glowColor: Color(0xFFA4D4E4), // 浅蓝色
+    popAngle: 63.85, // 平静
   ),
   const MoodItem(
     label: '愤怒',
@@ -107,8 +111,9 @@ List<MoodItem> kMoods = [
     iconSize: 56,
     fontSize: 14,
     iconOffset: Offset(86, 28),
-    textOffset: Offset(86, 52),
+    textOffset: Offset(95, 54),
     glowColor: Color(0xFFFF8484), // 红色
+    popAngle: 20.25, // 愤怒
   ),
   const MoodItem(
     label: '悲伤',
@@ -125,8 +130,9 @@ List<MoodItem> kMoods = [
     iconSize: 58,
     fontSize: 14,
     iconOffset: Offset(86, -42),
-    textOffset: Offset(86, -14),
+    textOffset: Offset(96, -17),
     glowColor: Color(0xFF84A4E4), // 深蓝色
+    popAngle: -21, // 悲伤
   ),
   const MoodItem(
     label: '开心',
@@ -145,5 +151,6 @@ List<MoodItem> kMoods = [
     iconOffset: Offset(33, -88),
     textOffset: Offset(33, -60),
     glowColor: Color(0xFFFFE484), // 黄色
+    popAngle: -67.2, // 开心
   ),
 ];

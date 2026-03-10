@@ -107,30 +107,21 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
                               ), // 稍微提亮一点核心白色底，显得通透
                               shape: BoxShape.circle,
                               boxShadow: [
-                                // 第一层外围光：极大面积的空气感散光 (偏暖白)
+                                // 第一层外围光：极大面积的暖色环境光晕
                                 BoxShadow(
-                                  color:
-                                      const Color.fromARGB(
-                                        255,
-                                        255,
-                                        250,
-                                        240,
-                                      ).withOpacity(
-                                        0.30,
-                                      ), // 提升透明度，同时颜色大幅偏向白色 (FloralWhite)
+                                  color: const Color(
+                                    0xFFFFE4B5,
+                                  ).withOpacity(0.25), // 莫卡辛暖黄 (Moccasin) 环境光
                                   blurRadius: 60,
-                                  spreadRadius: 10,
+                                  spreadRadius: 15, // 增加扩散范围
                                 ),
-                                // 第二层内交界光：贴合白色底盘边缘的实体高光
+                                // 第二层内交界光：贴合白色底盘边缘的实体暖高光
                                 BoxShadow(
-                                  color: const Color.fromARGB(
-                                    255,
-                                    255,
-                                    255,
-                                    250,
-                                  ).withOpacity(0.5), // 几乎纯白带一点点暖意 (Snow)
-                                  blurRadius: 20,
-                                  spreadRadius: 2,
+                                  color: const Color(
+                                    0xFFFFDAB9,
+                                  ).withOpacity(0.45), // 桃色暖黄 (PeachPuff) 内圈发光
+                                  blurRadius: 25,
+                                  spreadRadius: 4, // 加强内侧金红色调
                                 ),
                               ],
                             ),

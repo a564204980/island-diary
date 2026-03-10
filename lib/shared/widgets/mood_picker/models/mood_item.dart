@@ -20,6 +20,7 @@ class MoodItem {
   final double? iconRotation; // 图标自身的旋转
   final double? textRotation; // 文字自身的旋转
   final Color? glowColor; // 选中时的外圈发光色
+  final double? popAngle; // 弹出方向角度 (手动校准，解决间距不均)
 
   const MoodItem({
     required this.label,
@@ -39,5 +40,6 @@ class MoodItem {
     this.iconRotation,
     this.textRotation,
     this.glowColor,
+    this.popAngle,
   });
 }
