@@ -50,6 +50,7 @@ class SpriteDialogueState extends State<SpriteDialogue> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           constraints: const BoxConstraints(maxWidth: 220),
+          color: Colors.transparent, // 显式给一个透明色辅助命中
           child: widget.useTypewriter
               ? TypewriterText(
                   key: _typewriterKey,

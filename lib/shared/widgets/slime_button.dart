@@ -3,7 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/shared/widgets/sprite_animation.dart';
 
 /// 统一的精灵按钮组件，确保在任何地方（底栏、新手引导）都拥有绝对一致的几何尺寸和视觉表现。
-class SlimeButton extends StatelessWidget {
+/// 改为 StatefulWidget，使动画 Controller 常驻不因 rebuild 而重建，消除卡顿感。
+class SlimeButton extends StatefulWidget {
   final bool isNight;
   final bool isGlowing;
   final VoidCallback? onTap;
@@ -28,20 +29,53 @@ class SlimeButton extends StatelessWidget {
     this.endFrame,
     this.repeatCount,
     this.duration = const Duration(milliseconds: 800),
-    this.spriteSize = 44.0,
+    this.spriteSize = 42.0,
   });
 
   static const double centerButtonRadius = 32.0;
+  static const double containerHeight =
+      450.0; // 【高度扩容】大幅增加高度以容纳高处的气泡，并提供充足的点击判定区
+  static const double bottomOffset = 24.0; // 【统一海拔】精灵按钮相对于容器底部的偏移量
+
+  @override
+  State<SlimeButton> createState() => _SlimeButtonState();
+}
+
+class _SlimeButtonState extends State<SlimeButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _glowController;
+  late Animation<double> _scaleAnim;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    // 【核心】持续循环的呼吸控制器，生命周期绑定到 State，不随 rebuild 重建
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat(reverse: true);
+
+    _scaleAnim = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOutSine),
+    );
+    _fadeAnim = Tween<double>(begin: 1.0, end: 0.3).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOutSine),
+    );
+  }
+
+  @override
+  void dispose() {
+    _glowController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 【核心设计】强制设定固定尺寸 76x76 (基准半径 32*2 + 呼吸边距 12)。
-    // 无论内部的光晕(isGlowing)是否开启，该 Container 的占地面积永远不变。
-    // 这解决了因“光晕改变容器大小”导致的 top 定位偏移问题。
-    const double totalSize = centerButtonRadius * 2 + 12;
+    const double totalSize = SlimeButton.centerButtonRadius * 2 + 12;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
         width: totalSize,
@@ -50,50 +84,50 @@ class SlimeButton extends StatelessWidget {
           alignment: Alignment.center,
           clipBehavior: Clip.none,
           children: [
-            // ── 1. 呼吸光晕 (动态效果) ──
-            // 当 isGlowing 为 true 时，显示白色半透明呼吸层。
-            if (isGlowing)
-              Container(
-                    width: totalSize,
-                    height: totalSize,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.15),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.8),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFFD97D).withOpacity(0.4),
-                          blurRadius: 12,
-                          spreadRadius: 2,
+            // ── 1. 呼吸光晕 (持续循环，用 AnimatedOpacity 控制显隐) ──
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedOpacity(
+                  opacity: widget.isGlowing ? 1.0 : 0.0,
+                  duration: 1500.ms,
+                  curve: Curves.easeInOutSine,
+                  child: AnimatedBuilder(
+                    animation: _glowController,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _scaleAnim.value,
+                        child: Opacity(opacity: _fadeAnim.value, child: child),
+                      );
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.15),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.8),
+                          width: 1.5,
                         ),
-                      ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFFD97D).withOpacity(0.4),
+                            blurRadius: 12,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
                     ),
-                  )
-                  .animate(onPlay: (c) => c.repeat(reverse: true))
-                  .scale(
-                    begin: const Offset(1, 1),
-                    end: const Offset(1.15, 1.15),
-                    duration: 2500.ms,
-                    curve: Curves.easeInOutSine,
-                  )
-                  .fade(
-                    begin: 1.0,
-                    end: 0.3,
-                    duration: 2500.ms,
-                    curve: Curves.easeInOutSine,
                   ),
+                ),
+              ),
+            ),
 
             // ── 2. 精灵球背景容器 (视觉基座) ──
-            // 遵循图 2 的磨砂圆框设计，提供稳定的视觉焦点。
             Container(
-              width: centerButtonRadius * 2,
-              height: centerButtonRadius * 2,
+              width: SlimeButton.centerButtonRadius * 2,
+              height: SlimeButton.centerButtonRadius * 2,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isNight
+                color: widget.isNight
                     ? const Color(0xFF2A2E50).withOpacity(0.1)
                     : const Color(0xFFFFF0C0),
                 boxShadow: [
@@ -107,13 +141,13 @@ class SlimeButton extends StatelessWidget {
               ),
               child: Center(
                 child: SpriteAnimation(
-                  assetPath: assetPath,
-                  frameCount: frameCount,
-                  startFrame: startFrame,
-                  endFrame: endFrame,
-                  repeatCount: repeatCount,
-                  duration: duration,
-                  size: spriteSize,
+                  assetPath: widget.assetPath,
+                  frameCount: widget.frameCount,
+                  startFrame: widget.startFrame,
+                  endFrame: widget.endFrame,
+                  repeatCount: widget.repeatCount,
+                  duration: widget.duration,
+                  size: widget.spriteSize,
                 ),
               ),
             ),

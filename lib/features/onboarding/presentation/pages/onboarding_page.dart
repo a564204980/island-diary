@@ -34,7 +34,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
     await _audioPlayer.setVolume(0.4);
 
     try {
-      await _audioPlayer.play(AssetSource('audio/home-bg.mp3'));
+      // 暂时关闭背景音乐以方便调试
+      // await _audioPlayer.play(AssetSource('audio/home-bg.mp3'));
     } catch (e) {
       debugPrint("Waiting for audio file: assets/audio/home-bg.mp3");
     }

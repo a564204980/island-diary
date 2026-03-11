@@ -6,11 +6,13 @@ import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 
 class SlimeOnboarding extends StatefulWidget {
   final VoidCallback onComplete;
+  final VoidCallback? onSlimeAction; // 新增：最后一步点击精灵时的特殊触发逻辑
   final bool isNight;
 
   const SlimeOnboarding({
     super.key,
     required this.onComplete,
+    this.onSlimeAction,
     this.isNight = false,
   });
 
@@ -20,6 +22,8 @@ class SlimeOnboarding extends StatefulWidget {
 
 class _SlimeOnboardingState extends State<SlimeOnboarding> {
   int _step = 0;
+  bool _showDialogue = true; // 新增：控制对话框显隐，用于平滑淡出
+  double _maskOpacity = 0.0; // 光幕透明度，用 AnimatedOpacity 控制平滑消失
   final UserState _userState = UserState();
   final List<GlobalKey<SpriteDialogueState>> _dialogueKeys = [
     GlobalKey<SpriteDialogueState>(),
@@ -46,23 +50,50 @@ class _SlimeOnboardingState extends State<SlimeOnboarding> {
     if (_step < _dialogues.length - 1) {
       setState(() {
         _step++;
+        // 进入第三步时，光幕渐入
+        if (_step == 2) _maskOpacity = 0.5;
       });
     } else {
-      widget.onComplete();
+      // 最后一步：对话框与光幕平滑消隐，然后完成引导
+      setState(() {
+        _showDialogue = false;
+        _maskOpacity = 0.0;
+      });
+      Future.delayed(const Duration(milliseconds: 700), widget.onComplete);
     }
   }
 
   void _handleGlobalTap() {
+    if (_step == 2) {
+      // 最后一步：点背景只隐藏气泡+光幕，不触发完成（要求用户主动点精灵才能继续）
+      if (_showDialogue) {
+        setState(() {
+          _showDialogue = false;
+          _maskOpacity = 0.0; // 【新增】气泡和光幕同步淡出
+        });
+      }
+      return;
+    }
+    // 其他步骤：推进打字机或进入下一句
     _dialogueKeys[_step].currentState?.handleTap();
+  }
+
+  void _handleSlimeTap() {
+    if (_step == 2) {
+      // 如果是最后一步，且传入了特殊触发逻辑，则执行它
+      if (widget.onSlimeAction != null) {
+        widget.onSlimeAction!();
+        return;
+      }
+    }
+    _handleGlobalTap();
   }
 
   @override
   Widget build(BuildContext context) {
-    // 【布局对齐】强制设定高度刚好等于 BottomNavBar 外层 Stack 的固定高度 144
-    // (计算公式: 32*2 + 12[Button] + 24[TopOffset] + 52[SafetyMargin] = 144)
-    // 这样确保内部 Positioned(top: 24) 的绝对参考系与 BottomNavBar 完全同步。
+    // 【布局对齐】统一使用扩容后的高度，确保上方气泡在 hit-test 范围内
     return SizedBox(
-      height: 144,
+      height: SlimeButton.containerHeight,
       child: Stack(
         alignment: Alignment.bottomCenter,
         clipBehavior: Clip.none,
@@ -75,11 +106,12 @@ class _SlimeOnboardingState extends State<SlimeOnboarding> {
             right: -1000,
             child: GestureDetector(
               onTap: _handleGlobalTap,
-              child: AnimatedContainer(
+              // 【光幕层】使用 AnimatedOpacity 实现平滑淡出和淡入，避免切断感
+              child: AnimatedOpacity(
+                opacity: _maskOpacity,
                 duration: const Duration(milliseconds: 600),
-                color: _step == 2
-                    ? Colors.black.withOpacity(0.5)
-                    : Colors.transparent,
+                curve: Curves.easeInOut,
+                child: Container(color: Colors.black.withOpacity(0.55)),
               ),
             ),
           ),
@@ -87,17 +119,25 @@ class _SlimeOnboardingState extends State<SlimeOnboarding> {
           // 对话气泡，位置与正常状态一致
           Positioned(
             bottom: 124, // 进一步增加底部间距，避免遮挡
-            child: SpriteDialogue(
-              key: _dialogueKeys[_step],
-              text: _dialogues[_step],
-              isNight: widget.isNight,
-              useTypewriter: true,
-              onNext: _nextStep,
+            child: AnimatedOpacity(
+              opacity: _showDialogue ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOut,
+              child: SpriteDialogue(
+                key: _dialogueKeys[_step],
+                text: _dialogues[_step],
+                isNight: widget.isNight,
+                useTypewriter: true,
+                onNext: _nextStep,
+              ),
             ),
           ),
 
           // 中心精灵按钮，位置与正常状态一致
-          Positioned(top: 40, child: _buildSlimeButton()),
+          Positioned(
+            bottom: SlimeButton.bottomOffset,
+            child: _buildSlimeButton(),
+          ),
         ],
       ),
     );
@@ -126,10 +166,12 @@ class _SlimeOnboardingState extends State<SlimeOnboarding> {
     }
 
     return SlimeButton(
-      key: ValueKey('slime_btn_$_step'), // 利用 Key 强制在步骤切换时重置动画
+      key: const ValueKey(
+        'slime_btn_stable',
+      ), // 【核心修复】改为固定 Key，防止步骤切换时销毁重建导致动画断档
       isNight: widget.isNight,
       isGlowing: isGlowing,
-      onTap: _handleGlobalTap,
+      onTap: _handleSlimeTap,
       startFrame: start,
       endFrame: end,
       repeatCount: repeatCount,

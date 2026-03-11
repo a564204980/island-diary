@@ -27,6 +27,9 @@ class BottomNavBar extends StatefulWidget {
 const double centerButtonRadius = 32.0; // 遵循相切圆方案比例：下调至 32.0，更精致紧凑
 
 class _BottomNavBarState extends State<BottomNavBar> {
+  bool _isMoodPickerOpen = false; // 是否打开了心情选择框
+  bool _justFinishedOnboarding = false; // 是否刚完成新手引导
+  bool _showRegularDialogue = true; // 是否显示常规对话气泡
   @override
   Widget build(BuildContext context) {
     const double barHeight = 76;
@@ -34,7 +37,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     final bool isNight = widget.isNight;
 
     return SizedBox(
-      height: barHeight + notchRadius + 16, // 扩容高度以支持更大的悬浮间隙
+      height: SlimeButton.containerHeight, // 统一使用扩容后的高度，确保气泡 hits 测试有效
       child: Stack(
         alignment: Alignment.bottomCenter,
         clipBehavior: Clip.none,
@@ -151,8 +154,17 @@ class _BottomNavBarState extends State<BottomNavBar> {
                   // 该层级内部也使用了 SlimeButton，并采用相同的 Positioned(top: 24) 定位，
                   //从而保证引导页面与常规页面的史莱姆位置完全重合。
                   return SlimeOnboarding(
+                    key: const ValueKey(
+                      'slime_onboarding',
+                    ), // 【核心修复】固定 Key 防止 BottomNavBar rebuild 时销毁 State
                     isNight: isNight,
-                    onComplete: () => UserState().completeOnboarding(),
+                    onSlimeAction: () {
+                      _openMoodPicker();
+                    },
+                    onComplete: () {
+                      setState(() => _justFinishedOnboarding = true);
+                      UserState().completeOnboarding();
+                    },
                   );
                 }
 
@@ -162,53 +174,33 @@ class _BottomNavBarState extends State<BottomNavBar> {
                   clipBehavior: Clip.none,
                   children: [
                     // ── 常规对话气泡 ──
-                    Positioned(
-                      bottom: 124,
-                      child: const SpriteDialogue(
-                        text: '今天过得好吗？摸摸我的头，把心情种进岛里吧。',
-                        useTypewriter: false, // 常规状态下可不使用打字机，或设为 true 亦可
+                    // 只有在：1. 不是刚做完引导 且 2. 心情弹窗未打开 且 3. 用户未点击消失 时才显示
+                    if (!_justFinishedOnboarding &&
+                        !_isMoodPickerOpen &&
+                        _showRegularDialogue)
+                      Positioned(
+                        bottom: 124,
+                        child: SpriteDialogue(
+                          text: '今天过得好吗？摸摸我的头，把心情种进岛里吧。',
+                          useTypewriter: false,
+                          onNext: () {
+                            // 点击对话框消失
+                            setState(() => _showRegularDialogue = false);
+                          },
+                        ),
                       ),
-                    ),
 
                     // ── 常规中心凸出精灵按钮 ──
                     Positioned(
-                      top: 40, // 【核心对齐】保证与 SlimeOnboarding 中的 top: 24 完全一致
+                      bottom: SlimeButton
+                          .bottomOffset, // 【位置纠正】改用 bottom 定位，确保受 containerHeight 保护
                       child: SlimeButton(
+                        key: const ValueKey(
+                          'bottom_nav_slime',
+                        ), // 增加 Key，确保状态在 Stack 变化时能自持，动画不断
                         isNight: isNight,
                         isGlowing: true, // 常规状态下常驻发光/呼吸效果
-                        onTap: () {
-                          showGeneralDialog(
-                            context: context,
-                            barrierDismissible: true,
-                            barrierLabel: 'MoodPicker',
-                            barrierColor: Colors.black.withOpacity(0.6),
-                            transitionDuration: const Duration(
-                              milliseconds: 500,
-                            ),
-                            transitionBuilder:
-                                (
-                                  context,
-                                  animation,
-                                  secondaryAnimation,
-                                  child,
-                                ) {
-                                  final curvedAnimation = CurvedAnimation(
-                                    parent: animation,
-                                    curve: Curves.easeOutBack,
-                                  );
-                                  return Transform.scale(
-                                    scale: curvedAnimation.value,
-                                    alignment: const Alignment(0.0, 0.8),
-                                    child: FadeTransition(
-                                      opacity: animation,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                            pageBuilder: (context, anim1, anim2) =>
-                                const MoodPickerSheet(),
-                          );
-                        },
+                        onTap: _openMoodPicker,
                       ),
                     ),
                   ],
@@ -219,6 +211,49 @@ class _BottomNavBarState extends State<BottomNavBar> {
         ],
       ),
     );
+  }
+
+  // 统一打开心情选择器的逻辑
+  Future<void> _openMoodPicker() async {
+    // 记录进入时是否还在引导状态（await 之后无法再读取准确值）
+    final wasOnboarding = !UserState().hasFinishedOnboarding.value;
+
+    // 记录弹窗状态，对话框顺便消失
+    setState(() {
+      _isMoodPickerOpen = true;
+      _showRegularDialogue = false;
+    });
+
+    await showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'MoodPicker',
+      barrierColor: Colors.black.withOpacity(0.6),
+      transitionDuration: const Duration(milliseconds: 500),
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutBack,
+        );
+        return Transform.scale(
+          scale: curvedAnimation.value,
+          alignment: const Alignment(0.0, 0.8),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+      pageBuilder: (context, anim1, anim2) => const MoodPickerSheet(),
+    );
+
+    // 【核心修复】弹窗关闭后才标记引导完成，避免在弹窗打开动画期间切换底层 widget 造成闪烁
+    if (mounted) {
+      setState(() {
+        _isMoodPickerOpen = false;
+        if (wasOnboarding) _justFinishedOnboarding = true;
+      });
+      if (wasOnboarding) {
+        UserState().completeOnboarding();
+      }
+    }
   }
 
   Widget _buildNavItem(int index, String assetPath, String label) {
