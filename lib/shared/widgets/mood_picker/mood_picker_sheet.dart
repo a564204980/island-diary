@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import 'config/mood_config.dart';
 import 'widgets/mood_slice_item.dart';
+import 'widgets/mood_intensity_slider.dart';
 
 class MoodPickerSheet extends StatefulWidget {
   const MoodPickerSheet({super.key});
@@ -14,6 +15,7 @@ class MoodPickerSheet extends StatefulWidget {
 
 class _MoodPickerSheetState extends State<MoodPickerSheet> {
   int? _selectedIndex;
+  double _intensity = 6.0; // 默认强度 6
 
   void _handleTap(Offset localPosition, double baseWheelSize) {
     // 中心点就是宽度/高度的一半
@@ -97,42 +99,16 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
                     alignment: Alignment.center,
                     clipBehavior: Clip.none,
                     children: [
-                      // 底层白色圆盘背景 (增加透明度，呈现磨砂质感)
-                      Container(
-                            width: 320,
-                            height: 320,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(
-                                0.30,
-                              ), // 稍微提亮一点核心白色底，显得通透
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                // 第一层外围光：极大面积的暖色环境光晕
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFFFFE4B5,
-                                  ).withOpacity(0.25), // 莫卡辛暖黄 (Moccasin) 环境光
-                                  blurRadius: 60,
-                                  spreadRadius: 15, // 增加扩散范围
-                                ),
-                                // 第二层内交界光：贴合白色底盘边缘的实体暖高光
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFFFFDAB9,
-                                  ).withOpacity(0.45), // 桃色暖黄 (PeachPuff) 内圈发光
-                                  blurRadius: 25,
-                                  spreadRadius: 4, // 加强内侧金红色调
-                                ),
-                              ],
-                            ),
+                      // 1. 底层白色背景 (带突出部)
+                      CustomPaint(
+                            size: const Size(320, 320),
+                            painter: MoodPickerBackgroundPainter(),
                           )
                           .animate()
                           .fade(duration: 400.ms)
-                          .scale(
-                            duration: 500.ms,
-                            curve: Curves.easeOutBack,
-                          ), // 让白色底座带有呼吸感的淡出和轻微弹性缩放
-                      // 全盘手势接管层区
+                          .scale(duration: 500.ms, curve: Curves.easeOutBack),
+
+                      // 2. 心情选项层 (居中)
                       GestureDetector(
                         onTapUp: (details) {
                           _handleTap(details.localPosition, baseWheelSize);
@@ -140,19 +116,17 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
                         child: Container(
                           width: baseWheelSize,
                           height: baseWheelSize,
-                          color: Colors.transparent, // 设置透明色拦截手指事件
+                          color: Colors.transparent,
                           child: Stack(
                             alignment: Alignment.center,
                             clipBehavior: Clip.none,
                             children: [
-                              // 心情选项图标层 (因为原来的切片偏右下一点，所以全局往左上平移一点来纠正视觉居中)
                               Transform.translate(
                                 offset: const Offset(-5, -4),
                                 child: Stack(
                                   alignment: Alignment.center,
                                   clipBehavior: Clip.none,
                                   children: [
-                                    // 渲染每个带动画的光效切片
                                     ...List.generate(kMoods.length, (index) {
                                       return MoodSliceItem(
                                             item: kMoods[index],
@@ -179,7 +153,26 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
                         ),
                       ),
 
-                      // 中心基准小白点
+                      // 3. 右侧强度选择器 (叠加在中心并向右平移)
+                      Transform.translate(
+                        offset: const Offset(23, 0),
+                        child:
+                            MoodIntensitySlider(
+                                  intensity: _intensity,
+                                  onChanged: (val) =>
+                                      setState(() => _intensity = val),
+                                  radius: 130,
+                                )
+                                .animate()
+                                .fade(delay: 500.ms, duration: 600.ms)
+                                .scale(
+                                  begin: const Offset(0.8, 0.8),
+                                  duration: 600.ms,
+                                  curve: Curves.easeOutBack,
+                                ),
+                      ),
+
+                      // 4. 中心基准小白点 (居中)
                       Container(
                         width: 10,
                         height: 10,
@@ -201,4 +194,81 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
       ),
     );
   }
+}
+
+/// 自定义绘制带突起的背景
+class MoodPickerBackgroundPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.38)
+      ..style = PaintingStyle.fill;
+
+    // ======= 发光重构：参考 UI 设定的多层暖色光晕 =======
+    final glowPaintOuter = Paint()
+      ..color = const Color.fromRGBO(244, 214, 115, 1).withValues(alpha: 0.4)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+
+    final glowPaintInner = Paint()
+      ..color = const Color.fromRGBO(213, 213, 213, 1).withValues(alpha: 0.6)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
+
+    // ======= 终极重塑：圆角弧度版 (消除倾斜斜坡) =======
+    final double r = radius;
+    final double outerR = r + 20; // 突起高度 (保持 20)
+
+    // 收窄过渡区间：从 36° 到 31° (仅 5 度差)，消除漫长斜度
+    const double startA = 36 * math.pi / 180;
+    const double endA = 31 * math.pi / 180;
+
+    final path = Path();
+
+    // 1. 主圆弧 (361度闭环，留出 36°x2 的开口)
+    path.addArc(
+      Rect.fromCircle(center: center, radius: r),
+      startA,
+      2 * math.pi - 2 * startA,
+    );
+
+    // 2. 顶部紧凑圆角 (Fillet)
+    path.cubicTo(
+      center.dx + (r + 4) * math.cos(-startA), // 极短控制点：引导切向
+      center.dy + (r + 4) * math.sin(-startA),
+      center.dx + outerR * math.cos(-startA), // 指向突起半径切向
+      center.dy + outerR * math.sin(-startA),
+      center.dx + outerR * math.cos(-endA), // 快速收回至突起外弧
+      center.dy + outerR * math.sin(-endA),
+    );
+
+    // 3. 突起外边缘弧线 (与大圆绝对平行)
+    path.arcTo(
+      Rect.fromCircle(center: center, radius: outerR),
+      -endA,
+      2 * endA,
+      false,
+    );
+
+    // 4. 底部紧凑圆角 (Fillet)
+    path.cubicTo(
+      center.dx + outerR * math.cos(startA), // 指向突起半径
+      center.dy + outerR * math.sin(startA),
+      center.dx + (r + 4) * math.cos(startA), // 极短控制点：对齐大圆
+      center.dy + (r + 4) * math.sin(startA),
+      center.dx + r * math.cos(startA), // 回到大圆
+      center.dy + r * math.sin(startA),
+    );
+
+    path.close();
+
+    // 填色与发光：通过多层绘制实现 UI 要求的暖色光晕
+    canvas.drawPath(path, glowPaintOuter);
+    canvas.drawPath(path, glowPaintInner);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
