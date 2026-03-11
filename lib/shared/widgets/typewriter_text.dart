@@ -8,21 +8,27 @@ class TypewriterText extends StatefulWidget {
   final Duration typingDuration;
   final Duration delay;
   final VoidCallback? onFinished;
+  final TextStyle? style;
 
   const TypewriterText({
     super.key,
     required this.text,
-    this.typingDuration = const Duration(milliseconds: 180),
+    this.typingDuration = const Duration(milliseconds: 50), // 默认 0.05s/字
     this.delay = Duration.zero,
     this.onFinished,
+    this.style,
   });
 
   @override
-  State<TypewriterText> createState() => _TypewriterTextState();
+  State<TypewriterText> createState() => TypewriterTextState();
 }
 
-class _TypewriterTextState extends State<TypewriterText> {
+class TypewriterTextState extends State<TypewriterText> {
   String _displayedText = '';
+  bool _isFinished = false;
+  bool _skipRequested = false;
+
+  bool get isFinished => _isFinished;
 
   @override
   void initState() {
@@ -30,9 +36,21 @@ class _TypewriterTextState extends State<TypewriterText> {
     Future.delayed(widget.delay, _startTyping);
   }
 
+  /// 此时暴露给外部，点击时若未完成则瞬间完成
+  void skip() {
+    if (!_isFinished) {
+      setState(() {
+        _skipRequested = true;
+        _displayedText = widget.text;
+        _isFinished = true;
+      });
+      widget.onFinished?.call();
+    }
+  }
+
   void _startTyping() async {
     for (int i = 0; i < widget.text.length; i++) {
-      if (!mounted) return;
+      if (!mounted || _skipRequested) return;
 
       setState(() {
         _displayedText += widget.text[i];
@@ -42,42 +60,37 @@ class _TypewriterTextState extends State<TypewriterText> {
       HapticFeedback.lightImpact();
 
       final char = widget.text[i];
+      Duration wait = widget.typingDuration;
       if (char == '\n') {
-        await Future.delayed(const Duration(milliseconds: 800));
-      } else if (['，', '？', '。'].contains(char)) {
-        await Future.delayed(const Duration(milliseconds: 500));
-      } else {
-        await Future.delayed(widget.typingDuration);
+        wait = const Duration(milliseconds: 400);
+      } else if (['，', '？', '。', '！'].contains(char)) {
+        wait = const Duration(milliseconds: 250);
       }
+
+      await Future.delayed(wait);
     }
 
-    widget.onFinished?.call();
+    if (mounted && !_skipRequested) {
+      setState(() {
+        _isFinished = true;
+      });
+      widget.onFinished?.call();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      child: Text(
-        _displayedText,
-        key: ValueKey(_displayedText),
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w300,
-          letterSpacing: 3.0,
-          height: 1.8,
-          // 增加文字阴影，让白字在亮色背景下依然能“浮”出来清晰可见
-          shadows: [
-            Shadow(
-              color: Colors.black54, // 半透明深黑
-              offset: Offset(0, 1.5),
-              blurRadius: 4.0, // 柔和的弥散半径
-            ),
-          ],
-        ),
-      ),
+    return Text(
+      _displayedText,
+      textAlign: TextAlign.center,
+      style:
+          widget.style ??
+          const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w400,
+            height: 1.6,
+          ),
     );
   }
 }

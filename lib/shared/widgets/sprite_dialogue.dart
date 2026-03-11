@@ -1,29 +1,76 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:island_diary/shared/widgets/typewriter_text.dart';
 
-/// 手绘风格对话气泡
-class SpriteDialogue extends StatelessWidget {
+/// 手绘风格对话气泡，集成打字机效果与点击交互
+class SpriteDialogue extends StatefulWidget {
   final String text;
   final bool isNight;
+  final bool useTypewriter;
+  final VoidCallback? onNext; // 打字完成后的下一步回调
 
-  const SpriteDialogue({super.key, required this.text, this.isNight = false});
+  const SpriteDialogue({
+    super.key,
+    required this.text,
+    this.isNight = false,
+    this.useTypewriter = true,
+    this.onNext,
+  });
+
+  @override
+  State<SpriteDialogue> createState() => SpriteDialogueState();
+}
+
+class SpriteDialogueState extends State<SpriteDialogue> {
+  final GlobalKey<TypewriterTextState> _typewriterKey = GlobalKey();
+
+  void handleTap() {
+    if (widget.useTypewriter) {
+      final state = _typewriterKey.currentState;
+      if (state != null && !state.isFinished) {
+        state.skip();
+        return;
+      }
+    }
+    widget.onNext?.call();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _HandDrawnBubblePainter(isNight: isNight),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        constraints: const BoxConstraints(maxWidth: 200),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: isNight ? const Color(0xFFE0C097) : const Color(0xFF5A3E28),
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            fontFamily: 'Zhi Mang Xing', // 尝试使用手写感字体，若无则回退
-          ),
+    final textColor = widget.isNight
+        ? const Color(0xFFE0C097)
+        : const Color(0xFF5A3E28);
+
+    return GestureDetector(
+      onTap: handleTap,
+      behavior: HitTestBehavior.opaque,
+      child: CustomPaint(
+        painter: _HandDrawnBubblePainter(isNight: widget.isNight),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          constraints: const BoxConstraints(maxWidth: 220),
+          child: widget.useTypewriter
+              ? TypewriterText(
+                  key: _typewriterKey,
+                  text: widget.text,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Zhi Mang Xing',
+                  ),
+                )
+              : Text(
+                  widget.text,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Zhi Mang Xing',
+                  ),
+                ),
         ),
       ),
     );

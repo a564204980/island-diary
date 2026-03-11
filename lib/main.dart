@@ -8,10 +8,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // 启动时读取本地存储中的用户名，并更新全局状态
-  final savedName = await UserState().loadFromStorage();
+  await UserState().loadFromStorage();
+  final hasSavedName = UserState().userName.value.isNotEmpty;
 
   // 根据有无本地存储的名字，决定直接进入主页或先过引导页
-  runApp(IslandDiaryApp(startWithHome: savedName != null));
+  runApp(IslandDiaryApp(startWithHome: hasSavedName));
 }
 
 class IslandDiaryApp extends StatelessWidget {

@@ -9,9 +9,13 @@ class UserState {
   UserState._internal();
 
   static const _keyUserName = 'user_name';
+  static const _keyOnboarding = 'has_finished_onboarding';
 
-  /// 用户的姓名（游戏内称呼）
+  /// 用户的姓名（游戏内称称呼）
   final ValueNotifier<String> userName = ValueNotifier<String>('');
+
+  /// 是否已完成新手引导
+  final ValueNotifier<bool> hasFinishedOnboarding = ValueNotifier<bool>(false);
 
   /// 更新用户名称并持久化到本地
   Future<void> setUserName(String name) async {
@@ -23,17 +27,27 @@ class UserState {
     }
   }
 
-  /// 从本地存储中读取用户名称，返回 null 表示第一次启动
-  Future<String?> loadFromStorage() async {
+  /// 设置引导完成状态
+  Future<void> completeOnboarding() async {
+    hasFinishedOnboarding.value = true;
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_keyUserName);
-    if (saved != null && saved.isNotEmpty) {
-      userName.value = saved;
+    await prefs.setBool(_keyOnboarding, true);
+  }
+
+  /// 从本地存储中读取用户名称，返回 null 表示第一次启动
+  Future<void> loadFromStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString(_keyUserName);
+    if (savedName != null && savedName.isNotEmpty) {
+      userName.value = savedName;
     }
-    return saved?.isEmpty == false ? saved : null;
+
+    final finished = prefs.getBool(_keyOnboarding) ?? false;
+    hasFinishedOnboarding.value = finished;
   }
 
   void dispose() {
     userName.dispose();
+    hasFinishedOnboarding.dispose();
   }
 }

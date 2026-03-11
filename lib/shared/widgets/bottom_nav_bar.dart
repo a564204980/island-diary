@@ -2,7 +2,9 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:island_diary/shared/widgets/sprite_animation.dart';
+import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/shared/widgets/slime_onboarding.dart';
+import 'package:island_diary/shared/widgets/slime_button.dart';
 import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/shared/widgets/mood_picker/mood_picker_sheet.dart';
 
@@ -138,116 +140,80 @@ class _BottomNavBarState extends State<BottomNavBar> {
             ),
           ),
 
-          // ── 精灵球气泡对话系统 ──
-          Positioned(
-            top: -60, // 在精灵球头顶约 60px 处
-            child: const SpriteDialogue(text: '今天过得好吗？摸摸我的头，把心情种进岛里吧。'),
-          ),
+          // ── 对话系统与中心精灵状态切换 ──
+          Positioned.fill(
+            child: ValueListenableBuilder<bool>(
+              valueListenable: UserState().hasFinishedOnboarding,
+              builder: (context, hasFinished, child) {
+                if (!hasFinished) {
+                  // 【新手引导层】
+                  // 如果未完成引导，显示新手引导覆盖层。
+                  // 该层级内部也使用了 SlimeButton，并采用相同的 Positioned(top: 24) 定位，
+                  //从而保证引导页面与常规页面的史莱姆位置完全重合。
+                  return SlimeOnboarding(
+                    isNight: isNight,
+                    onComplete: () => UserState().completeOnboarding(),
+                  );
+                }
 
-          // ── 中心凸出精灵按钮 ──
-          Positioned(
-            top: 24, // 下移
-            child: GestureDetector(
-              onTap: () {
-                showGeneralDialog(
-                  context: context,
-                  barrierDismissible: true,
-                  barrierLabel: 'MoodPicker',
-                  barrierColor: Colors.black.withOpacity(0.6),
-                  transitionDuration: const Duration(milliseconds: 500),
-                  transitionBuilder:
-                      (context, animation, secondaryAnimation, child) {
-                        final curvedAnimation = CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutBack,
-                        );
-                        return Transform.scale(
-                          scale: curvedAnimation.value,
-                          alignment: const Alignment(0.0, 0.8),
-                          child: FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          ),
-                        );
-                      },
-                  pageBuilder: (context, anim1, anim2) =>
-                      const MoodPickerSheet(),
+                // 已完成引导，显示常规对话气泡与带有法阵的精灵球
+                return Stack(
+                  alignment: Alignment.bottomCenter,
+                  clipBehavior: Clip.none,
+                  children: [
+                    // ── 常规对话气泡 ──
+                    Positioned(
+                      bottom: 124,
+                      child: const SpriteDialogue(
+                        text: '今天过得好吗？摸摸我的头，把心情种进岛里吧。',
+                        useTypewriter: false, // 常规状态下可不使用打字机，或设为 true 亦可
+                      ),
+                    ),
+
+                    // ── 常规中心凸出精灵按钮 ──
+                    Positioned(
+                      top: 40, // 【核心对齐】保证与 SlimeOnboarding 中的 top: 24 完全一致
+                      child: SlimeButton(
+                        isNight: isNight,
+                        isGlowing: true, // 常规状态下常驻发光/呼吸效果
+                        onTap: () {
+                          showGeneralDialog(
+                            context: context,
+                            barrierDismissible: true,
+                            barrierLabel: 'MoodPicker',
+                            barrierColor: Colors.black.withOpacity(0.6),
+                            transitionDuration: const Duration(
+                              milliseconds: 500,
+                            ),
+                            transitionBuilder:
+                                (
+                                  context,
+                                  animation,
+                                  secondaryAnimation,
+                                  child,
+                                ) {
+                                  final curvedAnimation = CurvedAnimation(
+                                    parent: animation,
+                                    curve: Curves.easeOutBack,
+                                  );
+                                  return Transform.scale(
+                                    scale: curvedAnimation.value,
+                                    alignment: const Alignment(0.0, 0.8),
+                                    child: FadeTransition(
+                                      opacity: animation,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                            pageBuilder: (context, anim1, anim2) =>
+                                const MoodPickerSheet(),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 );
               },
-              child: Stack(
-                alignment: Alignment.center,
-                clipBehavior: Clip.none,
-                children: [
-                  // 呼吸光晕
-                  Container(
-                        width: centerButtonRadius * 2 + 12,
-                        height: centerButtonRadius * 2 + 12,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.15),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.8),
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFFFD97D).withOpacity(0.4),
-                              blurRadius: 12,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                      )
-                      .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .scale(
-                        begin: const Offset(1, 1),
-                        end: const Offset(1.15, 1.15),
-                        duration: 2500.ms,
-                        curve: Curves.easeInOutSine,
-                      )
-                      .fade(
-                        begin: 1,
-                        end: 0.3,
-                        duration: 2500.ms,
-                        curve: Curves.easeInOutSine,
-                      ),
-
-                  // 精灵主体 (简洁设计)
-                  Container(
-                    width: centerButtonRadius * 2,
-                    height: centerButtonRadius * 2,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isNight
-                          ? const Color(0xFF2A2E50).withOpacity(
-                              0.1,
-                            ) // 透明度调为 0.1
-                          : const Color(0xFFFFF0C0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(
-                            0xFFFFD97D,
-                          ).withOpacity(0.8), // 恢复光感
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                      border: Border.all(
-                        color: const Color(0xFFFFE4B5), // 恢复稳健边框
-                        width: 2.5,
-                      ),
-                    ),
-                    child: Center(
-                      child: SpriteAnimation(
-                        assetPath: 'assets/images/emoji/weixiao.png',
-                        frameCount: 9,
-                        duration: 800.ms,
-                        size: 44.0, // 适配 32.0 半径：由 48 下调至 44
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],
