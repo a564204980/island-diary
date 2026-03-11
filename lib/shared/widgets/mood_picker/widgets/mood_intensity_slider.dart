@@ -42,24 +42,23 @@ class _MoodIntensitySliderState extends State<MoodIntensitySlider> {
     final dy = localPosition.dy - center.dy;
     final distance = math.sqrt(dx * dx + dy * dy);
 
-    // 碰撞检测：只有在弧线附近（半径 ± 40）点击才有效
-    if ((distance - widget.radius).abs() > 45) return;
+    // 碰撞检测：外侧宽容度保持 60 防断触，内侧收窄至 20 避免遮挡弹出的心情模块
+    if (distance < widget.radius - 20 || distance > widget.radius + 60) return;
 
     double angle = math.atan2(dy, dx);
 
-    // 限制在右侧弧形区域内 (atan2 范围为 -pi 到 pi)
-    // 对于 -45 到 45 度，无需特殊处理跳变
-
-    // 过滤掉不在弧形范围内的角度 (允许缓冲区)
-    if (angle < startAngle - 0.2 || angle > (startAngle + swepAngle + 0.2)) {
+    // 放宽角度过滤区间的缓冲，防止快速拖动时因手指离开扇区而断触
+    if (angle < startAngle - 0.4 || angle > (startAngle + swepAngle + 0.4)) {
       return;
     }
 
     double normalized = (angle - startAngle) / swepAngle;
     normalized = normalized.clamp(0.0, 1.0);
 
+    // 连续、平滑地输出 double 强度值
     double newIntensity = 1 + normalized * 9;
 
+    // 触觉反馈仅在整数位变化时触发一次，不干扰连续的 setState
     if (newIntensity.round() != widget.intensity.round()) {
       HapticFeedback.selectionClick();
     }
@@ -144,14 +143,14 @@ class _RenderMoodIntensitySliderHitTest extends RenderProxyBox {
     final dy = position.dy - center.dy;
     final distance = math.sqrt(dx * dx + dy * dy);
 
-    // 1. 判断半径范围 (弧形宽度约为 45px，包含数字)
-    if ((distance - radius).abs() > 45) {
+    // 1. 判断半径范围 (外侧放宽到 60 避免断触，内侧收窄到 20 避免遮挡拨盘)
+    if (distance < radius - 20 || distance > radius + 60) {
       return false; // 不在弧线范围内，允许穿透
     }
 
-    // 2. 判断角度范围 (允许 0.2 弧度的缓冲)
+    // 2. 判断角度范围 (允许 0.4 弧度的缓冲)
     double angle = math.atan2(dy, dx);
-    if (angle < startAngle - 0.2 || angle > (startAngle + swepAngle + 0.2)) {
+    if (angle < startAngle - 0.4 || angle > (startAngle + swepAngle + 0.4)) {
       return false; // 不在弧线扇区内，允许穿透
     }
 
@@ -177,67 +176,316 @@ class IntensityPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final rect = Rect.fromCircle(center: center, radius: radius);
+    const double strokeWidth = 12.0;
+    final rnd = math.Random(42);
+    final rndSketch = math.Random(43);
 
-    final paintBase = Paint()
-      ..color = Colors.black
-          .withValues(alpha: 0.1) // 背景弧线改淡
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
-      ..strokeCap = StrokeCap.round;
+    // 1. 底色轨道 (原生圆角弧)
+    canvas.drawArc(
+      rect,
+      startAngle,
+      swepAngle,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round
+        ..color = Colors.black.withValues(alpha: 0.08),
+    );
 
-    final paintProgress = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
-      ..strokeCap = StrokeCap.round
-      ..shader = uiGradient(rect);
-
-    // 1. 绘制底色圆弧
-    canvas.drawArc(rect, startAngle, swepAngle, false, paintBase);
-
-    // 2. 绘制进度圆弧
+    // 2. 进度弧线 (原生圆角弧 + 渐变)
     double progressPercent = (intensity - 1) / 9;
     canvas.drawArc(
       rect,
       startAngle,
       swepAngle * progressPercent,
       false,
-      paintProgress,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round
+        ..shader = uiGradient(rect),
     );
 
-    // 3. 绘制指示器小圆点
+    // 3. 整体轨道手绘抖动描边 (对齐对话框 _HandDrawnBubblePainter)
+    final outerR = radius + strokeWidth / 2;
+    final innerR = radius - strokeWidth / 2;
+
+    final mainBorderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3
+      ..strokeCap = StrokeCap.round
+      ..color = const Color(0xFF9E896A).withValues(alpha: 0.7);
+
+    final sketchBorderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8
+      ..strokeCap = StrokeCap.round
+      ..color = const Color(0xFF9E896A).withValues(alpha: 0.25);
+
+    // 外圆弧手绘描边 (主笔)
+    canvas.drawPath(
+      _buildJitterArcPath(center, outerR, startAngle, swepAngle, rnd),
+      mainBorderPaint,
+    );
+    // 内圆弧手绘描边 (主笔)
+    canvas.drawPath(
+      _buildJitterArcPath(center, innerR, startAngle, swepAngle, rnd),
+      mainBorderPaint,
+    );
+
+    // 外圆弧手绘补笔 (草图层)
+    canvas.drawPath(
+      _buildJitterArcPath(
+        center,
+        outerR,
+        startAngle,
+        swepAngle,
+        rndSketch,
+        jitter: 0.8,
+      ),
+      sketchBorderPaint,
+    );
+    // 内圆弧手绘补笔 (草图层)
+    canvas.drawPath(
+      _buildJitterArcPath(
+        center,
+        innerR,
+        startAngle,
+        swepAngle,
+        rndSketch,
+        jitter: 0.8,
+      ),
+      sketchBorderPaint,
+    );
+
+    // 4. 进度弧专属手绘描边 (仅绘制进度范围，StrokeCap.round 自然为两端生成圆头)
+    final progressSweep = swepAngle * progressPercent;
+    if (progressSweep.abs() > 0.01) {
+      final rndP = math.Random(44);
+      final rndPS = math.Random(45);
+
+      // 外圆弧进度描边
+      canvas.drawPath(
+        _buildJitterArcPath(center, outerR, startAngle, progressSweep, rndP),
+        mainBorderPaint,
+      );
+      // 内圆弧进度描边
+      canvas.drawPath(
+        _buildJitterArcPath(center, innerR, startAngle, progressSweep, rndP),
+        mainBorderPaint,
+      );
+      // 补笔层
+      canvas.drawPath(
+        _buildJitterArcPath(
+          center,
+          outerR,
+          startAngle,
+          progressSweep,
+          rndPS,
+          jitter: 0.8,
+        ),
+        sketchBorderPaint,
+      );
+      canvas.drawPath(
+        _buildJitterArcPath(
+          center,
+          innerR,
+          startAngle,
+          progressSweep,
+          rndPS,
+          jitter: 0.8,
+        ),
+        sketchBorderPaint,
+      );
+
+      // 进度弧端点盖帽 半圆描边
+      _drawRoundCapBorder(
+        canvas,
+        center,
+        radius,
+        strokeWidth,
+        startAngle,
+        true,
+        mainBorderPaint,
+      );
+      _drawRoundCapBorder(
+        canvas,
+        center,
+        radius,
+        strokeWidth,
+        startAngle,
+        true,
+        sketchBorderPaint,
+      );
+
+      final progressEndA = startAngle + progressSweep;
+      _drawRoundCapBorder(
+        canvas,
+        center,
+        radius,
+        strokeWidth,
+        progressEndA,
+        false,
+        mainBorderPaint,
+      );
+      _drawRoundCapBorder(
+        canvas,
+        center,
+        radius,
+        strokeWidth,
+        progressEndA,
+        false,
+        sketchBorderPaint,
+      );
+    }
+
+    // 整个刻度弧的两端也需要盖帽
+    _drawRoundCapBorder(
+      canvas,
+      center,
+      radius,
+      strokeWidth,
+      startAngle,
+      true,
+      mainBorderPaint,
+    );
+    _drawRoundCapBorder(
+      canvas,
+      center,
+      radius,
+      strokeWidth,
+      startAngle,
+      true,
+      sketchBorderPaint,
+    );
+    _drawRoundCapBorder(
+      canvas,
+      center,
+      radius,
+      strokeWidth,
+      startAngle + swepAngle,
+      false,
+      mainBorderPaint,
+    );
+    _drawRoundCapBorder(
+      canvas,
+      center,
+      radius,
+      strokeWidth,
+      startAngle + swepAngle,
+      false,
+      sketchBorderPaint,
+    );
+
+    // 5. 绘制指示器小圆点 (对齐 UI：白底 + 橙心)
     final indicatorAngle = startAngle + swepAngle * progressPercent;
     final indicatorOffset = Offset(
       center.dx + radius * math.cos(indicatorAngle),
       center.dy + radius * math.sin(indicatorAngle),
     );
 
-    canvas.drawCircle(
-      indicatorOffset,
-      7,
-      Paint()
-        ..color = Colors.black12
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+    // 使用 drawShadow 替换 MaskFilter.blur 阴影，避免软件渲染阻塞
+    canvas.drawShadow(
+      Path()..addOval(Rect.fromCircle(center: indicatorOffset, radius: 7.5)),
+      Colors.black54,
+      2.5,
+      true,
     );
-    canvas.drawCircle(indicatorOffset, 6, Paint()..color = Colors.white);
+    canvas.drawCircle(indicatorOffset, 6.5, Paint()..color = Colors.white);
     canvas.drawCircle(
       indicatorOffset,
       3.5,
       Paint()..color = const Color(0xFFFF8C00),
     );
 
-    // 4. 绘制数字刻度 (1-10)
+    // 5. 绘制数字刻度 (对齐 UI)
     for (int i = 1; i <= 10; i++) {
       double iPercent = (i - 1) / 9;
       double iAngle = startAngle + swepAngle * iPercent;
-
-      // 数字在弧线外侧，落在右侧突起圆区域内显示
       final textOffset = Offset(
-        center.dx + (radius + 18) * math.cos(iAngle),
-        center.dy + (radius + 18) * math.sin(iAngle),
+        center.dx + (radius + 15) * math.cos(iAngle),
+        center.dy + (radius + 15) * math.sin(iAngle),
       );
-
       _drawText(canvas, i.toString(), textOffset);
     }
+  }
+
+  Path _buildJitterArcPath(
+    Offset center,
+    double r,
+    double startA,
+    double sweepA,
+    math.Random rnd, {
+    double jitter = 1.0,
+  }) {
+    const int segments = 8;
+    final path = Path();
+    final double step = sweepA / segments;
+    path.moveTo(
+      center.dx + r * math.cos(startA),
+      center.dy + r * math.sin(startA),
+    );
+    for (int i = 1; i <= segments; i++) {
+      final double targetA = startA + i * step;
+      final double midA = startA + (i - 0.5) * step;
+      final double jitterR = r + (rnd.nextDouble() - 0.5) * 2.0 * jitter;
+      path.quadraticBezierTo(
+        center.dx + jitterR * math.cos(midA),
+        center.dy + jitterR * math.sin(midA),
+        center.dx + r * math.cos(targetA),
+        center.dy + r * math.sin(targetA),
+      );
+    }
+    return path;
+  }
+
+  /// 绘制半圆描边，用于封闭端帽（与主描边风格一致的微抖动）
+  void _drawRoundCapBorder(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    double strokeWidth,
+    double capA,
+    bool isStart,
+    Paint paint,
+  ) {
+    final capCenter = Offset(
+      center.dx + radius * math.cos(capA),
+      center.dy + radius * math.sin(capA),
+    );
+    final capR = strokeWidth / 2;
+
+    // 半圆的起始和清扫角度
+    // 从外层边缘 (capA) 出发
+    final double startArcA = capA;
+    // 如果是起点封口，向轨道切线反向 (-pi) 画半圆；如果是终点封口则顺着画 (+pi)
+    final double sweepArcA = isStart ? -math.pi : math.pi;
+
+    // 为了保持手绘感，将半圆拆成 4 段并加上随机偏移
+    const int capSegments = 4;
+    final double step = sweepArcA / capSegments;
+    final rnd = math.Random((capA * 100).toInt()); // 固定种子
+
+    final path = Path();
+    path.moveTo(
+      capCenter.dx + capR * math.cos(startArcA),
+      capCenter.dy + capR * math.sin(startArcA),
+    );
+
+    for (int i = 1; i <= capSegments; i++) {
+      final double targetA = startArcA + i * step;
+      final double midA = startArcA + (i - 0.5) * step;
+      final double jitterR = capR + (rnd.nextDouble() - 0.5) * 1.5;
+
+      path.quadraticBezierTo(
+        capCenter.dx + jitterR * math.cos(midA),
+        capCenter.dy + jitterR * math.sin(midA),
+        capCenter.dx + capR * math.cos(targetA),
+        capCenter.dy + capR * math.sin(targetA),
+      );
+    }
+    canvas.drawPath(path, paint);
   }
 
   void _drawText(Canvas canvas, String text, Offset offset) {
@@ -245,8 +493,8 @@ class IntensityPainter extends CustomPainter {
       text: TextSpan(
         text: text,
         style: const TextStyle(
-          color: Colors.black87, // 数字黑色
-          fontSize: 12,
+          color: Color(0xFF8C7359), // 加深灰褐色，提升对比度
+          fontSize: 10, // 字号调小，更精致
           fontWeight: FontWeight.bold,
         ),
       ),

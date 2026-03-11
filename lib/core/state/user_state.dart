@@ -10,12 +10,22 @@ class UserState {
 
   static const _keyUserName = 'user_name';
   static const _keyOnboarding = 'has_finished_onboarding';
+  static const _keyLastVisit = 'last_visit_time';
 
   /// 用户的姓名（游戏内称称呼）
   final ValueNotifier<String> userName = ValueNotifier<String>('');
 
   /// 是否已完成新手引导
   final ValueNotifier<bool> hasFinishedOnboarding = ValueNotifier<bool>(false);
+
+  /// 上次访问时间
+  DateTime? lastVisitTime;
+
+  /// 计算距离上次访问的天数
+  int get daysSinceLastVisit {
+    if (lastVisitTime == null) return 0;
+    return DateTime.now().difference(lastVisitTime!).inDays;
+  }
 
   /// 更新用户名称并持久化到本地
   Future<void> setUserName(String name) async {
@@ -34,9 +44,18 @@ class UserState {
     await prefs.setBool(_keyOnboarding, true);
   }
 
-  /// 从本地存储中读取用户名称，返回 null 表示第一次启动
+  /// 记录本次访问时间
+  Future<void> recordVisit() async {
+    final now = DateTime.now();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyLastVisit, now.toIso8601String());
+  }
+
+  /// 从本地存储中读取状态
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // 加载名称
     final savedName = prefs.getString(_keyUserName);
     if (savedName != null && savedName.isNotEmpty) {
       userName.value = savedName;

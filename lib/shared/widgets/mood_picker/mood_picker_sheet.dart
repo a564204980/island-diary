@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'config/mood_config.dart';
 import 'widgets/mood_slice_item.dart';
 import 'widgets/mood_intensity_slider.dart';
+import '../island_button.dart';
 
 class MoodPickerSheet extends StatefulWidget {
   const MoodPickerSheet({super.key});
@@ -16,6 +17,17 @@ class MoodPickerSheet extends StatefulWidget {
 class _MoodPickerSheetState extends State<MoodPickerSheet> {
   int? _selectedIndex;
   double _intensity = 6.0; // 默认强度 6
+  bool _isReady = false; // 延迟渲染标志
+
+  @override
+  void initState() {
+    super.initState();
+    // 【核心性能优化】延迟一帧渲染内部重度组件，彻底释放 showGeneralDialog 路由进场第一帧的 CPU 压力。
+    // 这解决了弹出瞬间外层 SlimeButton 呼吸光晕被打断感的问题。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _isReady = true);
+    });
+  }
 
   void _handleTap(Offset localPosition, double baseWheelSize) {
     // 中心点就是宽度/高度的一半
@@ -83,114 +95,163 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
       behavior: HitTestBehavior.opaque,
       child: Material(
         color: Colors.transparent, // 背景由 barrierColor 控制，内部设为透明
-        child: Center(
-          child: GestureDetector(
-            onTap: () {}, // 拦截点击事件，防止误触关闭
-            // 外层的 SizedBox 决定最终在屏幕上显示的物理大小
-            child: SizedBox(
-              width: displaySize,
-              height: displaySize,
-              child: FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: baseWheelSize,
-                  height: baseWheelSize,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    clipBehavior: Clip.none,
-                    children: [
-                      // 1. 底层白色背景 (带突出部)
-                      CustomPaint(
-                            size: const Size(320, 320),
-                            painter: MoodPickerBackgroundPainter(),
-                          )
-                          .animate()
-                          .fade(duration: 400.ms)
-                          .scale(duration: 500.ms, curve: Curves.easeOutBack),
+        child: _isReady
+            ? Center(
+                child: GestureDetector(
+                  onTap: () {}, // 拦截点击事件，防止误触关闭
+                  // 外层的 SizedBox 决定最终在屏幕上显示的物理大小
+                  child: SizedBox(
+                    width: displaySize,
+                    height: displaySize,
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: baseWheelSize,
+                        height: baseWheelSize,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          clipBehavior: Clip.none,
+                          children: [
+                            // 1. 底层白色背景 (带突出部)
+                            RepaintBoundary(
+                                  child: CustomPaint(
+                                    size: const Size(320, 320),
+                                    painter: MoodPickerBackgroundPainter(),
+                                  ),
+                                )
+                                .animate()
+                                .fade(duration: 400.ms)
+                                .scale(
+                                  duration: 500.ms,
+                                  curve: Curves.easeOutBack,
+                                ),
 
-                      // 2. 心情选项层 (居中)
-                      GestureDetector(
-                        onTapUp: (details) {
-                          _handleTap(details.localPosition, baseWheelSize);
-                        },
-                        child: Container(
-                          width: baseWheelSize,
-                          height: baseWheelSize,
-                          color: Colors.transparent,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            clipBehavior: Clip.none,
-                            children: [
-                              Transform.translate(
-                                offset: const Offset(-5, -4),
+                            // 2. 心情选项层 (居中)
+                            GestureDetector(
+                              onTapUp: (details) {
+                                _handleTap(
+                                  details.localPosition,
+                                  baseWheelSize,
+                                );
+                              },
+                              child: Container(
+                                width: baseWheelSize,
+                                height: baseWheelSize,
+                                color: Colors.transparent,
                                 child: Stack(
                                   alignment: Alignment.center,
                                   clipBehavior: Clip.none,
                                   children: [
-                                    ...List.generate(kMoods.length, (index) {
-                                      return MoodSliceItem(
-                                            item: kMoods[index],
-                                            isSelected: _selectedIndex == index,
-                                            baseWheelSize: baseWheelSize,
-                                          )
-                                          .animate()
-                                          .fade(
-                                            delay: (index * 40).ms,
-                                            duration: 300.ms,
-                                          )
-                                          .scale(
-                                            delay: (index * 30).ms,
-                                            duration: 500.ms,
-                                            curve: Curves.easeOutBack,
-                                            alignment: Alignment.center,
-                                          );
-                                    }),
+                                    Transform.translate(
+                                      offset: const Offset(-5, -4),
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          ...List.generate(kMoods.length, (
+                                            index,
+                                          ) {
+                                            return RepaintBoundary(
+                                                  child: MoodSliceItem(
+                                                    item: kMoods[index],
+                                                    isSelected:
+                                                        _selectedIndex == index,
+                                                    baseWheelSize:
+                                                        baseWheelSize,
+                                                  ),
+                                                )
+                                                .animate()
+                                                .fade(
+                                                  delay: (index * 40).ms,
+                                                  duration: 300.ms,
+                                                )
+                                                .scale(
+                                                  delay: (index * 30).ms,
+                                                  duration: 500.ms,
+                                                  curve: Curves.easeOutBack,
+                                                  alignment: Alignment.center,
+                                                );
+                                          }),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
+                            ),
 
-                      // 3. 右侧强度选择器 (叠加在中心并向右平移)
-                      Transform.translate(
-                        offset: const Offset(23, 0),
-                        child:
-                            MoodIntensitySlider(
-                                  intensity: _intensity,
-                                  onChanged: (val) =>
-                                      setState(() => _intensity = val),
-                                  radius: 130,
-                                )
-                                .animate()
-                                .fade(delay: 500.ms, duration: 600.ms)
-                                .scale(
-                                  begin: const Offset(0.8, 0.8),
-                                  duration: 600.ms,
-                                  curve: Curves.easeOutBack,
-                                ),
-                      ),
+                            // 3. 右侧强度选择器 (叠加在中心并向右平移)
+                            Transform.translate(
+                              offset: const Offset(23, 0),
+                              child:
+                                  RepaintBoundary(
+                                        child: MoodIntensitySlider(
+                                          intensity: _intensity,
+                                          onChanged: (val) =>
+                                              setState(() => _intensity = val),
+                                          radius: 130,
+                                        ),
+                                      )
+                                      .animate()
+                                      .fade(delay: 500.ms, duration: 600.ms)
+                                      .scale(
+                                        begin: const Offset(0.8, 0.8),
+                                        duration: 600.ms,
+                                        curve: Curves.easeOutBack,
+                                      ),
+                            ),
 
-                      // 4. 中心基准小白点 (居中)
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(color: Colors.black26, blurRadius: 4),
+                            // 4. 中心基准小白点 (居中)
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // 5. 底部确认按钮
+                            Positioned(
+                              bottom: -35, // 进一步向下偏移，视觉更平衡
+                              child:
+                                  IslandButton(
+                                        text: '确认',
+                                        width: 120,
+                                        useHandDrawn:
+                                            false, // 确认按钮保持简洁平滑，不使用手绘模式
+                                        onTap: () {
+                                          // TODO: 实现确认逻辑
+                                          Navigator.pop(context);
+                                        },
+                                      )
+                                      .animate()
+                                      .fade(delay: 700.ms, duration: 500.ms)
+                                      .scale(
+                                        begin: const Offset(0.8, 0.8),
+                                        duration: 550.ms,
+                                        curve: Curves.easeOutBack,
+                                      )
+                                      .moveY(
+                                        begin: 15,
+                                        end: 0,
+                                        duration: 600.ms,
+                                      ),
+                            ),
                           ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
-        ),
+              )
+            : const SizedBox.shrink(), // 第一帧用透明空壳占位
       ),
     );
   }
@@ -207,14 +268,8 @@ class MoodPickerBackgroundPainter extends CustomPainter {
       ..color = Colors.white.withValues(alpha: 0.38)
       ..style = PaintingStyle.fill;
 
-    // ======= 发光重构：参考 UI 设定的多层暖色光晕 =======
-    final glowPaintOuter = Paint()
-      ..color = const Color.fromRGBO(244, 214, 115, 1).withValues(alpha: 0.4)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-
-    final glowPaintInner = Paint()
-      ..color = const Color.fromRGBO(213, 213, 213, 1).withValues(alpha: 0.6)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
+    // ======= 发光重构：彻底抛弃软件计算的 MaskFilter.blur，改用硬件加速 API =======
+    // (预留，由 drawShadow 接管)
 
     // ======= 终极重塑：圆角弧度版 (消除倾斜斜坡) =======
     final double r = radius;
@@ -263,9 +318,14 @@ class MoodPickerBackgroundPainter extends CustomPainter {
 
     path.close();
 
-    // 填色与发光：通过多层绘制实现 UI 要求的暖色光晕
-    canvas.drawPath(path, glowPaintOuter);
-    canvas.drawPath(path, glowPaintInner);
+    // 填色与发光：通过底层引擎重度优化的 C++ 硬件阴影，瞬间解除主线程和 GPU 的百倍压力
+    canvas.drawShadow(
+      path,
+      const Color.fromRGBO(213, 213, 213, 1),
+      15.0, // 视觉高度 (物理映射模糊度)
+      true,
+    );
+    canvas.drawShadow(path, const Color.fromRGBO(244, 214, 115, 1), 4.0, true);
     canvas.drawPath(path, paint);
   }
 

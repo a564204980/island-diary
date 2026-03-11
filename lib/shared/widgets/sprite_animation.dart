@@ -9,6 +9,7 @@ class SpriteAnimation extends StatefulWidget {
   final int? startFrame; // 起始帧 (含)
   final int? endFrame; // 结束帧 (含)
   final int? repeatCount; // 重复次数，null表示无限循环
+  final bool isPlaying;
 
   const SpriteAnimation({
     super.key,
@@ -19,6 +20,7 @@ class SpriteAnimation extends StatefulWidget {
     this.startFrame,
     this.endFrame,
     this.repeatCount,
+    this.isPlaying = true,
   });
 
   @override
@@ -47,19 +49,35 @@ class _SpriteAnimationState extends State<SpriteAnimation>
       }
     });
 
-    _controller.forward();
+    if (widget.isPlaying) {
+      _controller.forward();
+    }
   }
 
   @override
   void didUpdateWidget(SpriteAnimation oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    // 如果播放状态改变
+    if (widget.isPlaying != oldWidget.isPlaying) {
+      if (widget.isPlaying) {
+        _controller.forward(from: _controller.value);
+      } else {
+        _controller.stop();
+        // 归位到第一帧
+        _controller.value = 0.0;
+      }
+    }
+
     if (widget.assetPath != oldWidget.assetPath ||
         widget.startFrame != oldWidget.startFrame ||
         widget.endFrame != oldWidget.endFrame ||
         widget.repeatCount != oldWidget.repeatCount) {
       _currentCycle = 0;
       _controller.duration = widget.duration;
-      _controller.forward(from: 0.0);
+      if (widget.isPlaying) {
+        _controller.forward(from: 0.0);
+      }
     }
   }
 

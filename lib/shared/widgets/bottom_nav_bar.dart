@@ -1,12 +1,16 @@
 import 'dart:math';
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // 核心：导入基础类型支持
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/slime_onboarding.dart';
 import 'package:island_diary/shared/widgets/slime_button.dart';
 import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/shared/widgets/mood_picker/mood_picker_sheet.dart';
+import 'package:island_diary/core/services/slime_dialogue_service.dart';
+import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart'; // 导入配置
 
 class BottomNavBar extends StatefulWidget {
   final int currentIndex;
@@ -27,9 +31,83 @@ class BottomNavBar extends StatefulWidget {
 const double centerButtonRadius = 32.0; // 遵循相切圆方案比例：下调至 32.0，更精致紧凑
 
 class _BottomNavBarState extends State<BottomNavBar> {
-  bool _isMoodPickerOpen = false; // 是否打开了心情选择框
   bool _justFinishedOnboarding = false; // 是否刚完成新手引导
-  bool _showRegularDialogue = true; // 是否显示常规对话气泡
+  late final ValueNotifier<bool> _showDialogueNotifier;
+  late final ValueNotifier<String> _dialogueTextNotifier;
+  late final ValueNotifier<bool> _isIdleNotifier;
+  late final ValueNotifier<bool> _isMoodPickerOpenNotifier;
+
+  Timer? _dialogueTimer;
+  Timer? _idleTimer;
+  final GlobalKey _slimeKey =
+      GlobalKey(); // 核心：使用 GlobalKey 强力锁定精灵状态，确保呼吸动效跨 Stack 变化不断
+
+  @override
+  void initState() {
+    super.initState();
+    _showDialogueNotifier = ValueNotifier<bool>(true);
+    _dialogueTextNotifier = ValueNotifier<String>('');
+    _isIdleNotifier = ValueNotifier<bool>(false);
+    _isMoodPickerOpenNotifier = ValueNotifier<bool>(false);
+
+    _refreshDialogue();
+    _startDialogueTimer();
+    _startIdleTimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 【核心性能优化】提前预解码精灵表情资源，彻底消除初次切换时的“主线程解码卡顿”
+    precacheImage(const AssetImage('assets/images/emoji/weixiao.png'), context);
+    precacheImage(const AssetImage('assets/images/emoji/pedding.png'), context);
+
+    // 【绝杀卡顿】心情面板在被直接创建时会引发 16 次独立的高清图层 I/O 解码。
+    // 在这里一次性地毯式预解码，确保点击精灵的一瞬间路由动画能保持绝对满帧。
+    for (var mood in kMoods) {
+      if (mood.imagePath != null) {
+        precacheImage(AssetImage(mood.imagePath!), context);
+      }
+      if (mood.iconPath != null) {
+        precacheImage(AssetImage(mood.iconPath!), context);
+      }
+    }
+  }
+
+  void _startDialogueTimer() {
+    _dialogueTimer?.cancel();
+    _dialogueTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted) {
+        _showDialogueNotifier.value = false;
+      }
+    });
+  }
+
+  void _startIdleTimer() {
+    _idleTimer?.cancel();
+    _idleTimer = Timer(const Duration(seconds: 30), () {
+      if (mounted) {
+        _isIdleNotifier.value = true;
+      }
+    });
+  }
+
+  void _refreshDialogue() {
+    // 修正：该服务内部已自动处理 UserState()
+    _dialogueTextNotifier.value = SlimeDialogueService().getDynamicDialogue();
+  }
+
+  @override
+  void dispose() {
+    _dialogueTimer?.cancel();
+    _idleTimer?.cancel();
+    _showDialogueNotifier.dispose();
+    _dialogueTextNotifier.dispose();
+    _isIdleNotifier.dispose();
+    _isMoodPickerOpenNotifier.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     const double barHeight = 76;
@@ -169,41 +247,77 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 }
 
                 // 已完成引导，显示常规对话气泡与带有法阵的精灵球
-                return Stack(
-                  alignment: Alignment.bottomCenter,
-                  clipBehavior: Clip.none,
-                  children: [
-                    // ── 常规对话气泡 ──
-                    // 只有在：1. 不是刚做完引导 且 2. 心情弹窗未打开 且 3. 用户未点击消失 时才显示
-                    if (!_justFinishedOnboarding &&
-                        !_isMoodPickerOpen &&
-                        _showRegularDialogue)
-                      Positioned(
-                        bottom: 124,
-                        child: SpriteDialogue(
-                          text: '今天过得好吗？摸摸我的头，把心情种进岛里吧。',
-                          useTypewriter: false,
-                          onNext: () {
-                            // 点击对话框消失
-                            setState(() => _showRegularDialogue = false);
-                          },
-                        ),
-                      ),
-
-                    // ── 常规中心凸出精灵按钮 ──
-                    Positioned(
-                      bottom: SlimeButton
-                          .bottomOffset, // 【位置纠正】改用 bottom 定位，确保受 containerHeight 保护
-                      child: SlimeButton(
-                        key: const ValueKey(
-                          'bottom_nav_slime',
-                        ), // 增加 Key，确保状态在 Stack 变化时能自持，动画不断
-                        isNight: isNight,
-                        isGlowing: true, // 常规状态下常驻发光/呼吸效果
-                        onTap: _openMoodPicker,
-                      ),
-                    ),
+                return MultiValueListenableBuilder(
+                  listenables: [
+                    _isIdleNotifier,
+                    _showDialogueNotifier,
+                    _isMoodPickerOpenNotifier,
+                    _dialogueTextNotifier,
                   ],
+                  builder: (context, values, child) {
+                    final isIdle = values[0] as bool;
+                    final showDialogue = values[1] as bool;
+                    final isMoodPickerOpen = values[2] as bool;
+                    final slimeDialogue = values[3] as String;
+
+                    return Stack(
+                      alignment: Alignment.bottomCenter,
+                      clipBehavior: Clip.none,
+                      children: [
+                        // ── 常规中心凸出精灵按钮 (下层，先渲染) ──
+                        // 【核心修复】TickerMode(enabled:true) 强制精灵动画 Ticker 永远活跃，
+                        // 防止 showGeneralDialog 推入路由时 Flutter 短暂暂停 Ticker，
+                        // 从而彻底消灭呼吸气泡在点击瞬间的"卡顿跳帧感"。
+                        TickerMode(
+                          enabled: true,
+                          child: Positioned(
+                            bottom: SlimeButton.bottomOffset,
+                            child: SlimeButton(
+                              key: _slimeKey,
+                              isNight: isNight,
+                              isGlowing: true,
+                              assetPath: isIdle
+                                  ? 'assets/images/emoji/pedding.png'
+                                  : 'assets/images/emoji/weixiao.png',
+                              frameCount: isIdle ? 1 : 9,
+                              isPlaying: showDialogue && !isIdle,
+                              onTap: () => _openMoodPicker(),
+                            ),
+                          ),
+                        ),
+
+                        // ── 常规对话气泡 (上层，后渲染) ──
+                        if (!_justFinishedOnboarding)
+                          Positioned(
+                            bottom: 124,
+                            child: IgnorePointer(
+                              ignoring: !showDialogue || isMoodPickerOpen,
+                              child:
+                                  SpriteDialogue(
+                                        text: slimeDialogue,
+                                        useTypewriter: false,
+                                        onNext: () {
+                                          _dialogueTimer?.cancel();
+                                          _showDialogueNotifier.value = false;
+                                        },
+                                      )
+                                      .animate(
+                                        target:
+                                            (showDialogue && !isMoodPickerOpen)
+                                            ? 1
+                                            : 0,
+                                      )
+                                      .fade(duration: 400.ms)
+                                      .scale(
+                                        begin: const Offset(0.9, 0.9),
+                                        duration: 400.ms,
+                                        curve: Curves.easeOutBack,
+                                      ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 );
               },
             ),
@@ -218,38 +332,60 @@ class _BottomNavBarState extends State<BottomNavBar> {
     // 记录进入时是否还在引导状态（await 之后无法再读取准确值）
     final wasOnboarding = !UserState().hasFinishedOnboarding.value;
 
-    // 记录弹窗状态，对话框顺便消失
-    setState(() {
-      _isMoodPickerOpen = true;
-      _showRegularDialogue = false;
+    // 记录弹窗状态，对话框顺便消失，闲置状态重置
+    _isMoodPickerOpenNotifier.value = true;
+    _showDialogueNotifier.value = false; // 退场动画由上面 target 控制
+    _isIdleNotifier.value = false;
+    _dialogueTimer?.cancel();
+    _idleTimer?.cancel();
+
+    // 【核心修复】将 showGeneralDialog 推迟到下一帧执行。
+    // 问题根因：setState 触发重绘 和 showGeneralDialog 构建新 Route 原本在同一帧内争抢 CPU，
+    // 导致动画控制器在下一帧看到时间已跳跃多毫秒，产生"卡一下"的卡顿感。
+    // 使用 addPostFrameCallback 确保当前帧的渲染流水线正常完成后再启动弹窗。
+    final completer = Completer<void>();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        completer.complete();
+        return;
+      }
+      await showGeneralDialog(
+        context: context,
+        barrierDismissible: true,
+        barrierLabel: 'MoodPicker',
+        barrierColor: Colors.black.withOpacity(0.6),
+        transitionDuration: const Duration(milliseconds: 500),
+        transitionBuilder: (context, animation, secondaryAnimation, child) {
+          final curvedAnimation = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutBack,
+          );
+          return Transform.scale(
+            scale: curvedAnimation.value,
+            alignment: const Alignment(0.0, 0.8),
+            child: FadeTransition(opacity: animation, child: child),
+          );
+        },
+        pageBuilder: (context, anim1, anim2) => const MoodPickerSheet(),
+      );
+      completer.complete();
     });
 
-    await showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'MoodPicker',
-      barrierColor: Colors.black.withOpacity(0.6),
-      transitionDuration: const Duration(milliseconds: 500),
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curvedAnimation = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutBack,
-        );
-        return Transform.scale(
-          scale: curvedAnimation.value,
-          alignment: const Alignment(0.0, 0.8),
-          child: FadeTransition(opacity: animation, child: child),
-        );
-      },
-      pageBuilder: (context, anim1, anim2) => const MoodPickerSheet(),
-    );
+    await completer.future;
 
     // 【核心修复】弹窗关闭后才标记引导完成，避免在弹窗打开动画期间切换底层 widget 造成闪烁
     if (mounted) {
-      setState(() {
-        _isMoodPickerOpen = false;
-        if (wasOnboarding) _justFinishedOnboarding = true;
-      });
+      _isMoodPickerOpenNotifier.value = false;
+      _isIdleNotifier.value = false; // 操作完肯定不是闲置了
+
+      if (wasOnboarding) {
+        setState(() {
+          _justFinishedOnboarding = true;
+        });
+        _refreshDialogue(); // 引导结束后重新刷一次充满温度的对话
+      }
+      _startIdleTimer(); // 重新开始挂机计时
+
       if (wasOnboarding) {
         UserState().completeOnboarding();
       }
@@ -266,6 +402,38 @@ class _BottomNavBarState extends State<BottomNavBar> {
         onTap: widget.onTap,
         isNight: widget.isNight,
       ),
+    );
+  }
+}
+
+/// 辅助组件：同时监听多个 ValueListenable
+class MultiValueListenableBuilder extends StatelessWidget {
+  final List<ValueListenable> listenables;
+  final Widget Function(
+    BuildContext context,
+    List<dynamic> values,
+    Widget? child,
+  )
+  builder;
+  final Widget? child;
+
+  const MultiValueListenableBuilder({
+    super.key,
+    required this.listenables,
+    required this.builder,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge(listenables),
+      builder: (context, child) {
+        // 精确映射每一个监听器的最新值
+        final values = listenables.map((l) => l.value).toList();
+        return builder(context, values, child);
+      },
+      child: child,
     );
   }
 }
