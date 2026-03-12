@@ -86,8 +86,8 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
     // 获取当前屏幕的宽度，做响应式适配
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // 设定转盘占屏幕宽度的比例
-    final displaySize = screenWidth * 1.0;
+    // 设定转盘占屏幕宽度的比例，大屏限制最大宽度
+    final displaySize = screenWidth > 600 ? 500.0 : screenWidth;
 
     // 微调各种偏移量的基准画布大小
     const double baseWheelSize = 400.0;

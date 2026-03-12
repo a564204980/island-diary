@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+import 'dart:ui';
 
 class MoodDiaryEntrySheet extends StatefulWidget {
   final int moodIndex;
@@ -24,75 +26,199 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
     super.dispose();
   }
 
+  String _getFormattedDate() {
+    final now = DateTime.now();
+    return '${now.year}年${now.month}月${now.day}日';
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 获取屏幕高度，设置 30% 顶部留白，即高度为 70%
     final double screenHeight = MediaQuery.of(context).size.height;
+    final mood = kMoods[widget.moodIndex];
 
-    return Container(
-      height: screenHeight * 0.7,
-      width: double.infinity,
-      color: Colors.transparent, // 确保背景透明，不干扰信纸边缘
-      child:
-          Stack(
-                alignment: Alignment.topCenter,
-                children: [
-                  // 1. 纸张背景 (paper.png)，强制全宽铺满
-                  Positioned.fill(
-                    child: Image.asset(
-                      'assets/images/paper.png',
-                      fit: BoxFit.fill,
-                      width: double.infinity,
-                      gaplessPlayback: true, // 核心：消除图片加载瞬间的白块
-                    ),
+    return GestureDetector(
+      onTap: () => Navigator.of(context).pop(),
+      behavior: HitTestBehavior.opaque,
+      child: Stack(
+        children: [
+          // 1. 顶部标题与日期
+          Positioned(
+            top: screenHeight * 0.08,
+            left: 0,
+            right: 0,
+            child: Column(
+              children: [
+                const Text(
+                  '记下这一刻的心情',
+                  style: TextStyle(
+                    fontFamily: 'FZKai',
+                    fontSize: 32,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black26,
+                        offset: Offset(0, 2),
+                        blurRadius: 4,
+                      ),
+                    ],
                   ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _getFormattedDate(),
+                  style: TextStyle(
+                    fontFamily: 'FZKai',
+                    fontSize: 18,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+              ],
+            ).animate().fadeIn(duration: 400.ms).moveY(begin: -20, end: 0),
+          ),
 
-                  // 2. 输入内容区
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 60,
-                    ),
-                    child: Column(
-                      children: [
-                        const Text('✍️', style: TextStyle(fontSize: 24)),
-                        const SizedBox(height: 16),
-                        Expanded(
-                          child: TextField(
-                            controller: _controller,
-                            maxLines: null,
-                            autofocus: true,
-                            cursorColor: const Color(0xFF8B5E3C),
-                            style: const TextStyle(
-                              fontFamily: 'Zhi Mang Xing',
-                              fontSize: 21,
-                              color: Color(0xFF5D4037),
-                              height: 1.6,
-                            ),
-                            decoration: const InputDecoration(
-                              hintText: '写下此刻的心情...',
-                              hintStyle: TextStyle(
-                                fontFamily: 'Zhi Mang Xing',
-                                color: Color(0xFFA68A78),
+          // 2. 信纸主体
+          Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: EdgeInsets.only(top: screenHeight * 0.25),
+              child: Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 500),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      GestureDetector(
+                        onTap: () {}, // 消费点击
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.topCenter,
+                          children: [
+                            // 信纸容器
+                            Container(
+                              height: screenHeight * 0.58,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: (mood.glowColor ?? Colors.amber)
+                                        .withOpacity(0.3),
+                                    blurRadius: 40,
+                                    spreadRadius: -10,
+                                  ),
+                                ],
                               ),
-                              border: InputBorder.none,
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: Image.asset(
+                                      'assets/images/paper.png',
+                                      fit: BoxFit.fill,
+                                      gaplessPlayback: true,
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      52,
+                                      48,
+                                      52,
+                                      32,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        const SizedBox(height: 20),
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _controller,
+                                            maxLines: null,
+                                            autofocus: true,
+                                            cursorColor: const Color(
+                                              0xFF8B5E3C,
+                                            ),
+                                            style: const TextStyle(
+                                              fontFamily: 'FZKai',
+                                              fontSize: 20,
+                                              color: Color(0xFF5D4037),
+                                              height: 1.6,
+                                            ),
+                                            decoration: const InputDecoration(
+                                              hintText: '记录下这一刻的想法吧...',
+                                              hintStyle: TextStyle(
+                                                fontFamily: 'FZKai',
+                                                color: Color(0xFFA68A78),
+                                              ),
+                                              border: InputBorder.none,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ).animate().fadeIn(duration: 500.ms),
+
+                            // 心情图标与强度标签
+                            Positioned(
+                              top: -24,
+                              child:
+                                  Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.85),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.white.withAlpha(50),
+                                            width: 1.5,
+                                          ),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Colors.black12,
+                                              blurRadius: 10,
+                                              offset: Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Image.asset(
+                                              mood.iconPath ??
+                                                  'assets/images/icons/sun.png',
+                                              width: 24,
+                                              height: 24,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              '强度 ${(widget.intensity * 10).toInt()}',
+                                              style: const TextStyle(
+                                                color: Color(0xFF5D4037),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: 300.ms)
+                                      .moveY(begin: 10, end: 0),
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              )
-              .animate()
-              .fadeIn(duration: 400.ms)
-              .moveY(
-                begin: 30,
-                end: 0,
-                duration: 500.ms,
-                curve: Curves.easeOutCubic,
+                ),
               ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

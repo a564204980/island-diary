@@ -124,204 +124,212 @@ class _BottomNavBarState extends State<BottomNavBar> {
         children: [
           // ── 底栏主体：阴影 + 裁剪 + 磨砂 + 渐变边框 ──
           Positioned(
-            bottom: 0,
-            left: 24,
-            right: 24,
-            child: Container(
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.18),
-                    blurRadius: 20,
-                    spreadRadius: 1,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  // 1. 裁剪背板（含磨砂特效）
-                  ClipPath(
-                    clipper: const _NavBarClipper(
-                      notchRadius: notchRadius,
-                      barRadius: 38,
+            bottom: -6,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                constraints: const BoxConstraints(
+                  maxWidth: 500,
+                ), // iPad/大屏：更紧凑的固定宽度
+                width: MediaQuery.of(context).size.width > 600 ? 500 : null,
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.18),
+                      blurRadius: 20,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 8),
                     ),
-                    child: Container(
-                      height: barHeight,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: isNight
-                                      ? const Color(0xFF736675).withOpacity(
-                                          0.2,
-                                        ) // 回归灰紫色
-                                      : Colors.white.withOpacity(0.4),
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    // 1. 裁剪背板（含磨砂特效）
+                    ClipPath(
+                      clipper: const _NavBarClipper(
+                        notchRadius: notchRadius,
+                        barRadius: 38,
+                      ),
+                      child: Container(
+                        height: barHeight,
+                        width: double.infinity,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(
+                                  sigmaX: 15,
+                                  sigmaY: 15,
+                                ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: isNight
+                                        ? const Color(0xFF736675).withOpacity(
+                                            0.2,
+                                          ) // 回归灰紫色
+                                        : Colors.white.withOpacity(0.4),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildNavItem(
-                                0,
-                                'assets/images/icons/ic_home.png',
-                                '首页',
+                            // 限制内容的宽度，防止图标在 500px 内仍然太散
+                            Center(
+                              child: Container(
+                                width: 440, // 固定内容区宽度
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: [
+                                    _buildNavItem(
+                                      0,
+                                      'assets/images/icons/ic_home.png',
+                                      '首页',
+                                    ),
+                                    _buildNavItem(
+                                      1,
+                                      'assets/images/icons/ic_write.png',
+                                      '记录',
+                                    ),
+                                    const SizedBox(width: 80),
+                                    _buildNavItem(
+                                      3,
+                                      'assets/images/icons/ic_journal.png',
+                                      '相册',
+                                    ),
+                                    _buildNavItem(
+                                      4,
+                                      'assets/images/icons/ic_stting.png',
+                                      '我',
+                                    ),
+                                  ],
+                                ),
                               ),
-                              _buildNavItem(
-                                1,
-                                'assets/images/icons/ic_write.png',
-                                '记录',
-                              ),
-                              const SizedBox(width: 92),
-                              _buildNavItem(
-                                3,
-                                'assets/images/icons/ic_journal.png',
-                                '相册',
-                              ),
-                              _buildNavItem(
-                                4,
-                                'assets/images/icons/ic_stting.png',
-                                '我',
-                              ),
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  // 2. 只有夜间模式才有的“夕阳到深海”渐变描边层
-                  if (isNight)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        // 核心修复：防止描边层拦截点击事件
-                        child: CustomPaint(
-                          painter: _NavBarGradientPainter(
-                            clipper: const _NavBarClipper(
-                              notchRadius: notchRadius,
-                              barRadius: 38,
-                            ),
-                            strokeWidth: 2.5,
-                            gradient: const LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Color(0xFFEEBB3C), // 描边顶部换成金色
-                                Color(0xFF1B2735), // 深海蓝
-                              ],
+                    // 2. 渐变描边
+                    if (isNight)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: CustomPaint(
+                            painter: _NavBarGradientPainter(
+                              clipper: const _NavBarClipper(
+                                notchRadius: notchRadius,
+                                barRadius: 38,
+                              ),
+                              strokeWidth: 2.5,
+                              gradient: const LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Color(0xFFEEBB3C), // 描边顶部换成金色
+                                  Color(0xFF1B2735), // 深海蓝
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
 
-          // ── 对话系统与中心精灵状态切换 ──
           Positioned.fill(
-            child: ValueListenableBuilder<bool>(
-              valueListenable: UserState().hasFinishedOnboarding,
-              builder: (context, hasFinished, child) {
-                if (!hasFinished) {
-                  // 【新手引导层】
-                  // 如果未完成引导，显示新手引导覆盖层。
-                  // 该层级内部也使用了 SlimeButton，并采用相同的 Positioned(top: 24) 定位，
-                  //从而保证引导页面与常规页面的史莱姆位置完全重合。
-                  return SlimeOnboarding(
-                    key: const ValueKey(
-                      'slime_onboarding',
-                    ), // 【核心修复】固定 Key 防止 BottomNavBar rebuild 时销毁 State
-                    isNight: isNight,
-                    onSlimeAction: () {
-                      _openMoodPicker();
-                    },
-                    onComplete: () {
-                      setState(() => _justFinishedOnboarding = true);
-                      UserState().completeOnboarding();
-                    },
-                  );
-                }
+            child: Center(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 500), // 与底栏宽度保持一致
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: UserState().hasFinishedOnboarding,
+                  builder: (context, hasFinished, child) {
+                    if (!hasFinished) {
+                      return SlimeOnboarding(
+                        key: const ValueKey('slime_onboarding'),
+                        isNight: isNight,
+                        onSlimeAction: () => _openMoodPicker(),
+                        onComplete: () {
+                          setState(() => _justFinishedOnboarding = true);
+                          UserState().completeOnboarding();
+                        },
+                      );
+                    }
 
-                // 已完成引导，显示常规对话气泡与带有法阵的精灵球
-                return MultiValueListenableBuilder(
-                  listenables: [
-                    _isIdleNotifier,
-                    _showDialogueNotifier,
-                    _isMoodPickerOpenNotifier,
-                    _dialogueTextNotifier,
-                  ],
-                  builder: (context, values, child) {
-                    final isIdle = values[0] as bool;
-                    final showDialogue = values[1] as bool;
-                    final isMoodPickerOpen = values[2] as bool;
-                    final slimeDialogue = values[3] as String;
-
-                    return Stack(
-                      alignment: Alignment.bottomCenter,
-                      clipBehavior: Clip.none,
-                      children: [
-                        // ── 常规中心凸出精灵按钮 (下层，先渲染) ──
-                        // 【核心修复】TickerMode(enabled:true) 强制精灵动画 Ticker 永远活跃，
-                        // 防止 showGeneralDialog 推入路由时 Flutter 短暂暂停 Ticker，
-                        // 从而彻底消灭呼吸气泡在点击瞬间的"卡顿跳帧感"。
-                        TickerMode(
-                          enabled: true,
-                          child: Positioned(
-                            bottom: SlimeButton.bottomOffset,
-                            child: SlimeButton(
-                              key: _slimeKey,
-                              isNight: isNight,
-                              isGlowing: true,
-                              assetPath: isIdle
-                                  ? 'assets/images/emoji/pedding.png'
-                                  : 'assets/images/emoji/weixiao.png',
-                              frameCount: isIdle ? 1 : 9,
-                              isPlaying: showDialogue && !isIdle,
-                              onTap: () => _openMoodPicker(),
-                            ),
-                          ),
-                        ),
-
-                        // ── 常规对话气泡 (上层，后渲染) ──
-                        if (!_justFinishedOnboarding)
-                          Positioned(
-                            bottom: 124,
-                            child: IgnorePointer(
-                              ignoring: !showDialogue || isMoodPickerOpen,
-                              child:
-                                  SpriteDialogue(
-                                        text: slimeDialogue,
-                                        useTypewriter: false,
-                                        onNext: () {
-                                          _dialogueTimer?.cancel();
-                                          _showDialogueNotifier.value = false;
-                                        },
-                                      )
-                                      .animate(
-                                        target:
-                                            (showDialogue && !isMoodPickerOpen)
-                                            ? 1
-                                            : 0,
-                                      )
-                                      .fade(duration: 400.ms)
-                                      .scale(
-                                        begin: const Offset(0.9, 0.9),
-                                        duration: 400.ms,
-                                        curve: Curves.easeOutBack,
-                                      ),
-                            ),
-                          ),
+                    return MultiValueListenableBuilder(
+                      listenables: [
+                        _isIdleNotifier,
+                        _showDialogueNotifier,
+                        _isMoodPickerOpenNotifier,
+                        _dialogueTextNotifier,
                       ],
+                      builder: (context, values, child) {
+                        final isIdle = values[0] as bool;
+                        final showDialogue = values[1] as bool;
+                        final isMoodPickerOpen = values[2] as bool;
+                        final slimeDialogue = values[3] as String;
+
+                        return Stack(
+                          alignment: Alignment.bottomCenter,
+                          clipBehavior: Clip.none,
+                          children: [
+                            TickerMode(
+                              enabled: true,
+                              child: Positioned(
+                                bottom: SlimeButton.bottomOffset,
+                                child: SlimeButton(
+                                  key: _slimeKey,
+                                  isNight: isNight,
+                                  isGlowing: true,
+                                  assetPath: isIdle
+                                      ? 'assets/images/emoji/pedding.png'
+                                      : 'assets/images/emoji/weixiao.png',
+                                  frameCount: isIdle ? 1 : 9,
+                                  isPlaying: showDialogue && !isIdle,
+                                  onTap: () => _openMoodPicker(),
+                                ),
+                              ),
+                            ),
+                            if (!_justFinishedOnboarding)
+                              Positioned(
+                                bottom: 124,
+                                child: IgnorePointer(
+                                  ignoring: !showDialogue || isMoodPickerOpen,
+                                  child:
+                                      SpriteDialogue(
+                                            text: slimeDialogue,
+                                            useTypewriter: false,
+                                            onNext: () {
+                                              _dialogueTimer?.cancel();
+                                              _showDialogueNotifier.value =
+                                                  false;
+                                            },
+                                          )
+                                          .animate(
+                                            target:
+                                                (showDialogue &&
+                                                    !isMoodPickerOpen)
+                                                ? 1
+                                                : 0,
+                                          )
+                                          .fade(duration: 400.ms)
+                                          .scale(
+                                            begin: const Offset(0.9, 0.9),
+                                            duration: 400.ms,
+                                            curve: Curves.easeOutBack,
+                                          ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     );
                   },
-                );
-              },
+                ),
+              ),
             ),
           ),
         ],
