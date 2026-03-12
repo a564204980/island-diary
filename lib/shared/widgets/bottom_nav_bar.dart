@@ -10,7 +10,8 @@ import 'package:island_diary/shared/widgets/slime_button.dart';
 import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/shared/widgets/mood_picker/mood_picker_sheet.dart';
 import 'package:island_diary/core/services/slime_dialogue_service.dart';
-import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart'; // 导入配置
+import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+import 'package:island_diary/shared/widgets/diary_entry/diary_entry_sheet.dart';
 
 class BottomNavBar extends StatefulWidget {
   final int currentIndex;
@@ -61,6 +62,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     // 【核心性能优化】提前预解码精灵表情资源，彻底消除初次切换时的“主线程解码卡顿”
     precacheImage(const AssetImage('assets/images/emoji/weixiao.png'), context);
     precacheImage(const AssetImage('assets/images/emoji/pedding.png'), context);
+    precacheImage(const AssetImage('assets/images/paper.png'), context);
 
     // 【绝杀卡顿】心情面板在被直接创建时会引发 16 次独立的高清图层 I/O 解码。
     // 在这里一次性地毯式预解码，确保点击精灵的一瞬间路由动画能保持绝对满帧。
@@ -339,17 +341,14 @@ class _BottomNavBarState extends State<BottomNavBar> {
     _dialogueTimer?.cancel();
     _idleTimer?.cancel();
 
-    // 【核心修复】将 showGeneralDialog 推迟到下一帧执行。
-    // 问题根因：setState 触发重绘 和 showGeneralDialog 构建新 Route 原本在同一帧内争抢 CPU，
-    // 导致动画控制器在下一帧看到时间已跳跃多毫秒，产生"卡一下"的卡顿感。
-    // 使用 addPostFrameCallback 确保当前帧的渲染流水线正常完成后再启动弹窗。
-    final completer = Completer<void>();
+    // 【核心修复】使用 addPostFrameCallback 确保当前帧的渲染流水线正常完成后再启动弹窗。
+    final completer = Completer<Map<String, dynamic>?>();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) {
-        completer.complete();
+        completer.complete(null);
         return;
       }
-      await showGeneralDialog(
+      final result = await showGeneralDialog<Map<String, dynamic>>(
         context: context,
         barrierDismissible: true,
         barrierLabel: 'MoodPicker',
@@ -368,10 +367,10 @@ class _BottomNavBarState extends State<BottomNavBar> {
         },
         pageBuilder: (context, anim1, anim2) => const MoodPickerSheet(),
       );
-      completer.complete();
+      completer.complete(result);
     });
 
-    await completer.future;
+    final result = await completer.future;
 
     // 【核心修复】弹窗关闭后才标记引导完成，避免在弹窗打开动画期间切换底层 widget 造成闪烁
     if (mounted) {
@@ -389,7 +388,27 @@ class _BottomNavBarState extends State<BottomNavBar> {
       if (wasOnboarding) {
         UserState().completeOnboarding();
       }
+
+      // 如果用户选择了心情，则自动打开日记输入框
+      if (result != null) {
+        _openDiaryEntry(result['index'], result['intensity']);
+      }
     }
+  }
+
+  // 打开像 uniapp popup 一样的日记输入组件
+  void _openDiaryEntry(int moodIndex, double intensity) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // 允许高度根据内容（及键盘）自适应
+      backgroundColor: Colors.transparent, // 背景透明，使用自定义的 paper 背景
+      barrierColor: Colors.black.withOpacity(0.6),
+      constraints: const BoxConstraints(
+        maxWidth: double.infinity,
+      ), // 确保全宽，不被默认约束限制
+      builder: (context) =>
+          MoodDiaryEntrySheet(moodIndex: moodIndex, intensity: intensity),
+    );
   }
 
   Widget _buildNavItem(int index, String assetPath, String label) {

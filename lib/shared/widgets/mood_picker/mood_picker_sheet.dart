@@ -18,6 +18,8 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
   int? _selectedIndex;
   double _intensity = 6.0; // 默认强度 6
   bool _isReady = false; // 延迟渲染标志
+  int _shakeCount = 0; // 用于触发抖动动画的计数器
+  bool _showBubble = false; // 是否显示提示气泡
 
   @override
   void initState() {
@@ -99,138 +101,237 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
             ? Center(
                 child: GestureDetector(
                   onTap: () {}, // 拦截点击事件，防止误触关闭
+                  behavior: HitTestBehavior.opaque, // 显式声明不透明，确保拦截生效
                   // 外层的 SizedBox 决定最终在屏幕上显示的物理大小
                   child: SizedBox(
                     width: displaySize,
-                    height: displaySize,
+                    height:
+                        displaySize *
+                        1.25, // 核心修复：将高度比例由 1 改为 1.25 (对应 400:500)，确保底部按钮落在感应区内
                     child: FittedBox(
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain, // 改为 contain 确保内容完全显示在感应区内且不被裁剪
                       child: SizedBox(
                         width: baseWheelSize,
-                        height: baseWheelSize,
+                        height: baseWheelSize + 100, // 500
                         child: Stack(
-                          alignment: Alignment.center,
+                          alignment: Alignment.topCenter,
                           clipBehavior: Clip.none,
                           children: [
-                            // 1. 底层白色背景 (带突出部)
-                            RepaintBoundary(
-                                  child: CustomPaint(
-                                    size: const Size(320, 320),
-                                    painter: MoodPickerBackgroundPainter(),
-                                  ),
-                                )
-                                .animate()
-                                .fade(duration: 400.ms)
-                                .scale(
-                                  duration: 500.ms,
-                                  curve: Curves.easeOutBack,
-                                ),
+                            // 盘面主容器 (400x400)
+                            SizedBox(
+                                  width: baseWheelSize,
+                                  height: baseWheelSize,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      // 1. 底层白色背景 (带突出部)
+                                      RepaintBoundary(
+                                            child: CustomPaint(
+                                              size: const Size(320, 320),
+                                              painter:
+                                                  MoodPickerBackgroundPainter(),
+                                            ),
+                                          )
+                                          .animate()
+                                          .fade(duration: 400.ms)
+                                          .scale(
+                                            duration: 500.ms,
+                                            curve: Curves.easeOutBack,
+                                          ),
 
-                            // 2. 心情选项层 (居中)
-                            GestureDetector(
-                              onTapUp: (details) {
-                                _handleTap(
-                                  details.localPosition,
-                                  baseWheelSize,
-                                );
-                              },
-                              child: Container(
-                                width: baseWheelSize,
-                                height: baseWheelSize,
-                                color: Colors.transparent,
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    Transform.translate(
-                                      offset: const Offset(-5, -4),
-                                      child: Stack(
-                                        alignment: Alignment.center,
-                                        clipBehavior: Clip.none,
-                                        children: [
-                                          ...List.generate(kMoods.length, (
-                                            index,
-                                          ) {
-                                            return RepaintBoundary(
-                                                  child: MoodSliceItem(
-                                                    item: kMoods[index],
-                                                    isSelected:
-                                                        _selectedIndex == index,
-                                                    baseWheelSize:
-                                                        baseWheelSize,
+                                      // 2. 心情选项层 (居中)
+                                      GestureDetector(
+                                        onTapUp: (details) {
+                                          _handleTap(
+                                            details.localPosition,
+                                            baseWheelSize,
+                                          );
+                                        },
+                                        child: Container(
+                                          width: baseWheelSize,
+                                          height: baseWheelSize,
+                                          color: Colors.transparent,
+                                          child: Stack(
+                                            alignment: Alignment.center,
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              Transform.translate(
+                                                offset: const Offset(-5, -4),
+                                                child: Stack(
+                                                  alignment: Alignment.center,
+                                                  clipBehavior: Clip.none,
+                                                  children: [
+                                                    ...List.generate(kMoods.length, (
+                                                      index,
+                                                    ) {
+                                                      return RepaintBoundary(
+                                                            child: MoodSliceItem(
+                                                              item:
+                                                                  kMoods[index],
+                                                              isSelected:
+                                                                  _selectedIndex ==
+                                                                  index,
+                                                              baseWheelSize:
+                                                                  baseWheelSize,
+                                                            ),
+                                                          )
+                                                          .animate()
+                                                          .fade(
+                                                            delay:
+                                                                (index * 40).ms,
+                                                            duration: 300.ms,
+                                                          )
+                                                          .scale(
+                                                            delay:
+                                                                (index * 30).ms,
+                                                            duration: 500.ms,
+                                                            curve: Curves
+                                                                .easeOutBack,
+                                                            alignment: Alignment
+                                                                .center,
+                                                          );
+                                                    }),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+
+                                      // 3. 右侧强度选择器
+                                      Transform.translate(
+                                        offset: const Offset(23, 0),
+                                        child:
+                                            RepaintBoundary(
+                                                  child: MoodIntensitySlider(
+                                                    intensity: _intensity,
+                                                    onChanged: (val) =>
+                                                        setState(
+                                                          () =>
+                                                              _intensity = val,
+                                                        ),
+                                                    radius: 130,
                                                   ),
                                                 )
                                                 .animate()
                                                 .fade(
-                                                  delay: (index * 40).ms,
-                                                  duration: 300.ms,
+                                                  delay: 500.ms,
+                                                  duration: 600.ms,
                                                 )
                                                 .scale(
-                                                  delay: (index * 30).ms,
-                                                  duration: 500.ms,
+                                                  begin: const Offset(0.8, 0.8),
+                                                  duration: 600.ms,
                                                   curve: Curves.easeOutBack,
-                                                  alignment: Alignment.center,
-                                                );
-                                          }),
-                                        ],
+                                                ),
                                       ),
-                                    ),
-                                  ],
+
+                                      // 4. 中心基准小白点
+                                      Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black26,
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                                .animate(
+                                  target: _shakeCount.toDouble(),
+                                  onPlay: (controller) =>
+                                      controller.forward(from: 0),
+                                )
+                                .shake(
+                                  hz: 6,
+                                  curve: Curves.easeInOutCubic,
+                                  duration: 400.ms,
+                                  offset: const Offset(6, 0),
+                                ),
+
+                            // 5. 自定义“清新风格”表情气泡提示
+                            // 5. 提示气泡 (使用 AnimatedOpacity 保持索引稳定)
+                            Positioned(
+                              bottom: 100,
+                              child: AnimatedOpacity(
+                                opacity: _showBubble ? 1.0 : 0.0,
+                                duration: 300.ms,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 18,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.95),
+                                    borderRadius: BorderRadius.circular(30),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text('✨', style: TextStyle(fontSize: 18)),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        '先选个心情再出发吧~',
+                                        style: TextStyle(
+                                          color: Color(0xFF6D4C41),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
 
-                            // 3. 右侧强度选择器 (叠加在中心并向右平移)
-                            Transform.translate(
-                              offset: const Offset(23, 0),
-                              child:
-                                  RepaintBoundary(
-                                        child: MoodIntensitySlider(
-                                          intensity: _intensity,
-                                          onChanged: (val) =>
-                                              setState(() => _intensity = val),
-                                          radius: 130,
-                                        ),
-                                      )
-                                      .animate()
-                                      .fade(delay: 500.ms, duration: 600.ms)
-                                      .scale(
-                                        begin: const Offset(0.8, 0.8),
-                                        duration: 600.ms,
-                                        curve: Curves.easeOutBack,
-                                      ),
-                            ),
-
-                            // 4. 中心基准小白点 (居中)
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 4,
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // 5. 底部确认按钮
+                            // 6. 底部确认按钮 (现在位于 500 高度范围内)
                             Positioned(
-                              bottom: -35, // 进一步向下偏移，视觉更平衡
+                              bottom: 10, // 距离底部边缘留一点空隙
                               child:
                                   IslandButton(
                                         text: '确认',
                                         width: 120,
                                         backgroundColor: Colors.white
                                             .withValues(alpha: 0.6),
-                                        useHandDrawn:
-                                            false, // 确认按钮保持简洁平滑，不使用手绘模式
+                                        useHandDrawn: false,
                                         onTap: () {
-                                          // TODO: 实现确认逻辑
-                                          Navigator.pop(context);
+                                          if (_selectedIndex == null) {
+                                            setState(() {
+                                              _shakeCount++;
+                                              _showBubble = true;
+                                            });
+                                            // 2秒后自动消失
+                                            Future.delayed(
+                                              const Duration(seconds: 2),
+                                              () {
+                                                if (mounted) {
+                                                  setState(
+                                                    () => _showBubble = false,
+                                                  );
+                                                }
+                                              },
+                                            );
+                                            return;
+                                          }
+                                          Navigator.pop(context, {
+                                            'index': _selectedIndex,
+                                            'intensity': _intensity,
+                                          });
                                         },
                                       )
                                       .animate()
