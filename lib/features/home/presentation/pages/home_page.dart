@@ -51,15 +51,11 @@ class _HomePageState extends State<HomePage>
   String _getBackgroundImageForCurrentTime({bool isWide = false}) {
     final int currentHour = DateTime.now().hour;
     if (currentHour >= 6 && currentHour < 11) {
-      return 'assets/images/home_xiatian.png';
+      return 'assets/images/home_xiatian_big.png';
     } else if (currentHour >= 11 && currentHour < 17) {
-      return isWide
-          ? 'assets/images/home_zhongwu_big.png'
-          : 'assets/images/home_zhongwu.png';
+      return 'assets/images/home_zhongwu_big.png';
     } else {
-      return isWide
-          ? 'assets/images/home_wanshang_big.png'
-          : 'assets/images/home_wanshang.png';
+      return 'assets/images/home_wanshang_big.png';
     }
   }
 

@@ -12,15 +12,22 @@ class FloatingClouds extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 基础配置表
+    // 基础配置表：增加云朵数量
     final List<Map<String, dynamic>> bgConfigs = [
       {'scale': 0.7, 'duration': 35, 'initialTop': 0.12},
       {'scale': 1.1, 'duration': 50, 'initialTop': 0.28},
       {'scale': 0.4, 'duration': 30, 'initialTop': 0.08},
+      {'scale': 0.8, 'duration': 42, 'initialTop': 0.18},
+      {'scale': 0.6, 'duration': 38, 'initialTop': 0.22},
+      {'scale': 0.9, 'duration': 55, 'initialTop': 0.05},
+      {'scale': 0.5, 'duration': 32, 'initialTop': 0.10},
+      {'scale': 0.75, 'duration': 48, 'initialTop': 0.15},
     ];
 
     final List<Map<String, dynamic>> fgConfigs = [
       {'scale': 1.2, 'duration': 45, 'initialTop': 0.45},
+      {'scale': 1.0, 'duration': 35, 'initialTop': 0.55},
+      {'scale': 1.4, 'duration': 60, 'initialTop': 0.40},
     ];
 
     final configs = isForeground ? fgConfigs : bgConfigs;
@@ -34,10 +41,8 @@ class FloatingClouds extends StatelessWidget {
             scale: config['scale'],
             duration: Duration(seconds: config['duration']),
             initialTop: config['initialTop'],
-            // 背景层使用固定索引，前景层由组件内部随机
-            forcedIndex: isForeground
-                ? null
-                : (configs.indexOf(config) % 4 + 1),
+            // 背景层由组件内部随机，不再使用固定索引
+            forcedIndex: null,
           );
         }).toList(),
       ),
@@ -77,7 +82,7 @@ class _SingleCloudState extends State<_SingleCloud>
   void initState() {
     super.initState();
     _currentTop = widget.initialTop;
-    _currentIndex = widget.forcedIndex ?? (_random.nextInt(4) + 1);
+    _currentIndex = widget.forcedIndex ?? (_random.nextInt(9) + 1);
 
     // 初始化控制器，并随机一个初始速度
     _controller = AnimationController(
@@ -117,10 +122,8 @@ class _SingleCloudState extends State<_SingleCloud>
       // 更新速度（时长）
       _controller.duration = _getRandomDuration();
 
-      // 如果没有强制索引，则随机切换云朵样式
-      if (widget.forcedIndex == null) {
-        _currentIndex = _random.nextInt(4) + 1;
-      }
+      // 类型随机范围扩大到 1-9
+      _currentIndex = _random.nextInt(9) + 1;
     });
   }
 
@@ -152,7 +155,7 @@ class _SingleCloudState extends State<_SingleCloud>
             child: Transform.scale(
               scale: widget.scale,
               child: Image.asset(
-                'assets/images/icons/clouds${_currentIndex}${widget.isNight ? '_night' : ''}.png',
+                'assets/images/icons/clouds$_currentIndex${widget.isNight ? '_night' : ''}.png',
                 width: cloudWidth,
                 fit: BoxFit.contain,
               ),
