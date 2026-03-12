@@ -104,13 +104,17 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    // 响应式逻辑：检测屏幕宽度
-    final double screenWidth = MediaQuery.of(context).size.width;
+    // 恢复为响应式尺寸获取：直接使用 MediaQuery 感知窗口变化
+    final Size screenSize = MediaQuery.of(context).size;
+    final double screenWidth = screenSize.width;
+    final double screenHeight = screenSize.height;
+
     final bool isWide = screenWidth > 600;
     final responsiveBgPath = _getBackgroundImageForCurrentTime(isWide: isWide);
     final bool isNight = DateTime.now().hour >= 17 || DateTime.now().hour < 6;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // 1. 响应式背景图
@@ -121,8 +125,8 @@ class _HomePageState extends State<HomePage>
                 responsiveBgPath,
                 key: ValueKey(responsiveBgPath),
                 fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
+                width: screenWidth,
+                height: screenHeight,
               ),
             ),
           ),
@@ -152,9 +156,15 @@ class _HomePageState extends State<HomePage>
           AnimatedBuilder(
             animation: _floatAnimation,
             builder: (context, child) {
-              // 响应式岛屿尺寸计算：确保在 600px 切换点平滑连接
+              // 关键适配：iPad 的屏幕宽高比 (通常在 0.7 - 0.75) 比手机 (通常 < 0.5) 要大
+              // 使用更高的 Alignment 值来补偿 iPad 屏幕更“胖”导致的重心偏下感
+              final double aspectRatio = screenWidth / screenHeight;
+              final Alignment islandAlignment = aspectRatio > 0.6
+                  ? const Alignment(0, -0.16) // iPad 向上提一点
+                  : const Alignment(0, -0.4); // 手机保持原位
+
               return Align(
-                alignment: const Alignment(0, -0.4),
+                alignment: islandAlignment,
                 child: Transform.translate(
                   offset: Offset(0, _floatAnimation.value),
                   child: child,
@@ -166,11 +176,11 @@ class _HomePageState extends State<HomePage>
               children: [
                 // 底部倒影光束
                 Positioned(
-                  bottom: screenWidth * 0.08,
+                  bottom: isWide ? 100 : screenWidth * 0.08,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 1500),
-                    width: screenWidth * 0.85,
-                    height: screenWidth * 0.45,
+                    width: isWide ? 600 : screenWidth * 0.85,
+                    height: isWide ? 300 : screenWidth * 0.45,
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         colors: [
@@ -193,9 +203,8 @@ class _HomePageState extends State<HomePage>
                       child: Builder(
                         builder: (context) {
                           final sw = MediaQuery.of(context).size.width;
-                          final iw = sw <= 600
-                              ? sw * 0.9
-                              : 540 + (sw - 600) * 0.3;
+                          // 固定逻辑：在 iPad 上也按比例缩小，最大宽度限制在 500 左右
+                          final iw = sw <= 600 ? sw * 0.9 : 540.0;
                           return Image.asset(
                             _currentIslandPath,
                             key: ValueKey('glow_$_currentIslandPath'),
@@ -228,9 +237,7 @@ class _HomePageState extends State<HomePage>
                     child: Builder(
                       builder: (context) {
                         final sw = MediaQuery.of(context).size.width;
-                        final iw = sw <= 600
-                            ? sw * 0.9
-                            : 540 + (sw - 600) * 0.3;
+                        final iw = sw <= 600 ? sw * 0.9 : 540.0;
                         return Image.asset(
                           _currentIslandPath,
                           width: iw,
@@ -253,7 +260,7 @@ class _HomePageState extends State<HomePage>
           Positioned(
             left: 0,
             right: 0,
-            bottom: 40,
+            bottom: isWide ? 60 : 40, // iPad 适当提升底部距离
             child: BottomNavBar(
               currentIndex: _currentNavIndex,
               isNight: DateTime.now().hour >= 17 || DateTime.now().hour < 6,

@@ -11,12 +11,20 @@ class UserState {
   static const _keyUserName = 'user_name';
   static const _keyOnboarding = 'has_finished_onboarding';
   static const _keyLastVisit = 'last_visit_time';
+  static const _keyDraftContent = 'diary_draft_content';
+  static const _keyDraftMood = 'diary_draft_mood';
+  static const _keyDraftIntensity = 'diary_draft_intensity';
 
   /// 用户的姓名（游戏内称称呼）
   final ValueNotifier<String> userName = ValueNotifier<String>('');
 
   /// 是否已完成新手引导
   final ValueNotifier<bool> hasFinishedOnboarding = ValueNotifier<bool>(false);
+
+  /// 日记草稿暂存
+  final ValueNotifier<DiaryDraft?> diaryDraft = ValueNotifier<DiaryDraft?>(
+    null,
+  );
 
   /// 上次访问时间
   DateTime? lastVisitTime;
@@ -25,6 +33,34 @@ class UserState {
   int get daysSinceLastVisit {
     if (lastVisitTime == null) return 0;
     return DateTime.now().difference(lastVisitTime!).inDays;
+  }
+
+  /// 保存草稿
+  Future<void> saveDraft(
+    int moodIndex,
+    double intensity,
+    String content,
+  ) async {
+    final draft = DiaryDraft(
+      moodIndex: moodIndex,
+      intensity: intensity,
+      content: content,
+    );
+    diaryDraft.value = draft;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyDraftContent, content);
+    await prefs.setInt(_keyDraftMood, moodIndex);
+    await prefs.setDouble(_keyDraftIntensity, intensity);
+  }
+
+  /// 清空草稿
+  Future<void> clearDraft() async {
+    diaryDraft.value = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyDraftContent);
+    await prefs.remove(_keyDraftMood);
+    await prefs.remove(_keyDraftIntensity);
   }
 
   /// 更新用户名称并持久化到本地
@@ -63,10 +99,34 @@ class UserState {
 
     final finished = prefs.getBool(_keyOnboarding) ?? false;
     hasFinishedOnboarding.value = finished;
+
+    // 加载草稿
+    final draftContent = prefs.getString(_keyDraftContent);
+    if (draftContent != null) {
+      diaryDraft.value = DiaryDraft(
+        content: draftContent,
+        moodIndex: prefs.getInt(_keyDraftMood) ?? 0,
+        intensity: prefs.getDouble(_keyDraftIntensity) ?? 5.0,
+      );
+    }
   }
 
   void dispose() {
     userName.dispose();
     hasFinishedOnboarding.dispose();
+    diaryDraft.dispose();
   }
+}
+
+/// 日记草稿模型
+class DiaryDraft {
+  final int moodIndex;
+  final double intensity;
+  final String content;
+
+  DiaryDraft({
+    required this.moodIndex,
+    required this.intensity,
+    required this.content,
+  });
 }

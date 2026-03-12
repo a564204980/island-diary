@@ -116,6 +116,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
     const double notchRadius = 52.0; // 怀抱式设计：凹口半径 (52) 大于按钮半径 (36)，形成包裹感
     final bool isNight = widget.isNight;
 
+    final double screenWidth = MediaQuery.of(context).size.width;
+    // 彻底锁定：在任何设备上都保持 500 左右的最佳宽度，确保视觉一致性
+    final double barMaxWidth = screenWidth <= 600 ? screenWidth * 0.9 : 500.0;
+    final double contentWidth = barMaxWidth * 0.88;
+
     return SizedBox(
       height: SlimeButton.containerHeight, // 统一使用扩容后的高度，确保气泡 hits 测试有效
       child: Stack(
@@ -129,10 +134,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
             right: 0,
             child: Center(
               child: Container(
-                constraints: const BoxConstraints(
-                  maxWidth: 500,
-                ), // iPad/大屏：更紧凑的固定宽度
-                width: MediaQuery.of(context).size.width > 600 ? 500 : null,
+                constraints: BoxConstraints(
+                  maxWidth: barMaxWidth,
+                ), // iPad/大屏：响应式动态宽度
                 margin: const EdgeInsets.symmetric(horizontal: 24),
                 decoration: BoxDecoration(
                   boxShadow: [
@@ -177,7 +181,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                             // 限制内容的宽度，防止图标在 500px 内仍然太散
                             Center(
                               child: Container(
-                                width: 440, // 固定内容区宽度
+                                width: contentWidth, // 动态内容区宽度
                                 child: Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceAround,
@@ -243,7 +247,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
           Positioned.fill(
             child: Center(
               child: Container(
-                constraints: const BoxConstraints(maxWidth: 500), // 与底栏宽度保持一致
+                constraints: BoxConstraints(maxWidth: barMaxWidth), // 与底栏宽度保持一致
                 child: ValueListenableBuilder<bool>(
                   valueListenable: UserState().hasFinishedOnboarding,
                   builder: (context, hasFinished, child) {
@@ -339,6 +343,13 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   // 统一打开心情选择器的逻辑
   Future<void> _openMoodPicker() async {
+    // 0. 优先检查是否有草稿，如果有则直接进入编辑
+    final draft = UserState().diaryDraft.value;
+    if (draft != null) {
+      _openDiaryEntry(draft.moodIndex, draft.intensity);
+      return;
+    }
+
     // 记录进入时是否还在引导状态（await 之后无法再读取准确值）
     final wasOnboarding = !UserState().hasFinishedOnboarding.value;
 

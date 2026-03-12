@@ -12,22 +12,15 @@ class FloatingClouds extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 基础配置表：增加云朵数量
+    // 基础配置表：降低云朵密度
     final List<Map<String, dynamic>> bgConfigs = [
-      {'scale': 0.7, 'duration': 35, 'initialTop': 0.12},
-      {'scale': 1.1, 'duration': 50, 'initialTop': 0.28},
-      {'scale': 0.4, 'duration': 30, 'initialTop': 0.08},
-      {'scale': 0.8, 'duration': 42, 'initialTop': 0.18},
-      {'scale': 0.6, 'duration': 38, 'initialTop': 0.22},
-      {'scale': 0.9, 'duration': 55, 'initialTop': 0.05},
-      {'scale': 0.5, 'duration': 32, 'initialTop': 0.10},
-      {'scale': 0.75, 'duration': 48, 'initialTop': 0.15},
+      {'scale': 0.7, 'duration': 45, 'initialTop': 0.05},
+      {'scale': 1.1, 'duration': 65, 'initialTop': 0.20},
+      {'scale': 0.5, 'duration': 40, 'initialTop': 0.35},
     ];
 
     final List<Map<String, dynamic>> fgConfigs = [
-      {'scale': 1.2, 'duration': 45, 'initialTop': 0.45},
-      {'scale': 1.0, 'duration': 35, 'initialTop': 0.55},
-      {'scale': 1.4, 'duration': 60, 'initialTop': 0.40},
+      {'scale': 1.3, 'duration': 55, 'initialTop': 0.55},
     ];
 
     final configs = isForeground ? fgConfigs : bgConfigs;
@@ -138,8 +131,10 @@ class _SingleCloudState extends State<_SingleCloud>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        final screenWidth = MediaQuery.of(context).size.width;
-        final screenHeight = MediaQuery.of(context).size.height;
+        final view = View.of(context);
+        final Size screenSize = MediaQueryData.fromView(view).size;
+        final double screenWidth = screenSize.width;
+        final double screenHeight = screenSize.height;
         const cloudWidth = 400.0;
 
         // 线性位移：从右侧进，左侧出
