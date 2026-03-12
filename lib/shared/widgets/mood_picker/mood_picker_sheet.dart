@@ -224,6 +224,8 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
                                   IslandButton(
                                         text: '确认',
                                         width: 120,
+                                        backgroundColor: Colors.white
+                                            .withValues(alpha: 0.6),
                                         useHandDrawn:
                                             false, // 确认按钮保持简洁平滑，不使用手绘模式
                                         onTap: () {
@@ -265,7 +267,7 @@ class MoodPickerBackgroundPainter extends CustomPainter {
     final radius = size.width / 2;
 
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.38)
+      ..color = Colors.white.withValues(alpha: 0.6)
       ..style = PaintingStyle.fill;
 
     // ======= 发光重构：彻底抛弃软件计算的 MaskFilter.blur，改用硬件加速 API =======
@@ -318,14 +320,22 @@ class MoodPickerBackgroundPainter extends CustomPainter {
 
     path.close();
 
-    // 填色与发光：通过底层引擎重度优化的 C++ 硬件阴影，瞬间解除主线程和 GPU 的百倍压力
-    canvas.drawShadow(
-      path,
-      const Color.fromRGBO(213, 213, 213, 1),
-      15.0, // 视觉高度 (物理映射模糊度)
-      true,
-    );
-    canvas.drawShadow(path, const Color.fromRGBO(244, 214, 115, 1), 4.0, true);
+    // ======= 纯粹边缘外发光实现 (True Outer Glow) =======
+    // 方案：使用 MaskFilter.blur(BlurStyle.outer) 确保发光仅作用于路径外部，不产生底部填充叠加感。
+
+    // 1. 底层大范围柔和光晕 (环境光)
+    final ambientGlowPaint = Paint()
+      ..color = const Color.fromRGBO(213, 213, 213, 0.4)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 12.0);
+    canvas.drawPath(path, ambientGlowPaint);
+
+    // 2. 金色质感外发光 (核心光)
+    final goldenGlowPaint = Paint()
+      ..color = const Color.fromRGBO(244, 214, 115, 0.7)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 6.0);
+    canvas.drawPath(path, goldenGlowPaint);
+
+    // 3. 绘制实体背景 (中心区域)
     canvas.drawPath(path, paint);
   }
 

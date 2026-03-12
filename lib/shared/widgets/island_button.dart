@@ -155,9 +155,18 @@ class _HandDrawnCapsulePainter extends CustomPainter {
       );
     }
 
-    // 绘制多层光晕 (硬件加速阴影)
-    canvas.drawShadow(path, const Color.fromRGBO(213, 213, 213, 1), 15.0, true);
-    canvas.drawShadow(path, const Color.fromRGBO(244, 214, 115, 1), 4.0, true);
+    // ======= 纯粹边缘外发光实现 (True Outer Glow) =======
+    // 1. 底层柔和光晕
+    final ambientGlowPaint = Paint()
+      ..color = const Color.fromRGBO(213, 213, 213, 0.4)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 12.0);
+    canvas.drawPath(path, ambientGlowPaint);
+
+    // 2. 金色核心光晕
+    final goldenGlowPaint = Paint()
+      ..color = const Color.fromRGBO(244, 214, 115, 0.7)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 5.0);
+    canvas.drawPath(path, goldenGlowPaint);
 
     canvas.drawPath(path, paint);
     canvas.drawPath(path, borderPaint);
