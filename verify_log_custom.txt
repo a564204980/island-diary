@@ -1,0 +1,4 @@
+﻿Analyzing diary_success_overlay.dart...                         
+
+  error - Expected to find ')' - lib\shared\widgets\diary_entry\components\diary_success_overlay.dart:230:85 - expected_token
+

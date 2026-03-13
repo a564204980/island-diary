@@ -17,12 +17,14 @@ class BottomNavBar extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
   final bool isNight;
+  final VoidCallback? onSaveSuccess;
 
   const BottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
     this.isNight = false,
+    this.onSaveSuccess,
   });
 
   @override
@@ -418,20 +420,21 @@ class _BottomNavBarState extends State<BottomNavBar> {
   // 打开像 uniapp popup 一样的日记输入组件
   void _openDiaryEntry(int moodIndex, double intensity) {
     UserState().isDiarySheetOpen.value = true;
-    showModalBottomSheet(
+    showModalBottomSheet<bool>(
       context: context,
-      isScrollControlled: true, // 允许高度根据内容（及键盘）自适应
-      isDismissible: false, // 禁止点击背景关闭
-      enableDrag: false, // 禁止拖动关闭
-      backgroundColor: Colors.transparent, // 背景透明，使用自定义的 paper 背景
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.6),
-      constraints: const BoxConstraints(
-        maxWidth: double.infinity,
-      ), // 确保全宽，不被默认约束限制
+      constraints: const BoxConstraints(maxWidth: double.infinity),
       builder: (context) =>
           MoodDiaryEntrySheet(moodIndex: moodIndex, intensity: intensity),
-    ).whenComplete(() {
+    ).then((success) {
       UserState().isDiarySheetOpen.value = false;
+      if (success == true && widget.onSaveSuccess != null) {
+        widget.onSaveSuccess!();
+      }
     });
   }
 

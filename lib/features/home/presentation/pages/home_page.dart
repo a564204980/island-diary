@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/shared/widgets/bottom_nav_bar.dart';
 import 'package:island_diary/features/home/presentation/widgets/floating_clouds.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_success_overlay.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -102,6 +103,18 @@ class _HomePageState extends State<HomePage>
     _timeChecker?.cancel();
     _floatController.dispose();
     super.dispose();
+  }
+
+  void _showSuccessEffect() {
+    OverlayEntry? overlayEntry;
+    overlayEntry = OverlayEntry(
+      builder: (context) => DiarySuccessOverlay(
+        onFinished: () {
+          overlayEntry?.remove();
+        },
+      ),
+    );
+    Overlay.of(context).insert(overlayEntry);
   }
 
   @override
@@ -290,6 +303,7 @@ class _HomePageState extends State<HomePage>
             child: BottomNavBar(
               currentIndex: _currentNavIndex,
               isNight: DateTime.now().hour >= 17 || DateTime.now().hour < 6,
+              onSaveSuccess: _showSuccessEffect,
               onTap: (index) {
                 setState(() {
                   _currentNavIndex = index;

@@ -27,6 +27,9 @@ abstract class DiaryBlock {
         final controller = block.controller;
         if (controller is TopicTextEditingController) {
           controller.baseColor = Color(map['baseColor']);
+          if (map['baseFontSize'] != null) {
+            controller.baseFontSize = map['baseFontSize'].toDouble();
+          }
         }
       }
       return block;
@@ -34,6 +37,13 @@ abstract class DiaryBlock {
       final path = map['path'];
       if (path != null && path.toString().isNotEmpty) {
         return ImageBlock(XFile(path.toString()), id: id);
+      }
+      return TextBlock('');
+    } else if (type == 'audio') {
+      final path = map['path'];
+      final name = map['name'] ?? '未命名音乐';
+      if (path != null && path.toString().isNotEmpty) {
+        return AudioBlock(path.toString(), name, id: id);
       }
       return TextBlock('');
     }
@@ -47,12 +57,14 @@ class TextAttribute {
   final int end;
   final Color? color;
   final Color? backgroundColor;
+  final double? fontSize;
 
   TextAttribute({
     required this.start,
     required this.end,
     this.color,
     this.backgroundColor,
+    this.fontSize,
   });
 
   Map<String, dynamic> toMap() => {
@@ -60,6 +72,7 @@ class TextAttribute {
     'end': end,
     if (color != null) 'color': color!.value,
     if (backgroundColor != null) 'backgroundColor': backgroundColor!.value,
+    if (fontSize != null) 'fontSize': fontSize,
   };
 
   factory TextAttribute.fromMap(Map<String, dynamic> map) => TextAttribute(
@@ -69,18 +82,22 @@ class TextAttribute {
     backgroundColor: map['backgroundColor'] != null
         ? Color(map['backgroundColor'])
         : null,
+    fontSize: map['fontSize']?.toDouble(),
   );
 }
 
 class TopicTextEditingController extends TextEditingController {
   Color baseColor;
-  late List<TextAttribute> attributes; // 使用 late 并在构造函数中处理
+  double baseFontSize;
+  late List<TextAttribute> attributes;
 
   TopicTextEditingController({
     String? text,
     Color? baseColor,
+    double? baseFontSize,
     List<TextAttribute>? attributes,
   }) : baseColor = baseColor ?? const Color(0xFF5D4037),
+       baseFontSize = baseFontSize ?? 20.0,
        super(text: text) {
     this.attributes = attributes ?? [];
   }
@@ -92,13 +109,22 @@ class TopicTextEditingController extends TextEditingController {
     }
   }
 
+  void updateBaseFontSize(double newSize) {
+    if (baseFontSize != newSize) {
+      baseFontSize = newSize;
+      notifyListeners();
+    }
+  }
+
   /// 将前景色或背景色应用到指定选区（传入 null 表示清除该选区在该维度的属性）
   void applyAttributeToSelection(
     TextSelection selection, {
     Color? color,
     Color? bgColor,
+    double? fontSize,
     bool clearColor = false,
     bool clearBgColor = false,
+    bool clearFontSize = false,
   }) {
     if (selection.isCollapsed) return;
 
@@ -135,6 +161,22 @@ class TopicTextEditingController extends TextEditingController {
       }
     }
 
+    // 处理字号逻辑
+    if (clearFontSize || fontSize != null) {
+      attributes.removeWhere(
+        (attr) =>
+            attr.fontSize != null &&
+            ((attr.start >= start && attr.start < end) ||
+                (attr.end > start && attr.end <= end) ||
+                (attr.start <= start && attr.end >= end)),
+      );
+      if (fontSize != null) {
+        attributes.add(
+          TextAttribute(start: start, end: end, fontSize: fontSize),
+        );
+      }
+    }
+
     // 2. 排序以优化渲染性能
     attributes.sort((a, b) => a.start.compareTo(b.start));
 
@@ -151,7 +193,12 @@ class TopicTextEditingController extends TextEditingController {
     if (textContent.isEmpty) return TextSpan(style: style, text: textContent);
 
     final TextStyle rootStyle =
-        style?.copyWith(color: baseColor) ?? TextStyle(color: baseColor);
+        style?.copyWith(
+          color: baseColor,
+          fontSize: baseFontSize,
+          height: 1.6,
+        ) ??
+        TextStyle(color: baseColor, fontSize: baseFontSize, height: 1.6);
 
     // 1. 获取所有正则话题范围
     final RegExp regExp = RegExp(r'#[^\s#]+', multiLine: true);
@@ -166,6 +213,7 @@ class TopicTextEditingController extends TextEditingController {
           fontWeight: FontWeight.bold,
           decoration: TextDecoration.underline,
           decorationColor: Color(0xFFE67E22),
+          height: 1.6,
         ),
         'priority': 2,
       });
@@ -183,6 +231,8 @@ class TopicTextEditingController extends TextEditingController {
         'style': TextStyle(
           color: attr.color,
           backgroundColor: attr.backgroundColor,
+          fontSize: attr.fontSize,
+          height: 1.6,
         ),
         'priority': 1,
       });
@@ -250,6 +300,7 @@ class TextBlock extends DiaryBlock {
         'content': tc.text,
         'attributes': tc.attributes.map((a) => a.toMap()).toList(),
         'baseColor': tc.baseColor.value,
+        'baseFontSize': tc.baseFontSize,
       };
     }
     return {'id': id, 'type': 'text', 'content': tc.text};
@@ -271,5 +322,20 @@ class ImageBlock extends DiaryBlock {
     'id': id,
     'type': 'image',
     'path': file.path,
+  };
+}
+
+class AudioBlock extends DiaryBlock {
+  final String path;
+  final String name;
+
+  AudioBlock(this.path, this.name, {super.id});
+
+  @override
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'type': 'audio',
+    'path': path,
+    'name': name,
   };
 }

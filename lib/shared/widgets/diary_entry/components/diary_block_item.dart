@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:io';
 import '../models/diary_block.dart';
+import 'audio_player.dart';
 
 /// 渲染单个日记块（文本或图片）
 class DiaryBlockItem extends StatelessWidget {
@@ -32,6 +33,9 @@ class DiaryBlockItem extends StatelessWidget {
     } else if (block is ImageBlock) {
       final imageBlock = block as ImageBlock;
       child = _buildImageBlock(context, imageBlock);
+    } else if (block is AudioBlock) {
+      final audioBlock = block as AudioBlock;
+      child = _buildAudioBlock(audioBlock);
     } else {
       child = const SizedBox.shrink();
     }
@@ -111,5 +115,9 @@ class DiaryBlockItem extends StatelessWidget {
         ],
       ),
     ).animate().scale(duration: 200.ms);
+  }
+
+  Widget _buildAudioBlock(AudioBlock block) {
+    return HandDrawnAudioPlayer(path: block.path, name: block.name);
   }
 }

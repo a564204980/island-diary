@@ -14,6 +14,8 @@ class DiaryToolbar extends StatelessWidget {
   final VoidCallback? onColorClick;
   final VoidCallback? onBgColorClick;
   final VoidCallback? onLocationClick;
+  final VoidCallback? onMusicPick;
+  final VoidCallback? onFontSizeClick;
 
   const DiaryToolbar({
     super.key,
@@ -26,6 +28,8 @@ class DiaryToolbar extends StatelessWidget {
     this.onColorClick,
     this.onBgColorClick,
     this.onLocationClick,
+    this.onMusicPick,
+    this.onFontSizeClick,
   });
 
   @override
@@ -75,16 +79,15 @@ class DiaryToolbar extends StatelessWidget {
       'assets/images/icons/topic_icon.png',
       'assets/images/icons/pencil_icon.png',
       'assets/images/icons/calligraphy_icon.png',
-      'assets/images/icons/address_icon.png', // 移除 time_icon，address_icon 顶上来
+      'assets/images/icons/address_icon.png',
       'assets/images/icons/music_icon.png',
-      'assets/images/icons/link_icon.png',
       'assets/images/icons/fontSize_icon.png',
       'assets/images/icons/utils_icons.png',
     ];
 
     final double itemWidth = rowWidth / 6;
     final row1 = iconPaths.sublist(0, 6);
-    final row2 = iconPaths.sublist(6, 11); // 第二行现在只有 5 个
+    final row2 = iconPaths.sublist(6, 10);
 
     return [
       Row(
@@ -117,6 +120,8 @@ class DiaryToolbar extends StatelessWidget {
 
           VoidCallback? activeOnTap;
           if (index == 0) activeOnTap = onLocationClick; // address_icon 绑定
+          if (index == 1) activeOnTap = onMusicPick; // music_icon 绑定
+          if (index == 2) activeOnTap = onFontSizeClick; // fontSize_icon 绑定
 
           return _buildToolbarItem(path, itemWidth, onTap: activeOnTap);
         }).toList(),

@@ -180,7 +180,9 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                                                 key: ValueKey(block.id),
                                                 block: block,
                                                 index: index,
-                                                isEmojiOpen: isEmojiOpen,
+                                                isEmojiOpen:
+                                                    (isEmojiOpen ||
+                                                    isColorPickerOpen),
                                                 blockKey: key,
                                                 onRemoveImage: () =>
                                                     removeImage(index),
@@ -268,6 +270,8 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                         onColorClick: showColorPicker,
                         onBgColorClick: showBackgroundColorPicker,
                         onLocationClick: onLocationClick,
+                        onMusicPick: onMusicButtonPressed,
+                        onFontSizeClick: showFontSizePicker,
                       ),
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 250),

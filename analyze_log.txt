@@ -1,0 +1,4 @@
+﻿Analyzing diary_success_overlay.dart...                         
+
+  error - The getter 'backOut' isn't defined for the type 'Curves' - lib\shared\widgets\diary_entry\components\diary_success_overlay.dart:180:25 - undefined_getter
+
