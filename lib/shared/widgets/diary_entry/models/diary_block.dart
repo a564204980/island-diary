@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 
-/// ---------------------------------------------------------------------------
-/// 分块编辑器模型定义
-/// ---------------------------------------------------------------------------
 abstract class DiaryBlock {
+  final String id;
+  DiaryBlock({String? id}) : id = id ?? const Uuid().v4();
+
   Map<String, dynamic> toMap();
 
   static DiaryBlock fromMap(Map<String, dynamic> map) {
     final type = map['type'];
+    final id = map['id']?.toString();
     if (type == 'text') {
       final content = map['content'] ?? '';
       final List<TextAttribute> attrs = [];
@@ -20,7 +22,7 @@ abstract class DiaryBlock {
           }
         }
       }
-      final block = TextBlock(content, attributes: attrs);
+      final block = TextBlock(content, attributes: attrs, id: id);
       if (map['baseColor'] != null) {
         final controller = block.controller;
         if (controller is TopicTextEditingController) {
@@ -31,7 +33,7 @@ abstract class DiaryBlock {
     } else if (type == 'image') {
       final path = map['path'];
       if (path != null && path.toString().isNotEmpty) {
-        return ImageBlock(XFile(path.toString()));
+        return ImageBlock(XFile(path.toString()), id: id);
       }
       return TextBlock('');
     }
@@ -148,8 +150,7 @@ class TopicTextEditingController extends TextEditingController {
     final textContent = this.text;
     if (textContent.isEmpty) return TextSpan(style: style, text: textContent);
 
-    final List<InlineSpan> children = [];
-    final TextStyle normalStyle =
+    final TextStyle rootStyle =
         style?.copyWith(color: baseColor) ?? TextStyle(color: baseColor);
 
     // 1. 获取所有正则话题范围
@@ -187,7 +188,11 @@ class TopicTextEditingController extends TextEditingController {
       });
     }
 
-    // 3. 按照索引动态切分并渲染
+    if (highlights.isEmpty) {
+      return TextSpan(style: rootStyle, text: textContent);
+    }
+
+    // 3. 按照索引动态切分并在渲染时合并样式
     final Set<int> boundaries = {0, textContent.length};
     for (var h in highlights) {
       boundaries.add(h['start']);
@@ -195,6 +200,7 @@ class TopicTextEditingController extends TextEditingController {
     }
     final sortedBoundaries = boundaries.toList()..sort();
 
+    final List<InlineSpan> children = [];
     for (int i = 0; i < sortedBoundaries.length - 1; i++) {
       final start = sortedBoundaries[i];
       final end = sortedBoundaries[i + 1];
@@ -202,25 +208,24 @@ class TopicTextEditingController extends TextEditingController {
 
       final chunk = textContent.substring(start, end);
 
-      TextStyle combinedStyle = normalStyle;
+      TextStyle combinedStyle = rootStyle;
+      // 先应用手动属性（低优先级）
       for (var h in highlights) {
-        if (start >= h['start'] && end <= h['end']) {
-          // 如果有话题样式（优先级为2），则它拥有最高控制权
-          if (h['priority'] == 2) {
-            combinedStyle = h['style'];
-            break;
-          }
-          // 手动样式（优先级为1）进行叠加
-          if (h['priority'] == 1) {
-            combinedStyle = combinedStyle.merge(h['style']);
-          }
+        if (h['priority'] == 1 && start >= h['start'] && end <= h['end']) {
+          combinedStyle = combinedStyle.merge(h['style']);
+        }
+      }
+      // 后应用话题样式（高优先级），确保话题样式能覆盖手动设置的颜色但不破坏基础字体/行高
+      for (var h in highlights) {
+        if (h['priority'] == 2 && start >= h['start'] && end <= h['end']) {
+          combinedStyle = combinedStyle.merge(h['style']);
         }
       }
 
       children.add(TextSpan(text: chunk, style: combinedStyle));
     }
 
-    return TextSpan(style: style, children: children);
+    return TextSpan(style: rootStyle, children: children);
   }
 }
 
@@ -228,7 +233,7 @@ class TextBlock extends DiaryBlock {
   final TextEditingController controller;
   final FocusNode focusNode;
 
-  TextBlock(String text, {List<TextAttribute>? attributes})
+  TextBlock(String text, {List<TextAttribute>? attributes, super.id})
     : controller = TopicTextEditingController(
         text: text,
         attributes: attributes,
@@ -240,13 +245,14 @@ class TextBlock extends DiaryBlock {
     final tc = controller;
     if (tc is TopicTextEditingController) {
       return {
+        'id': id,
         'type': 'text',
         'content': tc.text,
         'attributes': tc.attributes.map((a) => a.toMap()).toList(),
         'baseColor': tc.baseColor.value,
       };
     }
-    return {'type': 'text', 'content': tc.text};
+    return {'id': id, 'type': 'text', 'content': tc.text};
   }
 
   void dispose() {
@@ -257,10 +263,13 @@ class TextBlock extends DiaryBlock {
 
 class ImageBlock extends DiaryBlock {
   final XFile file;
-  final String id;
 
-  ImageBlock(this.file) : id = DateTime.now().millisecondsSinceEpoch.toString();
+  ImageBlock(this.file, {super.id});
 
   @override
-  Map<String, dynamic> toMap() => {'type': 'image', 'path': file.path};
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'type': 'image',
+    'path': file.path,
+  };
 }

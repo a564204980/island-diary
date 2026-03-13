@@ -4,13 +4,17 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:uuid/uuid.dart';
 import 'components/diary_paper_canvas.dart';
 import 'components/diary_toolbar.dart';
 import 'components/emoji_panel.dart';
 import 'models/diary_block.dart';
 import 'components/diary_block_item.dart';
 import 'components/mood_tag.dart';
+import 'components/hand_drawn_divider.dart';
 import '../mood_picker/config/mood_config.dart';
 import '../../../core/state/user_state.dart';
 import 'utils/diary_utils.dart';
@@ -40,20 +44,72 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
   // 当前全局颜色（默认为咖啡色）
   Color _currentTextColor = const Color(0xFF5D4037);
 
+  // 固定当前页面的语录，防止点击表情等触发 setState 时跳变
+  late String _fixedQuote;
+
+  // 用于记录每个块的 Key，以便实现滚动对齐
+  final Map<String, GlobalKey> _blockKeys = {};
+
+  // 关键修复：显式记录最后一次拥有焦点的 TextBlock ID
+  String? _lastFocusedBlockId;
+
+  void _addFocusListener(TextBlock block) {
+    block.focusNode.addListener(() {
+      if (block.focusNode.hasFocus) {
+        _lastFocusedBlockId = block.id;
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _loadDraft();
+    final mood = kMoods[widget.moodIndex];
+    _fixedQuote = DiaryUtils.getMoodQuote(mood.label);
   }
 
   void _loadDraft() {
     final draft = UserState().diaryDraft.value?.blocks;
+    final Set<String> existingIds = {};
+    bool draftModified = false;
+
     if (draft != null && draft.isNotEmpty) {
       for (var item in draft) {
-        _blocks.add(DiaryBlock.fromMap(item));
+        var block = DiaryBlock.fromMap(item);
+
+        // 关键修复：防止因旧数据 ID 碰撞导致的 GlobalKey 冲突
+        if (existingIds.contains(block.id)) {
+          // 如果发现 ID 重合，强制重新生成唯一 ID
+          final newId = const Uuid().v4();
+          if (block is TextBlock) {
+            final tc = block.controller;
+            final attrs = (tc is TopicTextEditingController)
+                ? tc.attributes
+                : null;
+            block = TextBlock(tc.text, attributes: attrs, id: newId);
+          } else if (block is ImageBlock) {
+            block = ImageBlock(block.file, id: newId);
+          }
+          draftModified = true;
+        }
+
+        if (block is TextBlock) {
+          _addFocusListener(block); // 增加焦点监听
+        }
+        existingIds.add(block.id);
+        _blocks.add(block);
+        _blockKeys[block.id] = GlobalKey(); // 预分配 Key
+      }
+
+      if (draftModified) {
+        _onBlocksChanged(); // 保存修正后的唯一 ID
       }
     } else {
-      _blocks.add(TextBlock(''));
+      final initialBlock = TextBlock('');
+      _addFocusListener(initialBlock); // 增加焦点监听
+      _blocks.add(initialBlock);
+      _blockKeys[initialBlock.id] = GlobalKey(); // 预分配 Key
     }
   }
 
@@ -76,6 +132,15 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
       (b) => b.focusNode.hasFocus,
     );
     if (focused.isNotEmpty) return focused.first;
+
+    // 逻辑修正：如果没有实时焦点，优先返回最后记忆的焦点块
+    if (_lastFocusedBlockId != null) {
+      final lastFocused = _blocks.whereType<TextBlock>().where(
+        (b) => b.id == _lastFocusedBlockId,
+      );
+      if (lastFocused.isNotEmpty) return lastFocused.first;
+    }
+
     if (_blocks.whereType<TextBlock>().isNotEmpty) {
       return _blocks.whereType<TextBlock>().last;
     }
@@ -83,28 +148,81 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
   }
 
   void _onImageButtonPressed() async {
+    // 关键修复：在一瞬间捕获当前的活跃块和光标位置，防止 pickImage 异步导致焦点丢失
+    final activeBlock = _activeTextBlock;
+    TextSelection? savedSelection;
+    if (activeBlock != null) {
+      savedSelection = activeBlock.controller.selection;
+    }
+
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
+      final int insertIndex;
+      TextBlock? newBottomBlock;
+
+      if (activeBlock != null) {
+        final controller = activeBlock.controller;
+        final selection = savedSelection ?? controller.selection;
+        final text = controller.text;
+        final int splitOffset = selection.isValid
+            ? selection.extentOffset
+            : text.length;
+
+        // 拆分逻辑
+        final beforeText = text.substring(0, splitOffset);
+        final afterText = text.substring(splitOffset);
+
+        final originalIndex = _blocks.indexOf(activeBlock);
+
+        // 更新原 Block 为前半部分
+        controller.text = beforeText;
+
+        insertIndex = originalIndex + 1;
+        newBottomBlock = TextBlock(afterText);
+      } else {
+        insertIndex = _blocks.length;
+        newBottomBlock = TextBlock('');
+      }
+
+      final imageBlock = ImageBlock(image);
+
       setState(() {
-        _blocks.add(ImageBlock(image));
-        _blocks.add(TextBlock(''));
+        _blocks.insert(insertIndex, imageBlock);
+        _blocks.insert(insertIndex + 1, newBottomBlock!);
+
+        // 预分配 Key，杜绝渲染时动态生成导致的冲突
+        _blockKeys[imageBlock.id] = GlobalKey();
+        _blockKeys[newBottomBlock.id] = GlobalKey();
+
+        // 关键增强：立即锁定记忆，确保滚动和焦点逻辑第一时间认准新块
+        _lastFocusedBlockId = newBottomBlock.id;
+        _addFocusListener(newBottomBlock); // 增加焦点监听
       });
+
       _onBlocksChanged();
+
+      // 自动聚焦到图片下方的文本框并归位光标
       Future.delayed(const Duration(milliseconds: 100), () {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        if (mounted && newBottomBlock != null) {
+          // 强制光标回到新段落的最开始，防止跳到段尾
+          newBottomBlock.controller.selection = const TextSelection.collapsed(
+            offset: 0,
+          );
+          newBottomBlock.focusNode.requestFocus();
+          _scrollToActiveBlock();
+        }
       });
     }
   }
 
   void _removeImage(int index) {
+    if (index < 0 || index >= _blocks.length) return;
+    final blockId = _blocks[index].id;
     setState(() {
       _blocks.removeAt(index);
+      _blockKeys.remove(blockId); // 清理 Key
     });
     _onBlocksChanged();
   }
@@ -140,11 +258,16 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
 
   void _toggleEmoji() {
     setState(() {
-      if (_isEmojiOpen) {
-        _isEmojiOpen = false;
-      } else {
-        _isEmojiOpen = true;
-        FocusScope.of(context).unfocus();
+      _isEmojiOpen = !_isEmojiOpen;
+    });
+
+    // 无论开启还是关闭，都确保有焦点的块能够恢复。
+    // 尤其是在关闭面板时（readOnly 变为 false），必须重新 requestFocus 才能呼起系统键盘并闪烁光标。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final activeBlock = _activeTextBlock;
+        activeBlock?.focusNode.requestFocus();
+        _scrollToActiveBlock();
       }
     });
   }
@@ -160,10 +283,25 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
         selection.end.clamp(0, text.length),
         emoji,
       );
-      controller.text = newText;
-      controller.selection = TextSelection.collapsed(
-        offset: selection.start + emoji.length,
-      );
+
+      setState(() {
+        controller.value = controller.value.copyWith(
+          text: newText,
+          selection: TextSelection.collapsed(
+            offset: selection.start + emoji.length,
+          ),
+        );
+      });
+
+      // 核心优化：插入后立即请求焦点并确保光标显示
+      Future.delayed(Duration.zero, () {
+        if (mounted) {
+          activeBlock.focusNode.requestFocus();
+          _scrollToActiveBlock();
+        }
+      });
+
+      _onBlocksChanged();
     }
   }
 
@@ -191,6 +329,9 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
       text: newText,
       selection: TextSelection.collapsed(offset: selection.start + 1),
     );
+
+    // 记录最后焦点并添加监听（如果是新生成的块）
+    _addFocusListener(activeBlock);
 
     activeBlock.focusNode.requestFocus();
     _onBlocksChanged();
@@ -324,6 +465,186 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
     );
   }
 
+  void _scrollToActiveBlock() {
+    _performScrollToActiveBlock();
+  }
+
+  void _performScrollToActiveBlock({int retryCount = 0}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final activeBlock = _activeTextBlock;
+      if (activeBlock != null) {
+        final key = _blockKeys[activeBlock.id];
+        final context = key?.currentContext;
+        if (context == null) return;
+
+        final RenderBox? box = context.findRenderObject() as RenderBox?;
+        if (box == null || box.size.width <= 0) {
+          if (retryCount < 3) {
+            Future.delayed(const Duration(milliseconds: 50), () {
+              if (mounted)
+                _performScrollToActiveBlock(retryCount: retryCount + 1);
+            });
+          }
+          return;
+        }
+
+        final controller = activeBlock.controller;
+        final selection = controller.selection;
+        final text = controller.text;
+
+        // 计算光标在文本框内的精确偏移量
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: text,
+            style: const TextStyle(
+              fontFamily: 'FZKai',
+              fontSize: 20,
+              height: 1.6,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+
+        textPainter.layout(maxWidth: box.size.width);
+
+        final offset = selection.isValid
+            ? selection.extentOffset.clamp(0, text.length)
+            : text.length;
+
+        final caretOffset = textPainter.getOffsetForCaret(
+          TextPosition(offset: offset),
+          Rect.zero,
+        );
+
+        // 获取滚动容器的 RenderBox 以计算相对偏移
+        final ScrollableState? scrollable = Scrollable.of(context);
+        final RenderObject? scrollObject = scrollable?.context
+            .findRenderObject();
+        if (scrollObject is! RenderBox) return;
+
+        // 计算光标相对于滚动容器顶部的 y 坐标 (加上 4 的内边距)
+        final Offset caretInScrollOffset = box.localToGlobal(
+          Offset(caretOffset.dx, caretOffset.dy + 4),
+          ancestor: scrollObject,
+        );
+
+        final double currentScroll = _scrollController.offset;
+        final double viewportHeight = scrollObject.size.height;
+
+        // 计算目标滚动量，使光标垂直居中
+        final double targetScroll =
+            currentScroll + caretInScrollOffset.dy - (viewportHeight / 2);
+
+        _scrollController.animateTo(
+          targetScroll.clamp(0.0, _scrollController.position.maxScrollExtent),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void _onLocationClick() async {
+    // 关键：提前捕获焦点块和光标位置
+    final activeBlock = _activeTextBlock;
+    TextSelection? savedSelection;
+    if (activeBlock != null) {
+      savedSelection = activeBlock.controller.selection;
+    }
+
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // 检查服务
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('请开启定位服务')));
+      }
+      return;
+    }
+
+    // 检查权限
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('定位权限被拒绝')));
+        }
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('定位权限被永久拒绝，请在设置中开启')));
+      }
+      return;
+    }
+
+    try {
+      // 获取当前位置
+      final position = await Geolocator.getCurrentPosition();
+
+      // 逆地理编码
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        final address =
+            "${p.administrativeArea}${p.locality}${p.subLocality}${p.street}";
+
+        // 使用之前捕获的块，而不是重新获取
+        if (activeBlock != null) {
+          final controller = activeBlock.controller;
+          final text = controller.text;
+          final selection = savedSelection ?? controller.selection;
+          final insertion = "\n#地点: $address ";
+
+          final newText = text.replaceRange(
+            selection.start.clamp(0, text.length),
+            selection.end.clamp(0, text.length),
+            insertion,
+          );
+
+          setState(() {
+            controller.value = controller.value.copyWith(
+              text: newText,
+              selection: TextSelection.collapsed(
+                offset: selection.start + insertion.length,
+              ),
+            );
+          });
+          _onBlocksChanged();
+          // 核心优化：插入后立即请求焦点并确保光标显示
+          Future.delayed(Duration.zero, () {
+            if (mounted) {
+              activeBlock.focusNode.requestFocus();
+              _scrollToActiveBlock(); // 插入后也滚动
+            }
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('获取地址失败')));
+      }
+    }
+  }
+
   void _onSave() {
     final fullText = _blocks
         .whereType<TextBlock>()
@@ -336,16 +657,15 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
 
   // 辅助方法：确保光标可见
   void _ensureCursorVisible() {
+    if (!mounted) return;
     final activeBlock = _activeTextBlock;
-    if (activeBlock == null) return;
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (!mounted) return;
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    });
+    if (activeBlock != null) {
+      // 确保持有焦点（维持光标闪烁）
+      activeBlock.focusNode.requestFocus();
+      _scrollToActiveBlock();
+    } else {
+      // ...
+    }
   }
 
   @override
@@ -374,7 +694,7 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                 child: SafeArea(
                   child: Column(
                     children: [
-                      const SizedBox(height: 120),
+                      const SizedBox(height: 84), // 减小顶部偏移，给内容和按钮留出空间
                       Expanded(
                         child: Stack(
                           clipBehavior: Clip.none,
@@ -392,46 +712,129 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                   viewInsets.bottom,
                                   _isEmojiOpen ? _keyboardHeight : 0,
                                 );
-                                final double baseHeight = screenHeight * 0.85;
+
+                                // 修正高度计算逻辑：屏幕总高 - 顶部占用 - 底部占用
+                                final double topAreaHeight = 84.0;
+                                final double bottomAreaHeight =
+                                    60.0; // 降低预留，让信纸更往下靠
+                                final double maxPaperHeight =
+                                    screenHeight * 0.88; // 增加最大高度比例
+
                                 final double availableHeight =
                                     screenHeight -
-                                    (screenHeight * 0.11) -
+                                    topAreaHeight -
+                                    bottomAreaHeight -
                                     bottomOffset;
                                 final double dynamicHeight =
-                                    (availableHeight < baseHeight)
+                                    availableHeight < maxPaperHeight
                                     ? availableHeight
-                                    : baseHeight;
+                                    : maxPaperHeight;
 
                                 final double screenWidthForPadding =
                                     MediaQuery.of(context).size.width;
-                                final double horizontalPadding =
-                                    screenWidthForPadding > 600 ? 50.0 : 32.0;
+                                final bool isWide = screenWidthForPadding > 600;
+                                final double horizontalPadding = isWide
+                                    ? 50.0
+                                    : 32.0;
+
+                                // 核心优化：iPad/大屏下固定为屏幕宽度的 70%
+                                final double paperMaxWidth = isWide
+                                    ? screenWidthForPadding * 0.7
+                                    : double.infinity;
 
                                 return AnimatedContainer(
                                   duration: const Duration(milliseconds: 250),
                                   curve: Curves.easeOutCubic,
                                   onEnd: _ensureCursorVisible,
                                   height: dynamicHeight,
+                                  constraints: BoxConstraints(
+                                    maxWidth: paperMaxWidth,
+                                  ), // 固定宽度限制
                                   width: double.infinity,
                                   child: DiaryPaperCanvas(
                                     shadowColor: mood.glowColor,
                                     padding: EdgeInsets.fromLTRB(
                                       horizontalPadding,
-                                      40,
+                                      28, // 继续上移
                                       horizontalPadding,
-                                      64,
+                                      48,
                                     ),
                                     child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
+                                        // 恢复顶部信息栏 (时间与日期)
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              DiaryUtils.getFormattedTime(),
+                                              style: const TextStyle(
+                                                fontFamily: 'FZKai',
+                                                fontSize: 28,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF8B5E3C),
+                                              ),
+                                            ),
+                                            Text(
+                                              DiaryUtils.getFormattedDate(),
+                                              style: const TextStyle(
+                                                fontFamily: 'FZKai',
+                                                fontSize: 16,
+                                                color: Color(0xFFA68A78),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        // 心情语录
+                                        Text(
+                                          _fixedQuote,
+                                          style: TextStyle(
+                                            fontFamily: 'FZKai',
+                                            fontSize: 14,
+                                            fontStyle: FontStyle.italic,
+                                            color: const Color(
+                                              0xFF8B5E3C,
+                                            ).withOpacity(0.7),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        // 手绘分割线 (置于语录下方)
+                                        CustomPaint(
+                                          size: const Size(double.infinity, 2),
+                                          painter: HandDrawnLinePainter(
+                                            color: const Color(
+                                              0xFF8B5E3C,
+                                            ).withOpacity(0.8),
+                                            strokeWidth: 1.5,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+
                                         Expanded(
                                           child: ListView.builder(
                                             controller: _scrollController,
                                             padding: EdgeInsets.zero,
                                             itemCount: _blocks.length,
                                             itemBuilder: (context, index) {
+                                              final block = _blocks[index];
+                                              // 如果由于某种极端原因 Key 丢失了，在这里补救
+                                              final key =
+                                                  _blockKeys[block.id] ??=
+                                                      GlobalKey();
+
                                               return DiaryBlockItem(
-                                                block: _blocks[index],
+                                                key: ValueKey(
+                                                  block.id,
+                                                ), // 给 Item 增加稳定标识
+                                                block: block,
                                                 index: index,
+                                                isEmojiOpen: _isEmojiOpen,
+                                                blockKey: key,
                                                 onRemoveImage: () =>
                                                     _removeImage(index),
                                                 onShowPreview:
@@ -518,6 +921,7 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                         onTopicClick: _insertTopic,
                         onColorClick: _showColorPicker,
                         onBgColorClick: _showBackgroundColorPicker,
+                        onLocationClick: _onLocationClick,
                       ),
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 250),

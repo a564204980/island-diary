@@ -8,27 +8,35 @@ import '../models/diary_block.dart';
 class DiaryBlockItem extends StatelessWidget {
   final DiaryBlock block;
   final int index;
+  final bool isEmojiOpen;
   final VoidCallback onRemoveImage;
   final Function(ImageBlock) onShowPreview;
+  final GlobalKey? blockKey;
 
   const DiaryBlockItem({
     super.key,
     required this.block,
     required this.index,
+    required this.isEmojiOpen,
     required this.onRemoveImage,
     required this.onShowPreview,
+    this.blockKey,
   });
 
   @override
   Widget build(BuildContext context) {
+    Widget child;
     if (block is TextBlock) {
       final textBlock = block as TextBlock;
-      return _buildTextBlock(textBlock);
+      child = _buildTextBlock(textBlock);
     } else if (block is ImageBlock) {
       final imageBlock = block as ImageBlock;
-      return _buildImageBlock(context, imageBlock);
+      child = _buildImageBlock(context, imageBlock);
+    } else {
+      child = const SizedBox.shrink();
     }
-    return const SizedBox.shrink();
+
+    return Container(key: blockKey, child: child);
   }
 
   Widget _buildTextBlock(TextBlock block) {
@@ -36,6 +44,8 @@ class DiaryBlockItem extends StatelessWidget {
       controller: block.controller,
       focusNode: block.focusNode,
       maxLines: null,
+      readOnly: isEmojiOpen,
+      showCursor: true,
       cursorColor: const Color(0xFF8B5E3C),
       style: const TextStyle(fontFamily: 'FZKai', fontSize: 20, height: 1.6),
       decoration: InputDecoration(

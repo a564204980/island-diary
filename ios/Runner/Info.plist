@@ -74,5 +74,7 @@
 	<string>我们需要访问您的麦克风以进行语音记日记。</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>我们需要使用语音识别功能将您的语音转换为日记文字。</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>我们需要访问您的位置信息以在日记中记录地点。</string>
 </dict>
 </plist>
