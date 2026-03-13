@@ -1,0 +1,94 @@
+﻿Analyzing island_diary...                                       
+
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:76:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:78:27 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:85:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:94:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:159:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:215:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\onboarding\presentation\pages\onboarding_page.dart:148:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\onboarding\presentation\widgets\arrival_scene.dart:101:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\onboarding\presentation\widgets\starfield_background.dart:110:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\onboarding\presentation\widgets\starfield_background.dart:118:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\bottom_nav_bar.dart:144:43 - deprecated_member_use
+   info - Use a 'SizedBox' to add whitespace to a layout - lib\shared\widgets\bottom_nav_bar.dart:159:30 - sized_box_for_whitespace
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\bottom_nav_bar.dart:173:67 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\bottom_nav_bar.dart:176:56 - deprecated_member_use
+   info - Use a 'SizedBox' to add whitespace to a layout - lib\shared\widgets\bottom_nav_bar.dart:183:38 - sized_box_for_whitespace
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\bottom_nav_bar.dart:374:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\bottom_nav_bar.dart:427:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\center_mood_button.dart:237:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\center_mood_button.dart:241:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\color_picker_sheet.dart:103:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\color_picker_sheet.dart:109:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\color_picker_sheet.dart:126:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\color_picker_sheet.dart:129:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\color_picker_sheet.dart:174:60 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\diary_painters.dart:29:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\diary_painters.dart:43:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\diary_painters.dart:52:20 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\diary_painters.dart:59:30 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\diary_painters.dart:101:39 - deprecated_member_use
+   info - Statements in an if should be enclosed in a block - lib\shared\widgets\diary_entry\components\diary_painters.dart:119:9 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\shared\widgets\diary_entry\components\diary_painters.dart:121:9 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\shared\widgets\diary_entry\components\diary_painters.dart:123:9 - curly_braces_in_flow_control_structures
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\diary_painters.dart:126:28 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\diary_painters.dart:215:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\diary_paper_canvas.dart:23:50 - deprecated_member_use
+   info - Use a 'SizedBox' to add whitespace to a layout - lib\shared\widgets\diary_entry\components\diary_toolbar.dart:35:12 - sized_box_for_whitespace
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\diary_toolbar.dart:47:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\diary_toolbar.dart:147:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\emoji_panel.dart:40:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\hand_drawn_divider.dart:14:23 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\hand_drawn_divider.dart:49:25 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\mood_tag.dart:16:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\components\mood_tag.dart:17:46 - deprecated_member_use
+warning - Unused import: 'models/diary_block.dart' - lib\shared\widgets\diary_entry\diary_entry_sheet.dart:7:8 - unused_import
+  error - The argument type 'MainAxisAlignment' can't be assigned to the parameter type 'CrossAxisAlignment'.  - lib\shared\widgets\diary_entry\diary_entry_sheet.dart:127:47 - argument_type_not_assignable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\diary_entry_sheet.dart:157:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\diary_entry_sheet.dart:166:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\diary_entry\diary_entry_sheet.dart:277:56 - deprecated_member_use
+warning - Unused import: 'dart:math' - lib\shared\widgets\diary_entry\mixins\diary_editor_mixin.dart:1:8 - unused_import
+   info - The private field _keyboardHeight could be 'final' - lib\shared\widgets\diary_entry\mixins\diary_editor_mixin.dart:24:10 - prefer_final_fields
+   info - Statements in an if should be enclosed in a block - lib\shared\widgets\diary_entry\mixins\diary_editor_mixin.dart:114:7 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\shared\widgets\diary_entry\mixins\diary_editor_mixin.dart:181:9 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\shared\widgets\diary_entry\mixins\diary_editor_mixin.dart:192:11 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\shared\widgets\diary_entry\mixins\diary_editor_mixin.dart:201:9 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\shared\widgets\diary_entry\mixins\diary_editor_mixin.dart:246:9 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\shared\widgets\diary_entry\mixins\diary_editor_mixin.dart:304:15 - curly_braces_in_flow_control_structures
+   info - Type could be non-nullable - lib\shared\widgets\diary_entry\mixins\diary_editor_mixin.dart:335:30 - unnecessary_nullable_for_final_variable_declarations
+   info - Statements in an if should be enclosed in a block - lib\shared\widgets\diary_entry\mixins\diary_editor_mixin.dart:409:19 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\shared\widgets\diary_entry\mixins\diary_editor_mixin.dart:490:9 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\shared\widgets\diary_entry\mixins\diary_editor_mixin.dart:492:9 - curly_braces_in_flow_control_structures
+   info - 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion - lib\shared\widgets\diary_entry\models\diary_block.dart:61:40 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion - lib\shared\widgets\diary_entry\models\diary_block.dart:62:70 - deprecated_member_use
+   info - Parameter 'text' could be a super parameter - lib\shared\widgets\diary_entry\models\diary_block.dart:79:3 - use_super_parameters
+   info - Unnecessary 'this.' qualifier - lib\shared\widgets\diary_entry\models\diary_block.dart:150:25 - unnecessary_this
+   info - 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion - lib\shared\widgets\diary_entry\models\diary_block.dart:252:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\island_button.dart:81:56 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\island_button.dart:184:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\mood_picker\mood_picker_sheet.dart:277:61 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\slime_button.dart:83:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\slime_button.dart:87:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\slime_button.dart:186:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\slime_button.dart:188:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\slime_button.dart:193:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\slime_onboarding.dart:114:54 - deprecated_member_use
+   info - The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\shared\widgets\sprite_dialogue.dart:3:8 - unnecessary_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\sprite_dialogue.dart:92:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\sprite_dialogue.dart:93:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\sprite_dialogue.dart:100:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\sprite_dialogue.dart:117:22 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\sprite_dialogue.dart:144:37 - deprecated_member_use
+  error - The name 'MyApp' isn't a class - test\widget_test.dart:16:35 - creation_with_non_type
+
+flutter : 81 issues found. (ran in 7.2s)
+所在位置 行:1 字符: 1
++ flutter analyze --no-pub > analyze_full.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified    : (8
+1 issues found. (ran in 7.2s):Stri    ng) [], Remo
+teException
+    + FullyQualifiedErrorId : NativeComman    dErr
+or
+ 

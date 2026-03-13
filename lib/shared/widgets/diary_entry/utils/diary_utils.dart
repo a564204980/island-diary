@@ -1,4 +1,44 @@
+import 'package:flutter/material.dart';
+
 class DiaryUtils {
+  /// 预设文本颜色
+  static const List<Color> presetTextColors = [
+    Color(0xFF5D4037),
+    Color(0xFF2C3E50),
+    Color(0xFF34495E),
+    Color(0xFF27AE60),
+    Color(0xFF16A085),
+    Color(0xFFC0392B),
+    Color(0xFFE74C3C),
+    Color(0xFF8E44AD),
+    Color(0xFF9B59B6),
+    Color(0xFFF39C12),
+    Color(0xFFD35400),
+    Color(0xFF2980B9),
+    Color(0xFF7F8C8D),
+    Color(0xFF1ABC9C),
+    Color(0xFFD4AC0D),
+  ];
+
+  /// 预设背景高亮颜色
+  static const List<Color> presetBgColors = [
+    Color(0xFFFFF9EE),
+    Color(0xFFF9EED8),
+    Color(0xFFE8F5E9),
+    Color(0xFFE3F2FD),
+    Color(0xFFFFF3E0),
+    Color(0xFFFFEBEE),
+    Color(0xFFF3E5F5),
+    Color(0xFFE0F2F1),
+    Color(0xFFF1F8E9),
+    Color(0xFFFFFDE7),
+    Color(0xFFFFFF00),
+    Color(0xFF00FF00),
+    Color(0xFF00FFFF),
+    Color(0xFFFF00FF),
+    Color(0xFFC0C0C0),
+  ];
+
   /// 获取格式化的当前日期 (yyyy年MM月dd日)
   static String getFormattedDate() {
     final now = DateTime.now();

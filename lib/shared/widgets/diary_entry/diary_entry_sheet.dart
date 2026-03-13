@@ -1,23 +1,15 @@
 import 'dart:math' as math;
-import 'dart:io' as io;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:uuid/uuid.dart';
 import 'components/diary_paper_canvas.dart';
 import 'components/diary_toolbar.dart';
 import 'components/emoji_panel.dart';
-import 'models/diary_block.dart';
 import 'components/diary_block_item.dart';
 import 'components/mood_tag.dart';
 import 'components/hand_drawn_divider.dart';
 import '../mood_picker/config/mood_config.dart';
-import '../../../core/state/user_state.dart';
 import 'utils/diary_utils.dart';
+import 'mixins/diary_editor_mixin.dart';
 
 class MoodDiaryEntrySheet extends StatefulWidget {
   final int moodIndex;
@@ -33,646 +25,17 @@ class MoodDiaryEntrySheet extends StatefulWidget {
   State<MoodDiaryEntrySheet> createState() => _MoodDiaryEntrySheetState();
 }
 
-class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
-  final List<DiaryBlock> _blocks = [];
-  final ScrollController _scrollController = ScrollController();
-
-  bool _isEmojiOpen = false;
-  bool _isRecording = false;
-  double _keyboardHeight = 280;
-
-  // 当前全局颜色（默认为咖啡色）
-  Color _currentTextColor = const Color(0xFF5D4037);
-
-  // 固定当前页面的语录，防止点击表情等触发 setState 时跳变
-  late String _fixedQuote;
-
-  // 用于记录每个块的 Key，以便实现滚动对齐
-  final Map<String, GlobalKey> _blockKeys = {};
-
-  // 关键修复：显式记录最后一次拥有焦点的 TextBlock ID
-  String? _lastFocusedBlockId;
-
-  void _addFocusListener(TextBlock block) {
-    block.focusNode.addListener(() {
-      if (block.focusNode.hasFocus) {
-        _lastFocusedBlockId = block.id;
-      }
-    });
-  }
-
+class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
+    with DiaryEditorMixin {
   @override
   void initState() {
     super.initState();
-    _loadDraft();
-    final mood = kMoods[widget.moodIndex];
-    _fixedQuote = DiaryUtils.getMoodQuote(mood.label);
-  }
-
-  void _loadDraft() {
-    final draft = UserState().diaryDraft.value?.blocks;
-    final Set<String> existingIds = {};
-    bool draftModified = false;
-
-    if (draft != null && draft.isNotEmpty) {
-      for (var item in draft) {
-        var block = DiaryBlock.fromMap(item);
-
-        // 关键修复：防止因旧数据 ID 碰撞导致的 GlobalKey 冲突
-        if (existingIds.contains(block.id)) {
-          // 如果发现 ID 重合，强制重新生成唯一 ID
-          final newId = const Uuid().v4();
-          if (block is TextBlock) {
-            final tc = block.controller;
-            final attrs = (tc is TopicTextEditingController)
-                ? tc.attributes
-                : null;
-            block = TextBlock(tc.text, attributes: attrs, id: newId);
-          } else if (block is ImageBlock) {
-            block = ImageBlock(block.file, id: newId);
-          }
-          draftModified = true;
-        }
-
-        if (block is TextBlock) {
-          _addFocusListener(block); // 增加焦点监听
-        }
-        existingIds.add(block.id);
-        _blocks.add(block);
-        _blockKeys[block.id] = GlobalKey(); // 预分配 Key
-      }
-
-      if (draftModified) {
-        _onBlocksChanged(); // 保存修正后的唯一 ID
-      }
-    } else {
-      final initialBlock = TextBlock('');
-      _addFocusListener(initialBlock); // 增加焦点监听
-      _blocks.add(initialBlock);
-      _blockKeys[initialBlock.id] = GlobalKey(); // 预分配 Key
-    }
-  }
-
-  void _onBlocksChanged() {
-    final content = _blocks
-        .whereType<TextBlock>()
-        .map((b) => b.controller.text)
-        .join('\n');
-
-    UserState().saveDraft(
-      moodIndex: widget.moodIndex,
-      intensity: widget.intensity,
-      content: content,
-      blocks: _blocks.map((b) => b.toMap()).toList(),
-    );
-  }
-
-  TextBlock? get _activeTextBlock {
-    final focused = _blocks.whereType<TextBlock>().where(
-      (b) => b.focusNode.hasFocus,
-    );
-    if (focused.isNotEmpty) return focused.first;
-
-    // 逻辑修正：如果没有实时焦点，优先返回最后记忆的焦点块
-    if (_lastFocusedBlockId != null) {
-      final lastFocused = _blocks.whereType<TextBlock>().where(
-        (b) => b.id == _lastFocusedBlockId,
-      );
-      if (lastFocused.isNotEmpty) return lastFocused.first;
-    }
-
-    if (_blocks.whereType<TextBlock>().isNotEmpty) {
-      return _blocks.whereType<TextBlock>().last;
-    }
-    return null;
-  }
-
-  void _onImageButtonPressed() async {
-    // 关键修复：在一瞬间捕获当前的活跃块和光标位置，防止 pickImage 异步导致焦点丢失
-    final activeBlock = _activeTextBlock;
-    TextSelection? savedSelection;
-    if (activeBlock != null) {
-      savedSelection = activeBlock.controller.selection;
-    }
-
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-
-    if (image != null) {
-      final int insertIndex;
-      TextBlock? newBottomBlock;
-
-      if (activeBlock != null) {
-        final controller = activeBlock.controller;
-        final selection = savedSelection ?? controller.selection;
-        final text = controller.text;
-        final int splitOffset = selection.isValid
-            ? selection.extentOffset
-            : text.length;
-
-        // 拆分逻辑
-        final beforeText = text.substring(0, splitOffset);
-        final afterText = text.substring(splitOffset);
-
-        final originalIndex = _blocks.indexOf(activeBlock);
-
-        // 更新原 Block 为前半部分
-        controller.text = beforeText;
-
-        insertIndex = originalIndex + 1;
-        newBottomBlock = TextBlock(afterText);
-      } else {
-        insertIndex = _blocks.length;
-        newBottomBlock = TextBlock('');
-      }
-
-      final imageBlock = ImageBlock(image);
-
-      setState(() {
-        _blocks.insert(insertIndex, imageBlock);
-        _blocks.insert(insertIndex + 1, newBottomBlock!);
-
-        // 预分配 Key，杜绝渲染时动态生成导致的冲突
-        _blockKeys[imageBlock.id] = GlobalKey();
-        _blockKeys[newBottomBlock.id] = GlobalKey();
-
-        // 关键增强：立即锁定记忆，确保滚动和焦点逻辑第一时间认准新块
-        _lastFocusedBlockId = newBottomBlock.id;
-        _addFocusListener(newBottomBlock); // 增加焦点监听
-      });
-
-      _onBlocksChanged();
-
-      // 自动聚焦到图片下方的文本框并归位光标
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted && newBottomBlock != null) {
-          // 强制光标回到新段落的最开始，防止跳到段尾
-          newBottomBlock.controller.selection = const TextSelection.collapsed(
-            offset: 0,
-          );
-          newBottomBlock.focusNode.requestFocus();
-          _scrollToActiveBlock();
-        }
-      });
-    }
-  }
-
-  void _removeImage(int index) {
-    if (index < 0 || index >= _blocks.length) return;
-    final blockId = _blocks[index].id;
-    setState(() {
-      _blocks.removeAt(index);
-      _blockKeys.remove(blockId); // 清理 Key
-    });
-    _onBlocksChanged();
-  }
-
-  void _showImagePreview(ImageBlock block) {
-    final bool isWeb = kIsWeb;
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: isWeb
-                  ? Image.network(block.file.path)
-                  : Image.file(io.File(block.file.path)),
-            ),
-            Positioned(
-              top: 10,
-              right: 10,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _toggleEmoji() {
-    setState(() {
-      _isEmojiOpen = !_isEmojiOpen;
-    });
-
-    // 无论开启还是关闭，都确保有焦点的块能够恢复。
-    // 尤其是在关闭面板时（readOnly 变为 false），必须重新 requestFocus 才能呼起系统键盘并闪烁光标。
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        final activeBlock = _activeTextBlock;
-        activeBlock?.focusNode.requestFocus();
-        _scrollToActiveBlock();
-      }
-    });
-  }
-
-  void _onEmojiSelected(String emoji) {
-    final activeBlock = _activeTextBlock;
-    if (activeBlock != null) {
-      final controller = activeBlock.controller;
-      final text = controller.text;
-      final selection = controller.selection;
-      final newText = text.replaceRange(
-        selection.start.clamp(0, text.length),
-        selection.end.clamp(0, text.length),
-        emoji,
-      );
-
-      setState(() {
-        controller.value = controller.value.copyWith(
-          text: newText,
-          selection: TextSelection.collapsed(
-            offset: selection.start + emoji.length,
-          ),
-        );
-      });
-
-      // 核心优化：插入后立即请求焦点并确保光标显示
-      Future.delayed(Duration.zero, () {
-        if (mounted) {
-          activeBlock.focusNode.requestFocus();
-          _scrollToActiveBlock();
-        }
-      });
-
-      _onBlocksChanged();
-    }
-  }
-
-  void _toggleRecord() {
-    setState(() {
-      _isRecording = !_isRecording;
-    });
-  }
-
-  void _insertTopic() {
-    final activeBlock = _activeTextBlock;
-    if (activeBlock == null) return;
-
-    final controller = activeBlock.controller;
-    final text = controller.text;
-    final selection = controller.selection;
-    final insertion = "#话题 ";
-    final newText = text.replaceRange(
-      selection.start.clamp(0, text.length),
-      selection.end.clamp(0, text.length),
-      insertion,
-    );
-
-    controller.value = controller.value.copyWith(
-      text: newText,
-      selection: TextSelection.collapsed(offset: selection.start + 1),
-    );
-
-    // 记录最后焦点并添加监听（如果是新生成的块）
-    _addFocusListener(activeBlock);
-
-    activeBlock.focusNode.requestFocus();
-    _onBlocksChanged();
-  }
-
-  void _showColorPicker() {
-    final colors = [
-      const Color(0xFF5D4037),
-      const Color(0xFF2C3E50),
-      const Color(0xFF34495E),
-      const Color(0xFF27AE60),
-      const Color(0xFF16A085),
-      const Color(0xFFC0392B),
-      const Color(0xFFE74C3C),
-      const Color(0xFF8E44AD),
-      const Color(0xFF9B59B6),
-      const Color(0xFFF39C12),
-      const Color(0xFFD35400),
-      const Color(0xFF2980B9),
-      const Color(0xFF7F8C8D),
-      const Color(0xFF1ABC9C),
-      const Color(0xFFD4AC0D),
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => _CustomColorPickerSheet(
-        title: '选择文字颜色',
-        currentTextColor: _currentTextColor,
-        colors: colors,
-        onApplyColor: (color) {
-          final activeBlock = _activeTextBlock;
-          final selection = activeBlock?.controller.selection;
-
-          setState(() {
-            _currentTextColor = color;
-            if (activeBlock != null &&
-                selection != null &&
-                !selection.isCollapsed) {
-              (activeBlock.controller as TopicTextEditingController)
-                  .applyAttributeToSelection(selection, color: color);
-            } else {
-              for (var block in _blocks) {
-                if (block is TextBlock) {
-                  (block.controller as TopicTextEditingController)
-                      .updateBaseColor(color);
-                }
-              }
-            }
-          });
-          _onBlocksChanged();
-          Navigator.pop(context);
-        },
-        onClear: () {
-          final activeBlock = _activeTextBlock;
-          final selection = activeBlock?.controller.selection;
-          if (activeBlock != null &&
-              selection != null &&
-              !selection.isCollapsed) {
-            setState(() {
-              (activeBlock.controller as TopicTextEditingController)
-                  .applyAttributeToSelection(selection, clearColor: true);
-            });
-            _onBlocksChanged();
-          }
-          Navigator.pop(context);
-        },
-      ),
-    );
-  }
-
-  void _showBackgroundColorPicker() {
-    final colors = [
-      const Color(0xFFFFF9EE),
-      const Color(0xFFF9EED8),
-      const Color(0xFFE8F5E9),
-      const Color(0xFFE3F2FD),
-      const Color(0xFFFFF3E0),
-      const Color(0xFFFFEBEE),
-      const Color(0xFFF3E5F5),
-      const Color(0xFFE0F2F1),
-      const Color(0xFFF1F8E9),
-      const Color(0xFFFFFDE7),
-      const Color(0xFFFFFF00),
-      const Color(0xFF00FF00),
-      const Color(0xFF00FFFF),
-      const Color(0xFFFF00FF),
-      const Color(0xFFC0C0C0),
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => _CustomColorPickerSheet(
-        title: '选择文字背景色',
-        currentTextColor: Colors.transparent,
-        colors: colors,
-        onApplyColor: (color) {
-          final activeBlock = _activeTextBlock;
-          final selection = activeBlock?.controller.selection;
-
-          setState(() {
-            if (activeBlock != null &&
-                selection != null &&
-                !selection.isCollapsed) {
-              (activeBlock.controller as TopicTextEditingController)
-                  .applyAttributeToSelection(selection, bgColor: color);
-            }
-          });
-          _onBlocksChanged();
-          Navigator.pop(context);
-        },
-        onClear: () {
-          final activeBlock = _activeTextBlock;
-          final selection = activeBlock?.controller.selection;
-          if (activeBlock != null &&
-              selection != null &&
-              !selection.isCollapsed) {
-            setState(() {
-              (activeBlock.controller as TopicTextEditingController)
-                  .applyAttributeToSelection(selection, clearBgColor: true);
-            });
-            _onBlocksChanged();
-          }
-          Navigator.pop(context);
-        },
-      ),
-    );
-  }
-
-  void _scrollToActiveBlock() {
-    _performScrollToActiveBlock();
-  }
-
-  void _performScrollToActiveBlock({int retryCount = 0}) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final activeBlock = _activeTextBlock;
-      if (activeBlock != null) {
-        final key = _blockKeys[activeBlock.id];
-        final context = key?.currentContext;
-        if (context == null) return;
-
-        final RenderBox? box = context.findRenderObject() as RenderBox?;
-        if (box == null || box.size.width <= 0) {
-          if (retryCount < 3) {
-            Future.delayed(const Duration(milliseconds: 50), () {
-              if (mounted)
-                _performScrollToActiveBlock(retryCount: retryCount + 1);
-            });
-          }
-          return;
-        }
-
-        final controller = activeBlock.controller;
-        final selection = controller.selection;
-        final text = controller.text;
-
-        // 计算光标在文本框内的精确偏移量
-        final textPainter = TextPainter(
-          text: TextSpan(
-            text: text,
-            style: const TextStyle(
-              fontFamily: 'FZKai',
-              fontSize: 20,
-              height: 1.6,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        );
-
-        textPainter.layout(maxWidth: box.size.width);
-
-        final offset = selection.isValid
-            ? selection.extentOffset.clamp(0, text.length)
-            : text.length;
-
-        final caretOffset = textPainter.getOffsetForCaret(
-          TextPosition(offset: offset),
-          Rect.zero,
-        );
-
-        // 获取滚动容器的 RenderBox 以计算相对偏移
-        final ScrollableState? scrollable = Scrollable.of(context);
-        final RenderObject? scrollObject = scrollable?.context
-            .findRenderObject();
-        if (scrollObject is! RenderBox) return;
-
-        // 计算光标相对于滚动容器顶部的 y 坐标 (加上 4 的内边距)
-        final Offset caretInScrollOffset = box.localToGlobal(
-          Offset(caretOffset.dx, caretOffset.dy + 4),
-          ancestor: scrollObject,
-        );
-
-        final double currentScroll = _scrollController.offset;
-        final double viewportHeight = scrollObject.size.height;
-
-        // 计算目标滚动量，使光标垂直居中
-        final double targetScroll =
-            currentScroll + caretInScrollOffset.dy - (viewportHeight / 2);
-
-        _scrollController.animateTo(
-          targetScroll.clamp(0.0, _scrollController.position.maxScrollExtent),
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
-  void _onLocationClick() async {
-    // 关键：提前捕获焦点块和光标位置
-    final activeBlock = _activeTextBlock;
-    TextSelection? savedSelection;
-    if (activeBlock != null) {
-      savedSelection = activeBlock.controller.selection;
-    }
-
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // 检查服务
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('请开启定位服务')));
-      }
-      return;
-    }
-
-    // 检查权限
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('定位权限被拒绝')));
-        }
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('定位权限被永久拒绝，请在设置中开启')));
-      }
-      return;
-    }
-
-    try {
-      // 获取当前位置
-      final position = await Geolocator.getCurrentPosition();
-
-      // 逆地理编码
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
-      if (placemarks.isNotEmpty) {
-        final p = placemarks.first;
-        final address =
-            "${p.administrativeArea}${p.locality}${p.subLocality}${p.street}";
-
-        // 使用之前捕获的块，而不是重新获取
-        if (activeBlock != null) {
-          final controller = activeBlock.controller;
-          final text = controller.text;
-          final selection = savedSelection ?? controller.selection;
-          final insertion = "\n#地点: $address ";
-
-          final newText = text.replaceRange(
-            selection.start.clamp(0, text.length),
-            selection.end.clamp(0, text.length),
-            insertion,
-          );
-
-          setState(() {
-            controller.value = controller.value.copyWith(
-              text: newText,
-              selection: TextSelection.collapsed(
-                offset: selection.start + insertion.length,
-              ),
-            );
-          });
-          _onBlocksChanged();
-          // 核心优化：插入后立即请求焦点并确保光标显示
-          Future.delayed(Duration.zero, () {
-            if (mounted) {
-              activeBlock.focusNode.requestFocus();
-              _scrollToActiveBlock(); // 插入后也滚动
-            }
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('获取地址失败')));
-      }
-    }
-  }
-
-  void _onSave() {
-    final fullText = _blocks
-        .whereType<TextBlock>()
-        .map((b) => b.controller.text)
-        .join('\n');
-    debugPrint('Saving content: $fullText');
-    UserState().clearDraft();
-    Navigator.of(context).pop();
-  }
-
-  // 辅助方法：确保光标可见
-  void _ensureCursorVisible() {
-    if (!mounted) return;
-    final activeBlock = _activeTextBlock;
-    if (activeBlock != null) {
-      // 确保持有焦点（维持光标闪烁）
-      activeBlock.focusNode.requestFocus();
-      _scrollToActiveBlock();
-    } else {
-      // ...
-    }
+    initializeEditor();
   }
 
   @override
   Widget build(BuildContext context) {
-    final double screenHeight = MediaQueryData.fromView(
-      View.of(context),
-    ).size.height;
+    final double screenHeight = MediaQuery.of(context).size.height;
     final mood = kMoods[widget.moodIndex];
 
     return PopScope(
@@ -685,16 +48,16 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
             GestureDetector(
               onTap: () {
                 FocusScope.of(context).unfocus();
-                setState(() => _isEmojiOpen = false);
+                if (isEmojiOpen) toggleEmoji();
               },
               child: Container(
                 width: double.infinity,
                 height: double.infinity,
-                color: Colors.transparent, // 保持透明，显示底层的 barrier 模糊
+                color: Colors.transparent,
                 child: SafeArea(
                   child: Column(
                     children: [
-                      const SizedBox(height: 84), // 减小顶部偏移，给内容和按钮留出空间
+                      const SizedBox(height: 84),
                       Expanded(
                         child: Stack(
                           clipBehavior: Clip.none,
@@ -705,20 +68,15 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                 final viewInsets = MediaQuery.of(
                                   context,
                                 ).viewInsets;
-                                if (viewInsets.bottom > 200) {
-                                  _keyboardHeight = viewInsets.bottom;
-                                }
                                 final double bottomOffset = math.max(
                                   viewInsets.bottom,
-                                  _isEmojiOpen ? _keyboardHeight : 0,
+                                  isEmojiOpen ? keyboardHeight : 0,
                                 );
 
-                                // 修正高度计算逻辑：屏幕总高 - 顶部占用 - 底部占用
                                 final double topAreaHeight = 84.0;
-                                final double bottomAreaHeight =
-                                    60.0; // 降低预留，让信纸更往下靠
+                                final double bottomAreaHeight = 60.0;
                                 final double maxPaperHeight =
-                                    screenHeight * 0.88; // 增加最大高度比例
+                                    screenHeight * 0.88;
 
                                 final double availableHeight =
                                     screenHeight -
@@ -736,8 +94,6 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                 final double horizontalPadding = isWide
                                     ? 50.0
                                     : 32.0;
-
-                                // 核心优化：iPad/大屏下固定为屏幕宽度的 70%
                                 final double paperMaxWidth = isWide
                                     ? screenWidthForPadding * 0.7
                                     : double.infinity;
@@ -745,17 +101,17 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                 return AnimatedContainer(
                                   duration: const Duration(milliseconds: 250),
                                   curve: Curves.easeOutCubic,
-                                  onEnd: _ensureCursorVisible,
+                                  onEnd: ensureCursorVisible,
                                   height: dynamicHeight,
                                   constraints: BoxConstraints(
                                     maxWidth: paperMaxWidth,
-                                  ), // 固定宽度限制
+                                  ),
                                   width: double.infinity,
                                   child: DiaryPaperCanvas(
                                     shadowColor: mood.glowColor,
                                     padding: EdgeInsets.fromLTRB(
                                       horizontalPadding,
-                                      28, // 继续上移
+                                      28,
                                       horizontalPadding,
                                       48,
                                     ),
@@ -763,7 +119,6 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        // 恢复顶部信息栏 (时间与日期)
                                         Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
@@ -790,9 +145,8 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                           ],
                                         ),
                                         const SizedBox(height: 8),
-                                        // 心情语录
                                         Text(
-                                          _fixedQuote,
+                                          fixedQuote,
                                           style: TextStyle(
                                             fontFamily: 'FZKai',
                                             fontSize: 14,
@@ -803,7 +157,6 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                           ),
                                         ),
                                         const SizedBox(height: 6),
-                                        // 手绘分割线 (置于语录下方)
                                         CustomPaint(
                                           size: const Size(double.infinity, 2),
                                           painter: HandDrawnLinePainter(
@@ -814,31 +167,24 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                           ),
                                         ),
                                         const SizedBox(height: 8),
-
                                         Expanded(
                                           child: ListView.builder(
-                                            controller: _scrollController,
+                                            controller: scrollController,
                                             padding: EdgeInsets.zero,
-                                            itemCount: _blocks.length,
+                                            itemCount: blocks.length,
                                             itemBuilder: (context, index) {
-                                              final block = _blocks[index];
-                                              // 如果由于某种极端原因 Key 丢失了，在这里补救
-                                              final key =
-                                                  _blockKeys[block.id] ??=
-                                                      GlobalKey();
+                                              final block = blocks[index];
+                                              final key = blockKeys[block.id];
 
                                               return DiaryBlockItem(
-                                                key: ValueKey(
-                                                  block.id,
-                                                ), // 给 Item 增加稳定标识
+                                                key: ValueKey(block.id),
                                                 block: block,
                                                 index: index,
-                                                isEmojiOpen: _isEmojiOpen,
+                                                isEmojiOpen: isEmojiOpen,
                                                 blockKey: key,
                                                 onRemoveImage: () =>
-                                                    _removeImage(index),
-                                                onShowPreview:
-                                                    _showImagePreview,
+                                                    removeImage(index),
+                                                onShowPreview: showImagePreview,
                                               );
                                             },
                                           ),
@@ -860,7 +206,7 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                               ),
                                             ),
                                             TextButton(
-                                              onPressed: _onSave,
+                                              onPressed: onSave,
                                               child: const Text(
                                                 '保存',
                                                 style: TextStyle(
@@ -906,30 +252,30 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
               right: 0,
               child: Builder(
                 builder: (context) {
-                  final double currentBottomAreaHeight = _isEmojiOpen
-                      ? _keyboardHeight
+                  final double currentBottomAreaHeight = isEmojiOpen
+                      ? keyboardHeight
                       : 0;
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       DiaryToolbar(
-                        isEmojiOpen: _isEmojiOpen,
-                        isRecording: _isRecording,
-                        onEmojiToggle: _toggleEmoji,
-                        onRecordToggle: _toggleRecord,
-                        onImagePick: _onImageButtonPressed,
-                        onTopicClick: _insertTopic,
-                        onColorClick: _showColorPicker,
-                        onBgColorClick: _showBackgroundColorPicker,
-                        onLocationClick: _onLocationClick,
+                        isEmojiOpen: isEmojiOpen,
+                        isRecording: isRecording,
+                        onEmojiToggle: toggleEmoji,
+                        onRecordToggle: toggleRecord,
+                        onImagePick: onImageButtonPressed,
+                        onTopicClick: insertTopic,
+                        onColorClick: showColorPicker,
+                        onBgColorClick: showBackgroundColorPicker,
+                        onLocationClick: onLocationClick,
                       ),
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
                         curve: Curves.easeOutCubic,
                         height: currentBottomAreaHeight,
                         color: const Color(0xFFF9EED8).withOpacity(0.95),
-                        child: _isEmojiOpen
-                            ? EmojiPanel(onEmojiSelected: _onEmojiSelected)
+                        child: isEmojiOpen
+                            ? EmojiPanel(onEmojiSelected: onEmojiSelected)
                             : const SizedBox.shrink(),
                       ),
                     ],
@@ -939,213 +285,6 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _CustomColorPickerSheet extends StatefulWidget {
-  final String title;
-  final Color currentTextColor;
-  final ValueChanged<Color> onApplyColor;
-  final VoidCallback onClear;
-  final List<Color> colors;
-
-  const _CustomColorPickerSheet({
-    required this.title,
-    required this.currentTextColor,
-    required this.onApplyColor,
-    required this.onClear,
-    required this.colors,
-  });
-
-  @override
-  State<_CustomColorPickerSheet> createState() =>
-      _CustomColorPickerSheetState();
-}
-
-class _CustomColorPickerSheetState extends State<_CustomColorPickerSheet> {
-  late bool showCustom;
-  late Color pickerColor;
-
-  @override
-  void initState() {
-    super.initState();
-    showCustom = false;
-    pickerColor = widget.currentTextColor;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: 20 + MediaQuery.of(context).viewInsets.bottom,
-      ),
-      decoration: const BoxDecoration(
-        color: Color(0xFFFDF7E9),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(28),
-          topRight: Radius.circular(28),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 顶部标题栏
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                showCustom ? '自定义颜色' : widget.title,
-                style: const TextStyle(
-                  fontFamily: 'FZKai',
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF8B5E3C),
-                ),
-              ),
-              IconButton(
-                icon: Icon(
-                  showCustom ? Icons.grid_view : Icons.colorize_rounded,
-                  color: const Color(0xFF8B5E3C),
-                ),
-                onPressed: () => setState(() => showCustom = !showCustom),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          if (!showCustom)
-            // 模式 A：快捷预设网格
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Wrap(
-                spacing: 14,
-                runSpacing: 14,
-                alignment: WrapAlignment.center,
-                children: [
-                  ...widget.colors.map((color) {
-                    final isSelected = widget.currentTextColor == color;
-                    return GestureDetector(
-                      onTap: () => widget.onApplyColor(color),
-                      child: AnimatedContainer(
-                        duration: 200.ms,
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected
-                                ? const Color(0xFF8B5E3C)
-                                : Colors.white.withOpacity(0.5),
-                            width: isSelected ? 3 : 1.5,
-                          ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: color.withOpacity(0.3),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
-                                  ),
-                                ]
-                              : [],
-                        ),
-                      ),
-                    );
-                  }),
-                  // 清除按钮
-                  GestureDetector(
-                    onTap: widget.onClear,
-                    child: Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF8B5E3C).withOpacity(0.3),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.block,
-                        color: Color(0xFFC0392B),
-                        size: 26,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            // 模式 B：方阵专业取色
-            Column(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: ColorPicker(
-                    pickerColor: pickerColor,
-                    onColorChanged: (color) =>
-                        setState(() => pickerColor = color),
-                    pickerAreaHeightPercent: 0.6,
-                    enableAlpha: false,
-                    displayThumbColor: true,
-                    labelTypes: const [], // 隐藏数字标签，保持简洁
-                    paletteType: PaletteType.hsvWithHue,
-                    pickerAreaBorderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: Row(
-                    children: [
-                      // 颜色预览块
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: pickerColor,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFF8B5E3C).withOpacity(0.3),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => widget.onApplyColor(pickerColor),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF8B5E3C),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Text(
-                            '落地此色',
-                            style: TextStyle(
-                              fontFamily: 'FZKai',
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          const SizedBox(height: 12),
-        ],
       ),
     );
   }
