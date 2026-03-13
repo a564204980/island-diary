@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/shared/widgets/bottom_nav_bar.dart';
 import 'package:island_diary/features/home/presentation/widgets/floating_clouds.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -140,13 +142,37 @@ class _HomePageState extends State<HomePage>
               alignment: Alignment.topLeft,
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
-                child: const Text(
-                  '治愈岛',
-                  style: TextStyle(
-                    color: Color(0xFF5A3E28),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: UserState().isDiarySheetOpen,
+                  builder: (context, isOpen, child) {
+                    return Text(
+                          '治愈岛',
+                          style: TextStyle(
+                            color: isNight
+                                ? Colors.white
+                                : const Color(0xFF5A3E28),
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            shadows: isNight
+                                ? [
+                                    Shadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                        )
+                        .animate(target: isOpen ? 0 : 1) // 打开时消失，关闭时出现
+                        .fade(duration: 400.ms)
+                        .moveY(
+                          begin: -10,
+                          end: 0,
+                          duration: 400.ms,
+                          curve: Curves.easeOutCubic,
+                        );
+                  },
                 ),
               ),
             ),

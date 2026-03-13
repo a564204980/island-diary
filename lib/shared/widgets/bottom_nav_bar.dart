@@ -417,9 +417,12 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   // 打开像 uniapp popup 一样的日记输入组件
   void _openDiaryEntry(int moodIndex, double intensity) {
+    UserState().isDiarySheetOpen.value = true;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true, // 允许高度根据内容（及键盘）自适应
+      isDismissible: false, // 禁止点击背景关闭
+      enableDrag: false, // 禁止拖动关闭
       backgroundColor: Colors.transparent, // 背景透明，使用自定义的 paper 背景
       barrierColor: Colors.black.withOpacity(0.6),
       constraints: const BoxConstraints(
@@ -427,7 +430,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
       ), // 确保全宽，不被默认约束限制
       builder: (context) =>
           MoodDiaryEntrySheet(moodIndex: moodIndex, intensity: intensity),
-    );
+    ).whenComplete(() {
+      UserState().isDiarySheetOpen.value = false;
+    });
   }
 
   Widget _buildNavItem(int index, String assetPath, String label) {

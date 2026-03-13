@@ -26,6 +26,9 @@ class UserState {
     null,
   );
 
+  /// 记录当前日记信纸是否处于打开状态（用于标题显隐等联动动效）
+  final ValueNotifier<bool> isDiarySheetOpen = ValueNotifier<bool>(false);
+
   /// 上次访问时间
   DateTime? lastVisitTime;
 
