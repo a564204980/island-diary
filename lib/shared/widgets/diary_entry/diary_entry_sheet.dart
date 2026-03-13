@@ -11,6 +11,31 @@ import 'dart:io';
 import 'components/mood_tag.dart';
 import 'components/diary_toolbar.dart';
 import 'components/emoji_panel.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+/// ---------------------------------------------------------------------------
+/// 分块编辑器模型定义
+/// ---------------------------------------------------------------------------
+abstract class DiaryBlock {}
+
+class TextBlock extends DiaryBlock {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  TextBlock(String text)
+    : controller = TextEditingController(text: text),
+      focusNode = FocusNode();
+
+  void dispose() {
+    controller.dispose();
+    focusNode.dispose();
+  }
+}
+
+class ImageBlock extends DiaryBlock {
+  final XFile file;
+  final String id;
+  ImageBlock(this.file) : id = DateTime.now().millisecondsSinceEpoch.toString();
+}
 
 class MoodDiaryEntrySheet extends StatefulWidget {
   final int moodIndex;
@@ -27,9 +52,7 @@ class MoodDiaryEntrySheet extends StatefulWidget {
 }
 
 class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
-  final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final FocusNode _focusNode = FocusNode();
   bool _isEmojiOpen = false;
   double _keyboardHeight = 330.0; // 逻辑像素单位
 
@@ -37,101 +60,175 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isRecording = false;
 
-  // 图片附件相关
+  // 图片与分块编辑相关
   final ImagePicker _picker = ImagePicker();
-  List<XFile> _images = [];
+  final List<DiaryBlock> _blocks = [];
+  int _activeBlockIndex = 0; // 当前获取焦点的文本块索引
 
   @override
   void initState() {
     super.initState();
-    // 初始化时尝试从草稿恢复内容（仅当心情匹配时，或者用户直接进入时）
     final draft = UserState().diaryDraft.value;
-    if (draft != null && draft.moodIndex == widget.moodIndex) {
-      _controller.text = draft.content;
+
+    if (draft != null && draft.blocks != null && draft.blocks!.isNotEmpty) {
+      // 1. 从结构化草稿恢复
+      for (var blockData in draft.blocks!) {
+        if (blockData['type'] == 'text') {
+          final block = TextBlock(blockData['content'] ?? '');
+          _blocks.add(block);
+          _setupTextBlockListeners(block);
+        } else if (blockData['type'] == 'image') {
+          _blocks.add(ImageBlock(XFile(blockData['path'] ?? '')));
+        }
+      }
+    } else {
+      // 2. 默认初始化首个文本块
+      final initialText = draft?.content ?? '';
+      final firstBlock = TextBlock(initialText);
+      _blocks.add(firstBlock);
+      _setupTextBlockListeners(firstBlock);
     }
+  }
 
-    // 监听输入，实时保存草稿
-    _controller.addListener(_updateDraft);
+  void _setupTextBlockListeners(TextBlock block) {
+    // 监听内容变化以更新草稿
+    block.controller.addListener(_onBlocksChanged);
 
-    // 监听焦点变化，如果文字输入框获得焦点，自动收起表情面板
-    _focusNode.addListener(() {
-      if (_focusNode.hasFocus && _isEmojiOpen) {
+    // 监听焦点以追踪当前活跃块索引
+    block.focusNode.addListener(() {
+      if (block.focusNode.hasFocus) {
         setState(() {
-          _isEmojiOpen = false;
+          _activeBlockIndex = _blocks.indexOf(block);
+          // 聚焦时如果表情面板开着，自动关闭（键盘弹出）
+          if (_isEmojiOpen) _isEmojiOpen = false;
         });
       }
     });
   }
 
-  void _updateDraft() {
-    UserState().saveDraft(widget.moodIndex, widget.intensity, _controller.text);
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    for (var block in _blocks) {
+      if (block is TextBlock) {
+        block.dispose();
+      }
+    }
+    super.dispose();
+  }
+
+  // --- 辅助方法：获取当前活跃的文本块 ---
+  TextBlock? get _activeTextBlock {
+    if (_activeBlockIndex >= 0 && _activeBlockIndex < _blocks.length) {
+      final block = _blocks[_activeBlockIndex];
+      if (block is TextBlock) return block;
+    }
+    // 降级处理：寻找列表中第一个文本块
+    for (var block in _blocks) {
+      if (block is TextBlock) return block;
+    }
+    return null;
+  }
+
+  void _onBlocksChanged() {
+    // 1. 聚合文本内容
+    final fullText = _blocks
+        .whereType<TextBlock>()
+        .map((b) => b.controller.text)
+        .join('\n');
+
+    // 2. 序列化全量分块数据
+    final List<Map<String, dynamic>> blocksData = _blocks.map((block) {
+      if (block is TextBlock) {
+        return {'type': 'text', 'content': block.controller.text};
+      } else if (block is ImageBlock) {
+        return {'type': 'image', 'path': block.file.path};
+      }
+      return <String, dynamic>{};
+    }).toList();
+
+    // 3. 保存到持久化状态
+    UserState().saveDraft(
+      moodIndex: widget.moodIndex,
+      intensity: widget.intensity,
+      content: fullText,
+      blocks: blocksData,
+    );
     _ensureCursorVisible();
   }
 
   void _ensureCursorVisible() {
-    if (!_scrollController.hasClients) return;
-
-    // 状态守护：如果既没有焦点也能量没开表情，说明用户已经退出编辑模式，不执行强制对齐
-    if (!_focusNode.hasFocus && !_isEmojiOpen) return;
-
-    final text = _controller.text;
-    final selection = _controller.selection;
-
-    // 如果没有有效选择或内容为空，不执行
-    if (!selection.isValid) return;
-
-    // 稍微延迟确保组件高度已经更新完成
-    Future.delayed(const Duration(milliseconds: 100), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
 
-      // 1. 获取物理尺寸
-      final double screenWidth = MediaQuery.of(context).size.width;
-      // 文本区域的真实约束宽度（BoxConstraints maxWidth 为 600）
-      final double textFieldWidth =
-          math.min(600, screenWidth) - 64; // 减去左右内间距 (32*2)
+      final activeBlock = _activeTextBlock;
+      if (activeBlock == null) return;
 
-      // 2. 计算光标在文本中的 Y 坐标
-      final textStyle = const TextStyle(
-        fontFamily: 'FZKai',
-        fontSize: 20,
-        height: 1.6,
+      final context = activeBlock.focusNode.context;
+      if (context == null) return;
+
+      final RenderBox? box = context.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) return;
+
+      // 1. 获取当前块相对于视口顶部的物理偏移 (BlockTopInViewportY)
+      final ScrollableState? scrollable = Scrollable.of(context);
+      if (scrollable == null) return;
+      final RenderBox viewport =
+          scrollable.context.findRenderObject() as RenderBox;
+      final Offset blockOffsetInViewport = box.localToGlobal(
+        Offset.zero,
+        ancestor: viewport,
       );
+
+      // 2. 计算光标相对于该块顶部的偏移 (InternalCursorY)
+      final _controller = activeBlock.controller;
+      final selection = _controller.selection;
+      if (!selection.isValid) return;
+
+      final double screenWidth = MediaQuery.of(this.context).size.width;
+      final double textFieldWidth = math.min(600, screenWidth) - 64;
 
       final textPainter = TextPainter(
         text: TextSpan(
-          text: text.substring(0, selection.extentOffset),
-          style: textStyle,
+          text: _controller.text.substring(0, selection.extentOffset),
+          style: const TextStyle(
+            fontFamily: 'FZKai',
+            fontSize: 20,
+            height: 1.6,
+          ),
         ),
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.left,
       );
-
       textPainter.layout(maxWidth: textFieldWidth);
+      final double internalCursorY = textPainter.height;
 
-      // 光标相对于 TextField 顶部的偏移
-      final double cursorY = textPainter.height;
-
-      // 3. 获取当前滚动状态
-      final double currentScroll = _scrollController.offset;
+      // 3. 计算光标相对于视口顶部的绝对坐标
+      final double cursorInViewportY =
+          blockOffsetInViewport.dy + internalCursorY;
       final double viewportHeight =
           _scrollController.position.viewportDimension;
 
-      // 4. 计算光标在视口中的相对位置
-      final double cursorInWindowY = cursorY - currentScroll;
-
-      // 5. 智能避让滚动逻辑
-      // 如果光标在视口下方（被遮挡）
-      if (cursorInWindowY > viewportHeight - 40) {
-        final double targetScroll = cursorY - viewportHeight + 60;
+      // 4. 稳健的滚动校准逻辑
+      if (cursorInViewportY > viewportHeight - 60) {
+        // 下方遮挡：向下滚动差值
+        final double delta = cursorInViewportY - (viewportHeight - 100);
         _scrollController.animateTo(
-          targetScroll.clamp(0.0, _scrollController.position.maxScrollExtent),
+          (_scrollController.offset + delta).clamp(
+            0.0,
+            _scrollController.position.maxScrollExtent,
+          ),
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
         );
-      } else if (cursorInWindowY < 0) {
-        // 如果光标在视口上方（被遮挡）
+      } else if (cursorInViewportY < 40) {
+        // 上方遮挡：向上滚动插值
+        final double delta = cursorInViewportY - 60; // 负值
         _scrollController.animateTo(
-          (cursorY - 20).clamp(0.0, _scrollController.position.maxScrollExtent),
+          (_scrollController.offset + delta).clamp(
+            0.0,
+            _scrollController.position.maxScrollExtent,
+          ),
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
         );
@@ -140,6 +237,10 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
   }
 
   void _toggleRecord() async {
+    final activeBlock = _activeTextBlock;
+    if (activeBlock == null) return;
+    final _controller = activeBlock.controller;
+
     print('STT: 开始/停止语音识别请求...');
     if (!_isRecording) {
       // 1. 显式请求权限
@@ -245,10 +346,10 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
 
     if (_isEmojiOpen) {
       // 打开表情面板，收起键盘
-      _focusNode.unfocus();
+      _activeTextBlock?.focusNode.unfocus();
     } else {
       // 打开键盘，收起表情面板
-      _focusNode.requestFocus();
+      _activeTextBlock?.focusNode.requestFocus();
     }
   }
 
@@ -281,7 +382,7 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
               ),
               onTap: () {
                 Navigator.pop(context);
-                _pickImages();
+                _pickMultiImages();
               },
             ),
             const Divider(height: 1),
@@ -303,8 +404,9 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
     );
   }
 
-  Future<void> _pickImages() async {
-    if (_images.length >= 9) {
+  Future<void> _pickMultiImages() async {
+    final imageCount = _blocks.whereType<ImageBlock>().length;
+    if (imageCount >= 9) {
       _showError('最多只能添加 9 张图片哦');
       return;
     }
@@ -316,12 +418,9 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
       );
 
       if (pickedFiles.isNotEmpty) {
-        setState(() {
-          // 限制总量不超过 9 张
-          final int remaining = 9 - _images.length;
-          _images.addAll(pickedFiles.take(remaining));
-        });
-        _ensureCursorVisible();
+        for (var file in pickedFiles) {
+          _splitAndInsertImage(file);
+        }
       }
     } catch (e) {
       _showError('无法打开相册: $e');
@@ -329,7 +428,8 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
   }
 
   Future<void> _pickCameraImage() async {
-    if (_images.length >= 9) {
+    final imageCount = _blocks.whereType<ImageBlock>().length;
+    if (imageCount >= 9) {
       _showError('最多只能添加 9 张图片哦');
       return;
     }
@@ -342,20 +442,108 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
       );
 
       if (pickedFile != null) {
-        setState(() {
-          _images.add(pickedFile);
-        });
-        _ensureCursorVisible();
+        _splitAndInsertImage(pickedFile);
       }
     } catch (e) {
       _showError('无法开启相机: $e');
     }
   }
 
+  void _splitAndInsertImage(XFile image) {
+    final activeBlock = _activeTextBlock;
+    if (activeBlock == null) {
+      setState(() {
+        _blocks.add(ImageBlock(image));
+        final nextText = TextBlock('');
+        _blocks.add(nextText);
+        _setupTextBlockListeners(nextText);
+        _activeBlockIndex = _blocks.indexOf(nextText);
+      });
+      return;
+    }
+
+    final controller = activeBlock.controller;
+    final selection = controller.selection;
+    final text = controller.text;
+
+    setState(() {
+      final index = _blocks.indexOf(activeBlock);
+
+      // 情况 1: 空行或者光标在段首 -> 图片插在当前文字块之前
+      // 解决用户反馈的“第一行没写东西上传图片跑第二行”的问题
+      if (text.isEmpty || (selection.isValid && selection.start == 0)) {
+        _blocks.insert(index, ImageBlock(image));
+        // activeBlock 此时自动变为 index + 1，光标和焦点逻辑自然顺延
+        _activeBlockIndex = _blocks.indexOf(activeBlock);
+      }
+      // 情况 2: 光标在段末 -> 图片插在当前块之后，并补充一个后续空行
+      else if (!selection.isValid || selection.start == text.length) {
+        _blocks.insert(index + 1, ImageBlock(image));
+        final nextText = TextBlock('');
+        _blocks.insert(index + 2, nextText);
+        _setupTextBlockListeners(nextText);
+        _activeBlockIndex = index + 2;
+      }
+      // 情况 3: 段中切分 -> 将当前块一分为二，图片嵌在中间
+      else {
+        final beforeText = text.substring(0, selection.start);
+        final afterText = text.substring(selection.end);
+
+        activeBlock.controller.text = beforeText;
+        _blocks.insert(index + 1, ImageBlock(image));
+        final nextText = TextBlock(afterText);
+        // 显式重置光标至起始，防止跳转末尾
+        nextText.controller.selection = const TextSelection.collapsed(
+          offset: 0,
+        );
+        _blocks.insert(index + 2, nextText);
+        _setupTextBlockListeners(nextText);
+        _activeBlockIndex = index + 2;
+      }
+    });
+
+    _onBlocksChanged(); // 插入图片后主动保存
+
+    // 自动聚焦新产生的输入区
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_activeBlockIndex >= 0 && _activeBlockIndex < _blocks.length) {
+        final targetBlock = _blocks[_activeBlockIndex];
+        if (targetBlock is TextBlock) {
+          targetBlock.focusNode.requestFocus();
+        }
+      }
+    });
+  }
+
   void _removeImage(int index) {
     setState(() {
-      _images.removeAt(index);
+      _blocks.removeAt(index);
+      // TODO: 可选：合并相邻文本块
     });
+    _onBlocksChanged(); // 删除图片后主动保存
+  }
+
+  void _showImagePreview(ImageBlock block) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        pageBuilder: (context, _, __) => Scaffold(
+          backgroundColor: Colors.black.withOpacity(0.9),
+          body: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Center(
+              child: Hero(
+                tag: block.id,
+                child: kIsWeb
+                    ? Image.network(block.file.path, fit: BoxFit.contain)
+                    : Image.file(File(block.file.path), fit: BoxFit.contain),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _showError(String message) {
@@ -367,10 +555,15 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
   }
 
   void _onEmojiSelected(String emoji) {
-    final text = _controller.text;
-    final selection = _controller.selection;
+    final activeBlock = _activeTextBlock;
+    if (activeBlock == null) return;
+
+    final controller = activeBlock.controller;
+    final text = controller.text;
+    final selection = controller.selection;
     final newText = text.replaceRange(selection.start, selection.end, emoji);
-    _controller.value = _controller.value.copyWith(
+
+    controller.value = controller.value.copyWith(
       text: newText,
       selection: TextSelection.collapsed(
         offset: selection.start + emoji.length,
@@ -379,53 +572,38 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
     _ensureCursorVisible();
   }
 
-  @override
-  void dispose() {
-    _controller.removeListener(_updateDraft);
-    _controller.dispose();
-    _scrollController.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
   String _getFormattedDate() {
     final now = DateTime.now();
     return '${now.year}年${now.month}月${now.day}日';
   }
 
-  /// 拟人化强度描述文案映射（优化版：数据驱动 + 解决 Lint 警告）
+  /// 拟人化强度描述文案映射
   String _getPersonifiedMoodDescription(String label, double intensity) {
-    // 强度等级的前缀映射表
     const Map<String, List<String>> moodPrefixes = {
       '期待': ['略带憧憬', '满心向往', '迫不及待'],
       '厌恶': ['有些反感', '深感蹙眉', '嫌弃至极'],
       '恐惧': ['隐约不安', '忐忑紧锁', '灵魂颤栗'],
       '惊喜': ['意料之外', '万分激动', '喜从天降'],
-      '平静': ['凡事从容', '岁月安好', '万籁俱寂'],
+      '平静': ['凡事从容', '岁月安好', '万籁寂静'],
       '愤怒': ['隐隐不快', '火冒三丈', '怒气冲天'],
       '悲伤': ['隐隐哀愁', '满怀感伤', '痛彻心扉'],
       '开心': ['眉开眼笑', '神采飞扬', '狂喜雀跃'],
     };
 
-    final int level = (intensity * 10).toInt(); // 0-10
+    final int level = (intensity * 10).toInt();
     final List<String>? options = moodPrefixes[label];
-
     if (options == null) return label;
-
-    // 根据强度等级 (0-10) 确定索引：轻微(0-3), 中等(4-7), 强烈(8-10)
     final int index = level <= 3 ? 0 : (level <= 7 ? 1 : 2);
-
-    return '${options[index]}的$label';
+    return "${options[index]}的$label/${(intensity).toInt()}";
   }
 
   void _onSave() {
-    // 1. 执行保存逻辑（此处可扩展持久化到数据库）
-    debugPrint('Saving diary: ${_controller.text}');
-
-    // 2. 清空草稿
+    final fullText = _blocks
+        .whereType<TextBlock>()
+        .map((b) => b.controller.text)
+        .join('\n');
+    debugPrint('Saving content: $fullText');
     UserState().clearDraft();
-
-    // 3. 退出页面
     Navigator.of(context).pop();
   }
 
@@ -440,7 +618,7 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
     return PopScope(
       canPop: false, // 禁止通过系统返回键/手势关闭
       child: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(), // 点击空白处收起键盘，而不是关闭页面
+        onTap: () => FocusScope.of(context).unfocus(), // 点击空白处收起键盘
         behavior: HitTestBehavior.opaque,
         child: Stack(
           children: [
@@ -518,12 +696,11 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                 );
 
                                 final double baseHeight = screenHeight * 0.85;
-                                // 计算从信纸顶部到工具栏顶部的垂直距离
                                 final double availableHeight =
                                     screenHeight -
                                     (screenHeight * 0.11) -
                                     bottomOffset -
-                                    74; // 减小底部间隙，让信纸更长
+                                    74;
                                 final double dynamicHeight =
                                     availableHeight < baseHeight
                                     ? availableHeight
@@ -532,7 +709,7 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                 return AnimatedContainer(
                                   duration: const Duration(milliseconds: 250),
                                   curve: Curves.easeOutCubic,
-                                  onEnd: _ensureCursorVisible, // 切换完成时滚动以纠正光标位置
+                                  onEnd: _ensureCursorVisible,
                                   height: dynamicHeight,
                                   width: double.infinity,
                                   decoration: BoxDecoration(
@@ -557,141 +734,159 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                       Padding(
                                         padding: const EdgeInsets.fromLTRB(
                                           32,
-                                          20,
+                                          40,
                                           32,
-                                          32, // 恢复标准边距，因为高度已自动避让工具栏
+                                          32,
                                         ),
                                         child: Column(
                                           children: [
                                             Expanded(
-                                              child: TextField(
-                                                controller: _controller,
-                                                scrollController:
-                                                    _scrollController,
-                                                focusNode: _focusNode,
-                                                maxLines: null,
-                                                autofocus: true,
-                                                cursorColor: const Color(
-                                                  0xFF8B5E3C,
-                                                ),
-                                                style: const TextStyle(
-                                                  fontFamily: 'FZKai',
-                                                  fontSize: 20,
-                                                  color: Color(0xFF5D4037),
-                                                  height: 1.6,
-                                                ),
-                                                decoration:
-                                                    const InputDecoration(
-                                                      hintText: '记录下这一刻的想法吧...',
-                                                      hintStyle: TextStyle(
-                                                        fontFamily: 'FZKai',
-                                                        color: Color(
-                                                          0xFFA68A78,
-                                                        ),
+                                              child: ListView.builder(
+                                                controller: _scrollController,
+                                                padding: EdgeInsets.zero,
+                                                itemCount: _blocks.length,
+                                                itemBuilder: (context, index) {
+                                                  final block = _blocks[index];
+                                                  if (block is TextBlock) {
+                                                    return TextField(
+                                                      controller:
+                                                          block.controller,
+                                                      focusNode:
+                                                          block.focusNode,
+                                                      maxLines: null,
+                                                      cursorColor: const Color(
+                                                        0xFF8B5E3C,
                                                       ),
-                                                      border: InputBorder.none,
-                                                    ),
-                                              ),
-                                            ),
-                                            // --- 图片预览区 ---
-                                            if (_images.isNotEmpty)
-                                              Container(
-                                                height: 100,
-                                                margin:
-                                                    const EdgeInsets.symmetric(
-                                                      vertical: 8,
-                                                    ),
-                                                child: ListView.builder(
-                                                  scrollDirection:
-                                                      Axis.horizontal,
-                                                  itemCount: _images.length,
-                                                  itemBuilder: (context, index) {
-                                                    return Stack(
-                                                      children: [
-                                                        Container(
-                                                          margin:
-                                                              const EdgeInsets.only(
-                                                                right: 8,
-                                                              ),
-                                                          width: 90,
-                                                          height: 90,
-                                                          decoration: BoxDecoration(
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  12,
-                                                                ),
-                                                            boxShadow: [
-                                                              BoxShadow(
-                                                                color: Colors
-                                                                    .black
-                                                                    .withOpacity(
-                                                                      0.1,
-                                                                    ),
-                                                                blurRadius: 4,
-                                                                offset:
-                                                                    const Offset(
-                                                                      0,
-                                                                      2,
-                                                                    ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          child: ClipRRect(
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  12,
-                                                                ),
-                                                            child: Image.file(
-                                                              File(
-                                                                _images[index]
-                                                                    .path,
-                                                              ),
-                                                              fit: BoxFit.cover,
-                                                            ),
-                                                          ),
+                                                      style: const TextStyle(
+                                                        fontFamily: 'FZKai',
+                                                        fontSize: 20,
+                                                        color: Color(
+                                                          0xFF5D4037,
                                                         ),
-                                                        // 删除按钮
-                                                        Positioned(
-                                                          top: -4,
-                                                          right: 4,
-                                                          child: GestureDetector(
+                                                        height: 1.6,
+                                                      ),
+                                                      decoration: InputDecoration(
+                                                        hintText: index == 0
+                                                            ? '记录下这一刻的想法吧...'
+                                                            : '',
+                                                        hintStyle:
+                                                            const TextStyle(
+                                                              fontFamily:
+                                                                  'FZKai',
+                                                              color: Color(
+                                                                0xFFA68A78,
+                                                              ),
+                                                            ),
+                                                        border:
+                                                            InputBorder.none,
+                                                        isDense: true,
+                                                        contentPadding:
+                                                            const EdgeInsets.symmetric(
+                                                              vertical: 4,
+                                                            ),
+                                                      ),
+                                                    );
+                                                  } else if (block
+                                                      is ImageBlock) {
+                                                    return Container(
+                                                      margin:
+                                                          const EdgeInsets.symmetric(
+                                                            vertical: 12,
+                                                          ),
+                                                      constraints: BoxConstraints(
+                                                        maxHeight:
+                                                            MediaQuery.of(
+                                                                  context,
+                                                                ).size.width <
+                                                                600
+                                                            ? 200
+                                                            : 300,
+                                                      ),
+                                                      width: double.infinity,
+                                                      child: Stack(
+                                                        children: [
+                                                          GestureDetector(
                                                             onTap: () =>
-                                                                _removeImage(
-                                                                  index,
+                                                                _showImagePreview(
+                                                                  block,
                                                                 ),
-                                                            child: Container(
-                                                              padding:
-                                                                  const EdgeInsets.all(
-                                                                    4,
-                                                                  ),
-                                                              decoration:
-                                                                  const BoxDecoration(
-                                                                    color: Colors
-                                                                        .black54,
-                                                                    shape: BoxShape
-                                                                        .circle,
-                                                                  ),
-                                                              child: const Icon(
-                                                                Icons.close,
-                                                                size: 14,
-                                                                color: Colors
-                                                                    .white,
+                                                            child: Hero(
+                                                              tag: block.id,
+                                                              child: ClipRRect(
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      12,
+                                                                    ),
+                                                                child: kIsWeb
+                                                                    ? Image.network(
+                                                                        block
+                                                                            .file
+                                                                            .path,
+                                                                        fit: BoxFit
+                                                                            .contain,
+                                                                        width: double
+                                                                            .infinity,
+                                                                        height:
+                                                                            double.infinity,
+                                                                      )
+                                                                    : Image.file(
+                                                                        File(
+                                                                          block
+                                                                              .file
+                                                                              .path,
+                                                                        ),
+                                                                        fit: BoxFit
+                                                                            .contain,
+                                                                        width: double
+                                                                            .infinity,
+                                                                        height:
+                                                                            double.infinity,
+                                                                      ),
                                                               ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
+                                                          Positioned(
+                                                            top: 8,
+                                                            right: 8,
+                                                            child: GestureDetector(
+                                                              onTap: () =>
+                                                                  _removeImage(
+                                                                    index,
+                                                                  ),
+                                                              child: Container(
+                                                                padding:
+                                                                    const EdgeInsets.all(
+                                                                      4,
+                                                                    ),
+                                                                decoration: const BoxDecoration(
+                                                                  color: Colors
+                                                                      .black54,
+                                                                  shape: BoxShape
+                                                                      .circle,
+                                                                ),
+                                                                child: const Icon(
+                                                                  Icons.close,
+                                                                  size: 18,
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
                                                     ).animate().scale(
-                                                      delay: (index * 50).ms,
                                                       duration: 200.ms,
                                                     );
-                                                  },
-                                                ),
+                                                  }
+                                                  return const SizedBox.shrink();
+                                                },
                                               ),
+                                            ),
                                             // 操作按钮区：返回 & 保存
                                             Padding(
                                               padding: const EdgeInsets.only(
-                                                top: 0,
+                                                top: 8,
                                               ),
                                               child: Row(
                                                 mainAxisAlignment:
@@ -763,26 +958,26 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
               ),
             ),
             // 3. 稳健定位：底部抽屉式工具栏与面板组
-            Builder(
-              builder: (context) {
-                final viewInsets = MediaQuery.of(context).viewInsets;
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Builder(
+                builder: (context) {
+                  final viewInsets = MediaQuery.of(context).viewInsets;
 
-                // 核心高度捕捉逻辑：仅在键盘完全弹起（非缩回动画中）时记忆高度
-                if (viewInsets.bottom > 200) {
-                  _keyboardHeight = viewInsets.bottom;
-                }
+                  // 核心高度捕捉逻辑：仅在键盘完全弹起（非缩回动画中）时记忆高度
+                  if (viewInsets.bottom > 200) {
+                    _keyboardHeight = viewInsets.bottom;
+                  }
 
-                // 取键盘高度和表情面板高度的最大值作为占位底座
-                final double currentBottomAreaHeight = math.max(
-                  viewInsets.bottom,
-                  _isEmojiOpen ? _keyboardHeight : 0,
-                );
+                  // 取键盘高度和表情面板高度的最大值作为占位底座
+                  final double currentBottomAreaHeight = math.max(
+                    viewInsets.bottom,
+                    _isEmojiOpen ? _keyboardHeight : 0,
+                  );
 
-                return Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Column(
+                  return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       DiaryToolbar(
@@ -804,9 +999,9 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                             : const SizedBox.shrink(),
                       ),
                     ],
-                  ).animate().fadeIn(duration: 300.ms),
-                );
-              },
+                  ).animate().fadeIn(duration: 300.ms);
+                },
+              ),
             ),
           ],
         ),

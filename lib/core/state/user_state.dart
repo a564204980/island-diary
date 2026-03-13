@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 /// 全局单例用户状态管理
 /// 采用轻量级的 ValueNotifier 实现，方便跨组件监听
@@ -12,6 +13,7 @@ class UserState {
   static const _keyOnboarding = 'has_finished_onboarding';
   static const _keyLastVisit = 'last_visit_time';
   static const _keyDraftContent = 'diary_draft_content';
+  static const _keyDraftBlocks = 'diary_draft_blocks'; // 新增分块数据键
   static const _keyDraftMood = 'diary_draft_mood';
   static const _keyDraftIntensity = 'diary_draft_intensity';
 
@@ -39,15 +41,17 @@ class UserState {
   }
 
   /// 保存草稿
-  Future<void> saveDraft(
-    int moodIndex,
-    double intensity,
-    String content,
-  ) async {
+  Future<void> saveDraft({
+    required int moodIndex,
+    required double intensity,
+    required String content,
+    List<Map<String, dynamic>>? blocks,
+  }) async {
     final draft = DiaryDraft(
       moodIndex: moodIndex,
       intensity: intensity,
       content: content,
+      blocks: blocks,
     );
     diaryDraft.value = draft;
 
@@ -55,6 +59,9 @@ class UserState {
     await prefs.setString(_keyDraftContent, content);
     await prefs.setInt(_keyDraftMood, moodIndex);
     await prefs.setDouble(_keyDraftIntensity, intensity);
+    if (blocks != null) {
+      await prefs.setString(_keyDraftBlocks, jsonEncode(blocks));
+    }
   }
 
   /// 清空草稿
@@ -62,6 +69,7 @@ class UserState {
     diaryDraft.value = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyDraftContent);
+    await prefs.remove(_keyDraftBlocks);
     await prefs.remove(_keyDraftMood);
     await prefs.remove(_keyDraftIntensity);
   }
@@ -106,10 +114,22 @@ class UserState {
     // 加载草稿
     final draftContent = prefs.getString(_keyDraftContent);
     if (draftContent != null) {
+      final blocksJson = prefs.getString(_keyDraftBlocks);
+      List<Map<String, dynamic>>? blocks;
+      if (blocksJson != null) {
+        try {
+          final List<dynamic> decoded = jsonDecode(blocksJson);
+          blocks = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+        } catch (e) {
+          debugPrint('Error decoding draft blocks: $e');
+        }
+      }
+
       diaryDraft.value = DiaryDraft(
         content: draftContent,
         moodIndex: prefs.getInt(_keyDraftMood) ?? 0,
         intensity: prefs.getDouble(_keyDraftIntensity) ?? 5.0,
+        blocks: blocks,
       );
     }
   }
@@ -126,10 +146,12 @@ class DiaryDraft {
   final int moodIndex;
   final double intensity;
   final String content;
+  final List<Map<String, dynamic>>? blocks; // 结构化分块数据
 
   DiaryDraft({
     required this.moodIndex,
     required this.intensity,
     required this.content,
+    this.blocks,
   });
 }
