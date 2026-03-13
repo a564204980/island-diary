@@ -6,12 +6,18 @@ import 'diary_painters.dart';
 /// 随键盘起伏的动态吸附工具栏（双行版）
 class DiaryToolbar extends StatelessWidget {
   final bool isEmojiOpen;
+  final bool isRecording;
   final VoidCallback onEmojiToggle;
+  final VoidCallback onRecordToggle;
+  final VoidCallback onImagePick;
 
   const DiaryToolbar({
     super.key,
     required this.isEmojiOpen,
+    required this.isRecording,
     required this.onEmojiToggle,
+    required this.onRecordToggle,
+    required this.onImagePick,
   });
 
   @override
@@ -85,10 +91,17 @@ class DiaryToolbar extends StatelessWidget {
         children: row1.asMap().entries.map((entry) {
           final int index = entry.key;
           final String path = entry.value;
+
+          VoidCallback? activeOnTap;
+          if (index == 0) activeOnTap = onEmojiToggle;
+          if (index == 1) activeOnTap = onRecordToggle;
+          if (index == 2) activeOnTap = onImagePick;
+
           return _buildToolbarItem(
             path,
             itemWidth,
-            onTap: index == 0 ? onEmojiToggle : null,
+            onTap: activeOnTap,
+            isSelected: index == 1 && isRecording,
           );
         }).toList(),
       ),
@@ -105,6 +118,7 @@ class DiaryToolbar extends StatelessWidget {
     String assetPath,
     double width, {
     VoidCallback? onTap,
+    bool isSelected = false,
   }) {
     return SizedBox(
       width: width,
@@ -115,12 +129,28 @@ class DiaryToolbar extends StatelessWidget {
               () {
                 // TODO: 具体功能逻辑
               },
-          child: Image.asset(
-            assetPath,
-            width: 34,
-            height: 34,
-            fit: BoxFit.contain,
-          ),
+          child:
+              Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF8B5E3C).withOpacity(0.2)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Image.asset(
+                      assetPath,
+                      width: 34,
+                      height: 34,
+                      fit: BoxFit.contain,
+                    ),
+                  )
+                  .animate(target: isSelected ? 1 : 0)
+                  .scale(
+                    begin: const Offset(1, 1),
+                    end: const Offset(1.2, 1.2),
+                    duration: 200.ms,
+                  ),
         ),
       ),
     );

@@ -4,6 +4,10 @@ import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart'
 import 'package:island_diary/core/state/user_state.dart';
 import 'dart:ui';
 import 'dart:math' as math;
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:permission_handler/permission_handler.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'components/mood_tag.dart';
 import 'components/diary_toolbar.dart';
 import 'components/emoji_panel.dart';
@@ -28,6 +32,14 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
   final FocusNode _focusNode = FocusNode();
   bool _isEmojiOpen = false;
   double _keyboardHeight = 330.0; // 逻辑像素单位
+
+  // 语音识别相关
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _isRecording = false;
+
+  // 图片附件相关
+  final ImagePicker _picker = ImagePicker();
+  List<XFile> _images = [];
 
   @override
   void initState() {
@@ -127,6 +139,105 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
     });
   }
 
+  void _toggleRecord() async {
+    print('STT: 开始/停止语音识别请求...');
+    if (!_isRecording) {
+      // 1. 显式请求权限
+      var status = await Permission.microphone.request();
+      print('STT: 麦克风权限状态: $status');
+
+      if (status != PermissionStatus.granted) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('请开启麦克风权限以使用语音功能')));
+        }
+        return;
+      }
+
+      // 2. 初始化引擎
+      print('STT: 正在尝试初始化语音引擎...');
+      try {
+        bool available = await _speech.initialize(
+          onStatus: (status) {
+            print('STT 状态回调: $status');
+            if (status == 'done' || status == 'notListening') {
+              if (mounted) setState(() => _isRecording = false);
+            }
+          },
+          onError: (error) {
+            print('STT 错误回调: ${error.errorMsg}');
+            if (mounted) {
+              setState(() => _isRecording = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('语音功能提示: ${error.errorMsg}')),
+              );
+            }
+          },
+        );
+
+        print('STT: 引擎是否可用: $available');
+
+        if (available) {
+          if (mounted) setState(() => _isRecording = true);
+          _speech.listen(
+            onResult: (result) {
+              print(
+                'STT 识别结果: ${result.recognizedWords}, 是否最终结果: ${result.finalResult}',
+              );
+              if (mounted) {
+                setState(() {
+                  if (result.finalResult) {
+                    final String recognized = result.recognizedWords;
+                    if (recognized.isNotEmpty) {
+                      final int cursorPosition =
+                          _controller.selection.baseOffset;
+                      final String originalText = _controller.text;
+
+                      if (cursorPosition >= 0) {
+                        final String prefix = originalText.substring(
+                          0,
+                          cursorPosition,
+                        );
+                        final String suffix = originalText.substring(
+                          cursorPosition,
+                        );
+                        _controller.text = prefix + recognized + suffix;
+                        _controller.selection = TextSelection.collapsed(
+                          offset: cursorPosition + recognized.length,
+                        );
+                      } else {
+                        _controller.text += recognized;
+                        _controller.selection = TextSelection.collapsed(
+                          offset: _controller.text.length,
+                        );
+                      }
+                      _ensureCursorVisible();
+                    }
+                  }
+                });
+              }
+            },
+            localeId: 'zh_CN',
+          );
+        } else {
+          print('STT: 初始化返回 false，可能模拟器不支持 Speech Services');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('设备暂不支持语音识别（模拟器需安装语音引擎）')),
+            );
+          }
+        }
+      } catch (e) {
+        print('STT: 初始化异常: $e');
+      }
+    } else {
+      print('STT: 主动停止监听');
+      if (mounted) setState(() => _isRecording = false);
+      _speech.stop();
+    }
+  }
+
   void _toggleEmoji() {
     setState(() {
       _isEmojiOpen = !_isEmojiOpen;
@@ -138,6 +249,120 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
     } else {
       // 打开键盘，收起表情面板
       _focusNode.requestFocus();
+    }
+  }
+
+  // --- 图片处理逻辑 ---
+
+  void _onImageButtonPressed() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: const BoxDecoration(
+          color: Color(0xFFFDF7E9),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(
+                Icons.photo_library,
+                color: Color(0xFF8B5E3C),
+              ),
+              title: const Text(
+                '从照片库选择',
+                style: TextStyle(fontFamily: 'FZKai', fontSize: 18),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImages();
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF8B5E3C)),
+              title: const Text(
+                '拍摄照片记录',
+                style: TextStyle(fontFamily: 'FZKai', fontSize: 18),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _pickCameraImage();
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImages() async {
+    if (_images.length >= 9) {
+      _showError('最多只能添加 9 张图片哦');
+      return;
+    }
+
+    try {
+      final List<XFile> pickedFiles = await _picker.pickMultiImage(
+        imageQuality: 80,
+        maxWidth: 1200,
+      );
+
+      if (pickedFiles.isNotEmpty) {
+        setState(() {
+          // 限制总量不超过 9 张
+          final int remaining = 9 - _images.length;
+          _images.addAll(pickedFiles.take(remaining));
+        });
+        _ensureCursorVisible();
+      }
+    } catch (e) {
+      _showError('无法打开相册: $e');
+    }
+  }
+
+  Future<void> _pickCameraImage() async {
+    if (_images.length >= 9) {
+      _showError('最多只能添加 9 张图片哦');
+      return;
+    }
+
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+        maxWidth: 1200,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _images.add(pickedFile);
+        });
+        _ensureCursorVisible();
+      }
+    } catch (e) {
+      _showError('无法开启相机: $e');
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _images.removeAt(index);
+    });
+  }
+
+  void _showError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -368,6 +593,101 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                                                     ),
                                               ),
                                             ),
+                                            // --- 图片预览区 ---
+                                            if (_images.isNotEmpty)
+                                              Container(
+                                                height: 100,
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 8,
+                                                    ),
+                                                child: ListView.builder(
+                                                  scrollDirection:
+                                                      Axis.horizontal,
+                                                  itemCount: _images.length,
+                                                  itemBuilder: (context, index) {
+                                                    return Stack(
+                                                      children: [
+                                                        Container(
+                                                          margin:
+                                                              const EdgeInsets.only(
+                                                                right: 8,
+                                                              ),
+                                                          width: 90,
+                                                          height: 90,
+                                                          decoration: BoxDecoration(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  12,
+                                                                ),
+                                                            boxShadow: [
+                                                              BoxShadow(
+                                                                color: Colors
+                                                                    .black
+                                                                    .withOpacity(
+                                                                      0.1,
+                                                                    ),
+                                                                blurRadius: 4,
+                                                                offset:
+                                                                    const Offset(
+                                                                      0,
+                                                                      2,
+                                                                    ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          child: ClipRRect(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  12,
+                                                                ),
+                                                            child: Image.file(
+                                                              File(
+                                                                _images[index]
+                                                                    .path,
+                                                              ),
+                                                              fit: BoxFit.cover,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        // 删除按钮
+                                                        Positioned(
+                                                          top: -4,
+                                                          right: 4,
+                                                          child: GestureDetector(
+                                                            onTap: () =>
+                                                                _removeImage(
+                                                                  index,
+                                                                ),
+                                                            child: Container(
+                                                              padding:
+                                                                  const EdgeInsets.all(
+                                                                    4,
+                                                                  ),
+                                                              decoration:
+                                                                  const BoxDecoration(
+                                                                    color: Colors
+                                                                        .black54,
+                                                                    shape: BoxShape
+                                                                        .circle,
+                                                                  ),
+                                                              child: const Icon(
+                                                                Icons.close,
+                                                                size: 14,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ).animate().scale(
+                                                      delay: (index * 50).ms,
+                                                      duration: 200.ms,
+                                                    );
+                                                  },
+                                                ),
+                                              ),
                                             // 操作按钮区：返回 & 保存
                                             Padding(
                                               padding: const EdgeInsets.only(
@@ -467,7 +787,10 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet> {
                     children: [
                       DiaryToolbar(
                         isEmojiOpen: _isEmojiOpen,
+                        isRecording: _isRecording,
                         onEmojiToggle: _toggleEmoji,
+                        onRecordToggle: _toggleRecord,
+                        onImagePick: _onImageButtonPressed,
                       ),
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
