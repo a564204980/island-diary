@@ -10,6 +10,9 @@ class DiaryToolbar extends StatelessWidget {
   final VoidCallback onEmojiToggle;
   final VoidCallback onRecordToggle;
   final VoidCallback onImagePick;
+  final VoidCallback? onTopicClick;
+  final VoidCallback? onColorClick;
+  final VoidCallback? onBgColorClick;
 
   const DiaryToolbar({
     super.key,
@@ -18,48 +21,45 @@ class DiaryToolbar extends StatelessWidget {
     required this.onEmojiToggle,
     required this.onRecordToggle,
     required this.onImagePick,
+    this.onTopicClick,
+    this.onColorClick,
+    this.onBgColorClick,
   });
 
   @override
   Widget build(BuildContext context) {
-    final viewInsets = MediaQuery.of(context).viewInsets;
     final double rowWidth = MediaQuery.of(context).size.width - 16;
 
-    return Positioned(
-      bottom: viewInsets.bottom,
-      left: 0,
-      right: 0,
-      child: Container(
-        height: 110,
-        width: double.infinity,
-        child: Stack(
-          children: [
-            // 背景 - 磨砂玻璃 + 手绘线条
-            Positioned.fill(
-              child: ClipRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                  child: CustomPaint(
-                    painter: HandDrawnToolbarPainter(
-                      color: const Color(0xFFF9EED8).withOpacity(0.85),
-                      borderColor: const Color(0xFF8B5E3C),
-                    ),
+    return Container(
+      height: 110,
+      width: double.infinity,
+      child: Stack(
+        children: [
+          // 背景 - 磨砂玻璃 + 手绘线条
+          Positioned.fill(
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                child: CustomPaint(
+                  painter: HandDrawnToolbarPainter(
+                    color: const Color(0xFFF9EED8).withOpacity(0.85),
+                    borderColor: const Color(0xFF8B5E3C),
                   ),
                 ),
               ),
             ),
-            // 双行图标列表
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: _buildDualRowToolbarIcons(rowWidth),
-              ),
+          ),
+          // 双行图标列表
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: _buildDualRowToolbarIcons(rowWidth),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    ).animate().fadeIn(duration: 300.ms);
+    );
   }
 
   /// 构建双行工具栏图标组
@@ -96,6 +96,9 @@ class DiaryToolbar extends StatelessWidget {
           if (index == 0) activeOnTap = onEmojiToggle;
           if (index == 1) activeOnTap = onRecordToggle;
           if (index == 2) activeOnTap = onImagePick;
+          if (index == 3) activeOnTap = onTopicClick;
+          if (index == 4) activeOnTap = onColorClick;
+          if (index == 5) activeOnTap = onBgColorClick;
 
           return _buildToolbarItem(
             path,

@@ -1,0 +1,266 @@
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+/// ---------------------------------------------------------------------------
+/// 分块编辑器模型定义
+/// ---------------------------------------------------------------------------
+abstract class DiaryBlock {
+  Map<String, dynamic> toMap();
+
+  static DiaryBlock fromMap(Map<String, dynamic> map) {
+    final type = map['type'];
+    if (type == 'text') {
+      final content = map['content'] ?? '';
+      final List<TextAttribute> attrs = [];
+      if (map['attributes'] != null && map['attributes'] is List) {
+        final List list = map['attributes'];
+        for (var item in list) {
+          if (item is Map<String, dynamic>) {
+            attrs.add(TextAttribute.fromMap(item));
+          }
+        }
+      }
+      final block = TextBlock(content, attributes: attrs);
+      if (map['baseColor'] != null) {
+        final controller = block.controller;
+        if (controller is TopicTextEditingController) {
+          controller.baseColor = Color(map['baseColor']);
+        }
+      }
+      return block;
+    } else if (type == 'image') {
+      final path = map['path'];
+      if (path != null && path.toString().isNotEmpty) {
+        return ImageBlock(XFile(path.toString()));
+      }
+      return TextBlock('');
+    }
+    return TextBlock('');
+  }
+}
+
+/// 文本属性记录（用于局部变色）
+class TextAttribute {
+  final int start;
+  final int end;
+  final Color? color;
+  final Color? backgroundColor;
+
+  TextAttribute({
+    required this.start,
+    required this.end,
+    this.color,
+    this.backgroundColor,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'start': start,
+    'end': end,
+    if (color != null) 'color': color!.value,
+    if (backgroundColor != null) 'backgroundColor': backgroundColor!.value,
+  };
+
+  factory TextAttribute.fromMap(Map<String, dynamic> map) => TextAttribute(
+    start: map['start'] ?? 0,
+    end: map['end'] ?? 0,
+    color: map['color'] != null ? Color(map['color']) : null,
+    backgroundColor: map['backgroundColor'] != null
+        ? Color(map['backgroundColor'])
+        : null,
+  );
+}
+
+class TopicTextEditingController extends TextEditingController {
+  Color baseColor;
+  late List<TextAttribute> attributes; // 使用 late 并在构造函数中处理
+
+  TopicTextEditingController({
+    String? text,
+    Color? baseColor,
+    List<TextAttribute>? attributes,
+  }) : baseColor = baseColor ?? const Color(0xFF5D4037),
+       super(text: text) {
+    this.attributes = attributes ?? [];
+  }
+
+  void updateBaseColor(Color newColor) {
+    if (baseColor != newColor) {
+      baseColor = newColor;
+      notifyListeners();
+    }
+  }
+
+  /// 将前景色或背景色应用到指定选区（传入 null 表示清除该选区在该维度的属性）
+  void applyAttributeToSelection(
+    TextSelection selection, {
+    Color? color,
+    Color? bgColor,
+    bool clearColor = false,
+    bool clearBgColor = false,
+  }) {
+    if (selection.isCollapsed) return;
+
+    final start = selection.start;
+    final end = selection.end;
+
+    // 处理前景色逻辑
+    if (clearColor || color != null) {
+      attributes.removeWhere(
+        (attr) =>
+            attr.color != null &&
+            ((attr.start >= start && attr.start < end) ||
+                (attr.end > start && attr.end <= end) ||
+                (attr.start <= start && attr.end >= end)),
+      );
+      if (color != null) {
+        attributes.add(TextAttribute(start: start, end: end, color: color));
+      }
+    }
+
+    // 处理背景色逻辑
+    if (clearBgColor || bgColor != null) {
+      attributes.removeWhere(
+        (attr) =>
+            attr.backgroundColor != null &&
+            ((attr.start >= start && attr.start < end) ||
+                (attr.end > start && attr.end <= end) ||
+                (attr.start <= start && attr.end >= end)),
+      );
+      if (bgColor != null) {
+        attributes.add(
+          TextAttribute(start: start, end: end, backgroundColor: bgColor),
+        );
+      }
+    }
+
+    // 2. 排序以优化渲染性能
+    attributes.sort((a, b) => a.start.compareTo(b.start));
+
+    notifyListeners();
+  }
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final textContent = this.text;
+    if (textContent.isEmpty) return TextSpan(style: style, text: textContent);
+
+    final List<InlineSpan> children = [];
+    final TextStyle normalStyle =
+        style?.copyWith(color: baseColor) ?? TextStyle(color: baseColor);
+
+    // 1. 获取所有正则话题范围
+    final RegExp regExp = RegExp(r'#[^\s#]+', multiLine: true);
+    final List<Map<String, dynamic>> highlights = [];
+
+    for (final Match match in regExp.allMatches(textContent)) {
+      highlights.add({
+        'start': match.start,
+        'end': match.end,
+        'style': const TextStyle(
+          color: Color(0xFFE67E22),
+          fontWeight: FontWeight.bold,
+          decoration: TextDecoration.underline,
+          decorationColor: Color(0xFFE67E22),
+        ),
+        'priority': 2,
+      });
+    }
+
+    // 2. 获取所有手动属性范围
+    for (var attr in attributes) {
+      final start = attr.start.clamp(0, textContent.length);
+      final end = attr.end.clamp(0, textContent.length);
+      if (start >= end) continue;
+
+      highlights.add({
+        'start': start,
+        'end': end,
+        'style': TextStyle(
+          color: attr.color,
+          backgroundColor: attr.backgroundColor,
+        ),
+        'priority': 1,
+      });
+    }
+
+    // 3. 按照索引动态切分并渲染
+    final Set<int> boundaries = {0, textContent.length};
+    for (var h in highlights) {
+      boundaries.add(h['start']);
+      boundaries.add(h['end']);
+    }
+    final sortedBoundaries = boundaries.toList()..sort();
+
+    for (int i = 0; i < sortedBoundaries.length - 1; i++) {
+      final start = sortedBoundaries[i];
+      final end = sortedBoundaries[i + 1];
+      if (start >= end) continue;
+
+      final chunk = textContent.substring(start, end);
+
+      TextStyle combinedStyle = normalStyle;
+      for (var h in highlights) {
+        if (start >= h['start'] && end <= h['end']) {
+          // 如果有话题样式（优先级为2），则它拥有最高控制权
+          if (h['priority'] == 2) {
+            combinedStyle = h['style'];
+            break;
+          }
+          // 手动样式（优先级为1）进行叠加
+          if (h['priority'] == 1) {
+            combinedStyle = combinedStyle.merge(h['style']);
+          }
+        }
+      }
+
+      children.add(TextSpan(text: chunk, style: combinedStyle));
+    }
+
+    return TextSpan(style: style, children: children);
+  }
+}
+
+class TextBlock extends DiaryBlock {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+
+  TextBlock(String text, {List<TextAttribute>? attributes})
+    : controller = TopicTextEditingController(
+        text: text,
+        attributes: attributes,
+      ),
+      focusNode = FocusNode();
+
+  @override
+  Map<String, dynamic> toMap() {
+    final tc = controller;
+    if (tc is TopicTextEditingController) {
+      return {
+        'type': 'text',
+        'content': tc.text,
+        'attributes': tc.attributes.map((a) => a.toMap()).toList(),
+        'baseColor': tc.baseColor.value,
+      };
+    }
+    return {'type': 'text', 'content': tc.text};
+  }
+
+  void dispose() {
+    controller.dispose();
+    focusNode.dispose();
+  }
+}
+
+class ImageBlock extends DiaryBlock {
+  final XFile file;
+  final String id;
+
+  ImageBlock(this.file) : id = DateTime.now().millisecondsSinceEpoch.toString();
+
+  @override
+  Map<String, dynamic> toMap() => {'type': 'image', 'path': file.path};
+}
