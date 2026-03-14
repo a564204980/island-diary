@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 
 /// 全局单例用户状态管理
 /// 采用轻量级的 ValueNotifier 实现，方便跨组件监听
@@ -85,12 +87,42 @@ class UserState {
     final draft = diaryDraft.value;
     if (draft == null) return;
 
+    final now = DateTime.now();
+    final List<Map<String, dynamic>> blocks = draft.blocks != null
+        ? List<Map<String, dynamic>>.from(draft.blocks!)
+        : [];
+
+    // 检查今日是否已记录过（用于发放奖励）
+    final bool isFirstToday = !savedDiaries.value.any(
+      (e) =>
+          e.dateTime.year == now.year &&
+          e.dateTime.month == now.month &&
+          e.dateTime.day == now.day,
+    );
+
+    if (isFirstToday) {
+      // 随机抽取一个奖励
+      final rewardKeys = DiaryUtils.rewardConfigs.keys.toList();
+      final String randomKey =
+          rewardKeys[math.Random().nextInt(rewardKeys.length)];
+      final config = DiaryUtils.rewardConfigs[randomKey]!;
+
+      // 插入奖励块到首位
+      blocks.insert(0, {
+        'id': 'reward_${now.millisecondsSinceEpoch}',
+        'type': 'reward',
+        'rewardId': randomKey,
+        'path': config['path'],
+        'name': config['name'],
+      });
+    }
+
     final newEntry = DiaryEntry(
-      dateTime: DateTime.now(),
+      dateTime: now,
       moodIndex: draft.moodIndex,
       intensity: draft.intensity,
       content: draft.content,
-      blocks: draft.blocks ?? [],
+      blocks: blocks,
     );
 
     // 更新内存列表

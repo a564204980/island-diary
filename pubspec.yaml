@@ -45,6 +45,7 @@ dependencies:
   geolocator: ^13.0.1
   geocoding: ^3.0.0
   uuid: ^4.5.3
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:
@@ -87,6 +88,14 @@ flutter:
   # list giving the asset and other descriptors for the font. For
   fonts:
     - family: FZKai
+      fonts:
+        - asset: assets/fonts/FangZhengKaiTiJianTi-1.ttf
+    - family: LXGWWenKai
+      fonts:
+        - asset: assets/fonts/LXGWWenKai-Regular.ttf
+        - asset: assets/fonts/LXGWWenKai-Medium.ttf
+          weight: 500
+    - family: Zhi Mang Xing # 由于文件缺失，暂时映射到 FZKai 保证代码不报错，并实现“统一”
       fonts:
         - asset: assets/fonts/FangZhengKaiTiJianTi-1.ttf
   # For details regarding fonts from package dependencies,

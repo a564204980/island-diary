@@ -1,6 +1,10 @@
 import 'dart:ui';
+import 'dart:io' as io;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
+import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
+import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 
 /// 玻璃拟态月度日历卡片
 class MonthCalendarCard extends StatelessWidget {
@@ -86,7 +90,6 @@ class MonthCalendarCard extends StatelessWidget {
     return Text(
       '$year年${month.toString().padLeft(2, '0')}月',
       style: const TextStyle(
-        fontFamily: 'FZKai',
         fontSize: 22,
         fontWeight: FontWeight.bold,
         color: Colors.white,
@@ -105,7 +108,6 @@ class MonthCalendarCard extends StatelessWidget {
                 child: Text(
                   w,
                   style: TextStyle(
-                    fontFamily: 'FZKai',
                     fontSize: 14,
                     color: Colors.white.withOpacity(0.6),
                   ),
@@ -142,7 +144,12 @@ class MonthCalendarCard extends StatelessWidget {
             return Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _CalendarDayCell(day: day, diaries: dayDiaries),
+                child: _CalendarDayCell(
+                  year: year,
+                  month: month,
+                  day: day,
+                  diaries: dayDiaries,
+                ),
               ),
             );
           }),
@@ -163,9 +170,8 @@ class MonthCalendarCard extends StatelessWidget {
           Text(
             '$days天 | $entries篇 | $words字',
             style: TextStyle(
-              fontFamily: 'FZKai',
-              fontSize: 12,
-              color: Colors.white.withOpacity(0.5),
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.7),
             ),
           ),
         ],
@@ -175,63 +181,260 @@ class MonthCalendarCard extends StatelessWidget {
 }
 
 class _CalendarDayCell extends StatelessWidget {
+  final int year;
+  final int month;
   final int day;
   final List<DiaryEntry> diaries;
 
-  const _CalendarDayCell({required this.day, required this.diaries});
+  const _CalendarDayCell({
+    required this.year,
+    required this.month,
+    required this.day,
+    required this.diaries,
+  });
 
   @override
   Widget build(BuildContext context) {
     final bool hasRecord = diaries.isNotEmpty;
+    // 检查是否为今天
+    final now = DateTime.now();
+    final bool isToday =
+        now.year == year && now.month == month && now.day == day;
+
+    if (!hasRecord) {
+      return Center(
+        child: Text(
+          '$day',
+          style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.4)),
+        ),
+      );
+    }
+
+    // 优先级解析逻辑 (遍历所有日记)
+    String? rewardPath;
+    String? imagePath;
+    int? moodIndex;
+
+    for (var diary in diaries) {
+      // 只要有一个日记有奖励，就用那个奖励（除非后面有更好的奖励？）
+      // 这里可以按全天日记中最特殊的来挑选
+      for (var blockMap in diary.blocks) {
+        final block = DiaryBlock.fromMap(blockMap);
+        if (block is RewardBlock && rewardPath == null) {
+          rewardPath = block.imagePath;
+        } else if (block is ImageBlock && imagePath == null) {
+          imagePath = block.file.path;
+        }
+      }
+      moodIndex ??= diary.moodIndex;
+    }
+
+    final bool isReward = rewardPath != null;
+    final bool isImage = imagePath != null;
+    final int count = diaries.length;
 
     return Center(
-      child: Container(
-        margin: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: hasRecord ? Colors.white.withOpacity(0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            if (hasRecord)
-              // 这里暂时显示记录心情的占位，后续可换成精美插画
-              _buildMoodIcon(diaries.first.moodIndex)
-            else
-              Text(
-                '$day',
-                style: TextStyle(
-                  fontFamily: 'FZKai',
-                  fontSize: 14,
-                  color: Colors.white.withOpacity(0.4),
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          // 叠纸底层效果 (大于1篇时显示)
+          if (count > 1)
+            Positioned(
+              top: 6,
+              left: 6,
+              right: 2,
+              bottom: 2,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
+            ),
+          if (count > 2)
+            Positioned(
+              top: 8,
+              left: 8,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
 
-            // 日期数字小角标（如果有记录，缩小放在角落）
-            if (hasRecord)
-              Positioned(
-                top: 4,
-                left: 4,
-                child: Text(
-                  '$day',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.white.withOpacity(0.5),
-                  ),
-                ),
+          // 主体 Container
+          Container(
+            margin: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(
+                isReward ? 0.3 : (hasRecord ? 0.15 : 0),
               ),
-          ],
-        ),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: isReward
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFFFF9C4).withOpacity(0.5),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : (isToday
+                        ? [
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.2),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null),
+              border: Border.all(
+                color: isToday
+                    ? Colors.white.withOpacity(0.6)
+                    : Colors.white.withOpacity(isReward ? 0.4 : 0.1),
+                width: isToday ? 2.0 : (isReward ? 1.5 : 0.5),
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 封面图内容
+                  Positioned.fill(
+                    child: Padding(
+                      padding: EdgeInsets.all(isReward ? 6 : (isImage ? 0 : 8)),
+                      child: _buildCover(rewardPath, imagePath, moodIndex),
+                    ),
+                  ),
+
+                  // 底部高光（如果是奖励）
+                  if (isReward)
+                    Positioned(
+                      bottom: -10,
+                      child: Container(
+                        width: 40,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.amber.withOpacity(0.4),
+                              blurRadius: 15,
+                              spreadRadius: 5,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  // 日期数字小角标
+                  Positioned(
+                    top: 5,
+                    left: 6,
+                    child: Text(
+                      '$day',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white.withOpacity(isReward ? 0.9 : 0.6),
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 篇数角标 (如果是多篇)
+                  if (count > 1)
+                    Positioned(
+                      bottom: 4,
+                      right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '$count',
+                          style: const TextStyle(
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildMoodIcon(int moodIndex) {
-    // 方案：根据心情索引显示不同 Emoji 或图标
-    // 实际项目中由于有 CustomPainter 或 Image 资源，这里可以根据 moodIndex 映射
-    const moods = ['😊', '😔', '😡', '😴', '🎨', '🌟', '🍃', '🌊'];
-    final String mood = moodIndex < moods.length ? moods[moodIndex] : '✨';
+  Widget _buildCover(String? rewardPath, String? imagePath, int? moodIndex) {
+    // 优先级调整：图片 > 奖励 > 心情
+    if (imagePath != null) {
+      if (kIsWeb ||
+          imagePath.startsWith('http') ||
+          imagePath.startsWith('blob:')) {
+        return Image.network(
+          imagePath,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildCover(rewardPath, null, moodIndex);
+          },
+        );
+      }
+      return Image.file(
+        io.File(imagePath),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildCover(rewardPath, null, moodIndex);
+        },
+      );
+    }
+    if (rewardPath != null) {
+      return Image.asset(
+        rewardPath,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildCover(null, null, moodIndex);
+        },
+      );
+    }
+    if (moodIndex != null && moodIndex < kMoods.length) {
+      final mood = kMoods[moodIndex];
+      if (mood.iconPath != null) {
+        return Image.asset(
+          mood.iconPath!,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) =>
+              _buildFallbackMood(mood),
+        );
+      }
+      return _buildFallbackMood(mood);
+    }
+    return const Icon(Icons.star, color: Colors.white24, size: 16);
+  }
 
-    return Text(mood, style: const TextStyle(fontSize: 18));
+  Widget _buildFallbackMood(dynamic mood) {
+    return Center(
+      child: Text(
+        mood.label.substring(0, 1),
+        style: const TextStyle(fontSize: 16, color: Colors.white),
+      ),
+    );
   }
 }

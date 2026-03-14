@@ -46,9 +46,32 @@ abstract class DiaryBlock {
         return AudioBlock(path.toString(), name, id: id);
       }
       return TextBlock('');
+    } else if (type == 'reward') {
+      final rewardId = map['rewardId']?.toString() ?? '';
+      final path = map['path']?.toString() ?? '';
+      final name = map['name']?.toString() ?? '';
+      return RewardBlock(rewardId, path, name, id: id);
     }
     return TextBlock('');
   }
+}
+
+/// 奖励块 (用于存储动植物等成就)
+class RewardBlock extends DiaryBlock {
+  final String rewardId;
+  final String imagePath;
+  final String name;
+
+  RewardBlock(this.rewardId, this.imagePath, this.name, {super.id});
+
+  @override
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'type': 'reward',
+    'rewardId': rewardId,
+    'path': imagePath,
+    'name': name,
+  };
 }
 
 /// 文本属性记录（用于局部变色）

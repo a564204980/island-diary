@@ -88,4 +88,11 @@ class DiaryUtils {
     // 注意：intensity 需转为 int 且由于业务需求直接显示 intensity 原值转换后的整数
     return "${options[index]}的$label/${intensity.toInt()}";
   }
+
+  /// 奖励配置映射表
+  static const Map<String, Map<String, String>> rewardConfigs = {
+    'fox': {'name': '灵动小狐狸', 'path': 'assets/images/reward_fox.png'},
+    'flower': {'name': '治愈小花朵', 'path': 'assets/images/reward_flower.png'},
+    'bird': {'name': '和平小白鸟', 'path': 'assets/images/reward_bird.png'},
+  };
 }

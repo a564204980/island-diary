@@ -295,7 +295,6 @@ class _DiarySuccessOverlayState extends State<DiarySuccessOverlay>
           Text(
                 '已存入记忆瓶中',
                 style: TextStyle(
-                  fontFamily: 'FZKai',
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,

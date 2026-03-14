@@ -51,13 +51,10 @@ class DiaryBlockItem extends StatelessWidget {
       readOnly: isEmojiOpen,
       showCursor: true,
       cursorColor: const Color(0xFF8B5E3C),
-      style: const TextStyle(fontFamily: 'FZKai', fontSize: 20, height: 1.6),
+      style: const TextStyle(fontSize: 20, height: 1.6),
       decoration: InputDecoration(
         hintText: index == 0 ? '记录下这一刻的想法吧...' : '',
-        hintStyle: const TextStyle(
-          fontFamily: 'FZKai',
-          color: Color(0xFFA68A78),
-        ),
+        hintStyle: const TextStyle(color: Color(0xFFA68A78)),
         border: InputBorder.none,
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 4),

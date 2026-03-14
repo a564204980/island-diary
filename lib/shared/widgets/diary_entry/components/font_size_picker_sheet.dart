@@ -76,7 +76,6 @@ class DiaryFontSizePickerSheet extends StatelessWidget {
                   child: Text(
                     size['label'],
                     style: TextStyle(
-                      fontFamily: 'FZKai',
                       fontSize: 16,
                       color: isSelected
                           ? Colors.white

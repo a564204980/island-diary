@@ -26,7 +26,6 @@ class MoodTag extends StatelessWidget {
             Text(
               description,
               style: const TextStyle(
-                fontFamily: 'FZKai',
                 color: Color(0xFF5D4037),
                 fontWeight: FontWeight.bold,
                 fontSize: 16,

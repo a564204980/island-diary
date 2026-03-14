@@ -5,6 +5,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/presentation/widgets/month_calendar_card.dart';
+import 'package:intl/intl.dart';
+import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
@@ -25,45 +27,19 @@ class _RecordPageState extends State<RecordPage> {
     final String bgPath = isNight
         ? 'assets/images/record_night.png'
         : 'assets/images/record_daytime2.png';
-    final size = MediaQuery.of(context).size;
-    final double width = size.width;
-    final bool isMobile = width < 600;
-    final bool isTablet = width >= 600 && width < 1200; // iPad 范围
-
-    // 动态计算背景显示逻辑
-    double bgLeft = -740.0; // 默认桌面端位移
-    double bgRight = 0.0;
-    double bgScale = 1.1;
-    Alignment bgAlignment = Alignment.centerLeft;
-
-    if (isMobile) {
-      bgLeft = -400.0; // 大幅度继续左移
-      bgRight = 0.0;
-      bgScale = 1; // 继续增加缩放以覆盖
-    } else if (isTablet) {
-      bgLeft = 0;
-      bgRight = 0;
-      bgScale = 1.0;
-      bgAlignment = Alignment.center;
-    }
+    // 强制全局居中，解决不同尺寸下的藤蔓对齐问题
+    const Alignment bgAlignment = Alignment.center;
 
     return Scaffold(
+      backgroundColor: Colors.transparent, // 确保无底色干扰
       body: Stack(
         children: [
-          // 1. 底层清晰背景
-          Positioned(
-            left: bgLeft,
-            right: bgRight,
-            top: 0,
-            bottom: 0,
-            child: Transform.scale(
-              scale: bgScale,
+          // 1. 底层清晰背景 - 锁定居中对齐
+          Positioned.fill(
+            child: Image.asset(
+              bgPath,
+              fit: BoxFit.cover,
               alignment: bgAlignment,
-              child: Image.asset(
-                bgPath,
-                fit: BoxFit.cover,
-                alignment: bgAlignment,
-              ),
             ),
           ),
 
@@ -89,7 +65,7 @@ class _RecordPageState extends State<RecordPage> {
             right: 0,
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                padding: const EdgeInsets.fromLTRB(24, 40, 24, 0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment:
@@ -150,41 +126,32 @@ class _RecordPageState extends State<RecordPage> {
 
   /// 传统的藤蔓时间轴视图
   Widget _buildTimelineView() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 100),
-      child: ValueListenableBuilder<List<DiaryEntry>>(
-        valueListenable: UserState().savedDiaries,
-        builder: (context, allDiaries, child) {
-          final diaries = allDiaries
-              .where((e) => e.dateTime.year == _selectedYear)
-              .toList();
-          final int itemCount = diaries.isEmpty ? 1 : diaries.length;
+    return ValueListenableBuilder<List<DiaryEntry>>(
+      valueListenable: UserState().savedDiaries,
+      builder: (context, allDiaries, child) {
+        final diaries = allDiaries
+            .where((e) => e.dateTime.year == _selectedYear)
+            .toList();
 
-          return ListView.builder(
-            key: const ValueKey('timeline'),
-            reverse: true,
-            clipBehavior: Clip.none,
-            padding: const EdgeInsets.only(top: 0, bottom: 240),
-            itemCount: itemCount,
-            itemBuilder: (context, index) {
-              final isBottom = index == 0;
-              return SizedBox(
-                height: 320,
-                child: Stack(
-                  alignment: Alignment.topCenter,
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned.fill(
-                      top: isBottom ? -160 : 0,
-                      child: _VineSegment(isBottom: isBottom, scale: 2.1),
-                    ),
-                  ],
-                ),
-              );
-            },
+        if (diaries.isEmpty) {
+          return const Center(
+            child: Text(
+              '这一年还没有留下足迹...',
+              style: TextStyle(color: Colors.white54, fontSize: 16),
+            ),
           );
-        },
-      ),
+        }
+
+        return ListView.builder(
+          key: const ValueKey('timeline'),
+          padding: const EdgeInsets.fromLTRB(24, 120, 24, 120),
+          itemCount: diaries.length,
+          itemBuilder: (context, index) {
+            final diary = diaries[index];
+            return _TimelineEntryCard(diary: diary);
+          },
+        );
+      },
     );
   }
 
@@ -212,10 +179,7 @@ class _RecordPageState extends State<RecordPage> {
             sortedMonths.add(current.month);
           } else {
             return const Center(
-              child: Text(
-                '暂无记录',
-                style: TextStyle(color: Colors.white54, fontFamily: 'FZKai'),
-              ),
+              child: Text('暂无记录', style: TextStyle(color: Colors.white54)),
             );
           }
         }
@@ -297,7 +261,6 @@ class _YearPickerState extends State<_YearPicker> {
                       Text(
                         '${widget.selectedYear} 年',
                         style: TextStyle(
-                          fontFamily: 'FZKai',
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white.withOpacity(0.9),
@@ -341,8 +304,7 @@ class _YearPickerState extends State<_YearPicker> {
                                   child: Text(
                                     '$year 年',
                                     style: TextStyle(
-                                      fontFamily: 'FZKai',
-                                      fontSize: 16,
+                                      fontSize: 14,
                                       color: Colors.white.withOpacity(0.7),
                                     ),
                                   ),
@@ -362,55 +324,94 @@ class _YearPickerState extends State<_YearPicker> {
   }
 }
 
-/// 藤蔓片段组件，包含光晕效果
-class _VineSegment extends StatelessWidget {
-  final bool isBottom;
-  final double scale;
+/// 时间轴上的单条记录卡片
+class _TimelineEntryCard extends StatelessWidget {
+  final DiaryEntry diary;
 
-  const _VineSegment({required this.isBottom, required this.scale});
+  const _TimelineEntryCard({required this.diary});
 
   @override
   Widget build(BuildContext context) {
-    final String assetPath = isBottom
-        ? 'assets/images/vine.png'
-        : 'assets/images/vine2.png';
+    final mood = kMoods[diary.moodIndex.clamp(0, kMoods.length - 1)];
+    // 显式使用 DateFormat
+    final String dateStr = DateFormat('MM月dd日').format(diary.dateTime);
+    final String timeStr = DateFormat('HH:mm').format(diary.dateTime);
 
-    return Transform.scale(
-      scale: scale,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // 第一层：极宽的柔和环境光 (调淡)
-          Opacity(
-            opacity: 0.3,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: ColorFiltered(
-                colorFilter: ColorFilter.mode(
-                  Colors.orangeAccent.withOpacity(0.4),
-                  BlendMode.srcATop,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.15), width: 0.5),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 左侧时间/心情
+                Column(
+                  children: [
+                    Image.asset(mood.iconPath!, width: 32, height: 32),
+                    const SizedBox(height: 8),
+                    Text(
+                      timeStr,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
                 ),
-                child: Image.asset(assetPath, fit: BoxFit.contain),
-              ),
+                const SizedBox(width: 16),
+                // 右侧内容
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            dateStr,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                          ),
+                          Text(
+                            mood.label,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: (mood.glowColor ?? Colors.white)
+                                  .withOpacity(0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        diary.content.replaceAll('\n', ' '),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.5,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          // 第二层：核心高亮光晕 (调淡)
-          Opacity(
-            opacity: 0.7,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: ColorFiltered(
-                colorFilter: ColorFilter.mode(
-                  Colors.orangeAccent.withOpacity(0.6),
-                  BlendMode.srcATop,
-                ),
-                child: Image.asset(assetPath, fit: BoxFit.contain),
-              ),
-            ),
-          ),
-          // 顶层清晰藤蔓
-          Image.asset(assetPath, fit: BoxFit.contain),
-        ],
+        ),
       ),
     );
   }

@@ -101,7 +101,6 @@ class _IslandButtonState extends State<IslandButton>
                         color: Color(0xFF5A3E28),
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        fontFamily: 'Zhi Mang Xing',
                       ),
                 ),
               ],

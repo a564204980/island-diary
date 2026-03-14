@@ -128,7 +128,6 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                                             Text(
                                               DiaryUtils.getFormattedTime(),
                                               style: const TextStyle(
-                                                fontFamily: 'FZKai',
                                                 fontSize: 28,
                                                 fontWeight: FontWeight.bold,
                                                 color: Color(0xFF8B5E3C),
@@ -137,7 +136,6 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                                             Text(
                                               DiaryUtils.getFormattedDate(),
                                               style: const TextStyle(
-                                                fontFamily: 'FZKai',
                                                 fontSize: 16,
                                                 color: Color(0xFFA68A78),
                                               ),
@@ -201,7 +199,6 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                                               child: const Text(
                                                 '返回',
                                                 style: TextStyle(
-                                                  fontFamily: 'FZKai',
                                                   fontSize: 18,
                                                   color: Color(0xFFA68A78),
                                                 ),
@@ -212,7 +209,6 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                                               child: const Text(
                                                 '保存',
                                                 style: TextStyle(
-                                                  fontFamily: 'FZKai',
                                                   fontSize: 18,
                                                   fontWeight: FontWeight.bold,
                                                   color: Color(0xFF8B5E3C),
