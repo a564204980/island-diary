@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 
 /// 全局单例用户状态管理
 /// 采用轻量级的 ValueNotifier 实现，方便跨组件监听
@@ -16,6 +17,7 @@ class UserState {
   static const _keyDraftBlocks = 'diary_draft_blocks'; // 新增分块数据键
   static const _keyDraftMood = 'diary_draft_mood';
   static const _keyDraftIntensity = 'diary_draft_intensity';
+  static const _keySavedDiaries = 'saved_diaries';
 
   /// 用户的姓名（游戏内称称呼）
   final ValueNotifier<String> userName = ValueNotifier<String>('');
@@ -27,6 +29,10 @@ class UserState {
   final ValueNotifier<DiaryDraft?> diaryDraft = ValueNotifier<DiaryDraft?>(
     null,
   );
+
+  /// 已保存的日记列表
+  final ValueNotifier<List<DiaryEntry>> savedDiaries =
+      ValueNotifier<List<DiaryEntry>>([]);
 
   /// 记录当前日记信纸是否处于打开状态（用于标题显隐等联动动效）
   final ValueNotifier<bool> isDiarySheetOpen = ValueNotifier<bool>(false);
@@ -72,6 +78,33 @@ class UserState {
     await prefs.remove(_keyDraftBlocks);
     await prefs.remove(_keyDraftMood);
     await prefs.remove(_keyDraftIntensity);
+  }
+
+  /// 将当前草稿保存为正式日记并持久化
+  Future<void> saveDiary() async {
+    final draft = diaryDraft.value;
+    if (draft == null) return;
+
+    final newEntry = DiaryEntry(
+      dateTime: DateTime.now(),
+      moodIndex: draft.moodIndex,
+      intensity: draft.intensity,
+      content: draft.content,
+      blocks: draft.blocks ?? [],
+    );
+
+    // 更新内存列表
+    final newList = List<DiaryEntry>.from(savedDiaries.value);
+    newList.insert(0, newEntry); // 新日记放在最前面
+    savedDiaries.value = newList;
+
+    // 持久化整个列表
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = savedDiaries.value.map((e) => e.toMap()).toList();
+    await prefs.setString(_keySavedDiaries, jsonEncode(jsonList));
+
+    // 保存后清空草稿
+    await clearDraft();
   }
 
   /// 更新用户名称并持久化到本地
@@ -131,6 +164,19 @@ class UserState {
         intensity: prefs.getDouble(_keyDraftIntensity) ?? 5.0,
         blocks: blocks,
       );
+    }
+
+    // 加载已保存的日记
+    final savedJson = prefs.getString(_keySavedDiaries);
+    if (savedJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(savedJson);
+        savedDiaries.value = decoded
+            .map((e) => DiaryEntry.fromMap(Map<String, dynamic>.from(e)))
+            .toList();
+      } catch (e) {
+        debugPrint('Error decoding saved diaries: $e');
+      }
     }
   }
 

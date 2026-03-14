@@ -6,6 +6,7 @@ import 'package:island_diary/shared/widgets/bottom_nav_bar.dart';
 import 'package:island_diary/features/home/presentation/widgets/floating_clouds.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_success_overlay.dart';
+import 'package:island_diary/features/record/presentation/pages/record_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -129,170 +130,201 @@ class _HomePageState extends State<HomePage>
     final bool isNight = DateTime.now().hour >= 17 || DateTime.now().hour < 6;
 
     return Scaffold(
+      backgroundColor: isNight
+          ? const Color(0xFF0D1B2A)
+          : const Color(0xFFE6F3F5),
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // 1. 响应式背景图
-          Positioned.fill(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 1500),
-              child: Image.asset(
-                responsiveBgPath,
-                key: ValueKey(responsiveBgPath),
-                fit: BoxFit.cover,
-                width: screenWidth,
-                height: screenHeight,
-              ),
-            ),
-          ),
-
-          // 1.5 天气层：多云
-          Positioned.fill(child: FloatingClouds(isNight: isNight)),
-
-          // 2. 标题区
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: UserState().isDiarySheetOpen,
-                  builder: (context, isOpen, child) {
-                    return Text(
-                          '治愈岛',
-                          style: TextStyle(
-                            color: isNight
-                                ? Colors.white
-                                : const Color(0xFF5A3E28),
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            shadows: isNight
-                                ? [
-                                    Shadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                        )
-                        .animate(target: isOpen ? 0 : 1) // 打开时消失，关闭时出现
-                        .fade(duration: 400.ms)
-                        .moveY(
-                          begin: -10,
-                          end: 0,
-                          duration: 400.ms,
-                          curve: Curves.easeOutCubic,
-                        );
-                  },
-                ),
-              ),
-            ),
-          ),
-
-          // 3. 岛屿浮动区
-          AnimatedBuilder(
-            animation: _floatAnimation,
-            builder: (context, child) {
-              // 关键适配：iPad 的屏幕宽高比 (通常在 0.7 - 0.75) 比手机 (通常 < 0.5) 要大
-              // 使用更高的 Alignment 值来补偿 iPad 屏幕更“胖”导致的重心偏下感
-              final double aspectRatio = screenWidth / screenHeight;
-              final Alignment islandAlignment = aspectRatio > 0.6
-                  ? const Alignment(0, -0.16) // iPad 向上提一点
-                  : const Alignment(0, -0.4); // 手机保持原位
-
-              return Align(
-                alignment: islandAlignment,
-                child: Transform.translate(
-                  offset: Offset(0, _floatAnimation.value),
-                  child: child,
-                ),
-              );
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 600),
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(opacity: animation, child: child);
             },
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // 底部倒影光束
-                Positioned(
-                  bottom: isWide ? 100 : screenWidth * 0.08,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 1500),
-                    width: isWide ? 600 : screenWidth * 0.85,
-                    height: isWide ? 300 : screenWidth * 0.45,
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        colors: [
-                          _getIslandBottomLightColorForCurrentTime(),
-                          _getIslandBottomLightColorForCurrentTime()
-                              .withOpacity(0.0),
-                        ],
-                        stops: const [0.15, 1.0],
+            child: _currentNavIndex == 1
+                ? const RecordPage(key: ValueKey('RecordPage'))
+                : Stack(
+                    key: const ValueKey('HomeContent'),
+                    children: [
+                      // 1. 响应式背景图
+                      Positioned.fill(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 1500),
+                          child: Image.asset(
+                            responsiveBgPath,
+                            key: ValueKey(responsiveBgPath),
+                            fit: BoxFit.cover,
+                            width: screenWidth,
+                            height: screenHeight,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-                // 岛屿背光层
-                Transform.translate(
-                  offset: const Offset(0, 5.0),
-                  child: ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.4),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 1500),
-                      child: Builder(
-                        builder: (context) {
-                          final sw = MediaQuery.of(context).size.width;
-                          // 固定逻辑：在 iPad 上也按比例缩小，最大宽度限制在 500 左右
-                          final iw = sw <= 600 ? sw * 0.9 : 540.0;
-                          return Image.asset(
-                            _currentIslandPath,
-                            key: ValueKey('glow_$_currentIslandPath'),
-                            width: iw * 1.05,
-                            fit: BoxFit.contain,
-                            color: _getIslandGlowColorForCurrentTime(),
+
+                      // 1.5 天气层：多云
+                      Positioned.fill(child: FloatingClouds(isNight: isNight)),
+
+                      // 2. 标题区
+                      SafeArea(
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: ValueListenableBuilder<bool>(
+                              valueListenable: UserState().isDiarySheetOpen,
+                              builder: (context, isOpen, child) {
+                                return Text(
+                                      '治愈岛',
+                                      style: TextStyle(
+                                        color: isNight
+                                            ? Colors.white
+                                            : const Color(0xFF5A3E28),
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        shadows: isNight
+                                            ? [
+                                                Shadow(
+                                                  color: Colors.black
+                                                      .withOpacity(0.3),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ]
+                                            : null,
+                                      ),
+                                    )
+                                    .animate(
+                                      target: isOpen ? 0 : 1,
+                                    ) // 打开时消失，关闭时出现
+                                    .fade(duration: 400.ms)
+                                    .moveY(
+                                      begin: -10,
+                                      end: 0,
+                                      duration: 400.ms,
+                                      curve: Curves.easeOutCubic,
+                                    );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // 3. 岛屿浮动区
+                      AnimatedBuilder(
+                        animation: _floatAnimation,
+                        builder: (context, child) {
+                          final double aspectRatio = screenWidth / screenHeight;
+                          final Alignment islandAlignment = aspectRatio > 0.6
+                              ? const Alignment(0, -0.16) // iPad 向上提一点
+                              : const Alignment(0, -0.4); // 手机保持原位
+
+                          return Align(
+                            alignment: islandAlignment,
+                            child: Transform.translate(
+                              offset: Offset(0, _floatAnimation.value),
+                              child: child,
+                            ),
                           );
                         },
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // 底部倒影光束
+                            Positioned(
+                              bottom: isWide ? 100 : screenWidth * 0.08,
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 1500),
+                                width: isWide ? 600 : screenWidth * 0.85,
+                                height: isWide ? 300 : screenWidth * 0.45,
+                                decoration: BoxDecoration(
+                                  gradient: RadialGradient(
+                                    colors: [
+                                      _getIslandBottomLightColorForCurrentTime(),
+                                      _getIslandBottomLightColorForCurrentTime()
+                                          .withOpacity(0.0),
+                                    ],
+                                    stops: const [0.15, 1.0],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // 岛屿背光层
+                            Transform.translate(
+                              offset: const Offset(0, 5.0),
+                              child: ImageFiltered(
+                                imageFilter: ImageFilter.blur(
+                                  sigmaX: 5.0,
+                                  sigmaY: 5.4,
+                                ),
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 1500),
+                                  child: Builder(
+                                    builder: (context) {
+                                      final sw = MediaQuery.of(
+                                        context,
+                                      ).size.width;
+                                      final iw = sw <= 600 ? sw * 0.9 : 540.0;
+                                      return Image.asset(
+                                        _currentIslandPath,
+                                        key: ValueKey(
+                                          'glow_$_currentIslandPath',
+                                        ),
+                                        width: iw * 1.05,
+                                        fit: BoxFit.contain,
+                                        color:
+                                            _getIslandGlowColorForCurrentTime(),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // 岛屿主体层
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 1500),
+                              child: ShaderMask(
+                                key: ValueKey('top_$_currentIslandPath'),
+                                blendMode: BlendMode.srcATop,
+                                shaderCallback: (bounds) {
+                                  return RadialGradient(
+                                    center: const Alignment(0, 0.85),
+                                    radius: 0.6,
+                                    colors: [
+                                      _getIslandBottomRockLightColorForCurrentTime(),
+                                      Colors.transparent,
+                                    ],
+                                    stops: const [0.0, 1.0],
+                                  ).createShader(bounds);
+                                },
+                                child: Builder(
+                                  builder: (context) {
+                                    final sw = MediaQuery.of(
+                                      context,
+                                    ).size.width;
+                                    final iw = sw <= 600 ? sw * 0.9 : 540.0;
+                                    return Image.asset(
+                                      _currentIslandPath,
+                                      width: iw,
+                                      fit: BoxFit.contain,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-                // 岛屿主体层
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 1500),
-                  child: ShaderMask(
-                    key: ValueKey('top_$_currentIslandPath'),
-                    blendMode: BlendMode.srcATop,
-                    shaderCallback: (bounds) {
-                      return RadialGradient(
-                        center: const Alignment(0, 0.85),
-                        radius: 0.6,
-                        colors: [
-                          _getIslandBottomRockLightColorForCurrentTime(),
-                          Colors.transparent,
-                        ],
-                        stops: const [0.0, 1.0],
-                      ).createShader(bounds);
-                    },
-                    child: Builder(
-                      builder: (context) {
-                        final sw = MediaQuery.of(context).size.width;
-                        final iw = sw <= 600 ? sw * 0.9 : 540.0;
-                        return Image.asset(
-                          _currentIslandPath,
-                          width: iw,
-                          fit: BoxFit.contain,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
 
-          // 3.5 前景层：在岛屿前方飘过的云
-          Positioned.fill(
-            child: FloatingClouds(isNight: isNight, isForeground: true),
+                      // 3.5 前景层：在岛屿前方飘过的云
+                      Positioned.fill(
+                        child: FloatingClouds(
+                          isNight: isNight,
+                          isForeground: true,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
 
           // 4. 底部导航栏
@@ -303,11 +335,25 @@ class _HomePageState extends State<HomePage>
             child: BottomNavBar(
               currentIndex: _currentNavIndex,
               isNight: DateTime.now().hour >= 17 || DateTime.now().hour < 6,
-              onSaveSuccess: _showSuccessEffect,
+              onSaveSuccess: () {
+                _showSuccessEffect();
+                // 如果在记录页面，保存成功后会自动刷新（因为使用了 ValueListenableBuilder 监听 savedDiaries）
+              },
               onTap: (index) {
-                setState(() {
-                  _currentNavIndex = index;
-                });
+                if (index == 0 || index == 1) {
+                  setState(() {
+                    _currentNavIndex = index;
+                  });
+                } else {
+                  // 相册(3) 和 我(4) 目前作为 placeholder
+                  // 可以在这里提示“开发中”
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('功能开发中，敬请期待~'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                }
               },
             ),
           ),

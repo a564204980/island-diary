@@ -65,13 +65,9 @@ class _SlimeOnboardingState extends State<SlimeOnboarding> {
 
   void _handleGlobalTap() {
     if (_step == 2) {
-      // 最后一步：点背景只隐藏气泡+光幕，不触发完成（要求用户主动点精灵才能继续）
-      if (_showDialogue) {
-        setState(() {
-          _showDialogue = false;
-          _maskOpacity = 0.0; // 【新增】气泡和光幕同步淡出
-        });
-      }
+      // 最后一步：点背景不仅仅隐藏气泡和光幕，还要触发引导完成（释放拦截层）
+      // 调用 _nextStep 会触发延时后的 widget.onComplete
+      _nextStep();
       return;
     }
     // 其他步骤：推进打字机或进入下一句

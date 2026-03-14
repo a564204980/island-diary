@@ -94,13 +94,13 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
     }
   }
 
-  void onBlocksChanged() {
+  Future<void> onBlocksChanged() async {
     final content = _blocks
         .whereType<TextBlock>()
         .map((b) => b.controller.text)
         .join('\n');
 
-    UserState().saveDraft(
+    await UserState().saveDraft(
       moodIndex: widget.moodIndex,
       intensity: widget.intensity,
       content: content,
@@ -338,13 +338,8 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
     }
 
     try {
-      final blocksData = _blocks.map((b) => b.toMap()).toList();
-      await UserState().saveDraft(
-        moodIndex: widget.moodIndex,
-        intensity: widget.intensity,
-        content: fullText,
-        blocks: blocksData,
-      );
+      await onBlocksChanged(); // 确保草稿是最新的
+      await UserState().saveDiary();
 
       if (mounted) {
         Navigator.of(context).pop(true); // 返回 true 表示保存成功
