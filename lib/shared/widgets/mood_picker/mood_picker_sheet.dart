@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import 'config/mood_config.dart';
@@ -71,6 +72,7 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
     }
 
     if (bestIndex != null) {
+      HapticFeedback.lightImpact();
       setState(() {
         if (_selectedIndex == bestIndex) {
           _selectedIndex = null; // 再次点击取消高亮
@@ -142,7 +144,7 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
 
                                       // 2. 心情选项层 (居中)
                                       GestureDetector(
-                                        onTapUp: (details) {
+                                        onTapDown: (details) {
                                           _handleTap(
                                             details.localPosition,
                                             baseWheelSize,
@@ -227,21 +229,6 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
                                                 ),
                                       ),
 
-                                      // 4. 中心基准小白点
-                                      Container(
-                                        width: 10,
-                                        height: 10,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black26,
-                                              blurRadius: 4,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
                                     ],
                                   ),
                                 )

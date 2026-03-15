@@ -20,6 +20,20 @@ class UserState {
   static const _keyDraftMood = 'diary_draft_mood';
   static const _keyDraftIntensity = 'diary_draft_intensity';
   static const _keySavedDiaries = 'saved_diaries';
+  static const _keyThemeMode = 'theme_mode'; // 新增主题模式键
+
+  /// 主题模式枚举
+  /// auto: 跟随时间, light: 强制日间, dark: 强制夜间
+  final ValueNotifier<String> themeMode = ValueNotifier<String>('auto');
+
+  /// 统一的日夜判断逻辑
+  bool get isNight {
+    if (themeMode.value == 'light') return false;
+    if (themeMode.value == 'dark') return true;
+    // auto 模式：遵循原有的时间逻辑
+    final hour = DateTime.now().hour;
+    return hour >= 17 || hour < 6;
+  }
 
   /// 用户的姓名（游戏内称称呼）
   final ValueNotifier<String> userName = ValueNotifier<String>('');
@@ -163,6 +177,15 @@ class UserState {
     await prefs.setString(_keyLastVisit, now.toIso8601String());
   }
 
+  /// 设置主题模式
+  Future<void> setThemeMode(String mode) async {
+    if (['auto', 'light', 'dark'].contains(mode)) {
+      themeMode.value = mode;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyThemeMode, mode);
+    }
+  }
+
   /// 从本地存储中读取状态
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -175,6 +198,10 @@ class UserState {
 
     final finished = prefs.getBool(_keyOnboarding) ?? false;
     hasFinishedOnboarding.value = finished;
+
+    // 加载主题模式
+    final savedTheme = prefs.getString(_keyThemeMode) ?? 'auto';
+    themeMode.value = savedTheme;
 
     // 加载草稿
     final draftContent = prefs.getString(_keyDraftContent);

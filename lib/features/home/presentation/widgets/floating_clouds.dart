@@ -4,10 +4,13 @@ import 'dart:math' as math;
 class FloatingClouds extends StatelessWidget {
   final bool isNight;
   final bool isForeground;
+  final bool shouldAnimate;
+
   const FloatingClouds({
     super.key,
     required this.isNight,
     this.isForeground = false,
+    this.shouldAnimate = true,
   });
 
   @override
@@ -34,6 +37,7 @@ class FloatingClouds extends StatelessWidget {
             scale: config['scale'],
             duration: Duration(seconds: config['duration']),
             initialTop: config['initialTop'],
+            shouldAnimate: shouldAnimate,
             // 背景层由组件内部随机，不再使用固定索引
             forcedIndex: null,
           );
@@ -50,6 +54,7 @@ class _SingleCloud extends StatefulWidget {
   final Duration duration;
   final double initialTop;
   final int? forcedIndex;
+  final bool shouldAnimate;
 
   const _SingleCloud({
     required this.isNight,
@@ -58,6 +63,7 @@ class _SingleCloud extends StatefulWidget {
     required this.duration,
     required this.initialTop,
     this.forcedIndex,
+    this.shouldAnimate = true,
   });
 
   @override
@@ -92,7 +98,25 @@ class _SingleCloudState extends State<_SingleCloud>
     });
 
     // 随机起始点，防止所有云朵同步刷新
-    _controller.forward(from: _random.nextDouble());
+    if (widget.shouldAnimate) {
+      _controller.forward(from: _random.nextDouble());
+    } else {
+      _controller.value = _random.nextDouble();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _SingleCloud oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.shouldAnimate != oldWidget.shouldAnimate) {
+      if (widget.shouldAnimate) {
+        if (!_controller.isAnimating) {
+          _controller.forward();
+        }
+      } else {
+        _controller.stop();
+      }
+    }
   }
 
   Duration _getRandomDuration() {

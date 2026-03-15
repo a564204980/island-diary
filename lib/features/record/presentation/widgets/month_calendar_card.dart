@@ -1,26 +1,31 @@
 import 'dart:ui';
 import 'dart:io' as io;
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 /// 玻璃拟态月度日历卡片
 class MonthCalendarCard extends StatelessWidget {
   final int year;
   final int month;
   final List<DiaryEntry> monthDiaries;
+  final Duration? delay;
 
   const MonthCalendarCard({
     super.key,
     required this.year,
     required this.month,
     required this.monthDiaries,
+    this.delay,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool isNight = UserState().isNight;
     // 计算当月天数和起始周几
     final firstDay = DateTime(year, month, 1);
     final lastDay = DateTime(year, month + 1, 0);
@@ -28,71 +33,88 @@ class MonthCalendarCard extends StatelessWidget {
     final firstWeekday = firstDay.weekday; // 1:周一, ..., 7:周日
 
     // 统计数据
-    final int recordDays = monthDiaries
-        .map((e) => e.dateTime.day)
-        .toSet()
-        .length;
+    final int recordDays =
+        monthDiaries.map((e) => e.dateTime.day).toSet().length;
     final int totalWords = monthDiaries.fold(
       0,
       (sum, e) => sum + e.content.length,
     );
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    final Color colorBase = isNight ? const Color(0xFF1A2A5E) : Colors.white;
+    final Color vineGold = const Color(0xFFF8E8A0);
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    return RepaintBoundary( // 添加绘制边界，提升滚动性能并稳定模糊
+      child: Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 20,
+        vertical: 16,
+      ),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isNight ? vineGold.withOpacity(0.5) : Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
+            color: Colors.black.withOpacity(isNight ? 0.3 : 0.05),
+            blurRadius: 24,
             offset: const Offset(0, 10),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(20),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.15),
-                width: 0.8,
-              ),
-            ),
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
+            color: isNight ? colorBase.withOpacity(0.6) : Colors.white.withOpacity(0.6),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 标题栏
-                _buildHeader(),
+                _buildHeader(year, month, isNight, vineGold),
                 const SizedBox(height: 20),
-                // 星期表头
                 _buildWeekHeader(),
                 const SizedBox(height: 12),
-                // 日历网格
                 _buildCalendarGrid(daysInMonth, firstWeekday),
                 const SizedBox(height: 20),
-                // 底部统计
                 _buildFooter(recordDays, monthDiaries.length, totalWords),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-    );
+    ).animate(delay: delay ?? Duration.zero).scale(
+          begin: const Offset(0.92, 0.92),
+          end: const Offset(1, 1),
+          duration: 600.ms,
+          curve: Curves.easeOutQuint,
+        ).fadeIn(duration: 400.ms);
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(int year, int month, bool isNight, Color glowColor) {
     return Text(
       '$year年${month.toString().padLeft(2, '0')}月',
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 22,
         fontWeight: FontWeight.bold,
         color: Colors.white,
+        shadows: [
+          if (isNight)
+            Shadow(
+              color: glowColor.withOpacity(0.4),
+              blurRadius: 8,
+            ),
+          Shadow(
+            color: Colors.black.withOpacity(isNight ? 0.3 : 0.1),
+            offset: const Offset(0, 1),
+            blurRadius: 4,
+          ),
+        ],
       ),
     );
   }

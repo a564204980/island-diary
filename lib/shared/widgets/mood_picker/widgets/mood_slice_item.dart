@@ -109,49 +109,51 @@ class MoodSliceItem extends StatelessWidget {
                                 child: Stack(
                                   alignment: Alignment.bottomCenter,
                                   children: [
-                                    // 1. 发光层 (通过动画控制透明度，避免瞬间消失)
-                                    _buildGlowLayer(
-                                          child: Image.asset(
-                                            item.imagePath!,
-                                            width: item.width,
-                                            height: item.height,
-                                            fit:
-                                                (item.width != null ||
-                                                    item.height != null)
-                                                ? BoxFit.contain
-                                                : BoxFit.none,
-                                            alignment: Alignment.bottomCenter,
+                                    // 1. 发光层 (核心优化：仅在选中时渲染这些昂贵的滤镜图层)
+                                    if (isSelected) ...[
+                                      _buildGlowLayer(
+                                            child: Image.asset(
+                                              item.imagePath!,
+                                              width: item.width,
+                                              height: item.height,
+                                              fit:
+                                                  (item.width != null ||
+                                                      item.height != null)
+                                                  ? BoxFit.contain
+                                                  : BoxFit.none,
+                                              alignment: Alignment.bottomCenter,
+                                            ),
+                                            color: item.glowColor ?? Colors.white,
+                                            strokeWidth: 6.0,
+                                            blurRadius: 8.0,
+                                          )
+                                          .animate()
+                                          .fade(
+                                            duration: 300.ms,
+                                            curve: Curves.easeOut,
                                           ),
-                                          color: item.glowColor ?? Colors.white,
-                                          strokeWidth: 6.0,
-                                          blurRadius: 8.0,
-                                        )
-                                        .animate(target: isSelected ? 1 : 0)
-                                        .fade(
-                                          duration: 300.ms,
-                                          curve: Curves.easeOut,
-                                        ),
 
-                                    _buildGlowLayer(
-                                          child: Image.asset(
-                                            item.imagePath!,
-                                            width: item.width,
-                                            height: item.height,
-                                            fit:
-                                                (item.width != null ||
-                                                    item.height != null)
-                                                ? BoxFit.contain
-                                                : BoxFit.none,
-                                            alignment: Alignment.bottomCenter,
+                                      _buildGlowLayer(
+                                            child: Image.asset(
+                                              item.imagePath!,
+                                              width: item.width,
+                                              height: item.height,
+                                              fit:
+                                                  (item.width != null ||
+                                                      item.height != null)
+                                                  ? BoxFit.contain
+                                                  : BoxFit.none,
+                                              alignment: Alignment.bottomCenter,
+                                            ),
+                                            color: Colors.white,
+                                            strokeWidth: 6.0,
+                                          )
+                                          .animate()
+                                          .fade(
+                                            duration: 300.ms,
+                                            curve: Curves.easeOut,
                                           ),
-                                          color: Colors.white,
-                                          strokeWidth: 6.0,
-                                        )
-                                        .animate(target: isSelected ? 1 : 0)
-                                        .fade(
-                                          duration: 300.ms,
-                                          curve: Curves.easeOut,
-                                        ),
+                                    ],
 
                                     // 2. 原图
                                     Image.asset(
@@ -192,20 +194,19 @@ class MoodSliceItem extends StatelessWidget {
                         )
                         .animate(target: isSelected ? 1 : 0)
                         .scale(
-                          delay: isSelected ? 80.ms : 0.ms, // 收缩时不设延迟
-                          duration: isSelected ? 800.ms : 300.ms,
+                          delay: 0.ms, // 极致优化：移除延迟
+                          duration: isSelected ? 300.ms : 200.ms, // 压缩时长
                           curve: isSelected
-                              ? Curves.elasticOut
+                              ? Curves.easeOutBack // 更直接的曲线，减少震荡时间
                               : Curves.easeOutCubic,
                           begin: const Offset(1, 1),
-                          end: const Offset(1.15, 1.15), // 稍微减小选中时的缩放倍率，更紧凑
+                          end: const Offset(1.15, 1.15),
                         )
                         .animate(
-                          // 移除 controller.stop，通过 target 控制子动画
                           onPlay: (controller) =>
                               controller.repeat(reverse: true),
                         )
-                        // 图标 Idle: 极小幅度的 Y 轴浮动 (仅在选中时生效，通过 target 隔离)
+                        // 图标 Idle: 极小幅度的 Y 轴浮动 (仅在选中时生效)
                         .moveY(
                           begin: 0,
                           end: isSelected ? 2 : 0,
@@ -235,8 +236,8 @@ class MoodSliceItem extends StatelessWidget {
                         )
                         .animate(target: isSelected ? 1 : 0)
                         .scale(
-                          delay: isSelected ? 150.ms : 0.ms,
-                          duration: isSelected ? 400.ms : 250.ms,
+                          delay: 0.ms, // 极致优化：移除延迟
+                          duration: isSelected ? 250.ms : 200.ms, // 压缩时长
                           curve: isSelected
                               ? Curves.easeOutBack
                               : Curves.easeOut,
@@ -259,15 +260,15 @@ class MoodSliceItem extends StatelessWidget {
               .animate(target: isSelected ? 1 : 0)
               // 1. 全局平移：向外弹出
               .move(
-                duration: isSelected ? 500.ms : 300.ms,
+                duration: isSelected ? 250.ms : 200.ms, // 极速弹出
                 curve: isSelected ? Curves.easeOutBack : Curves.easeOutQuart,
                 begin: Offset.zero,
                 end: translationOffset,
               )
               // 2. 全局等分缩放
               .scale(
-                duration: isSelected ? 700.ms : 300.ms,
-                curve: isSelected ? Curves.elasticOut : Curves.easeOut,
+                duration: isSelected ? 300.ms : 200.ms, // 极速缩放
+                curve: isSelected ? Curves.easeOutCubic : Curves.easeOut, // 弃用 elasticOut
                 begin: const Offset(1, 1),
                 end: const Offset(1.05, 1.05),
                 alignment: Alignment.center,

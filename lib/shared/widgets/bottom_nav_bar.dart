@@ -143,11 +143,20 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 decoration: BoxDecoration(
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.18),
-                      blurRadius: 20,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 8),
+                      color: isNight
+                          ? Colors.black.withOpacity(0.18) // 还原夜间阴影
+                          : const Color(0xFF4A3423).withOpacity(0.15),
+                      blurRadius: isNight ? 20 : 24,
+                      spreadRadius: isNight ? 1 : -2,
+                      offset: Offset(0, isNight ? 8 : 10),
                     ),
+                    // 仅在日间增加微弱的金光外溢，呼应顶部
+                    if (!isNight)
+                      BoxShadow(
+                        color: const Color(0xFFFFF176).withOpacity(0.1),
+                        blurRadius: 15,
+                        spreadRadius: 1,
+                      ),
                   ],
                 ),
                 child: Stack(
@@ -166,20 +175,37 @@ class _BottomNavBarState extends State<BottomNavBar> {
                             Positioned.fill(
                               child: BackdropFilter(
                                 filter: ImageFilter.blur(
-                                  sigmaX: 15,
-                                  sigmaY: 15,
+                                  sigmaX: isNight ? 15 : 20, // 夜间还原为 15
+                                  sigmaY: isNight ? 15 : 20,
                                 ),
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: isNight
-                                        ? const Color(0xFF736675).withOpacity(
-                                            0.2,
-                                          ) // 回归灰紫色
-                                        : Colors.white.withOpacity(0.4),
+                                        ? const Color(0xFF736675).withOpacity(0.2) // 还原夜间灰紫色背景
+                                        : Colors.white.withOpacity(0.85),
                                   ),
                                 ),
                               ),
                             ),
+                            // 仅在日间增加金色顶部细描边
+                            if (!isNight)
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  height: 0.8,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        const Color(0xFFFFF176).withOpacity(0.0),
+                                        const Color(0xFFFFF176).withOpacity(0.6),
+                                        const Color(0xFFFFF176).withOpacity(0.0),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                             // 限制内容的宽度，防止图标在 500px 内仍然太散
                             Center(
                               child: Container(
@@ -629,30 +655,51 @@ class _NavItemState extends State<_NavItem> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-                  widget.assetPath,
-                  width: 40.0,
-                  height: 40.0,
-                  fit: BoxFit.contain,
-                )
-                .animate(target: isSelected ? 1 : 0)
-                .scale(
-                  begin: const Offset(0.8, 0.8),
-                  end: const Offset(1.0, 1.0),
-                  duration: 400.ms,
-                  curve: Curves.easeOutBack,
-                )
-                .custom(
-                  duration: 3000.ms,
-                  builder: (context, value, child) {
-                    if (!isSelected) return child;
-                    final sineValue = sin(value * 2 * pi) * 0.015;
-                    return Transform.scale(
-                      scale: 1.0 + sineValue,
-                      child: child,
-                    );
-                  },
-                ),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                // 选中的辉光背景 (仅限日间)
+                if (isSelected && !widget.isNight)
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFFE082).withOpacity(0.4),
+                          blurRadius: 15,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ).animate().fade(duration: 400.ms),
+                Image.asset(
+                      widget.assetPath,
+                      width: 40.0,
+                      height: 40.0,
+                      fit: BoxFit.contain,
+                    )
+                    .animate(target: isSelected ? 1 : 0)
+                    .scale(
+                      begin: const Offset(0.8, 0.8),
+                      end: const Offset(1.0, 1.0),
+                      duration: 400.ms,
+                      curve: Curves.easeOutBack,
+                    )
+                    .custom(
+                      duration: 3000.ms,
+                      builder: (context, value, child) {
+                        if (!isSelected) return child;
+                        final sineValue = sin(value * 2 * pi) * 0.015;
+                        return Transform.scale(
+                          scale: 1.0 + sineValue,
+                          child: child,
+                        );
+                      },
+                    ),
+              ],
+            ),
             const SizedBox(height: 2),
             Text(
               widget.label,
