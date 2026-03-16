@@ -18,6 +18,7 @@ class BottomNavBar extends StatefulWidget {
   final ValueChanged<int> onTap;
   final bool isNight;
   final VoidCallback? onSaveSuccess;
+  final bool forceHideDialogue; // [NEW] 是否强制隐藏精灵对话框
 
   const BottomNavBar({
     super.key,
@@ -25,6 +26,7 @@ class BottomNavBar extends StatefulWidget {
     required this.onTap,
     this.isNight = false,
     this.onSaveSuccess,
+    this.forceHideDialogue = false,
   });
 
   @override
@@ -144,18 +146,17 @@ class _BottomNavBarState extends State<BottomNavBar> {
                   boxShadow: [
                     BoxShadow(
                       color: isNight
-                          ? Colors.black.withOpacity(0.18) // 还原夜间阴影
-                          : const Color(0xFF4A3423).withOpacity(0.15),
-                      blurRadius: isNight ? 20 : 24,
-                      spreadRadius: isNight ? 1 : -2,
-                      offset: Offset(0, isNight ? 8 : 10),
+                          ? Colors.black.withOpacity(0.18)
+                          : const Color(0xFF1B3B5F).withOpacity(0.2), // 软化复合阴影
+                      blurRadius: isNight ? 20 : 40,
+                      spreadRadius: isNight ? 1 : 1,
+                      offset: Offset(0, isNight ? 8 : 12),
                     ),
-                    // 仅在日间增加微弱的金光外溢，呼应顶部
                     if (!isNight)
                       BoxShadow(
-                        color: const Color(0xFFFFF176).withOpacity(0.1),
-                        blurRadius: 15,
-                        spreadRadius: 1,
+                        color: const Color(0xFF80D8FF).withOpacity(0.12),
+                        blurRadius: 20,
+                        spreadRadius: -2,
                       ),
                   ],
                 ),
@@ -180,9 +181,19 @@ class _BottomNavBarState extends State<BottomNavBar> {
                                 ),
                                 child: Container(
                                   decoration: BoxDecoration(
+                                    gradient: isNight
+                                        ? null
+                                        : LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              const Color(0xFFB3E5FC).withOpacity(0.5), // 深湖蓝顶部
+                                              const Color(0xFFE1F5FE).withOpacity(0.3), // 浅水蓝底部
+                                            ],
+                                          ),
                                     color: isNight
-                                        ? const Color(0xFF736675).withOpacity(0.2) // 还原夜间灰紫色背景
-                                        : Colors.white.withOpacity(0.85),
+                                        ? const Color(0xFF736675).withOpacity(0.2)
+                                        : null,
                                   ),
                                 ),
                               ),
@@ -243,29 +254,33 @@ class _BottomNavBarState extends State<BottomNavBar> {
                         ),
                       ),
                     ),
-                    // 2. 渐变描边
-                    if (isNight)
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: CustomPaint(
-                            painter: _NavBarGradientPainter(
-                              clipper: const _NavBarClipper(
-                                notchRadius: notchRadius,
-                                barRadius: 38,
-                              ),
-                              strokeWidth: 2.5,
-                              gradient: const LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Color(0xFFEEBB3C), // 描边顶部换成金色
-                                  Color(0xFF1B2735), // 深海蓝
-                                ],
-                              ),
+                    // 2. 渐变描边 (由于白天也要惊艳，我们为白天也加上微弱的流金边框)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: CustomPaint(
+                          painter: _NavBarGradientPainter(
+                            clipper: const _NavBarClipper(
+                              notchRadius: notchRadius,
+                              barRadius: 38,
+                            ),
+                            strokeWidth: isNight ? 2.5 : 1.2, // 白天细一点，更精致
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: isNight 
+                                ? const [
+                                    Color(0xFFEEBB3C), // 描边顶部换成金色
+                                    Color(0xFF1B2735), // 深海蓝
+                                  ]
+                                : [
+                                    const Color(0xFFFFF9C4).withOpacity(0.8), // 白天淡金色顶部
+                                    const Color(0xFFB3E5FC).withOpacity(0.2), // 融入水色的底部
+                                  ],
                             ),
                           ),
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),
@@ -329,7 +344,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                               Positioned(
                                 bottom: 124,
                                 child: IgnorePointer(
-                                  ignoring: !showDialogue || isMoodPickerOpen,
+                                  ignoring: !showDialogue || isMoodPickerOpen || widget.forceHideDialogue,
                                   child:
                                       SpriteDialogue(
                                             text: slimeDialogue,
@@ -343,7 +358,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
                                           .animate(
                                             target:
                                                 (showDialogue &&
-                                                    !isMoodPickerOpen)
+                                                        !isMoodPickerOpen &&
+                                                        !widget.forceHideDialogue)
                                                 ? 1
                                                 : 0,
                                           )
