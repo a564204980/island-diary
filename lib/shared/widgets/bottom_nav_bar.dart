@@ -323,26 +323,29 @@ class _BottomNavBarState extends State<BottomNavBar> {
                           alignment: Alignment.bottomCenter,
                           clipBehavior: Clip.none,
                           children: [
-                            TickerMode(
-                              enabled: true,
-                              child: Positioned(
-                                bottom: SlimeButton.bottomOffset,
-                                child: SlimeButton(
-                                  key: _slimeKey,
-                                  isNight: isNight,
-                                  isGlowing: true,
-                                  assetPath: isIdle
-                                      ? 'assets/images/emoji/pedding.png'
-                                      : 'assets/images/emoji/weixiao.png',
-                                  frameCount: isIdle ? 1 : 9,
-                                  isPlaying: showDialogue && !isIdle,
-                                  onTap: () => _openMoodPicker(),
-                                ),
+                            Positioned(
+                              bottom: SlimeButton.bottomOffset,
+                              child: ValueListenableBuilder<bool>(
+                                valueListenable: UserState().isSlimeInBottomMenu,
+                                builder: (context, isInMenu, _) {
+                                  return SlimeButton(
+                                    key: _slimeKey,
+                                    isNight: isNight,
+                                    isGlowing: true,
+                                    showSlime: isInMenu, // 关键：背景常驻，只改变角色可见度
+                                    assetPath: isIdle
+                                        ? 'assets/images/emoji/pedding.png'
+                                        : 'assets/images/emoji/weixiao.png',
+                                    frameCount: isIdle ? 1 : 9,
+                                    isPlaying: showDialogue && !isIdle,
+                                    onTap: () => _openMoodPicker(),
+                                  );
+                                },
                               ),
                             ),
                             if (!_justFinishedOnboarding)
                               Positioned(
-                                bottom: 124,
+                                bottom: 124.0, // 气泡距离底部的距离
                                 child: IgnorePointer(
                                   ignoring: !showDialogue || isMoodPickerOpen || widget.forceHideDialogue,
                                   child:

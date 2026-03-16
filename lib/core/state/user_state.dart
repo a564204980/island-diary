@@ -53,6 +53,9 @@ class UserState {
   /// 记录当前日记信纸是否处于打开状态（用于标题显隐等联动动效）
   final ValueNotifier<bool> isDiarySheetOpen = ValueNotifier<bool>(false);
 
+  /// 记录小软是否在底部菜单中（记录页面小软跳出时设为 false）
+  final ValueNotifier<bool> isSlimeInBottomMenu = ValueNotifier<bool>(true);
+
   /// 上次访问时间
   DateTime? lastVisitTime;
 

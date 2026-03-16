@@ -18,6 +18,7 @@ class SlimeButton extends StatefulWidget {
   final Duration duration;
   final double spriteSize;
   final bool isPlaying;
+  final bool showSlime; // 【新增】控制角色显隐，而不影响底座
 
   const SlimeButton({
     super.key,
@@ -32,6 +33,7 @@ class SlimeButton extends StatefulWidget {
     this.duration = const Duration(milliseconds: 800),
     this.spriteSize = 42.0,
     this.isPlaying = true,
+    this.showSlime = true,
   });
 
   static const double centerButtonRadius = 32.0;
@@ -95,25 +97,29 @@ class _SlimeButtonState extends State<SlimeButton> {
                   ),
                 ),
                 child: Center(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 500),
-                    transitionBuilder:
-                        (Widget child, Animation<double> animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
-                    child: SpriteAnimation(
-                      key: ValueKey(widget.assetPath), // 核心：资源路径变化触发动画
-                      assetPath: widget.assetPath,
-                      frameCount: widget.frameCount,
-                      startFrame: widget.startFrame,
-                      endFrame: widget.endFrame,
-                      repeatCount: widget.repeatCount,
-                      duration: widget.duration,
-                      size: widget.spriteSize,
-                      isPlaying: widget.isPlaying,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 400),
+                    opacity: widget.showSlime ? 1.0 : 0.0,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 500),
+                      transitionBuilder:
+                          (Widget child, Animation<double> animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        );
+                      },
+                      child: SpriteAnimation(
+                        key: ValueKey(widget.assetPath), // 核心：资源路径变化触发动画
+                        assetPath: widget.assetPath,
+                        frameCount: widget.frameCount,
+                        startFrame: widget.startFrame,
+                        endFrame: widget.endFrame,
+                        repeatCount: widget.repeatCount,
+                        duration: widget.duration,
+                        size: widget.spriteSize,
+                        isPlaying: widget.isPlaying,
+                      ),
                     ),
                   ),
                 ),
