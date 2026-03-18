@@ -60,7 +60,7 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
               Text(
                 showCustom ? '自定义颜色' : widget.title,
                 style: const TextStyle(
-                  fontFamily: 'FZKai',
+                  fontFamily: 'LXGWWenKai',
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF8B5E3C),
@@ -191,7 +191,7 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
                           child: const Text(
                             '落地此色',
                             style: TextStyle(
-                              fontFamily: 'FZKai',
+                              fontFamily: 'LXGWWenKai',
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),

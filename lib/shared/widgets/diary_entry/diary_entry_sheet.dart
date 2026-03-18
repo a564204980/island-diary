@@ -146,7 +146,7 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                                         Text(
                                           fixedQuote,
                                           style: TextStyle(
-                                            fontFamily: 'FZKai',
+                                            fontFamily: 'LXGWWenKai',
                                             fontSize: 14,
                                             fontStyle: FontStyle.italic,
                                             color: const Color(

@@ -1,3 +1,4 @@
+import 'dart:io' as io;
 import 'package:flutter/material.dart';
 
 class DiaryUtils {
@@ -81,7 +82,7 @@ class DiaryUtils {
       '开心': ['眉开眼笑', '神采飞扬', '狂喜雀跃'],
     };
 
-    final int level = (intensity * 10).toInt();
+    final int level = intensity.toInt();
     final List<String>? options = moodPrefixes[label];
     if (options == null) return label;
     final int index = level <= 3 ? 0 : (level <= 7 ? 1 : 2);
@@ -95,4 +96,29 @@ class DiaryUtils {
     'flower': {'name': '治愈小花朵', 'path': 'assets/images/reward_flower.png'},
     'bird': {'name': '和平小白鸟', 'path': 'assets/images/reward_bird.png'},
   };
+
+  /// 智能图片加载器：自动识别 asset, network 或 file 路径 (适配移动端拍照与相册)
+  static Widget buildImage(
+    String path, {
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+    BorderRadius? borderRadius,
+  }) {
+    Widget image;
+    if (path.startsWith('http')) {
+      image = Image.network(path, width: width, height: height, fit: fit);
+    } else if (path.startsWith('/') || path.contains('cache/') || path.contains('files/')) {
+      // 移动端文件路径
+      image = Image.file(io.File(path), width: width, height: height, fit: fit);
+    } else {
+      // 默认作为资产路径
+      image = Image.asset(path, width: width, height: height, fit: fit);
+    }
+
+    if (borderRadius != null) {
+      return ClipRRect(borderRadius: borderRadius, child: image);
+    }
+    return image;
+  }
 }

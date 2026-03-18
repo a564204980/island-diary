@@ -41,7 +41,7 @@ class DiaryFontSizePickerSheet extends StatelessWidget {
           const Text(
             '设置文字大小',
             style: TextStyle(
-              fontFamily: 'FZKai',
+              fontFamily: 'LXGWWenKai',
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Color(0xFF8B5E3C),
@@ -108,7 +108,7 @@ class DiaryFontSizePickerSheet extends StatelessWidget {
               Text(
                 '${currentFontSize.toInt()}',
                 style: const TextStyle(
-                  fontFamily: 'FZKai',
+                  fontFamily: 'LXGWWenKai',
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF8B5E3C),

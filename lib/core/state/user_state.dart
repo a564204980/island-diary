@@ -21,6 +21,7 @@ class UserState {
   static const _keyDraftIntensity = 'diary_draft_intensity';
   static const _keySavedDiaries = 'saved_diaries';
   static const _keyThemeMode = 'theme_mode'; // 新增主题模式键
+  static const _keyRecordGuidance = 'has_seen_record_guidance'; // 记录页引导
 
   /// 主题模式枚举
   /// auto: 跟随时间, light: 强制日间, dark: 强制夜间
@@ -40,6 +41,9 @@ class UserState {
 
   /// 是否已完成新手引导
   final ValueNotifier<bool> hasFinishedOnboarding = ValueNotifier<bool>(false);
+
+  /// 是否已看过记录页引导
+  final ValueNotifier<bool> hasSeenRecordGuidance = ValueNotifier<bool>(false);
 
   /// 日记草稿暂存
   final ValueNotifier<DiaryDraft?> diaryDraft = ValueNotifier<DiaryDraft?>(
@@ -173,6 +177,13 @@ class UserState {
     await prefs.setBool(_keyOnboarding, true);
   }
 
+  /// 设置记录页引导完成状态
+  Future<void> completeRecordGuidance() async {
+    hasSeenRecordGuidance.value = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyRecordGuidance, true);
+  }
+
   /// 记录本次访问时间
   Future<void> recordVisit() async {
     final now = DateTime.now();
@@ -201,6 +212,9 @@ class UserState {
 
     final finished = prefs.getBool(_keyOnboarding) ?? false;
     hasFinishedOnboarding.value = finished;
+
+    final recordFinished = prefs.getBool(_keyRecordGuidance) ?? false;
+    hasSeenRecordGuidance.value = recordFinished;
 
     // 加载主题模式
     final savedTheme = prefs.getString(_keyThemeMode) ?? 'auto';
@@ -245,6 +259,7 @@ class UserState {
   void dispose() {
     userName.dispose();
     hasFinishedOnboarding.dispose();
+    hasSeenRecordGuidance.dispose();
     diaryDraft.dispose();
   }
 }

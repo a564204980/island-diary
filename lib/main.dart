@@ -27,7 +27,7 @@ class IslandDiaryApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F172A)),
         useMaterial3: true,
-        fontFamily: 'Microsoft YaHei',
+        fontFamily: 'LXGWWenKai',
       ),
       // 根据是否已有本地数据，动态决定首屏
       home: startWithHome ? const HomePage() : const OnboardingPage(),

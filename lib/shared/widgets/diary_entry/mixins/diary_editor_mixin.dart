@@ -130,8 +130,37 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
     TextSelection? savedSelection;
     if (activeBlock != null) savedSelection = activeBlock.controller.selection;
 
+    // 弹出选择菜单：相册 vs 相机
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded, color: Color(0xFFC4B69E)),
+              title: const Text('从相册选择', style: TextStyle(fontFamily: 'LXGWWenKai')),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFFC4B69E)),
+              title: const Text('拍照', style: TextStyle(fontFamily: 'LXGWWenKai')),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? image = await picker.pickImage(source: source);
 
     if (image != null) {
       final int insertIndex;
@@ -143,6 +172,7 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
         final text = controller.text;
         final int splitOffset = selection.isValid
             ? selection.extentOffset
+                .clamp(0, text.length)
             : text.length;
         final beforeText = text.substring(0, splitOffset);
         final afterText = text.substring(splitOffset);
@@ -424,7 +454,7 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
         text: TextSpan(
           text: text,
           style: const TextStyle(
-            fontFamily: 'FZKai',
+            fontFamily: 'LXGWWenKai',
             fontSize: 20,
             height: 1.6,
           ),

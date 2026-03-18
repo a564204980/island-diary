@@ -113,7 +113,7 @@ class _HandDrawnAudioPlayerState extends State<HandDrawnAudioPlayer> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontFamily: 'FZKai',
+                    fontFamily: 'LXGWWenKai',
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF8B5E3C),
