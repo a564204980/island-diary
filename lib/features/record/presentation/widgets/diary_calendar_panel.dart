@@ -14,7 +14,10 @@ class DiaryCalendarPanel extends StatefulWidget {
     super.key,
     required this.isNight,
     required this.onDateSelected,
+    this.onShareMonth,
   });
+
+  final Function(DateTime)? onShareMonth;
 
   @override
   State<DiaryCalendarPanel> createState() => _DiaryCalendarPanelState();
@@ -53,6 +56,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                   month: _getMonthForIndex(index),
                   isNight: widget.isNight,
                   onDateSelected: widget.onDateSelected,
+                  onShareMonth: widget.onShareMonth,
                 );
               },
             ),
@@ -98,7 +102,10 @@ class _MonthSection extends StatelessWidget {
     required this.month,
     required this.isNight,
     required this.onDateSelected,
+    this.onShareMonth,
   });
+
+  final Function(DateTime)? onShareMonth;
 
   @override
   Widget build(BuildContext context) {
@@ -129,14 +136,33 @@ class _MonthSection extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(bottom: 20, left: 4),
-            child: Text(
-              "${month.year}年${month.month}月",
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w900,
-                fontFamily: 'LXGWWenKai',
-                color: isNight ? Colors.white.withOpacity(0.9) : const Color(0xFF2C2E30),
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "${month.year}年${month.month}月",
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'LXGWWenKai',
+                    color: isNight ? Colors.white.withOpacity(0.9) : const Color(0xFF2C2E30),
+                  ),
+                ),
+                if (onShareMonth != null)
+                  GestureDetector(
+                    onTap: () => onShareMonth!(month),
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        Icons.ios_share_rounded,
+                        size: 19,
+                        color: isNight 
+                          ? Colors.white24 
+                          : Colors.black.withOpacity(0.12),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
 

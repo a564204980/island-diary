@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 /// 日记信纸容器组件，封装底图与边框效果
 class DiaryPaperCanvas extends StatelessWidget {
@@ -15,32 +16,38 @@ class DiaryPaperCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        boxShadow: [
-          BoxShadow(
-            color: (shadowColor ?? Colors.black).withOpacity(0.15),
-            offset: const Offset(0, 20),
-            blurRadius: 40,
-            spreadRadius: -10,
+    return ValueListenableBuilder<String>(
+      valueListenable: UserState().themeMode,
+      builder: (context, _, __) {
+        final bool isNight = UserState().isNight;
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            boxShadow: [
+              BoxShadow(
+                color: (shadowColor ?? Colors.black).withOpacity(0.15),
+                offset: const Offset(0, 20),
+                blurRadius: 40,
+                spreadRadius: -10,
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // 信纸底图
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/paper.png',
-              fit: BoxFit.fill,
-              gaplessPlayback: true,
-            ),
+          child: Stack(
+            children: [
+              // 信纸底图
+              Positioned.fill(
+                child: Image.asset(
+                  isNight ? 'assets/images/paper2.png' : 'assets/images/paper.png',
+                  fit: BoxFit.fill,
+                  gaplessPlayback: true,
+                ),
+              ),
+              // 内容层
+              Padding(padding: padding, child: child),
+            ],
           ),
-          // 内容层
-          Padding(padding: padding, child: child),
-        ],
-      ),
+        );
+      },
     );
   }
 }

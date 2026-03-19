@@ -1,5 +1,9 @@
 import 'dart:io' as io;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:path_provider/path_provider.dart';
 
 class DiaryUtils {
   /// 预设文本颜色
@@ -129,5 +133,38 @@ class DiaryUtils {
       return ClipRRect(borderRadius: borderRadius, child: image);
     }
     return image;
+  }
+
+  /// 将 RepaintBoundary 截取为图片并返回字节流
+  static Future<Uint8List?> captureWidgetToImage(GlobalKey key) async {
+    try {
+      final boundary =
+          key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+
+      // 增加像素比以获得更高清的分享图片
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      debugPrint("Capture failed: $e");
+      return null;
+    }
+  }
+
+  /// 将图片字节流保存为临时文件供分享/导出
+  static Future<String?> saveImageToTempFile(Uint8List bytes,
+      {String? fileName}) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final name = fileName ??
+          "diary_share_${DateTime.now().millisecondsSinceEpoch}.png";
+      final file = io.File('${tempDir.path}/$name');
+      await file.writeAsBytes(bytes);
+      return file.path;
+    } catch (e) {
+      debugPrint("Save temp file failed: $e");
+      return null;
+    }
   }
 }

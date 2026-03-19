@@ -27,7 +27,9 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
   bool _isImagePickerOpen = false;
   bool _isRecording = false;
   double _keyboardHeight = 280;
-  Color _currentTextColor = const Color(0xFF5D4037);
+  Color _currentTextColor = UserState().isNight
+      ? const Color(0xFFE0C097)
+      : const Color(0xFF5D4037);
   double _currentFontSize = 20.0;
   String _currentFontFamily = 'LXGWWenKai';
   String? _lastFocusedBlockId;
@@ -48,6 +50,12 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
   String get fixedQuote => _fixedQuote ?? '';
 
   void initializeEditor() {
+    if (_blocks.isEmpty) {
+      _currentTextColor = UserState().isNight
+          ? const Color(0xFFE0C097)
+          : const Color(0xFF5D4037);
+    }
+    
     loadDraft();
     final mood = kMoods[widget.moodIndex];
     _fixedQuote = DiaryUtils.getMoodQuote(mood.label);
@@ -55,9 +63,14 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
     // 初始化时同步第一个文本块的字体族
     final firstTextBlock = _blocks.whereType<TextBlock>().firstOrNull;
     if (firstTextBlock != null && firstTextBlock.controller is TopicTextEditingController) {
-      _currentFontFamily = (firstTextBlock.controller as TopicTextEditingController).baseFontFamily;
-      _currentFontSize = (firstTextBlock.controller as TopicTextEditingController).baseFontSize;
-      _currentTextColor = (firstTextBlock.controller as TopicTextEditingController).baseColor;
+      final tc = firstTextBlock.controller as TopicTextEditingController;
+      _currentFontFamily = tc.baseFontFamily;
+      _currentFontSize = tc.baseFontSize;
+      
+      // 只有当草稿内容非空时才从草稿同步颜色，否则使用主题默认色
+      if (tc.text.isNotEmpty) {
+        _currentTextColor = tc.baseColor;
+      }
     }
   }
 
@@ -101,7 +114,7 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
         onBlocksChanged();
       }
     } else {
-      final initialBlock = TextBlock('');
+      final initialBlock = TextBlock('', baseColor: _currentTextColor);
       _addFocusListener(initialBlock);
       _blocks.add(initialBlock);
       _blockKeys[initialBlock.id] = GlobalKey();
@@ -209,10 +222,10 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
       final originalIndex = _blocks.indexOf(activeBlock);
       controller.text = beforeText;
       insertIndex = originalIndex + 1;
-      newBottomBlock = TextBlock(afterText);
+      newBottomBlock = TextBlock(afterText, baseColor: _currentTextColor);
     } else {
       insertIndex = _blocks.length;
-      newBottomBlock = TextBlock('');
+      newBottomBlock = TextBlock('', baseColor: _currentTextColor);
     }
 
     final imageBlock = ImageBlock(image);
@@ -270,10 +283,10 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
         final originalIndex = _blocks.indexOf(activeBlock);
         controller.text = beforeText;
         insertIndex = originalIndex + 1;
-        newBottomBlock = TextBlock(afterText);
+        newBottomBlock = TextBlock(afterText, baseColor: _currentTextColor);
       } else {
         insertIndex = _blocks.length;
-        newBottomBlock = TextBlock('');
+        newBottomBlock = TextBlock('', baseColor: _currentTextColor);
       }
 
       final audioBlock = AudioBlock(file.path!, file.name);

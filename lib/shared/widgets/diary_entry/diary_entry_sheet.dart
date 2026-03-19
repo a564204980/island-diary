@@ -8,6 +8,7 @@ import 'components/diary_block_item.dart';
 import 'components/mood_tag.dart';
 import 'components/hand_drawn_divider.dart';
 import '../mood_picker/config/mood_config.dart';
+import 'package:island_diary/core/state/user_state.dart';
 import 'utils/diary_utils.dart';
 import 'mixins/diary_editor_mixin.dart';
 
@@ -129,43 +130,49 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                                           children: [
                                             Text(
                                               DiaryUtils.getFormattedTime(),
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 28,
                                                 fontWeight: FontWeight.bold,
-                                                color: Color(0xFF8B5E3C),
+                                                color: UserState().isNight
+                                                    ? const Color(0xFFE0C097)
+                                                    : const Color(0xFF8B5E3C),
                                               ),
                                             ),
                                             Text(
                                               DiaryUtils.getFormattedDate(),
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 16,
-                                                color: Color(0xFFA68A78),
+                                                color: UserState().isNight
+                                                    ? const Color(0xFFBDB2A7)
+                                                    : const Color(0xFFA68A78),
                                               ),
                                             ),
                                           ],
                                         ),
                                         const SizedBox(height: 8),
-                                        Text(
-                                          fixedQuote,
-                                          style: TextStyle(
-                                            fontFamily: 'LXGWWenKai',
-                                            fontSize: 14,
-                                            fontStyle: FontStyle.italic,
-                                            color: const Color(
-                                              0xFF8B5E3C,
-                                            ).withOpacity(0.7),
+                                          Text(
+                                            fixedQuote,
+                                            style: TextStyle(
+                                              fontFamily: 'LXGWWenKai',
+                                              fontSize: 14,
+                                              fontStyle: FontStyle.italic,
+                                              color: (UserState().isNight
+                                                      ? const Color(0xFFE0C097)
+                                                      : const Color(0xFF8B5E3C))
+                                                  .withOpacity(0.7),
+                                            ),
                                           ),
-                                        ),
                                         const SizedBox(height: 6),
-                                        CustomPaint(
-                                          size: const Size(double.infinity, 2),
-                                          painter: HandDrawnLinePainter(
-                                            color: const Color(
-                                              0xFF8B5E3C,
-                                            ).withOpacity(0.8),
-                                            strokeWidth: 1.5,
+                                          CustomPaint(
+                                            size: const Size(double.infinity, 2),
+                                            painter: HandDrawnLinePainter(
+                                              color: (UserState().isNight
+                                                      ? const Color(0xFFE0C097)
+                                                      : const Color(0xFF8B5E3C))
+                                                  .withOpacity(0.8),
+                                              strokeWidth: 1.5,
+                                            ),
                                           ),
-                                        ),
                                         const SizedBox(height: 8),
                                         Expanded(
                                           child: ListView.builder(
@@ -199,22 +206,26 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.of(context).pop(),
-                                              child: const Text(
+                                              child: Text(
                                                 '返回',
                                                 style: TextStyle(
                                                   fontSize: 18,
-                                                  color: Color(0xFFA68A78),
+                                                  color: UserState().isNight
+                                                      ? const Color(0xFFBDB2A7)
+                                                      : const Color(0xFFA68A78),
                                                 ),
                                               ),
                                             ),
                                             TextButton(
                                               onPressed: onSave,
-                                              child: const Text(
+                                              child: Text(
                                                 '保存',
                                                 style: TextStyle(
                                                   fontSize: 18,
                                                   fontWeight: FontWeight.bold,
-                                                  color: Color(0xFF8B5E3C),
+                                                  color: UserState().isNight
+                                                      ? const Color(0xFFE0C097)
+                                                      : const Color(0xFF8B5E3C),
                                                 ),
                                               ),
                                             ),

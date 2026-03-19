@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:io';
+import 'package:island_diary/core/state/user_state.dart';
 import '../models/diary_block.dart';
 import 'audio_player.dart';
 
@@ -44,17 +45,29 @@ class DiaryBlockItem extends StatelessWidget {
   }
 
   Widget _buildTextBlock(TextBlock block) {
+    final isNight = UserState().isNight;
     return TextField(
       controller: block.controller,
       focusNode: block.focusNode,
       maxLines: null,
       readOnly: isEmojiOpen,
       showCursor: true,
-      cursorColor: const Color(0xFF8B5E3C),
-      style: const TextStyle(fontSize: 20, height: 1.6),
+      cursorColor: isNight 
+          ? const Color(0xFFE0C097) 
+          : const Color(0xFF8B5E3C),
+      style: TextStyle(
+        fontSize: 20, 
+        height: 1.6,
+        color: isNight ? const Color(0xFFE0C097) : Colors.black,
+        fontFamily: 'LXGWWenKai',
+      ),
       decoration: InputDecoration(
         hintText: index == 0 ? '记录下这一刻的想法吧...' : '',
-        hintStyle: const TextStyle(color: Color(0xFFA68A78)),
+        hintStyle: TextStyle(
+          color: isNight 
+              ? const Color(0xFFBDB2A7).withOpacity(0.6) 
+              : const Color(0xFFA68A78)
+        ),
         border: InputBorder.none,
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 4),

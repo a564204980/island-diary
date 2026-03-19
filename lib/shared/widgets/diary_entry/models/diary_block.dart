@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 abstract class DiaryBlock {
   final String id;
@@ -124,7 +125,10 @@ class TopicTextEditingController extends TextEditingController {
     double? baseFontSize,
     String? baseFontFamily,
     List<TextAttribute>? attributes,
-  }) : baseColor = baseColor ?? const Color(0xFF5D4037),
+  }) : baseColor = baseColor ??
+            (UserState().isNight
+                ? const Color(0xFFE0C097)
+                : const Color(0xFF5D4037)),
        baseFontSize = baseFontSize ?? 20.0,
        baseFontFamily = baseFontFamily ?? 'LXGWWenKai',
        super(text: text) {
@@ -325,10 +329,11 @@ class TextBlock extends DiaryBlock {
   final TextEditingController controller;
   final FocusNode focusNode;
 
-  TextBlock(String text, {List<TextAttribute>? attributes, super.id})
+  TextBlock(String text, {List<TextAttribute>? attributes, Color? baseColor, super.id})
     : controller = TopicTextEditingController(
         text: text,
         attributes: attributes,
+        baseColor: baseColor,
       ),
       focusNode = FocusNode();
 

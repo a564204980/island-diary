@@ -69,6 +69,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     precacheImage(const AssetImage('assets/images/emoji/weixiao.png'), context);
     precacheImage(const AssetImage('assets/images/emoji/pedding.png'), context);
     precacheImage(const AssetImage('assets/images/paper.png'), context);
+    precacheImage(const AssetImage('assets/images/paper2.png'), context);
 
     for (var mood in kMoods) {
       if (mood.imagePath != null) precacheImage(AssetImage(mood.imagePath!), context);

@@ -1,16 +1,12 @@
 import 'dart:async';
-import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/sprite_animation.dart';
 import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
-import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
-import 'package:island_diary/features/record/domain/models/diary_entry.dart';
-import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
-import 'package:island_diary/features/record/presentation/widgets/diary_search_panel.dart';
-import 'package:island_diary/features/record/presentation/widgets/diary_calendar_panel.dart';
+import 'package:island_diary/features/record/presentation/widgets/book_glow_hint.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
 
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
@@ -28,11 +24,11 @@ class _RecordPageState extends State<RecordPage>
   late AnimationController _jumpController;
   late Animation<double> _jumpAnimation;
   bool _isJumpStarted = false;
-  bool _showDeskDialogue = false; // 【新增】控制桌面气泡显示
-  bool _showBookHint = false; // 【新增】控制书籍互动提示显示
+  bool _showDeskDialogue = false; // 控制桌面气泡显示
+  bool _showBookHint = false; // 控制书籍互动提示显示
   Timer? _jumpTimer;
-  Timer? _dialogueTimer; // 【新增】处理落地后的延迟
-  Timer? _bookHintTimer; // 【新增】控制书籍提示出现的时机
+  Timer? _dialogueTimer; // 处理落地后的延迟
+  Timer? _bookHintTimer; // 控制书籍提示出现的时机
 
   @override
   void initState() {
@@ -47,12 +43,10 @@ class _RecordPageState extends State<RecordPage>
 
     _jumpAnimation = CurvedAnimation(
       parent: _jumpController,
-      curve: Curves.linear, // 手动在各个阶段做缓动处理，外层用线性
+      curve: Curves.linear,
     );
 
-    // 如果还没看过引导，则启动引导序列
     if (!UserState().hasSeenRecordGuidance.value) {
-      // 落地监听：完成后等待 0.5s 弹出对话
       _jumpController.addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           _dialogueTimer = Timer(const Duration(milliseconds: 500), () {
@@ -60,7 +54,6 @@ class _RecordPageState extends State<RecordPage>
               setState(() => _showDeskDialogue = true);
             }
           });
-          // 对话框弹出 1.2 秒后，书籍提示淡入
           _bookHintTimer = Timer(const Duration(milliseconds: 1700), () {
             if (mounted) {
               setState(() => _showBookHint = true);
@@ -69,27 +62,22 @@ class _RecordPageState extends State<RecordPage>
         }
       });
 
-      // 延迟 1.5s 触发跳跃
       _jumpTimer = Timer(const Duration(milliseconds: 1500), () {
         if (mounted) {
           setState(() => _isJumpStarted = true);
           UserState().isSlimeInBottomMenu.value = false;
           _jumpController.forward();
-          // 触发跳跃即视为开始引导
           UserState().completeRecordGuidance();
         }
       });
     } else {
-      // 非初次进入，直接显示书籍提示，不触发小软引导
       _showBookHint = true;
     }
   }
 
   void _resolveImageSize() {
     const path = 'assets/images/indoor.png';
-    final ImageStream stream = const AssetImage(
-      path,
-    ).resolve(ImageConfiguration.empty);
+    final stream = const AssetImage(path).resolve(ImageConfiguration.empty);
     stream.addListener(
       ImageStreamListener((ImageInfo info, bool _) {
         if (mounted) {
@@ -119,7 +107,6 @@ class _RecordPageState extends State<RecordPage>
     _bookHintTimer?.cancel();
     _jumpController.dispose();
     _scrollController.dispose();
-    // 恢复小软状态
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UserState().isSlimeInBottomMenu.value = true;
     });
@@ -132,30 +119,26 @@ class _RecordPageState extends State<RecordPage>
       valueListenable: UserState().themeMode,
       builder: (context, themeMode, _) {
         final bool isNight = UserState().isNight;
-        final String bgPath = isNight
-            ? 'assets/images/indoor3.png'
-            : 'assets/images/indoor.png';
+        final String bgPath =
+            isNight ? 'assets/images/indoor3.png' : 'assets/images/indoor.png';
 
         const double bgScale = 1.0;
         const double leftBuffer = 175.0;
         const double rightBuffer = 325.0;
 
-        final Color bgColor = isNight
-            ? const Color(0xFF13131F)
-            : const Color(0xFFD2B48C);
+        final Color bgColor =
+            isNight ? const Color(0xFF13131F) : const Color(0xFFD2B48C);
 
         return Scaffold(
           backgroundColor: bgColor,
           body: Stack(
             children: [
-              // 1. 全景背景层
               Positioned.fill(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final double h = constraints.maxHeight * bgScale;
                     final double fullWidth = h * _aspectRatio;
 
-                    // 计算静态位置参数
                     final deskRelX = fullWidth * 0.456 - leftBuffer;
                     final deskY = h * 0.546;
                     final bedRelX = fullWidth * 0.56 - leftBuffer;
@@ -168,259 +151,14 @@ class _RecordPageState extends State<RecordPage>
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          // 背景图：唯一需要高频重绘的部分
-                          Positioned(
-                            left: -leftBuffer,
-                            top: 0,
-                            bottom: 0,
-                            child: ListenableBuilder(
-                              listenable: _scrollController,
-                              builder: (context, _) {
-                                double currentScale = 1.05;
-                                if (_scrollController.hasClients &&
-                                    _scrollController
-                                        .position.hasContentDimensions) {
-                                  final double maxScroll = _scrollController
-                                      .position.maxScrollExtent;
-                                  final double currentScroll = _scrollController
-                                      .offset
-                                      .clamp(0, maxScroll);
-                                  final double scrollRatio = maxScroll > 0
-                                      ? currentScroll / maxScroll
-                                      : 0.5;
-
-                                  if (scrollRatio < 0.2) {
-                                    currentScale =
-                                        1.05 + (0.13 * (scrollRatio / 0.2));
-                                  } else if (scrollRatio < 0.5) {
-                                    currentScale = 1.18 +
-                                        (0.07 * ((scrollRatio - 0.2) / 0.3));
-                                  } else if (scrollRatio < 0.8) {
-                                    currentScale = 1.25 -
-                                        (0.07 * ((scrollRatio - 0.5) / 0.3));
-                                  } else {
-                                    currentScale = 1.18 -
-                                        (0.13 * ((scrollRatio - 0.8) / 0.2));
-                                  }
-                                }
-                                return Transform.scale(
-                                  scale: currentScale,
-                                  alignment: Alignment.center,
-                                  child: Image.asset(
-                                    bgPath,
-                                    height: h,
-                                    fit: BoxFit.fitHeight,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-
-                          // --- 小软跳出的动画内容 ---
+                          _buildBackground(bgPath, h, leftBuffer),
                           if (_isJumpStarted)
-                            Positioned.fill(
-                              child: AnimatedBuilder(
-                                animation: _jumpAnimation,
-                                builder: (context, child) {
-                                  final rawT = _jumpAnimation.value;
-                                  final isWide = constraints.maxWidth > 600;
-                                  final menuBottomOffset = isWide ? 60.0 : 40.0;
-
-                                  // 关键：起点坐标需要监听滚动，但这部分代码在 AnimatedBuilder 中本就会随 Ticker 重绘
-                                  final startP = Offset(
-                                    _scrollController.offset +
-                                        constraints.maxWidth / 2,
-                                    h - menuBottomOffset - 24.0,
-                                  );
-                                  final bedP = Offset(bedRelX, bedY);
-                                  final deskP = Offset(deskRelX, deskY);
-
-                                  late double curX,
-                                      curY,
-                                      shadowY,
-                                      slimeScale;
-                                  double jumpArc = 0;
-
-                                  if (rawT < 0.25) {
-                                    final t = Curves.easeInOut
-                                        .transform(rawT / 0.25);
-                                    curX = startP.dx + (bedP.dx - startP.dx) * t;
-                                    shadowY =
-                                        startP.dy + (bedP.dy - startP.dy) * t;
-                                    jumpArc = sin(t * pi) * 140;
-                                    curY = shadowY - jumpArc;
-                                    slimeScale = 0.8 + (0.15 * t);
-                                  } else if (rawT < 0.75) {
-                                    curX = bedP.dx;
-                                    curY = bedP.dy;
-                                    shadowY = bedP.dy;
-                                    jumpArc = 0;
-                                    slimeScale = 0.95;
-                                  } else {
-                                    final t = Curves.easeInOut
-                                        .transform((rawT - 0.75) / 0.25);
-                                    curX = bedP.dx + (deskP.dx - bedP.dx) * t;
-                                    shadowY = bedP.dy + (deskP.dy - bedP.dy) * t;
-                                    jumpArc = sin(t * pi) * 80;
-                                    curY = shadowY - jumpArc;
-                                    slimeScale = 0.95 + (0.05 * t);
-                                  }
-
-                                  return Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Positioned(
-                                        left: curX - 16,
-                                        top: shadowY - 4,
-                                        child: Opacity(
-                                          opacity: (0.15 +
-                                                  0.15 * (jumpArc / 140))
-                                              .clamp(0, 0.3),
-                                          child: Container(
-                                            width: 32,
-                                            height: 8,
-                                            decoration: const BoxDecoration(
-                                              color: Colors.black,
-                                              borderRadius: BorderRadius.all(
-                                                Radius.elliptical(16, 4),
-                                              ),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black,
-                                                  blurRadius: 8,
-                                                  spreadRadius: 2,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        left: curX - 21,
-                                        top: curY - 42,
-                                        child: Transform.scale(
-                                          scale: slimeScale,
-                                          child: const SpriteAnimation(
-                                            assetPath:
-                                                'assets/images/emoji/weixiao.png',
-                                            frameCount: 9,
-                                            duration: Duration(
-                                              milliseconds: 800,
-                                            ),
-                                            size: 42.0,
-                                            isPlaying: true,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ),
-
-                          // 书籍提示与对话
+                            _buildSlimeJumpAnimation(
+                                h, bedRelX, bedY, deskRelX, deskY, constraints),
                           if (_showBookHint)
-                            Positioned(
-                              left: deskRelX - 2,
-                              top: deskY - 110,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(14),
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(
-                                        sigmaX: 10,
-                                        sigmaY: 10,
-                                      ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.4),
-                                          borderRadius:
-                                              BorderRadius.circular(14),
-                                          border: Border.all(
-                                            color:
-                                                Colors.white.withOpacity(0.2),
-                                            width: 0.5,
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          "旧日回忆",
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF5D4037),
-                                            fontFamily: 'LXGWWenKai',
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                      .animate(
-                                        onPlay: (controller) =>
-                                            controller.repeat(reverse: true),
-                                      )
-                                      .moveY(
-                                        begin: 0,
-                                        end: -4,
-                                        duration: 1.5.seconds,
-                                        curve: Curves.easeInOut,
-                                      ),
-                                  const SizedBox(height: 4),
-                                  _BookGlowHint(
-                                    onTap: () {
-                                      if (mounted) {
-                                        setState(() {
-                                          _showDeskDialogue = false;
-                                          _showBookHint = false;
-                                          _isJumpStarted = false;
-                                        });
-                                        UserState()
-                                            .isSlimeInBottomMenu
-                                            .value = true;
-                                        _openHistoryTimeline().then((_) {
-                                          if (mounted) {
-                                            setState(() => _showBookHint = true);
-                                          }
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ],
-                              )
-                                  .animate()
-                                  .fadeIn(duration: 800.ms)
-                                  .scale(
-                                    begin: const Offset(0.5, 0.5),
-                                    duration: 600.ms,
-                                    curve: Curves.easeOutBack,
-                                  ),
-                            ),
+                            _buildBookHint(deskRelX, deskY),
                           if (_showDeskDialogue)
-                            Positioned(
-                              left: deskRelX - 108,
-                              top: deskY - 130,
-                              child: SpriteDialogue(
-                                text: "点点旁边的书，看看我为你准备了什么",
-                                useTypewriter: true,
-                                onNext: () {
-                                  setState(() => _showDeskDialogue = false);
-                                },
-                              )
-                                  .animate()
-                                  .fade(duration: 400.ms)
-                                  .scale(
-                                    begin: const Offset(0.8, 0.8),
-                                    duration: 400.ms,
-                                    curve: Curves.easeOutBack,
-                                  ),
-                            ),
-
-                          // 占位撑开滚动范围
+                            _buildDeskDialogue(deskRelX, deskY),
                           SizedBox(
                             width: fullWidth - leftBuffer - rightBuffer,
                             height: h,
@@ -435,6 +173,182 @@ class _RecordPageState extends State<RecordPage>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildBackground(String bgPath, double h, double leftBuffer) {
+    return Positioned(
+      left: -leftBuffer,
+      top: 0,
+      bottom: 0,
+      child: _ParallaxBackground(
+        bgPath: bgPath,
+        h: h,
+        scrollController: _scrollController,
+      ),
+    );
+  }
+
+  Widget _buildSlimeJumpAnimation(double h, double bedRelX, double bedY,
+      double deskRelX, double deskY, BoxConstraints constraints) {
+    return Positioned.fill(
+      child: AnimatedBuilder(
+        animation: _jumpAnimation,
+        builder: (context, child) {
+          final rawT = _jumpAnimation.value;
+          final isWide = constraints.maxWidth > 600;
+          final menuBottomOffset = isWide ? 60.0 : 40.0;
+
+          final startP = Offset(
+            _scrollController.offset + constraints.maxWidth / 2,
+            h - menuBottomOffset - 24.0,
+          );
+          final bedP = Offset(bedRelX, bedY);
+          final deskP = Offset(deskRelX, deskY);
+
+          late double curX, curY, shadowY, slimeScale;
+          double jumpArc = 0;
+
+          if (rawT < 0.25) {
+            final t = Curves.easeInOut.transform(rawT / 0.25);
+            curX = startP.dx + (bedP.dx - startP.dx) * t;
+            shadowY = startP.dy + (bedP.dy - startP.dy) * t;
+            jumpArc = (rawT < 0.25) ? (4 * (rawT / 0.25) * (1 - rawT / 0.25) * 140) : 0;
+            curY = shadowY - jumpArc;
+            slimeScale = 0.8 + (0.15 * t);
+          } else if (rawT < 0.75) {
+            curX = bedP.dx;
+            curY = bedP.dy;
+            shadowY = bedP.dy;
+            jumpArc = 0;
+            slimeScale = 0.95;
+          } else {
+            final t = Curves.easeInOut.transform((rawT - 0.75) / 0.25);
+            curX = bedP.dx + (deskP.dx - bedP.dx) * t;
+            shadowY = bedP.dy + (deskP.dy - bedP.dy) * t;
+            jumpArc = (4 * t * (1 - t) * 80);
+            curY = shadowY - jumpArc;
+            slimeScale = 0.95 + (0.05 * t);
+          }
+
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: curX - 16,
+                top: shadowY - 4,
+                child: Opacity(
+                  opacity: (0.15 + 0.15 * (jumpArc / 140)).clamp(0, 0.3),
+                  child: Container(
+                    width: 32,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.all(Radius.elliptical(16, 4)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black, blurRadius: 8, spreadRadius: 2),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: curX - 21,
+                top: curY - 42,
+                child: Transform.scale(
+                  scale: slimeScale,
+                  child: const SpriteAnimation(
+                    assetPath: 'assets/images/emoji/weixiao.png',
+                    frameCount: 9,
+                    duration: Duration(milliseconds: 800),
+                    size: 42.0,
+                    isPlaying: true,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBookHint(double deskRelX, double deskY) {
+    return Positioned(
+      left: deskRelX - 2,
+      top: deskY - 110,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildHintLabel(),
+          const SizedBox(height: 4),
+          BookGlowHint(
+            onTap: () async {
+              if (mounted) {
+                setState(() {
+                  _showDeskDialogue = false;
+                  _showBookHint = false;
+                  _isJumpStarted = false;
+                });
+                UserState().isSlimeInBottomMenu.value = true;
+                await _openHistoryTimeline();
+                if (mounted) setState(() => _showBookHint = true);
+              }
+            },
+          ),
+        ],
+      ).animate().fadeIn(duration: 800.ms).scale(
+            begin: const Offset(0.5, 0.5),
+            duration: 600.ms,
+            curve: Curves.easeOutBack,
+          ),
+    );
+  }
+
+  Widget _buildHintLabel() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.4),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.5),
+          ),
+          child: const Text(
+            "旧日回忆",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF5D4037),
+              fontFamily: 'LXGWWenKai',
+            ),
+          ),
+        ),
+      ),
+    ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(
+          begin: 0,
+          end: -4,
+          duration: 1.5.seconds,
+          curve: Curves.easeInOut,
+        );
+  }
+
+  Widget _buildDeskDialogue(double deskRelX, double deskY) {
+    return Positioned(
+      left: deskRelX - 108,
+      top: deskY - 130,
+      child: SpriteDialogue(
+        text: "点点旁边的书，看看我为你准备了什么",
+        useTypewriter: true,
+        onNext: () => setState(() => _showDeskDialogue = false),
+      ).animate().fade(duration: 400.ms).scale(
+            begin: const Offset(0.8, 0.8),
+            duration: 400.ms,
+            curve: Curves.easeOutBack,
+          ),
     );
   }
 
@@ -455,882 +369,45 @@ class _RecordPageState extends State<RecordPage>
   }
 }
 
-/// 书籍上的呼吸光晕组件
-class _BookGlowHint extends StatefulWidget {
-  final VoidCallback onTap;
-  const _BookGlowHint({required this.onTap});
+class _ParallaxBackground extends StatelessWidget {
+  final String bgPath;
+  final double h;
+  final ScrollController scrollController;
 
-  @override
-  State<_BookGlowHint> createState() => _BookGlowHintState();
-}
-
-class _BookGlowHintState extends State<_BookGlowHint>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _opacityAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
-
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.25,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-    _opacityAnimation = Tween<double>(
-      begin: 0.2,
-      end: 0.7,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        // 通过扩充透明容器的尺寸，在不改变视觉的情况下增加点击判定范围
-        width: 80,
-        height: 80,
-        alignment: Alignment.center,
-        color: Colors.transparent,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                // 扩散的光晕
-                Transform.scale(
-                  scale: _scaleAnimation.value,
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFFECB3).withOpacity(
-                            _opacityAnimation.value,
-                          ),
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // 中心的引导圆点
-                Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.5),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-/// 时间轴历史记录全屏覆盖层
-class DiaryHistoryOverlay extends StatefulWidget {
-  final VoidCallback onClose;
-  const DiaryHistoryOverlay({super.key, required this.onClose});
-
-  @override
-  State<DiaryHistoryOverlay> createState() => _DiaryHistoryOverlayState();
-}
-
-class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
-  DateTime? _selectedDate; // 改为可选，null 表示显示全部
-  String _searchQuery = "";
-  int? _filterMoodIndex;
-  bool _isCalendarView = false; // 是否显示日历格网视图
-
-  @override
-  void initState() {
-    super.initState();
-    // 默认显示全部记录，或者选中今天
-    _selectedDate = null; 
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isNight = UserState().isNight;
-    
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // 1. 拟物化纸张底层 (动态昼夜色值)
-          Positioned.fill(
-            child: Container(
-              color: isNight ? const Color(0xFF1A1C1E) : const Color(0xFFFDF9F0),
-            ),
-          ),
-          // 2. 纸张纹理绘制 (横格线与书脊阴影)
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _PaperBackgroundPainter(isNight: isNight),
-            ),
-          ),
-          // 3. 增强通透感的毛玻璃
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: widget.onClose,
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: Container(
-                  color: isNight 
-                    ? Colors.black.withOpacity(0.2) 
-                    : Colors.white.withOpacity(0.3),
-                ),
-              ),
-            ),
-          ),
-
-          // 内容区域
-          Positioned.fill(
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                children: [
-                  // 顶部周历选择器 (仅在时间轴模式显示)
-                  if (!_isCalendarView)
-                    _HorizontalWeekCalendar(
-                      selectedDate: _selectedDate,
-                      isNight: isNight,
-                      onDateSelected: (date) {
-                        setState(() {
-                          _selectedDate = date;
-                        });
-                      },
-                    )
-                  else
-                    const SizedBox(height: 16),
-                  
-                  // 历史列表
-                  Expanded(
-                    child: ValueListenableBuilder<List<DiaryEntry>>(
-                      valueListenable: UserState().savedDiaries,
-                      builder: (context, diaries, _) {
-                        // 如果是日历视图模式，直接返回日历面板
-                        if (_isCalendarView) {
-                          return DiaryCalendarPanel(
-                            isNight: isNight,
-                            onDateSelected: (date) {
-                              setState(() {
-                                _selectedDate = date;
-                                _isCalendarView = false;
-                              });
-                            },
-                          );
-                        }
-
-                        // 按日期及搜索条件过滤
-                        final filteredByDate = _selectedDate == null 
-                            ? diaries 
-                            : diaries.where((d) => 
-                                d.dateTime.year == _selectedDate!.year && 
-                                d.dateTime.month == _selectedDate!.month && 
-                                d.dateTime.day == _selectedDate!.day
-                              ).toList();
-                        
-                        // 搜索过滤
-                        final filtered = filteredByDate.where((d) {
-                          final matchesSearch = _searchQuery.isEmpty || d.content.contains(_searchQuery);
-                          final matchesMood = _filterMoodIndex == null || d.moodIndex == _filterMoodIndex;
-                          return matchesSearch && matchesMood;
-                        }).toList();
-
-                        return AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: (filtered.isEmpty) 
-                              ? Center(
-                                  key: const ValueKey('empty'),
-                                  child: Text(
-                                    _searchQuery.isEmpty ? "还没有心情记录呢..." : "没找到相关记录哦~",
-                                    style: TextStyle(
-                                      color: isNight ? Colors.white30 : Colors.black.withOpacity(0.3),
-                                      fontFamily: 'LXGWWenKai',
-                                    ),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  padding: const EdgeInsets.only(left: 16, right: 16, top: 0, bottom: 100),
-                                  itemCount: filtered.length,
-                                  itemBuilder: (context, index) {
-                                      return _DiaryHistoryCard(
-                                        entry: filtered[index],
-                                        index: index,
-                                        isFilteredMode: true,
-                                        isNight: isNight,
-                                        showDate: _selectedDate == null,
-                                      );
-                                  },
-                                ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          // 4. 底部工具栏
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 30,
-            child: Center(
-              child: Container(
-                height: 54,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(
-                  color: isNight ? Color(0xFF2C2E30).withOpacity(0.85) : Colors.white.withOpacity(0.85),
-                  borderRadius: BorderRadius.circular(27),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isNight ? 0.45 : 0.12),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildToolBtn(Icons.search_rounded, () {
-                      showModalBottomSheet(
-                        context: context,
-                        backgroundColor: Colors.transparent,
-                        isScrollControlled: true,
-                        builder: (context) => DiarySearchPanel(
-                          isNight: isNight,
-                          onSearch: (query, moodIdx) {
-                            setState(() {
-                              _searchQuery = query;
-                              _filterMoodIndex = moodIdx;
-                            });
-                          },
-                          onClear: () {
-                            setState(() {
-                              _searchQuery = "";
-                              _filterMoodIndex = null;
-                            });
-                          },
-                        ),
-                      );
-                    }, isNight: isNight),
-                    const SizedBox(width: 40),
-                    GestureDetector(
-                      onTap: widget.onClose,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Icon(
-                          Icons.close_rounded,
-                          size: 28,
-                          color: isNight ? Colors.white70 : Colors.black87,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 40),
-                    _buildToolBtn(
-                      _isCalendarView ? Icons.format_list_bulleted_rounded : Icons.calendar_month_rounded, 
-                      () {
-                        setState(() {
-                          _isCalendarView = !_isCalendarView;
-                        });
-                      }, 
-                      isNight: isNight,
-                      isActive: _isCalendarView,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.9, 0.9)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToolBtn(IconData icon, VoidCallback onTap, {bool isNight = false, bool isActive = false}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Icon(
-          icon,
-          size: 24,
-          color: isActive 
-              ? const Color(0xFFD4A373) 
-              : (isNight ? Colors.white54 : Colors.black.withOpacity(0.4)),
-        ),
-      ),
-    );
-  }
-}
-
-/// 拟物化纸张画家：绘制横格线与书脊阴影
-class _PaperBackgroundPainter extends CustomPainter {
-  final bool isNight;
-  _PaperBackgroundPainter({this.isNight = false});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = isNight 
-        ? Colors.white.withOpacity(0.05) 
-        : Colors.black.withOpacity(0.04)
-      ..strokeWidth = 1.0;
-
-    // 绘制水平横线 (模拟格线本)
-    const double lineSpacing = 28.0;
-    for (double y = 100; y < size.height; y += lineSpacing) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-
-    // 绘制中心书脊阴影 (拟物感核心)
-    final spinePaint = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          isNight ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.08),
-          isNight ? Colors.black.withOpacity(0.1) : Colors.black.withOpacity(0.02),
-          Colors.transparent,
-          isNight ? Colors.black.withOpacity(0.1) : Colors.black.withOpacity(0.02),
-          isNight ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.08),
-        ],
-        stops: const [0.0, 0.45, 0.5, 0.55, 1.0],
-      ).createShader(Rect.fromLTWH(70, 0, 50, size.height));
-
-    // 书脊区域 (大致位于时间轴正下方)
-    canvas.drawRect(Rect.fromLTWH(75, 0, 40, size.height), spinePaint);
-
-    // 绘制左侧红色垂直参考线 (怀旧感)
-    final redLinePaint = Paint()
-      ..color = isNight 
-        ? const Color(0xFF4A2525).withOpacity(0.3) 
-        : Colors.red.withOpacity(0.08)
-      ..strokeWidth = 1.5;
-    canvas.drawLine(const Offset(68, 0), Offset(68, size.height), redLinePaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-/// 水平周历组件 (参考最新图)
-class _HorizontalWeekCalendar extends StatelessWidget {
-  final DateTime? selectedDate;
-  final Function(DateTime?) onDateSelected;
-  final bool isNight;
-
-  const _HorizontalWeekCalendar({
-    required this.selectedDate,
-    required this.onDateSelected,
-    required this.isNight,
+  const _ParallaxBackground({
+    required this.bgPath,
+    required this.h,
+    required this.scrollController,
   });
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    // 动态生成本月 1 号到今天的日期列表
-    final firstDayOfMonth = DateTime(now.year, now.month, 1);
-    final daysInMonthSoFar = now.difference(firstDayOfMonth).inDays + 1;
-    final weekDates = List.generate(
-      daysInMonthSoFar, 
-      (i) => firstDayOfMonth.add(Duration(days: i))
-    );
-    final weekDays = ["日", "一", "二", "三", "四", "五", "六"];
+    return ListenableBuilder(
+      listenable: scrollController,
+      builder: (context, _) {
+        double currentScale = 1.05;
+        if (scrollController.hasClients &&
+            scrollController.position.hasContentDimensions) {
+          final double maxScroll = scrollController.position.maxScrollExtent;
+          final double currentScroll = scrollController.offset.clamp(0, maxScroll);
+          final double scrollRatio = maxScroll > 0 ? currentScroll / maxScroll : 0.5;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        children: [
-          // 1. 固定在左侧的“全部”按钮
-          Padding(
-            padding: const EdgeInsets.only(left: 20, right: 12),
-            child: GestureDetector(
-              onTap: () => onDateSelected(null),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "全部",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isNight ? Colors.white30 : Colors.black.withOpacity(0.25),
-                      fontFamily: 'LXGWWenKai',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: selectedDate == null 
-                          ? const Color(0xFFD4A373) 
-                          : Colors.transparent,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: selectedDate == null 
-                            ? Colors.transparent 
-                            : (isNight ? Colors.white10 : Colors.black.withOpacity(0.05)),
-                      ),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.all_inclusive,
-                        size: 20,
-                        color: selectedDate == null ? Colors.white : (isNight ? Colors.white30 : Colors.black38),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          // 垂直分割线
-          Container(
-            width: 1,
-            height: 30,
-            color: isNight ? Colors.white10 : Colors.black.withOpacity(0.05),
-          ),
-
-          // 2. 可滚动的日期列表
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              // 自动滚动到最右侧（今天）
-              controller: ScrollController(initialScrollOffset: 1000.0), 
-              child: Row(
-                children: weekDates.map((date) {
-                  final isToday = date.day == now.day && date.month == now.month && date.year == now.year;
-                  final isSelected = selectedDate != null && 
-                                    date.day == selectedDate!.day && 
-                                    date.month == selectedDate!.month && 
-                                    date.year == selectedDate!.year;
-                  final dayName = weekDays[date.weekday % 7];
-
-                  return GestureDetector(
-                    onTap: () => onDateSelected(date),
-                    child: Container(
-                      width: 45, // 固定宽度确保对齐
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 星期几提示
-                          Text(
-                            dayName,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                              color: isToday 
-                                ? const Color(0xFFD4A373).withOpacity(0.8)
-                                : (isNight ? Colors.white30 : Colors.black.withOpacity(0.25)),
-                              fontFamily: 'LXGWWenKai',
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // 日期圆圈
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: isSelected 
-                                  ? const Color(0xFFD4A373) 
-                                  : Colors.transparent,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    isToday ? "今" : date.day.toString(),
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                      color: isSelected ? Colors.white : (isNight ? Colors.white70 : Colors.black87),
-                                      fontFamily: 'LXGWWenKai',
-                                    ),
-                                  ),
-                                  if (isToday && !isSelected)
-                                    Container(
-                                      margin: const EdgeInsets.only(top: 2),
-                                      width: 3,
-                                      height: 3,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFD4A373),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 每一份日记卡片
-class _DiaryHistoryCard extends StatefulWidget {
-  final DiaryEntry entry;
-  final int index;
-  final bool isFilteredMode;
-  final bool isNight;
-  final bool showDate;
-
-  const _DiaryHistoryCard({
-    required this.entry,
-    required this.index,
-    this.isFilteredMode = false,
-    this.isNight = false,
-    this.showDate = false,
-  });
-
-  @override
-  State<_DiaryHistoryCard> createState() => _DiaryHistoryCardState();
-}
-
-class _DiaryHistoryCardState extends State<_DiaryHistoryCard> {
-  bool _isExpanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final dateStr = "${widget.entry.dateTime.month}/${widget.entry.dateTime.day}";
-    final timeStr =
-        "${widget.entry.dateTime.hour.toString().padLeft(2, '0')}:${widget.entry.dateTime.minute.toString().padLeft(2, '0')}";
-    final timelineLabel = widget.showDate ? "$dateStr\n$timeStr" : timeStr;
-
-    final textStyle = TextStyle(
-      fontSize: 15.5,
-      color: widget.isNight ? Colors.white70 : Colors.black.withOpacity(0.75),
-      height: 1.6,
-      fontFamily: 'LXGWWenKai',
-    );
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. 左侧：时刻 (字号加大)
-            Container(
-              width: 60,
-              padding: const EdgeInsets.only(top: 14),
-              alignment: Alignment.topRight,
-              child: Text(
-                timelineLabel,
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                  fontSize: widget.showDate ? 13 : 15, // 日期模式下字号稍微缩小一点以适应对齐
-                  color: widget.isNight ? Colors.white30 : Colors.black.withOpacity(0.35),
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            // 2. 中间：书脊装订轴 (改为拟物化感)
-            SizedBox(
-              width: 24,
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  // 实心装订点 (模拟缝线或小扣子)
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: widget.isNight ? const Color(0xFF2C2E30) : const Color(0xFFC4B69E), // 古典铜金色调
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(widget.isNight ? 0.3 : 0.1),
-                          blurRadius: 2,
-                          offset: const Offset(1, 1),
-                        ),
-                      ],
-                      border: widget.isNight ? Border.all(color: Colors.white10, width: 0.5) : null,
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      width: 4,
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            widget.isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-                            widget.isNight ? Colors.white.withOpacity(0.01) : Colors.black.withOpacity(0.01),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            // 右侧内容卡片
-            Expanded(
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 24, right: 8),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: widget.isNight ? const Color(0xFF232527) : Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: widget.isNight 
-                      ? Colors.white.withOpacity(0.05) 
-                      : Colors.black.withOpacity(0.03),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(widget.isNight ? 0.45 : 0.12), // 更深更实的阴影
-                      blurRadius: 10,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildMoodBadge(
-                      widget.entry.moodIndex, 
-                      widget.entry.intensity, 
-                      isNight: widget.isNight,
-                      tag: widget.entry.tag,
-                    ),
-                    const SizedBox(height: 12),
-                    Builder(
-                      builder: (context) {
-                        // 移除 LayoutBuilder 以避免与 IntrinsicHeight 冲突导致渲染失败
-                        // 使用 MediaQuery 估算可用宽度进行溢出检测
-                        final screenWidth = MediaQuery.of(context).size.width;
-                        final estimateWidth = screenWidth - 165; // 减去左侧间距、边距和边框
-                        
-                        final span = TextSpan(text: widget.entry.content, style: textStyle);
-                        final tp = TextPainter(
-                          text: span,
-                          maxLines: 3,
-                          textDirection: TextDirection.ltr,
-                        )..layout(maxWidth: estimateWidth > 0 ? estimateWidth : 200);
-                        
-                        final bool hasOverflow = tp.didExceedMaxLines;
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.entry.content.trim(),
-                              maxLines: _isExpanded ? null : 3,
-                              overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                              style: textStyle,
-                            ),
-                            if (hasOverflow) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: () => setState(() => _isExpanded = !_isExpanded),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          _isExpanded ? "收起" : "展开全文",
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: widget.isNight ? Colors.white38 : Colors.black26,
-                                            fontFamily: 'LXGWWenKai',
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Icon(
-                                          _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                                          size: 16,
-                                          color: widget.isNight ? Colors.white38 : Colors.black26,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
-                        );
-                      },
-                    ),
-                    if (widget.entry.blocks.any((b) => b['type'] == 'image')) ...[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: widget.entry.blocks
-                            .where((b) => b['type'] == 'image')
-                            .take(_isExpanded ? 999 : 4)
-                            .map((b) => DiaryUtils.buildImage(
-                                  b['path'],
-                                  width: 46,
-                                  height: 46,
-                                  fit: BoxFit.cover,
-                                  borderRadius: BorderRadius.circular(10),
-                                ))
-                            .toList(),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(delay: (widget.index * 60).ms, duration: 350.ms).moveX(begin: 12, end: 0);
-  }
-
-  Widget _buildMoodBadge(int moodIndex, double intensity, {bool isNight = false, String? tag}) {
-    final moodIdx = moodIndex.clamp(0, kMoods.length - 1);
-    final mood = kMoods[moodIdx];
-    final Color badgeColor = mood.glowColor ?? const Color(0xFFC4B69E);
-    
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      children: [
-        // 1. 心情描述标签 (仅在无自定义标签时显示)
-        if (tag == null || tag.isEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: badgeColor.withOpacity(isNight ? 0.15 : 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(mood.iconPath ?? 'assets/images/icons/sun.png', width: 14, height: 14),
-                const SizedBox(width: 4),
-                Text(
-                  DiaryUtils.getPureMoodDescription(mood.label, intensity),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: badgeColor.withOpacity(isNight ? 0.8 : 1.0),
-                    fontFamily: 'LXGWWenKai',
-                  ),
-                ),
-              ],
-            ),
-          ),
-        
-        // 2. 心情强度标签 (始终显示)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: badgeColor.withOpacity(isNight ? 0.08 : 0.05),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: badgeColor.withOpacity(isNight ? 0.2 : 0.15),
-              width: 0.5,
-            ),
-          ),
-          child: Text(
-            "强度 ${intensity.toInt()}",
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: badgeColor.withOpacity(isNight ? 0.6 : 0.7),
-              fontFamily: 'LXGWWenKai',
-            ),
-          ),
-        ),
-        // 自定义标签 (如果存在)
-        if (tag != null && tag.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isNight ? Colors.white.withOpacity(0.08) : const Color(0xFF8B7763).withOpacity(0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isNight ? Colors.white12 : const Color(0xFF8B7763).withOpacity(0.15),
-                width: 0.5,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '#',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isNight ? Colors.white38 : const Color(0xFF8B7763).withOpacity(0.5),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 2),
-                Flexible(
-                  child: Text(
-                    tag,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isNight ? Colors.white70 : const Color(0xFF8B7763),
-                      fontFamily: 'LXGWWenKai',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
+          if (scrollRatio < 0.2) {
+            currentScale = 1.05 + (0.13 * (scrollRatio / 0.2));
+          } else if (scrollRatio < 0.5) {
+            currentScale = 1.18 + (0.07 * ((scrollRatio - 0.2) / 0.3));
+          } else if (scrollRatio < 0.8) {
+            currentScale = 1.25 - (0.07 * ((scrollRatio - 0.5) / 0.3));
+          } else {
+            currentScale = 1.18 - (0.13 * ((scrollRatio - 0.8) / 0.2));
+          }
+        }
+        return Transform.scale(
+          scale: currentScale,
+          alignment: Alignment.center,
+          child: Image.asset(bgPath, height: h, fit: BoxFit.fitHeight),
+        );
+      },
     );
   }
 }
