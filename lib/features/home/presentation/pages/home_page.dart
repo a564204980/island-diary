@@ -258,17 +258,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           body: Stack(
             children: [
               Positioned.fill(
-                child: ClipRect(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 500),
-                    layoutBuilder: (child, others) => Stack(
-                      children: [
-                        ...others.map((e) => Positioned.fill(child: e)),
-                        if (child != null) Positioned.fill(child: child),
-                      ],
-                    ),
-                    child: _buildCurrentPage(),
-                  ),
+                child: IndexedStack(
+                  index: _currentNavIndex == 4 ? 2 : (_currentNavIndex == 1 ? 1 : 0),
+                  children: [
+                    _buildHomeContent(isNight, isWide),
+                    const RecordPage(key: ValueKey('RecordPage')),
+                    const ProfilePage(key: ValueKey('ProfilePage')),
+                  ],
                 ),
               ),
 
@@ -299,186 +295,177 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildCurrentPage() {
-    final bool isNight = UserState().isNight;
+  Widget _buildHomeContent(bool isNight, bool isWide) {
     final responsiveBgPath = _getBackgroundImageForCurrentTime(
       isWide: MediaQuery.of(context).size.width > 600,
     );
     final islandPath = _getIslandImageForCurrentTime();
     final screenWidth = MediaQuery.of(context).size.width;
-    final isWide = screenWidth > 600;
 
-    switch (_currentNavIndex) {
-      case 1:
-        return const RecordPage(key: ValueKey('RecordPage'));
-      case 4:
-        return const ProfilePage(key: ValueKey('ProfilePage'));
-      default:
-        return Stack(
-          key: const ValueKey('HomeContent'),
-          children: [
-            Positioned.fill(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 1500),
-                layoutBuilder: (child, others) => Stack(
-                  children: [
-                    ...others.map((e) => Positioned.fill(child: e)),
-                    if (child != null) Positioned.fill(child: child),
-                  ],
-                ),
-                child: Image.asset(
-                  responsiveBgPath,
-                  key: ValueKey(responsiveBgPath),
-                  fit: BoxFit.cover,
-                ),
-              ),
+    return Stack(
+      key: const ValueKey('HomeContent'),
+      children: [
+        Positioned.fill(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 1500),
+            layoutBuilder: (child, others) => Stack(
+              children: [
+                ...others.map((e) => Positioned.fill(child: e)),
+                if (child != null) Positioned.fill(child: child),
+              ],
             ),
-            if (!_isLandscape)
-              Positioned.fill(
-                child: FloatingClouds(
-                  isNight: isNight,
-                  shouldAnimate: _currentNavIndex == 0,
-                ),
-              ),
-            Positioned.fill(
-              child: InteractiveViewer(
-                transformationController: _transformationController,
-                panEnabled: false,
-                boundaryMargin: EdgeInsets.zero,
-                minScale: 1.0,
-                maxScale: 5.0,
-                child: Builder(
-                  builder: (context) {
-                    final double currentScreenWidth = MediaQuery.of(context).size.width;
-                    return AnimatedBuilder(
-                      animation: _floatAnimation,
-                      builder: (context, child) {
-                        return Center(
-                          child: Transform.translate(
-                            offset: Offset(0, _floatAnimation.value),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Positioned(
-                            bottom: currentScreenWidth * 0.04,
-                            child: Container(
-                              width: isWide ? 480 : currentScreenWidth * 0.8,
-                              height: isWide ? 200 : currentScreenWidth * 0.4,
-                              decoration: BoxDecoration(
-                                gradient: RadialGradient(
-                                  colors: [
-                                    _getIslandBottomLightColorForCurrentTime(),
-                                    _getIslandBottomLightColorForCurrentTime().withOpacity(0.0),
-                                  ],
-                                  stops: const [0.15, 1.0],
-                                ),
-                              ),
-                            ),
-                          ),
-                          ImageFiltered(
-                            imageFilter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.4),
-                            child: Image.asset(
-                              islandPath,
-                              width: (currentScreenWidth <= 600 ? currentScreenWidth * 0.9 : 540.0) * 1.05,
-                              fit: BoxFit.contain,
-                              color: _getIslandGlowColorForCurrentTime(),
-                            ),
-                          ),
-                          ShaderMask(
-                            blendMode: BlendMode.srcATop,
-                            shaderCallback: (bounds) {
-                              return RadialGradient(
-                                center: const Alignment(0, 0.85),
-                                radius: 0.6,
-                                colors: [
-                                  _getIslandBottomRockLightColorForCurrentTime(),
-                                  Colors.transparent,
-                                ],
-                                stops: const [0.0, 1.0],
-                              ).createShader(bounds);
-                            },
-                            child: Image.asset(
-                              islandPath,
-                              width: currentScreenWidth <= 600 ? currentScreenWidth * 0.9 : 540.0,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ],
+            child: Image.asset(
+              responsiveBgPath,
+              key: ValueKey(responsiveBgPath),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        if (!_isLandscape)
+          Positioned.fill(
+            child: FloatingClouds(
+              isNight: isNight,
+              shouldAnimate: _currentNavIndex == 0,
+            ),
+          ),
+        Positioned.fill(
+          child: InteractiveViewer(
+            transformationController: _transformationController,
+            panEnabled: false,
+            boundaryMargin: EdgeInsets.zero,
+            minScale: 1.0,
+            maxScale: 5.0,
+            child: Builder(
+              builder: (context) {
+                final double currentScreenWidth = MediaQuery.of(context).size.width;
+                return AnimatedBuilder(
+                  animation: _floatAnimation,
+                  builder: (context, child) {
+                    return Center(
+                      child: Transform.translate(
+                        offset: Offset(0, _floatAnimation.value),
+                        child: child,
                       ),
                     );
                   },
-                ),
-              ),
-            ),
-
-            if (_isLandscape && _groupedEntries.isNotEmpty)
-              Positioned.fill(
-                child: _buildBarrageLayer(),
-              ),
-
-            if (!_isLandscape)
-              Positioned.fill(
-                child: FloatingClouds(
-                  isNight: isNight,
-                  isForeground: true,
-                  shouldAnimate: _currentNavIndex == 0,
-                ),
-              ),
-            Positioned.fill(
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      ValueListenableBuilder<bool>(
-                        valueListenable: UserState().isDiarySheetOpen,
-                        builder: (context, isOpen, child) {
-                          return Text(
-                            _isLandscape ? '心情漫游' : '${UserState().userName.value}的小岛',
-                            style: TextStyle(
-                              color: isNight ? Colors.white : const Color(0xFF5A3E28),
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              shadows: isNight
-                                  ? [
-                                      Shadow(color: Colors.black.withValues(alpha: 0.3), offset: const Offset(0, 2), blurRadius: 4),
-                                    ]
-                                  : null,
+                      Positioned(
+                        bottom: currentScreenWidth * 0.04,
+                        child: Container(
+                          width: isWide ? 480 : currentScreenWidth * 0.8,
+                          height: isWide ? 200 : currentScreenWidth * 0.4,
+                          decoration: BoxDecoration(
+                            gradient: RadialGradient(
+                              colors: [
+                                _getIslandBottomLightColorForCurrentTime(),
+                                _getIslandBottomLightColorForCurrentTime().withOpacity(0.0),
+                              ],
+                              stops: const [0.15, 1.0],
                             ),
-                          ).animate(target: isOpen ? 0 : 1).fade(duration: 400.ms);
-                        },
+                          ),
+                        ),
                       ),
-                      Row(
-                        children: [
-                          _buildTopIconButton(
-                            icon: _isLandscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
-                            isNight: isNight,
-                            onTap: _toggleOrientation,
-                          ),
-                          const SizedBox(width: 16),
-                          _buildTopIconButton(
-                            icon: Icons.palette_outlined,
-                            isNight: isNight,
-                            onTap: () {
-                              // TODO: 装扮功能
-                            },
-                          ),
-                        ],
+                      ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.4),
+                        child: Image.asset(
+                          islandPath,
+                          width: (currentScreenWidth <= 600 ? currentScreenWidth * 0.9 : 540.0) * 1.05,
+                          fit: BoxFit.contain,
+                          color: _getIslandGlowColorForCurrentTime(),
+                        ),
+                      ),
+                      ShaderMask(
+                        blendMode: BlendMode.srcATop,
+                        shaderCallback: (bounds) {
+                          return RadialGradient(
+                            center: const Alignment(0, 0.85),
+                            radius: 0.6,
+                            colors: [
+                              _getIslandBottomRockLightColorForCurrentTime(),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 1.0],
+                          ).createShader(bounds);
+                        },
+                        child: Image.asset(
+                          islandPath,
+                          width: currentScreenWidth <= 600 ? currentScreenWidth * 0.9 : 540.0,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ],
                   ),
-                ),
+                );
+              },
+            ),
+          ),
+        ),
+
+        if (_isLandscape && _groupedEntries.isNotEmpty)
+          Positioned.fill(
+            child: _buildBarrageLayer(),
+          ),
+
+        if (!_isLandscape)
+          Positioned.fill(
+            child: FloatingClouds(
+              isNight: isNight,
+              isForeground: true,
+              shouldAnimate: _currentNavIndex == 0,
+            ),
+          ),
+        Positioned.fill(
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ValueListenableBuilder<bool>(
+                    valueListenable: UserState().isDiarySheetOpen,
+                    builder: (context, isOpen, child) {
+                      return Text(
+                        _isLandscape ? '心情漫游' : '${UserState().userName.value}的小岛',
+                        style: TextStyle(
+                          color: isNight ? Colors.white : const Color(0xFF5A3E28),
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          shadows: isNight
+                              ? [
+                                  Shadow(color: Colors.black.withValues(alpha: 0.3), offset: const Offset(0, 2), blurRadius: 4),
+                                ]
+                              : null,
+                        ),
+                      ).animate(target: isOpen ? 0 : 1).fade(duration: 400.ms);
+                    },
+                  ),
+                  Row(
+                    children: [
+                      _buildTopIconButton(
+                        icon: _isLandscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                        isNight: isNight,
+                        onTap: _toggleOrientation,
+                      ),
+                      const SizedBox(width: 16),
+                      _buildTopIconButton(
+                        icon: Icons.palette_outlined,
+                        isNight: isNight,
+                        onTap: () {
+                          // TODO: 装扮功能
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        );
-    }
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildBarrageLayer() {

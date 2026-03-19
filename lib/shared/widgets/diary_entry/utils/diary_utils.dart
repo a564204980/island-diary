@@ -69,13 +69,8 @@ class DiaryUtils {
     return options[DateTime.now().second % options.length];
   }
 
-  /// 拟人化强度描述文案映射
-  static String getPersonifiedMoodDescription(String label, double intensity, {String? tag}) {
-    // 如果有自定义标签，直接显示标签及其强度，不添加预设形容词
-    if (tag != null && tag.trim().isNotEmpty) {
-      return "${tag.trim()}/${intensity.toInt()}";
-    }
-
+  /// 拟人化展示文案 (仅形容词+标题，不带强度后缀)
+  static String getPureMoodDescription(String label, double intensity) {
     const Map<String, List<String>> moodPrefixes = {
       '期待': ['略带憧憬', '满心向往', '迫不及待'],
       '厌恶': ['有些反感', '深感蹙眉', '嫌弃至极'],
@@ -89,10 +84,19 @@ class DiaryUtils {
 
     final int level = intensity.toInt();
     final List<String>? options = moodPrefixes[label];
-    if (options == null) return label; // 不应发生，但作为保底
+    if (options == null) return label;
     
     final int index = level <= 3 ? 0 : (level <= 7 ? 1 : 2);
-    return "${options[index]}的$label/${intensity.toInt()}";
+    return "${options[index]}的$label";
+  }
+
+  /// 拟人化强度描述文案映射 (带强度后缀，兼容旧版)
+  static String getPersonifiedMoodDescription(String label, double intensity, {String? tag}) {
+    // 如果有自定义标签，直接显示标签及其强度，不添加预设形容词
+    if (tag != null && tag.trim().isNotEmpty) {
+      return "${tag.trim()}/${intensity.toInt()}";
+    }
+    return "${getPureMoodDescription(label, intensity)}/${intensity.toInt()}";
   }
 
   /// 奖励配置映射表

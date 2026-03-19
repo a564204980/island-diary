@@ -11,7 +11,6 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_search_panel.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_calendar_panel.dart';
-import 'package:island_diary/shared/widgets/fireflies.dart';
 
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
@@ -216,14 +215,6 @@ class _RecordPageState extends State<RecordPage>
                               },
                             ),
                           ),
-
-                          // --- 1.5 萤火虫特效 (夜晚且非引导状态) ---
-                          if (isNight && UserState().hasSeenRecordGuidance.value)
-                            const Positioned.fill(
-                              child: IgnorePointer(
-                                child: Fireflies(count: 15),
-                              ),
-                            ),
 
                           // --- 小软跳出的动画内容 ---
                           if (_isJumpStarted)
@@ -621,14 +612,6 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
               ),
             ),
           ),
-          
-          // --- 3.5 萤火虫提示 (夜晚且非引导状态) ---
-          if (isNight && UserState().hasSeenRecordGuidance.value)
-            const Positioned.fill(
-              child: IgnorePointer(
-                child: Fireflies(count: 15),
-              ),
-            ),
 
           // 内容区域
           Positioned.fill(
@@ -1157,15 +1140,11 @@ class _DiaryHistoryCardState extends State<_DiaryHistoryCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        _buildMoodBadge(
-                          widget.entry.moodIndex, 
-                          widget.entry.intensity, 
-                          isNight: widget.isNight,
-                          tag: widget.entry.tag,
-                        ),
-                      ],
+                    _buildMoodBadge(
+                      widget.entry.moodIndex, 
+                      widget.entry.intensity, 
+                      isNight: widget.isNight,
+                      tag: widget.entry.tag,
                     ),
                     const SizedBox(height: 12),
                     Builder(
@@ -1259,34 +1238,56 @@ class _DiaryHistoryCardState extends State<_DiaryHistoryCard> {
     final moodIdx = moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
     final Color badgeColor = mood.glowColor ?? const Color(0xFFC4B69E);
-    final String fullMoodDescription = DiaryUtils.getPersonifiedMoodDescription(mood.label, intensity);
     
     return Wrap(
       spacing: 8,
       runSpacing: 4,
       children: [
-        // 核心心情标签
+        // 1. 心情描述标签 (仅在无自定义标签时显示)
+        if (tag == null || tag.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: badgeColor.withOpacity(isNight ? 0.15 : 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(mood.iconPath ?? 'assets/images/icons/sun.png', width: 14, height: 14),
+                const SizedBox(width: 4),
+                Text(
+                  DiaryUtils.getPureMoodDescription(mood.label, intensity),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: badgeColor.withOpacity(isNight ? 0.8 : 1.0),
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        
+        // 2. 心情强度标签 (始终显示)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: badgeColor.withOpacity(isNight ? 0.15 : 0.1),
+            color: badgeColor.withOpacity(isNight ? 0.08 : 0.05),
             borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: badgeColor.withOpacity(isNight ? 0.2 : 0.15),
+              width: 0.5,
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(mood.iconPath ?? 'assets/images/icons/sun.png', width: 14, height: 14),
-              const SizedBox(width: 4),
-              Text(
-                fullMoodDescription,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: badgeColor.withOpacity(isNight ? 0.8 : 1.0),
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-            ],
+          child: Text(
+            "强度 ${intensity.toInt()}",
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: badgeColor.withOpacity(isNight ? 0.6 : 0.7),
+              fontFamily: 'LXGWWenKai',
+            ),
           ),
         ),
         // 自定义标签 (如果存在)
@@ -1313,13 +1314,17 @@ class _DiaryHistoryCardState extends State<_DiaryHistoryCard> {
                   ),
                 ),
                 const SizedBox(width: 2),
-                Text(
-                  tag,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: isNight ? Colors.white70 : const Color(0xFF8B7763),
-                    fontFamily: 'LXGWWenKai',
+                Flexible(
+                  child: Text(
+                    tag,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isNight ? Colors.white70 : const Color(0xFF8B7763),
+                      fontFamily: 'LXGWWenKai',
+                    ),
                   ),
                 ),
               ],

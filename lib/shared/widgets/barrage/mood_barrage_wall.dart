@@ -6,6 +6,7 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/home/presentation/widgets/floating_clouds.dart';
 import 'package:island_diary/shared/widgets/fireflies.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 
 class BarrageWall extends StatefulWidget {
   final List<DiaryEntry> entries;
@@ -158,18 +159,21 @@ class BarrageItemData {
 class BarrageContent extends StatelessWidget {
   final DiaryEntry entry;
   final bool isNight;
+  
   const BarrageContent({super.key, required this.entry, required this.isNight});
 
   @override
   Widget build(BuildContext context) {
-    // 白天模式：深色容器 + 白色文字 (增加辨识度) 或 深色文字
-    // 采用更高对比度的设计
+    final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
+    final mood = kMoods[moodIdx];
+    final String moodDescription = DiaryUtils.getPureMoodDescription(mood.label, entry.intensity);
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: isNight 
           ? Colors.white.withValues(alpha: 0.15) 
-          : const Color(0xFF5A3E28).withValues(alpha: 0.12), // 白天用深卡其色半透明
+          : const Color(0xFF5A3E28).withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isNight 
@@ -189,37 +193,74 @@ class BarrageContent extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Image.asset(
-            kMoods[entry.moodIndex.clamp(0, kMoods.length - 1)].iconPath ?? 'assets/images/icons/sun.png', 
-            width: 20, 
-            height: 20,
+            mood.iconPath ?? 'assets/images/icons/sun.png', 
+            width: 18, 
+            height: 18,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
+          // 如果有自定义标签，显示标签；否则显示标准心情描述
+          if (entry.tag != null && entry.tag!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Text(
+                "#${entry.tag} ",
+                style: TextStyle(
+                  color: isNight ? Colors.white : const Color(0xFF4A3423),
+                  fontSize: 15,
+                  fontFamily: 'LXGWWenKai',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          else
+            Text(
+              "$moodDescription · ",
+              style: TextStyle(
+                color: isNight 
+                  ? Colors.white.withValues(alpha: 0.7) 
+                  : const Color(0xFF4A3423).withValues(alpha: 0.8),
+                fontSize: 14,
+                fontFamily: 'LXGWWenKai',
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          // 标准强度显示 (始终显示)
+          Text(
+            "强度 ${entry.intensity.toInt()} · ",
+            style: TextStyle(
+              color: isNight 
+                ? Colors.white.withValues(alpha: 0.5) 
+                : const Color(0xFF4A3423).withValues(alpha: 0.6),
+              fontSize: 12,
+              fontFamily: 'LXGWWenKai',
+            ),
+          ),
           Flexible(
             child: Text(
               entry.content,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: isNight ? Colors.white : const Color(0xFF4A3423), // 白天用深咖啡色文字
+                color: isNight ? Colors.white : const Color(0xFF4A3423),
                 fontFamily: 'LXGWWenKai',
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 shadows: isNight ? [
                    const Shadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 1)),
                 ] : [
-                   Shadow(color: Colors.white.withValues(alpha: 0.8), blurRadius: 4, offset: const Offset(0, 1)), // 白天加浅色外发光
+                   Shadow(color: Colors.white.withValues(alpha: 0.8), blurRadius: 4, offset: const Offset(0, 1)),
                 ]
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Text(
             "${entry.dateTime.hour}:${entry.dateTime.minute.toString().padLeft(2, '0')}",
             style: TextStyle(
               color: isNight 
                 ? Colors.white.withValues(alpha: 0.6) 
                 : const Color(0xFF4A3423).withValues(alpha: 0.7),
-              fontSize: 13,
+              fontSize: 12,
               fontFamily: 'LXGWWenKai',
             ),
           ),
