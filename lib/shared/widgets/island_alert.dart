@@ -22,6 +22,7 @@ class IslandAlert extends StatelessWidget {
     String icon = '✨',
     Duration duration = const Duration(seconds: 3),
     bool withAnimation = true,
+    Alignment alignment = Alignment.center,
   }) {
     HapticFeedback.lightImpact();
     
@@ -36,7 +37,7 @@ class IslandAlert extends StatelessWidget {
           : Duration.zero,
       pageBuilder: (context, anim1, anim2) {
         return Align(
-          alignment: Alignment.center,
+          alignment: alignment,
           child: IslandAlert(message: message, icon: icon),
         );
       },

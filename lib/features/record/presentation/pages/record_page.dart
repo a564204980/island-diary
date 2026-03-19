@@ -10,6 +10,7 @@ import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart'
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_search_panel.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_calendar_panel.dart';
 
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
@@ -568,6 +569,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
   DateTime? _selectedDate; // 改为可选，null 表示显示全部
   String _searchQuery = "";
   int? _filterMoodIndex;
+  bool _isCalendarView = false; // 是否显示日历格网视图
 
   @override
   void initState() {
@@ -614,22 +616,38 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
           SafeArea(
             child: Column(
               children: [
-                // 顶部周历选择器 (参考最新图)
-                _HorizontalWeekCalendar(
-                  selectedDate: _selectedDate,
-                  isNight: isNight,
-                  onDateSelected: (date) {
-                    setState(() {
-                      _selectedDate = date;
-                    });
-                  },
-                ),
+                // 顶部周历选择器 (仅在时间轴模式显示)
+                if (!_isCalendarView)
+                  _HorizontalWeekCalendar(
+                    selectedDate: _selectedDate,
+                    isNight: isNight,
+                    onDateSelected: (date) {
+                      setState(() {
+                        _selectedDate = date;
+                      });
+                    },
+                  )
+                else
+                  const SizedBox(height: 16),
                 
                 // 历史列表
                 Expanded(
                   child: ValueListenableBuilder<List<DiaryEntry>>(
                     valueListenable: UserState().savedDiaries,
                     builder: (context, allDiaries, _) {
+                      // 如果是日历视图模式，直接返回日历面板
+                      if (_isCalendarView) {
+                        return DiaryCalendarPanel(
+                          isNight: isNight,
+                          onDateSelected: (date) {
+                            setState(() {
+                              _selectedDate = date;
+                              _isCalendarView = false;
+                            });
+                          },
+                        );
+                      }
+
                       // 过滤逻辑：组合日期、搜索关键词、心情筛选
                       final diaries = allDiaries.where((e) {
                         // 1. 日期匹配
@@ -772,7 +790,16 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                           ),
                         ),
                         const SizedBox(width: 40),
-                        _buildToolBtn(Icons.calendar_month_rounded, () {}, isNight: isNight),
+                        _buildToolBtn(
+                          _isCalendarView ? Icons.format_list_bulleted_rounded : Icons.calendar_month_rounded, 
+                          () {
+                            setState(() {
+                              _isCalendarView = !_isCalendarView;
+                            });
+                          }, 
+                          isNight: isNight,
+                          isActive: _isCalendarView,
+                        ),
                       ],
                     ),
                   ),
@@ -785,7 +812,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
     );
   }
 
-  Widget _buildToolBtn(IconData icon, VoidCallback onTap, {bool isNight = false}) {
+  Widget _buildToolBtn(IconData icon, VoidCallback onTap, {bool isNight = false, bool isActive = false}) {
     return GestureDetector(
       onTap: onTap,
       child: Padding(
@@ -793,7 +820,9 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
         child: Icon(
           icon,
           size: 24,
-          color: isNight ? Colors.white54 : Colors.black.withOpacity(0.4),
+          color: isActive 
+              ? const Color(0xFFD4A373) 
+              : (isNight ? Colors.white54 : Colors.black.withOpacity(0.4)),
         ),
       ),
     );
