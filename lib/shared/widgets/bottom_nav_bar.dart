@@ -393,7 +393,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     // 0. 优先检查是否有草稿，如果有则直接进入编辑
     final draft = UserState().diaryDraft.value;
     if (draft != null) {
-      _openDiaryEntry(draft.moodIndex, draft.intensity);
+      _openDiaryEntry(draft.moodIndex, draft.intensity, tag: draft.tag);
       return;
     }
 
@@ -457,13 +457,13 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
       // 如果用户选择了心情，则自动打开日记输入框
       if (result != null) {
-        _openDiaryEntry(result['index'], result['intensity']);
+        _openDiaryEntry(result['index'], result['intensity'], tag: result['tag']);
       }
     }
   }
 
   // 打开像 uniapp popup 一样的日记输入组件
-  void _openDiaryEntry(int moodIndex, double intensity) {
+  void _openDiaryEntry(int moodIndex, double intensity, {String? tag}) {
     UserState().isDiarySheetOpen.value = true;
     showModalBottomSheet<bool>(
       context: context,
@@ -474,7 +474,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
       barrierColor: Colors.black.withOpacity(0.6),
       constraints: const BoxConstraints(maxWidth: double.infinity),
       builder: (context) =>
-          MoodDiaryEntrySheet(moodIndex: moodIndex, intensity: intensity),
+          MoodDiaryEntrySheet(moodIndex: moodIndex, intensity: intensity, tag: tag),
     ).then((success) {
       UserState().isDiarySheetOpen.value = false;
       if (success == true && widget.onSaveSuccess != null) {

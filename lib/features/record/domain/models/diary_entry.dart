@@ -8,6 +8,7 @@ class DiaryEntry {
   final int moodIndex;
   final double intensity;
   final String content;
+  final String? tag;
   final List<Map<String, dynamic>> blocks; // 结构化分块数据
 
   DiaryEntry({
@@ -17,6 +18,7 @@ class DiaryEntry {
     required this.intensity,
     required this.content,
     required this.blocks,
+    this.tag,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toMap() {
@@ -26,6 +28,7 @@ class DiaryEntry {
       'moodIndex': moodIndex,
       'intensity': intensity,
       'content': content,
+      'tag': tag,
       'blocks': blocks,
     };
   }
@@ -37,6 +40,7 @@ class DiaryEntry {
       moodIndex: map['moodIndex'],
       intensity: (map['intensity'] as num).toDouble(),
       content: map['content'],
+      tag: map['tag'],
       blocks: List<Map<String, dynamic>>.from(map['blocks'] ?? []),
     );
   }

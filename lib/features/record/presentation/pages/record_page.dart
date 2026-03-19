@@ -9,6 +9,7 @@ import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_search_panel.dart';
 
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
@@ -102,7 +103,8 @@ class _RecordPageState extends State<RecordPage>
 
   void _centerBackground() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
+      if (_scrollController.hasClients &&
+          _scrollController.position.hasContentDimensions) {
         final double maxScroll = _scrollController.position.maxScrollExtent;
         _scrollController.jumpTo(maxScroll / 2);
       }
@@ -174,7 +176,9 @@ class _RecordPageState extends State<RecordPage>
                               listenable: _scrollController,
                               builder: (context, _) {
                                 double currentScale = 1.05;
-                                if (_scrollController.hasClients) {
+                                if (_scrollController.hasClients &&
+                                    _scrollController
+                                        .position.hasContentDimensions) {
                                   final double maxScroll = _scrollController
                                       .position.maxScrollExtent;
                                   final double currentScroll = _scrollController
@@ -562,6 +566,8 @@ class DiaryHistoryOverlay extends StatefulWidget {
 
 class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
   DateTime? _selectedDate; // 改为可选，null 表示显示全部
+  String _searchQuery = "";
+  int? _filterMoodIndex;
 
   @override
   void initState() {
@@ -624,14 +630,26 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                   child: ValueListenableBuilder<List<DiaryEntry>>(
                     valueListenable: UserState().savedDiaries,
                     builder: (context, allDiaries, _) {
-                      // 过滤逻辑：如果没选日期，显示全部；选中了则按天过滤
-                      final diaries = _selectedDate == null 
-                        ? allDiaries 
-                        : allDiaries.where((e) => 
-                            e.dateTime.year == _selectedDate!.year &&
-                            e.dateTime.month == _selectedDate!.month &&
-                            e.dateTime.day == _selectedDate!.day
-                          ).toList();
+                      // 过滤逻辑：组合日期、搜索关键词、心情筛选
+                      final diaries = allDiaries.where((e) {
+                        // 1. 日期匹配
+                        final bool dateMatch = _selectedDate == null || (
+                          e.dateTime.year == _selectedDate!.year &&
+                          e.dateTime.month == _selectedDate!.month &&
+                          e.dateTime.day == _selectedDate!.day
+                        );
+                        
+                        // 2. 关键词匹配 (标题、内容或标签)
+                        final bool queryMatch = _searchQuery.isEmpty || 
+                          e.content.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                          (e.tag != null && e.tag!.toLowerCase().contains(_searchQuery.toLowerCase()));
+                          
+                        // 3. 心情匹配
+                        final bool moodMatch = _filterMoodIndex == null || 
+                          e.moodIndex == _filterMoodIndex;
+                          
+                        return dateMatch && queryMatch && moodMatch;
+                      }).toList();
 
                       return Column(
                         children: [
@@ -684,12 +702,13 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
                                   itemCount: diaries.length,
                                   itemBuilder: (context, index) {
-                                    return _DiaryHistoryCard(
-                                      entry: diaries[index],
-                                      index: index,
-                                      isFilteredMode: true,
-                                      isNight: isNight,
-                                    );
+                                      return _DiaryHistoryCard(
+                                        entry: diaries[index],
+                                        index: index,
+                                        isFilteredMode: true,
+                                        isNight: isNight,
+                                        showDate: _selectedDate == null,
+                                      );
                                   },
                                 ),
                           ),
@@ -718,7 +737,28 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _buildToolBtn(Icons.search_rounded, () {}, isNight: isNight),
+                        _buildToolBtn(Icons.search_rounded, () {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder: (context) => DiarySearchPanel(
+                              isNight: isNight,
+                              onSearch: (query, moodIdx) {
+                                setState(() {
+                                  _searchQuery = query;
+                                  _filterMoodIndex = moodIdx;
+                                });
+                              },
+                              onClear: () {
+                                setState(() {
+                                  _searchQuery = "";
+                                  _filterMoodIndex = null;
+                                });
+                              },
+                            ),
+                          );
+                        }, isNight: isNight),
                         const SizedBox(width: 40),
                         GestureDetector(
                           onTap: widget.onClose,
@@ -978,23 +1018,41 @@ class _HorizontalWeekCalendar extends StatelessWidget {
 }
 
 /// 每一份日记卡片
-class _DiaryHistoryCard extends StatelessWidget {
+class _DiaryHistoryCard extends StatefulWidget {
   final DiaryEntry entry;
   final int index;
   final bool isFilteredMode;
   final bool isNight;
+  final bool showDate;
 
   const _DiaryHistoryCard({
     required this.entry,
     required this.index,
     this.isFilteredMode = false,
     this.isNight = false,
+    this.showDate = false,
   });
 
   @override
+  State<_DiaryHistoryCard> createState() => _DiaryHistoryCardState();
+}
+
+class _DiaryHistoryCardState extends State<_DiaryHistoryCard> {
+  bool _isExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final dateStr = "${widget.entry.dateTime.month}/${widget.entry.dateTime.day}";
     final timeStr =
-        "${entry.dateTime.hour.toString().padLeft(2, '0')}:${entry.dateTime.minute.toString().padLeft(2, '0')}";
+        "${widget.entry.dateTime.hour.toString().padLeft(2, '0')}:${widget.entry.dateTime.minute.toString().padLeft(2, '0')}";
+    final timelineLabel = widget.showDate ? "$dateStr\n$timeStr" : timeStr;
+
+    final textStyle = TextStyle(
+      fontSize: 15.5,
+      color: widget.isNight ? Colors.white70 : Colors.black.withOpacity(0.75),
+      height: 1.6,
+      fontFamily: 'LXGWWenKai',
+    );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1008,10 +1066,11 @@ class _DiaryHistoryCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 14),
               alignment: Alignment.topRight,
               child: Text(
-                timeStr,
+                timelineLabel,
+                textAlign: TextAlign.right,
                 style: TextStyle(
-                  fontSize: 15, // 增大时间文字
-                  color: isNight ? Colors.white30 : Colors.black.withOpacity(0.35),
+                  fontSize: widget.showDate ? 13 : 15, // 日期模式下字号稍微缩小一点以适应对齐
+                  color: widget.isNight ? Colors.white30 : Colors.black.withOpacity(0.35),
                   fontWeight: FontWeight.w600,
                   fontFamily: 'LXGWWenKai',
                 ),
@@ -1029,16 +1088,16 @@ class _DiaryHistoryCard extends StatelessWidget {
                     width: 10,
                     height: 10,
                     decoration: BoxDecoration(
-                      color: isNight ? const Color(0xFF2C2E30) : const Color(0xFFC4B69E), // 古典铜金色调
+                      color: widget.isNight ? const Color(0xFF2C2E30) : const Color(0xFFC4B69E), // 古典铜金色调
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(isNight ? 0.3 : 0.1),
+                          color: Colors.black.withOpacity(widget.isNight ? 0.3 : 0.1),
                           blurRadius: 2,
                           offset: const Offset(1, 1),
                         ),
                       ],
-                      border: isNight ? Border.all(color: Colors.white10, width: 0.5) : null,
+                      border: widget.isNight ? Border.all(color: Colors.white10, width: 0.5) : null,
                     ),
                   ),
                   Expanded(
@@ -1048,8 +1107,8 @@ class _DiaryHistoryCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-                            isNight ? Colors.white.withOpacity(0.01) : Colors.black.withOpacity(0.01),
+                            widget.isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                            widget.isNight ? Colors.white.withOpacity(0.01) : Colors.black.withOpacity(0.01),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(2),
@@ -1066,16 +1125,16 @@ class _DiaryHistoryCard extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 24, right: 8),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: isNight ? const Color(0xFF232527) : Colors.white,
+                  color: widget.isNight ? const Color(0xFF232527) : Colors.white,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: isNight 
+                    color: widget.isNight 
                       ? Colors.white.withOpacity(0.05) 
                       : Colors.black.withOpacity(0.03),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isNight ? 0.45 : 0.12), // 更深更实的阴影
+                      color: Colors.black.withOpacity(widget.isNight ? 0.45 : 0.12), // 更深更实的阴影
                       blurRadius: 10,
                       offset: const Offset(0, 8),
                     ),
@@ -1086,33 +1145,88 @@ class _DiaryHistoryCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        _buildMoodBadge(entry.moodIndex, entry.intensity, isNight: isNight),
+                        _buildMoodBadge(
+                          widget.entry.moodIndex, 
+                          widget.entry.intensity, 
+                          isNight: widget.isNight,
+                          tag: widget.entry.tag,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      entry.content,
-                      style: TextStyle(
-                        fontSize: 15.5,
-                        color: isNight ? Colors.white70 : Colors.black.withOpacity(0.75),
-                        height: 1.6,
-                        fontFamily: 'LXGWWenKai',
-                      ),
+                    Builder(
+                      builder: (context) {
+                        // 移除 LayoutBuilder 以避免与 IntrinsicHeight 冲突导致渲染失败
+                        // 使用 MediaQuery 估算可用宽度进行溢出检测
+                        final screenWidth = MediaQuery.of(context).size.width;
+                        final estimateWidth = screenWidth - 165; // 减去左侧间距、边距和边框
+                        
+                        final span = TextSpan(text: widget.entry.content, style: textStyle);
+                        final tp = TextPainter(
+                          text: span,
+                          maxLines: 3,
+                          textDirection: TextDirection.ltr,
+                        )..layout(maxWidth: estimateWidth > 0 ? estimateWidth : 200);
+                        
+                        final bool hasOverflow = tp.didExceedMaxLines;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.entry.content.trim(),
+                              maxLines: _isExpanded ? null : 3,
+                              overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                              style: textStyle,
+                            ),
+                            if (hasOverflow) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => setState(() => _isExpanded = !_isExpanded),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          _isExpanded ? "收起" : "展开全文",
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: widget.isNight ? Colors.white38 : Colors.black26,
+                                            fontFamily: 'LXGWWenKai',
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                                          size: 16,
+                                          color: widget.isNight ? Colors.white38 : Colors.black26,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        );
+                      },
                     ),
-                    if (entry.blocks.any((b) => b['type'] == 'image')) ...[
-                      const SizedBox(height: 16),
+                    if (widget.entry.blocks.any((b) => b['type'] == 'image')) ...[
+                      const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: entry.blocks
+                        children: widget.entry.blocks
                             .where((b) => b['type'] == 'image')
-                            .take(3)
+                            .take(_isExpanded ? 999 : 4)
                             .map((b) => DiaryUtils.buildImage(
                                   b['path'],
-                                  width: 110,
-                                  height: 110,
+                                  width: 46,
+                                  height: 46,
                                   fit: BoxFit.cover,
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(10),
                                 ))
                             .toList(),
                       ),
@@ -1124,37 +1238,80 @@ class _DiaryHistoryCard extends StatelessWidget {
           ],
         ),
       ),
-    ).animate().fadeIn(delay: (index * 60).ms, duration: 350.ms).moveX(begin: 12, end: 0);
+    ).animate().fadeIn(delay: (widget.index * 60).ms, duration: 350.ms).moveX(begin: 12, end: 0);
   }
 
-  Widget _buildMoodBadge(int moodIndex, double intensity, {bool isNight = false}) {
+  Widget _buildMoodBadge(int moodIndex, double intensity, {bool isNight = false, String? tag}) {
     final moodIdx = moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
     final Color badgeColor = mood.glowColor ?? const Color(0xFFC4B69E);
     final String fullMoodDescription = DiaryUtils.getPersonifiedMoodDescription(mood.label, intensity);
     
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: badgeColor.withOpacity(isNight ? 0.15 : 0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(mood.iconPath ?? 'assets/images/icons/sun.png', width: 14, height: 14),
-          const SizedBox(width: 4),
-          Text(
-            fullMoodDescription,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: badgeColor.withOpacity(isNight ? 0.8 : 1.0),
-              fontFamily: 'LXGWWenKai',
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        // 核心心情标签
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: badgeColor.withOpacity(isNight ? 0.15 : 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(mood.iconPath ?? 'assets/images/icons/sun.png', width: 14, height: 14),
+              const SizedBox(width: 4),
+              Text(
+                fullMoodDescription,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: badgeColor.withOpacity(isNight ? 0.8 : 1.0),
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+            ],
+          ),
+        ),
+        // 自定义标签 (如果存在)
+        if (tag != null && tag.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: isNight ? Colors.white.withOpacity(0.08) : const Color(0xFF8B7763).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isNight ? Colors.white12 : const Color(0xFF8B7763).withOpacity(0.15),
+                width: 0.5,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '#',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isNight ? Colors.white38 : const Color(0xFF8B7763).withOpacity(0.5),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  tag,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: isNight ? Colors.white70 : const Color(0xFF8B7763),
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }

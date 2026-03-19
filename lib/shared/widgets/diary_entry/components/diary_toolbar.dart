@@ -6,30 +6,26 @@ import 'diary_painters.dart';
 /// 随键盘起伏的动态吸附工具栏（双行版）
 class DiaryToolbar extends StatelessWidget {
   final bool isEmojiOpen;
-  final bool isRecording;
   final VoidCallback onEmojiToggle;
-  final VoidCallback onRecordToggle;
   final VoidCallback onImagePick;
   final VoidCallback? onTopicClick;
   final VoidCallback? onColorClick;
   final VoidCallback? onBgColorClick;
   final VoidCallback? onLocationClick;
-  final VoidCallback? onMusicPick;
   final VoidCallback? onFontSizeClick;
+  final VoidCallback? onFontClick;
 
   const DiaryToolbar({
     super.key,
     required this.isEmojiOpen,
-    required this.isRecording,
     required this.onEmojiToggle,
-    required this.onRecordToggle,
     required this.onImagePick,
     this.onTopicClick,
     this.onColorClick,
     this.onBgColorClick,
     this.onLocationClick,
-    this.onMusicPick,
     this.onFontSizeClick,
+    this.onFontClick,
   });
 
   @override
@@ -70,64 +66,56 @@ class DiaryToolbar extends StatelessWidget {
 
   /// 构建双行工具栏图标组
   List<Widget> _buildDualRowToolbarIcons(double rowWidth) {
-    final List<String> iconPaths = [
-      isEmojiOpen
-          ? 'assets/images/icons/keyword.png'
-          : 'assets/images/icons/emoji_icon.png',
-      'assets/images/icons/record_icon.png',
-      'assets/images/icons/photo_icon.png',
-      'assets/images/icons/topic_icon.png',
-      'assets/images/icons/pencil_icon.png',
-      'assets/images/icons/calligraphy_icon.png',
-      'assets/images/icons/address_icon.png',
-      'assets/images/icons/music_icon.png',
-      'assets/images/icons/fontSize_icon.png',
-      'assets/images/icons/utils_icons.png',
+    // 严格 4x2 布局，共 8 个图标
+    final List<Map<String, dynamic>> icons = [
+      // 第一行
+      {
+        'path': isEmojiOpen
+            ? 'assets/images/icons/keyword.png'
+            : 'assets/images/icons/emoji_icon.png',
+        'onTap': onEmojiToggle,
+      },
+      {'path': 'assets/images/icons/photo_icon.png', 'onTap': onImagePick},
+      {'path': 'assets/images/icons/topic_icon.png', 'onTap': onTopicClick},
+      {'path': 'assets/images/icons/pencil_icon.png', 'onTap': onColorClick},
+      
+      // 第二行
+      {'path': 'assets/images/icons/address_icon.png', 'onTap': onLocationClick},
+      {'path': 'assets/images/icons/fontSize_icon.png', 'onTap': onFontSizeClick},
+      {'path': 'assets/images/icons/finally_icon.png', 'onTap': onFontClick},
+      {'path': 'assets/images/icons/calligraphy_icon.png', 'onTap': onBgColorClick},
     ];
 
-    final double itemWidth = rowWidth / 6;
-    final row1 = iconPaths.sublist(0, 6);
-    final row2 = iconPaths.sublist(6, 10);
+    final double itemWidth = rowWidth / 4;
+    final row1Icons = icons.sublist(0, 4);
+    final row2Icons = icons.sublist(4, 8);
 
     return [
       Row(
         mainAxisAlignment: MainAxisAlignment.start,
-        children: row1.asMap().entries.map((entry) {
-          final int index = entry.key;
-          final String path = entry.value;
-
-          VoidCallback? activeOnTap;
-          if (index == 0) activeOnTap = onEmojiToggle;
-          if (index == 1) activeOnTap = onRecordToggle;
-          if (index == 2) activeOnTap = onImagePick;
-          if (index == 3) activeOnTap = onTopicClick;
-          if (index == 4) activeOnTap = onColorClick;
-          if (index == 5) activeOnTap = onBgColorClick;
-
+        children: row1Icons.map((icon) {
           return _buildToolbarItem(
-            path,
+            icon['path'],
             itemWidth,
-            onTap: activeOnTap,
-            isSelected: index == 1 && isRecording,
+            onTap: icon['onTap'],
           );
         }).toList(),
       ),
       Row(
         mainAxisAlignment: MainAxisAlignment.start,
-        children: row2.asMap().entries.map((entry) {
-          final int index = entry.key;
-          final String path = entry.value;
-
-          VoidCallback? activeOnTap;
-          if (index == 0) activeOnTap = onLocationClick; // address_icon 绑定
-          if (index == 1) activeOnTap = onMusicPick; // music_icon 绑定
-          if (index == 2) activeOnTap = onFontSizeClick; // fontSize_icon 绑定
-
-          return _buildToolbarItem(path, itemWidth, onTap: activeOnTap);
+        children: row2Icons.map((icon) {
+          return _buildToolbarItem(
+            icon['path'],
+            itemWidth,
+            onTap: icon['onTap'],
+          );
         }).toList(),
       ),
     ];
   }
+
+
+
 
   Widget _buildToolbarItem(
     String assetPath,

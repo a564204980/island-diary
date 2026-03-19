@@ -30,6 +30,9 @@ abstract class DiaryBlock {
           if (map['baseFontSize'] != null) {
             controller.baseFontSize = map['baseFontSize'].toDouble();
           }
+          if (map['baseFontFamily'] != null) {
+            controller.baseFontFamily = map['baseFontFamily'].toString();
+          }
         }
       }
       return block;
@@ -112,15 +115,18 @@ class TextAttribute {
 class TopicTextEditingController extends TextEditingController {
   Color baseColor;
   double baseFontSize;
+  String baseFontFamily;
   late List<TextAttribute> attributes;
 
   TopicTextEditingController({
     String? text,
     Color? baseColor,
     double? baseFontSize,
+    String? baseFontFamily,
     List<TextAttribute>? attributes,
   }) : baseColor = baseColor ?? const Color(0xFF5D4037),
        baseFontSize = baseFontSize ?? 20.0,
+       baseFontFamily = baseFontFamily ?? 'LXGWWenKai',
        super(text: text) {
     this.attributes = attributes ?? [];
   }
@@ -135,6 +141,13 @@ class TopicTextEditingController extends TextEditingController {
   void updateBaseFontSize(double newSize) {
     if (baseFontSize != newSize) {
       baseFontSize = newSize;
+      notifyListeners();
+    }
+  }
+
+  void updateBaseFontFamily(String newFamily) {
+    if (baseFontFamily != newFamily) {
+      baseFontFamily = newFamily;
       notifyListeners();
     }
   }
@@ -219,9 +232,15 @@ class TopicTextEditingController extends TextEditingController {
         style?.copyWith(
           color: baseColor,
           fontSize: baseFontSize,
+          fontFamily: baseFontFamily,
           height: 1.6,
         ) ??
-        TextStyle(color: baseColor, fontSize: baseFontSize, height: 1.6);
+        TextStyle(
+          color: baseColor,
+          fontSize: baseFontSize,
+          fontFamily: baseFontFamily,
+          height: 1.6,
+        );
 
     // 1. 获取所有正则话题范围
     final RegExp regExp = RegExp(r'#[^\s#]+', multiLine: true);
@@ -324,6 +343,7 @@ class TextBlock extends DiaryBlock {
         'attributes': tc.attributes.map((a) => a.toMap()).toList(),
         'baseColor': tc.baseColor.value,
         'baseFontSize': tc.baseFontSize,
+        'baseFontFamily': tc.baseFontFamily,
       };
     }
     return {'id': id, 'type': 'text', 'content': tc.text};

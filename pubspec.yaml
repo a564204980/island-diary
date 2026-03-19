@@ -97,6 +97,18 @@ flutter:
         - asset: assets/fonts/LXGWWenKai-Regular.ttf
         - asset: assets/fonts/LXGWWenKai-Medium.ttf
           weight: 500
+    - family: Alibaba
+      fonts:
+        - asset: assets/fonts/Alibaba-PuHuiTi-Heavy.ttf
+    - family: Douyin
+      fonts:
+        - asset: assets/fonts/DouyinSansBold.otf
+    - family: JingNan
+      fonts:
+        - asset: assets/fonts/JingNanBoBoHei-Bold-2.ttf
+    - family: Nishiki
+      fonts:
+        - asset: assets/fonts/nishiki-teki.ttf
     - family: Zhi Mang Xing # 由于文件缺失，暂时映射到 FZKai 保证代码不报错，并实现“统一”
       fonts:
         - asset: assets/fonts/FangZhengKaiTiJianTi-1.ttf

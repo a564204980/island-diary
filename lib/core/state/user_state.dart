@@ -19,6 +19,7 @@ class UserState {
   static const _keyDraftBlocks = 'diary_draft_blocks'; // 新增分块数据键
   static const _keyDraftMood = 'diary_draft_mood';
   static const _keyDraftIntensity = 'diary_draft_intensity';
+  static const _keyDraftTag = 'diary_draft_tag';
   static const _keySavedDiaries = 'saved_diaries';
   static const _keyThemeMode = 'theme_mode'; // 新增主题模式键
   static const _keyRecordGuidance = 'has_seen_record_guidance'; // 记录页引导
@@ -74,12 +75,14 @@ class UserState {
     required int moodIndex,
     required double intensity,
     required String content,
+    String? tag,
     List<Map<String, dynamic>>? blocks,
   }) async {
     final draft = DiaryDraft(
       moodIndex: moodIndex,
       intensity: intensity,
       content: content,
+      tag: tag,
       blocks: blocks,
     );
     diaryDraft.value = draft;
@@ -88,6 +91,11 @@ class UserState {
     await prefs.setString(_keyDraftContent, content);
     await prefs.setInt(_keyDraftMood, moodIndex);
     await prefs.setDouble(_keyDraftIntensity, intensity);
+    if (tag != null) {
+      await prefs.setString(_keyDraftTag, tag);
+    } else {
+      await prefs.remove(_keyDraftTag);
+    }
     if (blocks != null) {
       await prefs.setString(_keyDraftBlocks, jsonEncode(blocks));
     }
@@ -101,6 +109,7 @@ class UserState {
     await prefs.remove(_keyDraftBlocks);
     await prefs.remove(_keyDraftMood);
     await prefs.remove(_keyDraftIntensity);
+    await prefs.remove(_keyDraftTag);
   }
 
   /// 将当前草稿保存为正式日记并持久化
@@ -143,6 +152,7 @@ class UserState {
       moodIndex: draft.moodIndex,
       intensity: draft.intensity,
       content: draft.content,
+      tag: draft.tag,
       blocks: blocks,
     );
 
@@ -238,6 +248,7 @@ class UserState {
         content: draftContent,
         moodIndex: prefs.getInt(_keyDraftMood) ?? 0,
         intensity: prefs.getDouble(_keyDraftIntensity) ?? 5.0,
+        tag: prefs.getString(_keyDraftTag),
         blocks: blocks,
       );
     }
@@ -269,12 +280,14 @@ class DiaryDraft {
   final int moodIndex;
   final double intensity;
   final String content;
+  final String? tag;
   final List<Map<String, dynamic>>? blocks; // 结构化分块数据
 
   DiaryDraft({
     required this.moodIndex,
     required this.intensity,
     required this.content,
+    this.tag,
     this.blocks,
   });
 }

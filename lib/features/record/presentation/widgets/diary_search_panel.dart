@@ -1,0 +1,163 @@
+import 'package:flutter/material.dart';
+import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+
+class DiarySearchPanel extends StatefulWidget {
+  final Function(String query, int? moodIndex) onSearch;
+  final VoidCallback onClear;
+  final bool isNight;
+
+  const DiarySearchPanel({
+    super.key,
+    required this.onSearch,
+    required this.onClear,
+    this.isNight = false,
+  });
+
+  @override
+  State<DiarySearchPanel> createState() => _DiarySearchPanelState();
+}
+
+class _DiarySearchPanelState extends State<DiarySearchPanel> {
+  final TextEditingController _controller = TextEditingController();
+  int? _selectedMoodIndex;
+
+  void _handleSearch() {
+    widget.onSearch(_controller.text, _selectedMoodIndex);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = widget.isNight ? const Color(0xFF2C2E30) : Colors.white;
+    final textColor = widget.isNight ? Colors.white70 : Colors.black87;
+    final hintColor = widget.isNight ? Colors.white38 : Colors.black38;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(widget.isNight ? 0.5 : 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 顶部指示条
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: widget.isNight ? Colors.white12 : Colors.black12,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          
+          // 搜索输入框
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: widget.isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: widget.isNight ? Colors.white10 : Colors.black.withOpacity(0.05),
+              ),
+            ),
+            child: TextField(
+              controller: _controller,
+              onChanged: (_) => _handleSearch(),
+              style: TextStyle(color: textColor, fontFamily: 'LXGWWenKai'),
+              decoration: InputDecoration(
+                hintText: "寻找某段回忆...",
+                hintStyle: TextStyle(color: hintColor, fontFamily: 'LXGWWenKai'),
+                border: InputBorder.none,
+                icon: Icon(Icons.search_rounded, color: hintColor, size: 20),
+                suffixIcon: _controller.text.isNotEmpty 
+                  ? IconButton(
+                      icon: Icon(Icons.clear_rounded, color: hintColor, size: 18),
+                      onPressed: () {
+                        _controller.clear();
+                        _handleSearch();
+                      },
+                    )
+                  : null,
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // 心情筛选标题
+          Text(
+            "按心情筛选建议内容",
+            style: TextStyle(
+              fontSize: 13,
+              color: hintColor,
+              fontFamily: 'LXGWWenKai',
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // 心情图标列表
+          SizedBox(
+            height: 50,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: kMoods.length,
+              itemBuilder: (context, index) {
+                final mood = kMoods[index];
+                final isSelected = _selectedMoodIndex == index;
+                
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedMoodIndex = isSelected ? null : index;
+                    });
+                    _handleSearch();
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(right: 12),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isSelected 
+                        ? (mood.glowColor ?? Colors.amber).withOpacity(0.2)
+                        : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected 
+                          ? (mood.glowColor ?? Colors.amber).withOpacity(0.5)
+                          : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Tooltip(
+                      message: mood.label,
+                      child: Image.asset(
+                        mood.iconPath ?? 'assets/images/icons/sun.png',
+                        width: 28,
+                        height: 28,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          
+          const SizedBox(height: 10),
+        ],
+      ),
+    );
+  }
+}

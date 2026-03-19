@@ -25,7 +25,7 @@ class _MoodIntensitySliderState extends State<MoodIntensitySlider> {
   // 圆弧范围设定 (基于 0 度在右侧中点，顺时针为正)
   // 参考 UI，圆弧大致分布在 -60 度到 60 度之间
   // 调整为更短的弧度：从约 2 点钟方向到 4 点钟方向
-  final double startAngle = -math.pi / 6; // -30度 (约 11 点钟方向)
+  final double startAngle = -math.pi / 4; // -45度 (进一步上移)
   final double swepAngle = math.pi / 3; // 60度 (总弧长缩短一半)
 
   void _handlePanUpdate(DragUpdateDetails details, Size size) {

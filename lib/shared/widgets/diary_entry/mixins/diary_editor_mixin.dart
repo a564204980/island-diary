@@ -13,6 +13,8 @@ import '../components/font_size_picker_sheet.dart';
 import '../../../../core/state/user_state.dart';
 import '../../mood_picker/config/mood_config.dart';
 import '../components/color_picker_sheet.dart';
+import '../components/font_picker_sheet.dart';
+import '../../island_alert.dart';
 
 /// 抽离日记编辑器的核心逻辑，包括内容块管理、焦点追踪、异步插入（图片/定位）等
 mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
@@ -22,10 +24,12 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
 
   bool _isEmojiOpen = false;
   bool _isColorPickerOpen = false;
+  bool _isImagePickerOpen = false;
   bool _isRecording = false;
   double _keyboardHeight = 280;
   Color _currentTextColor = const Color(0xFF5D4037);
   double _currentFontSize = 20.0;
+  String _currentFontFamily = 'LXGWWenKai';
   String? _lastFocusedBlockId;
   String? _fixedQuote;
 
@@ -35,16 +39,26 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
   Map<String, GlobalKey> get blockKeys => _blockKeys;
   bool get isEmojiOpen => _isEmojiOpen;
   bool get isColorPickerOpen => _isColorPickerOpen;
+  bool get isImagePickerOpen => _isImagePickerOpen;
   bool get isRecording => _isRecording;
   double get keyboardHeight => _keyboardHeight;
   Color get currentTextColor => _currentTextColor;
   double get currentFontSize => _currentFontSize;
+  String get currentFontFamily => _currentFontFamily;
   String get fixedQuote => _fixedQuote ?? '';
 
   void initializeEditor() {
     loadDraft();
     final mood = kMoods[widget.moodIndex];
     _fixedQuote = DiaryUtils.getMoodQuote(mood.label);
+    
+    // 初始化时同步第一个文本块的字体族
+    final firstTextBlock = _blocks.whereType<TextBlock>().firstOrNull;
+    if (firstTextBlock != null && firstTextBlock.controller is TopicTextEditingController) {
+      _currentFontFamily = (firstTextBlock.controller as TopicTextEditingController).baseFontFamily;
+      _currentFontSize = (firstTextBlock.controller as TopicTextEditingController).baseFontSize;
+      _currentTextColor = (firstTextBlock.controller as TopicTextEditingController).baseColor;
+    }
   }
 
   void _addFocusListener(TextBlock block) {
@@ -104,6 +118,7 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
       moodIndex: widget.moodIndex,
       intensity: widget.intensity,
       content: content,
+      tag: widget.tag,
       blocks: _blocks.map((b) => b.toMap()).toList(),
     );
   }
@@ -126,6 +141,11 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
   }
 
   void onImageButtonPressed() async {
+    FocusScope.of(context).unfocus();
+    setState(() => _isImagePickerOpen = true);
+    // 等待键盘收起动画，防止键盘弹起并遮挡 BottomSheet
+    await Future.delayed(const Duration(milliseconds: 300));
+
     final activeBlock = activeTextBlock;
     TextSelection? savedSelection;
     if (activeBlock != null) savedSelection = activeBlock.controller.selection;
@@ -134,6 +154,7 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
     final ImageSource? source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: Colors.white,
+      elevation: 10,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -157,60 +178,71 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
       ),
     );
 
-    if (source == null) return;
+    if (source == null) {
+      setState(() => _isImagePickerOpen = false);
+      return;
+    }
 
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: source);
 
-    if (image != null) {
-      final int insertIndex;
-      TextBlock? newBottomBlock;
-
-      if (activeBlock != null) {
-        final controller = activeBlock.controller;
-        final selection = savedSelection ?? controller.selection;
-        final text = controller.text;
-        final int splitOffset = selection.isValid
-            ? selection.extentOffset
-                .clamp(0, text.length)
-            : text.length;
-        final beforeText = text.substring(0, splitOffset);
-        final afterText = text.substring(splitOffset);
-        final originalIndex = _blocks.indexOf(activeBlock);
-        controller.text = beforeText;
-        insertIndex = originalIndex + 1;
-        newBottomBlock = TextBlock(afterText);
-      } else {
-        insertIndex = _blocks.length;
-        newBottomBlock = TextBlock('');
-      }
-
-      final imageBlock = ImageBlock(image);
-
-      setState(() {
-        _blocks.insert(insertIndex, imageBlock);
-        _blocks.insert(insertIndex + 1, newBottomBlock!);
-        _blockKeys[imageBlock.id] = GlobalKey();
-        _blockKeys[newBottomBlock.id] = GlobalKey();
-        _lastFocusedBlockId = newBottomBlock.id;
-        _addFocusListener(newBottomBlock);
-      });
-
-      onBlocksChanged();
-
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted && newBottomBlock != null) {
-          newBottomBlock.controller.selection = const TextSelection.collapsed(
-            offset: 0,
-          );
-          newBottomBlock.focusNode.requestFocus();
-          scrollToActiveBlock();
-        }
-      });
+    if (image == null) {
+      if (mounted) setState(() => _isImagePickerOpen = false);
+      return;
     }
+
+    // 选到图片后，在后续逻辑中处理状态恢复
+    setState(() => _isImagePickerOpen = false);
+
+    final int insertIndex;
+    TextBlock? newBottomBlock;
+
+    if (activeBlock != null) {
+      final controller = activeBlock.controller;
+      final selection = savedSelection ?? controller.selection;
+      final text = controller.text;
+      final int splitOffset = selection.isValid
+          ? selection.extentOffset.clamp(0, text.length)
+          : text.length;
+      final beforeText = text.substring(0, splitOffset);
+      final afterText = text.substring(splitOffset);
+      final originalIndex = _blocks.indexOf(activeBlock);
+      controller.text = beforeText;
+      insertIndex = originalIndex + 1;
+      newBottomBlock = TextBlock(afterText);
+    } else {
+      insertIndex = _blocks.length;
+      newBottomBlock = TextBlock('');
+    }
+
+    final imageBlock = ImageBlock(image);
+
+    setState(() {
+      _blocks.insert(insertIndex, imageBlock);
+      _blocks.insert(insertIndex + 1, newBottomBlock!);
+      _blockKeys[imageBlock.id] = GlobalKey();
+      _blockKeys[newBottomBlock.id] = GlobalKey();
+      _lastFocusedBlockId = newBottomBlock.id;
+      _addFocusListener(newBottomBlock);
+    });
+
+    onBlocksChanged();
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted && newBottomBlock != null) {
+        newBottomBlock.controller.selection = const TextSelection.collapsed(
+          offset: 0,
+        );
+        newBottomBlock.focusNode.requestFocus();
+        scrollToActiveBlock();
+      }
+    });
   }
 
   void onMusicButtonPressed() async {
+    FocusScope.of(context).unfocus();
+    await Future.delayed(const Duration(milliseconds: 300));
+
     final activeBlock = activeTextBlock;
     TextSelection? savedSelection;
     if (activeBlock != null) {
@@ -361,9 +393,10 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
     if (fullText.trim().isEmpty &&
         _blocks.whereType<ImageBlock>().isEmpty &&
         _blocks.whereType<AudioBlock>().isEmpty) {
-      ScaffoldMessenger.of(
+      IslandAlert.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('日记内容不能为空哦~')));
+        message: '从心出发，总要留下点什么（日记内容不能为空哦）',
+      );
       return false;
     }
 
@@ -376,11 +409,11 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
       }
       return true;
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
-      }
+      IslandAlert.show(
+        context,
+        icon: '🏮',
+        message: '日记暂时无法保存: $e',
+      );
       return false;
     }
   }
@@ -486,11 +519,14 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
       final double targetScroll =
           currentScroll + caretInScrollOffset.dy - (viewportHeight / 2);
 
-      _scrollController.animateTo(
-        targetScroll.clamp(0.0, _scrollController.position.maxScrollExtent),
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      if (_scrollController.hasClients &&
+          _scrollController.position.hasContentDimensions) {
+        _scrollController.animateTo(
+          targetScroll.clamp(0.0, _scrollController.position.maxScrollExtent),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
@@ -525,7 +561,7 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
   }
 
   void showColorPicker() {
-    FocusManager.instance.primaryFocus?.unfocus();
+    FocusScope.of(context).unfocus();
     setState(() => _isColorPickerOpen = true);
     showModalBottomSheet(
       context: context,
@@ -579,7 +615,7 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
   }
 
   void showBackgroundColorPicker() {
-    FocusManager.instance.primaryFocus?.unfocus();
+    FocusScope.of(context).unfocus();
     setState(() => _isColorPickerOpen = true);
     showModalBottomSheet(
       context: context,
@@ -624,7 +660,7 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
   }
 
   void showFontSizePicker() {
-    FocusManager.instance.primaryFocus?.unfocus();
+    FocusScope.of(context).unfocus();
     setState(() => _isColorPickerOpen = true);
     showModalBottomSheet(
       context: context,
@@ -700,5 +736,33 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
 
   void toggleRecord() {
     setState(() => _isRecording = !_isRecording);
+  }
+
+  void showFontPicker() {
+    FocusScope.of(context).unfocus();
+    setState(() => _isColorPickerOpen = true);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => DiaryFontPickerSheet(
+        currentFontFamily: _currentFontFamily,
+        onApplyFontFamily: (family) {
+          setState(() {
+            _currentFontFamily = family;
+            for (var block in _blocks) {
+              if (block is TextBlock) {
+                (block.controller as TopicTextEditingController)
+                    .updateBaseFontFamily(family);
+              }
+            }
+          });
+          onBlocksChanged();
+          Navigator.pop(context);
+        },
+      ),
+    ).then((_) {
+      if (mounted) setState(() => _isColorPickerOpen = false);
+    });
   }
 }

@@ -14,11 +14,13 @@ import 'mixins/diary_editor_mixin.dart';
 class MoodDiaryEntrySheet extends StatefulWidget {
   final int moodIndex;
   final double intensity;
+  final String? tag;
 
   const MoodDiaryEntrySheet({
     super.key,
     required this.moodIndex,
     required this.intensity,
+    this.tag,
   });
 
   @override
@@ -180,7 +182,8 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                                                 index: index,
                                                 isEmojiOpen:
                                                     (isEmojiOpen ||
-                                                    isColorPickerOpen),
+                                                    isColorPickerOpen ||
+                                                    isImagePickerOpen),
                                                 blockKey: key,
                                                 onRemoveImage: () =>
                                                     removeImage(index),
@@ -233,6 +236,7 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                                     DiaryUtils.getPersonifiedMoodDescription(
                                       mood.label,
                                       widget.intensity,
+                                      tag: widget.tag,
                                     ),
                               ),
                             ),
@@ -258,16 +262,14 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                     children: [
                       DiaryToolbar(
                         isEmojiOpen: isEmojiOpen,
-                        isRecording: isRecording,
                         onEmojiToggle: toggleEmoji,
-                        onRecordToggle: toggleRecord,
                         onImagePick: onImageButtonPressed,
                         onTopicClick: insertTopic,
                         onColorClick: showColorPicker,
                         onBgColorClick: showBackgroundColorPicker,
                         onLocationClick: onLocationClick,
-                        onMusicPick: onMusicButtonPressed,
                         onFontSizeClick: showFontSizePicker,
+                        onFontClick: showFontPicker,
                       ),
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
