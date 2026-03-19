@@ -11,6 +11,7 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_search_panel.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_calendar_panel.dart';
+import 'package:island_diary/shared/widgets/fireflies.dart';
 
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
@@ -215,6 +216,14 @@ class _RecordPageState extends State<RecordPage>
                               },
                             ),
                           ),
+
+                          // --- 1.5 萤火虫特效 (夜晚且非引导状态) ---
+                          if (isNight && UserState().hasSeenRecordGuidance.value)
+                            const Positioned.fill(
+                              child: IgnorePointer(
+                                child: Fireflies(count: 15),
+                              ),
+                            ),
 
                           // --- 小软跳出的动画内容 ---
                           if (_isJumpStarted)
@@ -612,104 +621,76 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
               ),
             ),
           ),
+          
+          // --- 3.5 萤火虫提示 (夜晚且非引导状态) ---
+          if (isNight && UserState().hasSeenRecordGuidance.value)
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: Fireflies(count: 15),
+              ),
+            ),
+
           // 内容区域
-          SafeArea(
-            child: Column(
-              children: [
-                // 顶部周历选择器 (仅在时间轴模式显示)
-                if (!_isCalendarView)
-                  _HorizontalWeekCalendar(
-                    selectedDate: _selectedDate,
-                    isNight: isNight,
-                    onDateSelected: (date) {
-                      setState(() {
-                        _selectedDate = date;
-                      });
-                    },
-                  )
-                else
-                  const SizedBox(height: 16),
-                
-                // 历史列表
-                Expanded(
-                  child: ValueListenableBuilder<List<DiaryEntry>>(
-                    valueListenable: UserState().savedDiaries,
-                    builder: (context, allDiaries, _) {
-                      // 如果是日历视图模式，直接返回日历面板
-                      if (_isCalendarView) {
-                        return DiaryCalendarPanel(
-                          isNight: isNight,
-                          onDateSelected: (date) {
-                            setState(() {
-                              _selectedDate = date;
-                              _isCalendarView = false;
-                            });
-                          },
-                        );
-                      }
+          Positioned.fill(
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  // 顶部周历选择器 (仅在时间轴模式显示)
+                  if (!_isCalendarView)
+                    _HorizontalWeekCalendar(
+                      selectedDate: _selectedDate,
+                      isNight: isNight,
+                      onDateSelected: (date) {
+                        setState(() {
+                          _selectedDate = date;
+                        });
+                      },
+                    )
+                  else
+                    const SizedBox(height: 16),
+                  
+                  // 历史列表
+                  Expanded(
+                    child: ValueListenableBuilder<List<DiaryEntry>>(
+                      valueListenable: UserState().savedDiaries,
+                      builder: (context, diaries, _) {
+                        // 如果是日历视图模式，直接返回日历面板
+                        if (_isCalendarView) {
+                          return DiaryCalendarPanel(
+                            isNight: isNight,
+                            onDateSelected: (date) {
+                              setState(() {
+                                _selectedDate = date;
+                                _isCalendarView = false;
+                              });
+                            },
+                          );
+                        }
 
-                      // 过滤逻辑：组合日期、搜索关键词、心情筛选
-                      final diaries = allDiaries.where((e) {
-                        // 1. 日期匹配
-                        final bool dateMatch = _selectedDate == null || (
-                          e.dateTime.year == _selectedDate!.year &&
-                          e.dateTime.month == _selectedDate!.month &&
-                          e.dateTime.day == _selectedDate!.day
-                        );
+                        // 按日期及搜索条件过滤
+                        final filteredByDate = _selectedDate == null 
+                            ? diaries 
+                            : diaries.where((d) => 
+                                d.dateTime.year == _selectedDate!.year && 
+                                d.dateTime.month == _selectedDate!.month && 
+                                d.dateTime.day == _selectedDate!.day
+                              ).toList();
                         
-                        // 2. 关键词匹配 (标题、内容或标签)
-                        final bool queryMatch = _searchQuery.isEmpty || 
-                          e.content.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                          (e.tag != null && e.tag!.toLowerCase().contains(_searchQuery.toLowerCase()));
-                          
-                        // 3. 心情匹配
-                        final bool moodMatch = _filterMoodIndex == null || 
-                          e.moodIndex == _filterMoodIndex;
-                          
-                        return dateMatch && queryMatch && moodMatch;
-                      }).toList();
+                        // 搜索过滤
+                        final filtered = filteredByDate.where((d) {
+                          final matchesSearch = _searchQuery.isEmpty || d.content.contains(_searchQuery);
+                          final matchesMood = _filterMoodIndex == null || d.moodIndex == _filterMoodIndex;
+                          return matchesSearch && matchesMood;
+                        }).toList();
 
-                      return Column(
-                        children: [
-                          // 今日记录摘要
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                            child: Row(
-                              children: [
-                                Text(
-                                  _selectedDate == null ? "历史共有 " : "今日有 ",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: isNight ? Colors.white54 : Colors.black.withOpacity(0.4),
-                                    fontFamily: 'LXGWWenKai',
-                                  ),
-                                ),
-                                Text(
-                                  "${diaries.length}",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: isNight ? Colors.white : Colors.black,
-                                    fontFamily: 'LXGWWenKai',
-                                  ),
-                                ),
-                                Text(
-                                  " 条记录",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: isNight ? Colors.white54 : Colors.black.withOpacity(0.4),
-                                    fontFamily: 'LXGWWenKai',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          
-                          Expanded(
-                            child: diaries.isEmpty 
+                        return AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: (filtered.isEmpty) 
                               ? Center(
+                                  key: const ValueKey('empty'),
                                   child: Text(
-                                    "这一天还没有记录呢...",
+                                    _searchQuery.isEmpty ? "还没有心情记录呢..." : "没找到相关记录哦~",
                                     style: TextStyle(
                                       color: isNight ? Colors.white30 : Colors.black.withOpacity(0.3),
                                       fontFamily: 'LXGWWenKai',
@@ -717,11 +698,11 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                   ),
                                 )
                               : ListView.builder(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  itemCount: diaries.length,
+                                  padding: const EdgeInsets.only(left: 16, right: 16, top: 0, bottom: 100),
+                                  itemCount: filtered.length,
                                   itemBuilder: (context, index) {
                                       return _DiaryHistoryCard(
-                                        entry: diaries[index],
+                                        entry: filtered[index],
                                         index: index,
                                         isFilteredMode: true,
                                         isNight: isNight,
@@ -729,84 +710,88 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                       );
                                   },
                                 ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                // 底部悬浮工具栏
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 30, top: 10),
-                  child: Container(
-                    height: 54,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: isNight ? const Color(0xFF2C2E30) : Colors.white,
-                      borderRadius: BorderRadius.circular(27),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(isNight ? 0.45 : 0.12),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildToolBtn(Icons.search_rounded, () {
-                          showModalBottomSheet(
-                            context: context,
-                            backgroundColor: Colors.transparent,
-                            isScrollControlled: true,
-                            builder: (context) => DiarySearchPanel(
-                              isNight: isNight,
-                              onSearch: (query, moodIdx) {
-                                setState(() {
-                                  _searchQuery = query;
-                                  _filterMoodIndex = moodIdx;
-                                });
-                              },
-                              onClear: () {
-                                setState(() {
-                                  _searchQuery = "";
-                                  _filterMoodIndex = null;
-                                });
-                              },
-                            ),
-                          );
-                        }, isNight: isNight),
-                        const SizedBox(width: 40),
-                        GestureDetector(
-                          onTap: widget.onClose,
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Icon(
-                              Icons.close_rounded,
-                              size: 28,
-                              color: isNight ? Colors.white70 : Colors.black87,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 40),
-                        _buildToolBtn(
-                          _isCalendarView ? Icons.format_list_bulleted_rounded : Icons.calendar_month_rounded, 
-                          () {
-                            setState(() {
-                              _isCalendarView = !_isCalendarView;
-                            });
-                          }, 
-                          isNight: isNight,
-                          isActive: _isCalendarView,
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
-                ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.9, 0.9)),
-              ],
+                ],
+              ),
             ),
           ),
+          
+          // 4. 底部工具栏
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 30,
+            child: Center(
+              child: Container(
+                height: 54,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                decoration: BoxDecoration(
+                  color: isNight ? Color(0xFF2C2E30).withOpacity(0.85) : Colors.white.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(27),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isNight ? 0.45 : 0.12),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildToolBtn(Icons.search_rounded, () {
+                      showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        isScrollControlled: true,
+                        builder: (context) => DiarySearchPanel(
+                          isNight: isNight,
+                          onSearch: (query, moodIdx) {
+                            setState(() {
+                              _searchQuery = query;
+                              _filterMoodIndex = moodIdx;
+                            });
+                          },
+                          onClear: () {
+                            setState(() {
+                              _searchQuery = "";
+                              _filterMoodIndex = null;
+                            });
+                          },
+                        ),
+                      );
+                    }, isNight: isNight),
+                    const SizedBox(width: 40),
+                    GestureDetector(
+                      onTap: widget.onClose,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 28,
+                          color: isNight ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 40),
+                    _buildToolBtn(
+                      _isCalendarView ? Icons.format_list_bulleted_rounded : Icons.calendar_month_rounded, 
+                      () {
+                        setState(() {
+                          _isCalendarView = !_isCalendarView;
+                        });
+                      }, 
+                      isNight: isNight,
+                      isActive: _isCalendarView,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.9, 0.9)),
         ],
       ),
     );

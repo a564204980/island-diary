@@ -1,0 +1,31 @@
+﻿Analyzing home_page.dart...                                     
+
+warning - Unused import: 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart' - lib\features\home\presentation\pages\home_page.dart:15:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:149:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:151:27 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:157:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:165:38 - deprecated_member_use
+   info - 'translate' is deprecated and shouldn't be used. Use translateByVector3, translateByVector4, or translateByDouble instead - lib\features\home\presentation\pages\home_page.dart:190:9 - deprecated_member_use
+   info - 'scale' is deprecated and shouldn't be used. Use scaleByVector3, scaleByVector4, or scaleByDouble instead - lib\features\home\presentation\pages\home_page.dart:191:9 - deprecated_member_use
+   info - 'translate' is deprecated and shouldn't be used. Use translateByVector3, translateByVector4, or translateByDouble instead - lib\features\home\presentation\pages\home_page.dart:192:9 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:364:80 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:438:66 - deprecated_member_use
+   info - 'scale' is deprecated and shouldn't be used. Use scaleByVector3, scaleByVector4, or scaleByDouble instead - lib\features\home\presentation\pages\home_page.dart:502:23 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:519:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:552:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:552:74 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\pages\home_page.dart:558:41 - deprecated_member_use
+
+flutter : 15 issues found. (ran in 3.9
+s)
+所在位置 行:1 字符: 1
++ flutter analyze lib/features/home/pr
+esentation/pages/home_page.dart > ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpec 
+   ified: (15 issues found. (ran in   
+  3.9s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeC 
+   ommandError
+ 
