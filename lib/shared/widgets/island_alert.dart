@@ -27,6 +27,7 @@ class IslandAlert extends StatelessWidget {
     HapticFeedback.lightImpact();
     
     // 使用 showGeneralDialog 实现居中缩放弹窗
+    bool isPopped = false;
     final dialog = showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -51,9 +52,11 @@ class IslandAlert extends StatelessWidget {
       },
     );
 
+    dialog.then((_) => isPopped = true);
+
     // 默认 3 秒后自动关闭
     Future.delayed(duration, () {
-      if (Navigator.of(context).canPop()) {
+      if (!isPopped && Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
       }
     });

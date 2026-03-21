@@ -19,6 +19,9 @@ class DiaryFontPickerSheet extends StatelessWidget {
       {'label': '抖音真体', 'value': 'Douyin'},
       {'label': '荆南波波黑', 'value': 'JingNan'},
       {'label': '西木手写', 'value': 'Nishiki'},
+      {'label': '万伟伟手写', 'value': 'WanWeiWei'},
+      {'label': '仓耳果秒黑', 'value': 'CangErGuoMiao'},
+      {'label': '猫啃珠圆体', 'value': 'MaoKenZhuYuan'},
     ];
 
     return Container(

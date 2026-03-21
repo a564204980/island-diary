@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/emoji_mapping.dart';
 
@@ -53,11 +53,33 @@ class _EmojiPanelState extends State<EmojiPanel> {
   }
 
   Future<void> _pickCustomEmoji() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
+    final List<AssetEntity>? result = await AssetPicker.pickAssets(
+      context,
+      pickerConfig: const AssetPickerConfig(
+        maxAssets: 1,
+        requestType: RequestType.common, // 支持图片、视频、实况图
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      final AssetEntity asset = result.first;
+      final File? file = await asset.originFile;
+      if (file == null) return;
+
+      String finalPath = file.path;
+      
+      // 处理实况图 (Live Photo)
+      if (asset.isLivePhoto) {
+        // 使用针对实况图优化的 API 获取视频部分
+        final File? videoFile = await asset.fileWithSubtype;
+        if (videoFile != null) {
+          // 这里通过简单的分隔符存储 path|videoPath，后续解析
+          finalPath = '${file.path}|${videoFile.path}';
+        }
+      }
+
       setState(() {
-        _customEmojis.insert(0, image.path);
+        _customEmojis.insert(0, finalPath);
       });
       _saveCustomEmojis();
     }
@@ -172,21 +194,28 @@ class _EmojiPanelState extends State<EmojiPanel> {
                         ),
                       );
                     }
-                    final path = _customEmojis[index - 1];
+                    final rawPath = _customEmojis[index - 1];
+                    final parts = rawPath.split('|');
+                    final imagePath = parts[0];
+                    final videoPath = parts.length > 1 ? parts[1] : null;
+
                     return GestureDetector(
                       onTap: () {
                         if (widget.onCustomEmojiSelected != null) {
-                          widget.onCustomEmojiSelected!(path);
+                          widget.onCustomEmojiSelected!(rawPath);
                         }
                       },
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
-                          image: DecorationImage(
-                            image: FileImage(File(path)),
-                            fit: BoxFit.cover,
-                          ),
                         ),
+                        clipBehavior: Clip.antiAlias,
+                        child: videoPath != null
+                            ? _buildLiveEmojiPreview(imagePath, videoPath)
+                            : Image.file(
+                                File(imagePath),
+                                fit: BoxFit.cover,
+                              ),
                       ),
                     );
                   },
@@ -347,6 +376,22 @@ class _EmojiPanelState extends State<EmojiPanel> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLiveEmojiPreview(String imagePath, String videoPath) {
+    // 复用之前定义的微动播放器，由于它定义在另一个文件，这里简单先用图片占位或在这里也贴一份逻辑
+    // 为了最小改动，这里先显示图片叠加一个实况图标标识。
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.file(File(imagePath), fit: BoxFit.cover),
+        const Positioned(
+          top: 4,
+          right: 4,
+          child: Icon(Icons.live_tv, size: 14, color: Colors.white70),
+        ),
+      ],
     );
   }
 

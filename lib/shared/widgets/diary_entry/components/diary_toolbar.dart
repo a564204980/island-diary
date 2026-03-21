@@ -14,6 +14,11 @@ class DiaryToolbar extends StatelessWidget {
   final VoidCallback? onLocationClick;
   final VoidCallback? onFontSizeClick;
   final VoidCallback? onFontClick;
+  final VoidCallback? onDateClick;
+  final VoidCallback? onTimeClick;
+  final VoidCallback? onTagClick;
+  final VoidCallback? onWeatherClick;
+  final VoidCallback? onMoreClick;
 
   const DiaryToolbar({
     super.key,
@@ -26,6 +31,11 @@ class DiaryToolbar extends StatelessWidget {
     this.onLocationClick,
     this.onFontSizeClick,
     this.onFontClick,
+    this.onDateClick,
+    this.onTimeClick,
+    this.onTagClick,
+    this.onWeatherClick,
+    this.onMoreClick,
   });
 
   @override
@@ -66,9 +76,9 @@ class DiaryToolbar extends StatelessWidget {
 
   /// 构建双行工具栏图标组
   List<Widget> _buildDualRowToolbarIcons(double rowWidth) {
-    // 严格 4x2 布局，共 8 个图标
+    // 扩展为 7x2 布局 (目前总共 13 个图标)
     final List<Map<String, dynamic>> icons = [
-      // 第一行
+      // 第一行 (7个)
       {
         'path': isEmojiOpen
             ? 'assets/images/icons/keyword.png'
@@ -78,17 +88,22 @@ class DiaryToolbar extends StatelessWidget {
       {'path': 'assets/images/icons/photo_icon.png', 'onTap': onImagePick},
       {'path': 'assets/images/icons/topic_icon.png', 'onTap': onTopicClick},
       {'path': 'assets/images/icons/pencil_icon.png', 'onTap': onColorClick},
-      
-      // 第二行
       {'path': 'assets/images/icons/address_icon.png', 'onTap': onLocationClick},
       {'path': 'assets/images/icons/fontSize_icon.png', 'onTap': onFontSizeClick},
       {'path': 'assets/images/icons/finally_icon.png', 'onTap': onFontClick},
+      
+      // 第二行 (6个已定，总 13 个)
       {'path': 'assets/images/icons/calligraphy_icon.png', 'onTap': onBgColorClick},
+      {'path': 'assets/images/icons/calendar.png', 'onTap': onDateClick},
+      {'path': 'assets/images/icons/time.png', 'onTap': onTimeClick},
+      {'path': 'assets/images/icons/tag.png', 'onTap': onTagClick},
+      {'path': 'assets/images/icons/watcher.png', 'onTap': onWeatherClick},
+      {'path': 'assets/images/icons/more.png', 'onTap': onMoreClick},
     ];
 
-    final double itemWidth = rowWidth / 4;
-    final row1Icons = icons.sublist(0, 4);
-    final row2Icons = icons.sublist(4, 8);
+    final double itemWidth = rowWidth / 7;
+    final row1Icons = icons.sublist(0, 7);
+    final row2Icons = icons.sublist(7);
 
     return [
       Row(

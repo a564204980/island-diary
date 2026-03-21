@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:io';
+import 'package:video_player/video_player.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import '../models/diary_block.dart';
 import 'audio_player.dart';
@@ -126,10 +127,15 @@ class DiaryBlockItem extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.file(
-                File(block.file.path),
-                fit: BoxFit.cover,
-              ),
+              child: block.videoPath != null
+                  ? _LiveImagePlayer(
+                      videoPath: block.videoPath!,
+                      fallbackPath: block.file.path,
+                    )
+                  : Image.file(
+                      File(block.file.path),
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
         ),
@@ -168,6 +174,61 @@ class DiaryBlockItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 专用于模拟实况图微动效果的本地视频播放器
+class _LiveImagePlayer extends StatefulWidget {
+  final String videoPath;
+  final String fallbackPath;
+
+  const _LiveImagePlayer({
+    required this.videoPath,
+    required this.fallbackPath,
+  });
+
+  @override
+  State<_LiveImagePlayer> createState() => _LiveImagePlayerState();
+}
+
+class _LiveImagePlayerState extends State<_LiveImagePlayer> {
+  late VideoPlayerController _controller;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.file(File(widget.videoPath))
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() => _initialized = true);
+          _controller.setLooping(true);
+          _controller.setVolume(0); // 实况图静音播放
+          _controller.play();
+        }
+      }).catchError((e) {
+        debugPrint('Live Photo Video Error: $e');
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_initialized) {
+      return Image.file(
+        File(widget.fallbackPath),
+        fit: BoxFit.cover,
+      );
+    }
+    return AspectRatio(
+      aspectRatio: _controller.value.aspectRatio,
+      child: VideoPlayer(_controller),
     );
   }
 }

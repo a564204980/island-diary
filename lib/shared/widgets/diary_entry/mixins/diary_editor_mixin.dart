@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:uuid/uuid.dart';
 import '../models/diary_block.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import '../utils/emoji_mapping.dart';
 import '../diary_entry_sheet.dart';
 import '../utils/diary_utils.dart';
@@ -16,6 +17,8 @@ import '../../mood_picker/config/mood_config.dart';
 import '../components/color_picker_sheet.dart';
 import '../components/font_picker_sheet.dart';
 import '../../island_alert.dart';
+import '../components/diary_date_picker_sheet.dart';
+import '../components/diary_time_picker_sheet.dart';
 
 /// 抽离日记编辑器的核心逻辑，包括内容块管理、焦点追踪、异步插入（图片/定位）等
 mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
@@ -197,12 +200,42 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
       return;
     }
 
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: source);
+    String? pickedPath;
+    String? pickedVideoPath;
 
-    if (image == null) {
-      if (mounted) setState(() => _isImagePickerOpen = false);
-      return;
+    if (source == ImageSource.gallery) {
+      // 升级为 AssetPicker 以支持实况图
+      final List<AssetEntity>? result = await AssetPicker.pickAssets(
+        context,
+        pickerConfig: const AssetPickerConfig(
+          maxAssets: 1,
+          requestType: RequestType.common,
+        ),
+      );
+      if (result == null || result.isEmpty) {
+        setState(() => _isImagePickerOpen = false);
+        return;
+      }
+      final entity = result.first;
+      final file = await entity.originFile;
+      if (file == null) {
+        setState(() => _isImagePickerOpen = false);
+        return;
+      }
+      pickedPath = file.path;
+      if (entity.isLivePhoto) {
+        final videoFile = await entity.fileWithSubtype;
+        if (videoFile != null) pickedVideoPath = videoFile.path;
+      }
+    } else {
+      // 拍照依然使用 ImagePicker
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.camera);
+      if (image == null) {
+        setState(() => _isImagePickerOpen = false);
+        return;
+      }
+      pickedPath = image.path;
     }
 
     // 选到图片后，在后续逻辑中处理状态恢复
@@ -229,7 +262,7 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
       newBottomBlock = TextBlock('', baseColor: _currentTextColor);
     }
 
-    final imageBlock = ImageBlock(image);
+    final imageBlock = ImageBlock(XFile(pickedPath), videoPath: pickedVideoPath);
 
     setState(() {
       _blocks.insert(insertIndex, imageBlock);
@@ -825,7 +858,11 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
       newBottomBlock = TextBlock('', baseColor: _currentTextColor);
     }
 
-    final imageBlock = ImageBlock(XFile(imagePath));
+    final parts = imagePath.split('|');
+    final actualImagePath = parts[0];
+    final String? videoPath = parts.length > 1 ? parts[1] : null;
+
+    final imageBlock = ImageBlock(XFile(actualImagePath), videoPath: videoPath);
 
     setState(() {
       _blocks.insert(insertIndex, imageBlock);
@@ -877,5 +914,111 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
     ).then((_) {
       if (mounted) setState(() => _isColorPickerOpen = false);
     });
+  }
+
+  void onDateClick() {
+    FocusScope.of(context).unfocus();
+    setState(() => _isColorPickerOpen = true);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DiaryDatePickerSheet(
+        initialDate: DateTime.now(),
+        onConfirm: (date) {
+          final activeBlock = activeTextBlock;
+          if (activeBlock != null) {
+            final controller = activeBlock.controller;
+            final text = controller.text;
+            final selection = controller.selection;
+            final insertion = DiaryUtils.getFormattedDateWithWeekday(date);
+
+            final newText = (selection.isValid)
+                ? text.replaceRange(
+                  selection.start.clamp(0, text.length),
+                  selection.end.clamp(0, text.length),
+                  insertion,
+                )
+                : text + insertion;
+
+            setState(() {
+              controller.value = controller.value.copyWith(
+                text: newText,
+                selection: TextSelection.collapsed(
+                  offset: (selection.isValid ? selection.start : text.length) +
+                      insertion.length,
+                ),
+              );
+            });
+            activeBlock.focusNode.requestFocus();
+            onBlocksChanged();
+          }
+          Navigator.pop(context);
+        },
+      ),
+    ).then((_) {
+      if (mounted) setState(() => _isColorPickerOpen = false);
+    });
+  }
+
+  void onTimeClick() {
+    FocusScope.of(context).unfocus();
+    setState(() => _isColorPickerOpen = true);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DiaryTimePickerSheet(
+        initialTime: TimeOfDay.now(),
+        onConfirm: (time) {
+          final activeBlock = activeTextBlock;
+          if (activeBlock != null) {
+            final controller = activeBlock.controller;
+            final text = controller.text;
+            final selection = controller.selection;
+            final insertion = DiaryUtils.getFormattedFullTime(time);
+
+            final newText = (selection.isValid)
+                ? text.replaceRange(
+                  selection.start.clamp(0, text.length),
+                  selection.end.clamp(0, text.length),
+                  insertion,
+                )
+                : text + insertion;
+
+            setState(() {
+              controller.value = controller.value.copyWith(
+                text: newText,
+                selection: TextSelection.collapsed(
+                  offset: (selection.isValid ? selection.start : text.length) +
+                      insertion.length,
+                ),
+              );
+            });
+            activeBlock.focusNode.requestFocus();
+            onBlocksChanged();
+          }
+          Navigator.pop(context);
+        },
+      ),
+    ).then((_) {
+      if (mounted) setState(() => _isColorPickerOpen = false);
+    });
+  }
+
+  void onTagClick() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('标签功能开发中...')),
+    );
+  }
+
+  void onWeatherClick() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('天气功能开发中...')),
+    );
+  }
+
+  void onMoreClick() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('更多功能开发中...')),
+    );
   }
 }

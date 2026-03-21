@@ -330,45 +330,49 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     final mood = kMoods[moodIdx];
     final Color badgeColor = mood.glowColor ?? const Color(0xFFC4B69E);
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // 1. 心情描述标签 (仅在无自定义标签时显示)
-        if (tag == null || tag.isEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: badgeColor.withOpacity(
-                isNight ? 0.15 : 0.18,
-              ), // 白天模式下微调背景透明度
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  mood.iconPath ?? 'assets/images/icons/sun.png',
-                  width: 14,
-                  height: 14,
-                ),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    DiaryUtils.getPureMoodDescription(mood.label, intensity),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: badgeColor.withOpacity(isNight ? 0.8 : 1.0),
-                      fontFamily: 'LXGWWenKai',
+        if (tag == null || tag.isEmpty) ...[
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: badgeColor.withOpacity(
+                  isNight ? 0.15 : 0.18,
+                ), // 白天模式下微调背景透明度
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    mood.iconPath ?? 'assets/images/icons/sun.png',
+                    width: 14,
+                    height: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      DiaryUtils.getPureMoodDescription(mood.label, intensity),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: badgeColor.withOpacity(isNight ? 0.8 : 1.0),
+                        fontFamily: 'LXGWWenKai',
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
+          const SizedBox(width: 8),
+        ],
 
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -395,51 +399,55 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           ),
         ),
         // 自定义标签 (如果存在)
-        if (tag != null && tag.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isNight
-                  ? Colors.white.withOpacity(0.08)
-                  : const Color(0xFF8B7763).withOpacity(0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
+        if (tag != null && tag.isNotEmpty) ...[
+          const SizedBox(width: 8),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
                 color: isNight
-                    ? Colors.white12
-                    : const Color(0xFF8B7763).withOpacity(0.15),
-                width: 0.5,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '#',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isNight
-                        ? Colors.white38
-                        : const Color(0xFF8B7763).withOpacity(0.5),
-                    fontWeight: FontWeight.bold,
-                  ),
+                    ? Colors.white.withOpacity(0.08)
+                    : const Color(0xFF8B7763).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isNight
+                      ? Colors.white12
+                      : const Color(0xFF8B7763).withOpacity(0.15),
+                  width: 0.5,
                 ),
-                const SizedBox(width: 2),
-                Flexible(
-                  child: Text(
-                    tag,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '#',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isNight ? Colors.white70 : const Color(0xFF8B7763),
-                      fontFamily: 'LXGWWenKai',
+                      color: isNight
+                          ? Colors.white38
+                          : const Color(0xFF8B7763).withOpacity(0.5),
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 2),
+                  Flexible(
+                    child: Text(
+                      tag,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: isNight ? Colors.white70 : const Color(0xFF8B7763),
+                        fontFamily: 'LXGWWenKai',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+        ],
       ],
     );
   }

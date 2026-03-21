@@ -31,6 +31,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_localizations:
+    sdk: flutter
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
@@ -45,11 +48,13 @@ dependencies:
   geolocator: ^13.0.1
   geocoding: ^3.0.0
   uuid: ^4.5.3
-  intl: ^0.19.0
+  intl: ^0.20.2
   share_plus: ^12.0.1
   path_provider: ^2.1.5
   pdf: ^3.11.1
   printing: ^5.13.0
+  wechat_assets_picker: ^9.5.0
+  video_player: ^2.9.2
 
 dev_dependencies:
   flutter_test:
@@ -120,5 +125,14 @@ flutter:
     - family: Zhi Mang Xing # 由于文件缺失，暂时映射到 FZKai 保证代码不报错，并实现“统一”
       fonts:
         - asset: assets/fonts/FangZhengKaiTiJianTi-1.ttf
+    - family: WanWeiWei
+      fonts:
+        - asset: assets/fonts/我爱万伟伟手写体.ttf
+    - family: CangErGuoMiao
+      fonts:
+        - asset: assets/fonts/【MianFei】CangJiGaoDeGuoMiaoHei-CJgaodeguomh-2.ttf
+    - family: MaoKenZhuYuan
+      fonts:
+        - asset: assets/fonts/MaoKenZhuYuanTi-MaokenZhuyuanTi-2.ttf
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

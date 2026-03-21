@@ -281,6 +281,11 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                         onLocationClick: onLocationClick,
                         onFontSizeClick: showFontSizePicker,
                         onFontClick: showFontPicker,
+                        onDateClick: onDateClick,
+                        onTimeClick: onTimeClick,
+                        onTagClick: onTagClick,
+                        onWeatherClick: onWeatherClick,
+                        onMoreClick: onMoreClick,
                       ),
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 250),

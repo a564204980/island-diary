@@ -41,7 +41,12 @@ abstract class DiaryBlock {
     } else if (type == 'image') {
       final path = map['path'];
       if (path != null && path.toString().isNotEmpty) {
-        return ImageBlock(XFile(path.toString()), id: id);
+        final videoPath = map['videoPath']?.toString();
+        return ImageBlock(
+          XFile(path.toString()), 
+          id: id, 
+          videoPath: videoPath,
+        );
       }
       return TextBlock('');
     } else if (type == 'audio') {
@@ -418,14 +423,16 @@ class TextBlock extends DiaryBlock {
 
 class ImageBlock extends DiaryBlock {
   final XFile file;
+  final String? videoPath; // 实况图对应的视频路径
 
-  ImageBlock(this.file, {super.id});
+  ImageBlock(this.file, {super.id, this.videoPath});
 
   @override
   Map<String, dynamic> toMap() => {
     'id': id,
     'type': 'image',
     'path': file.path,
+    if (videoPath != null) 'videoPath': videoPath,
   };
 }
 

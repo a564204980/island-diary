@@ -50,10 +50,22 @@ class DiaryUtils {
     return '${now.year}年${now.month}月${now.day}日';
   }
 
+  /// 获取增强格式化的日期 (yyyy/MM/dd 星期X)
+  static String getFormattedDateWithWeekday(DateTime date) {
+    final weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+    final weekday = weekdays[date.weekday - 1];
+    return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} $weekday';
+  }
+
   /// 获取格式化的当前时间 (HH:mm)
   static String getFormattedTime() {
     final now = DateTime.now();
     return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// 获取完整的格式化时间 (HH:mm:ss)
+  static String getFormattedFullTime(TimeOfDay time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:00';
   }
 
   /// 根据心情获取治愈系语录
@@ -89,13 +101,17 @@ class DiaryUtils {
     final int level = intensity.toInt();
     final List<String>? options = moodPrefixes[label];
     if (options == null) return label;
-    
+
     final int index = level <= 3 ? 0 : (level <= 7 ? 1 : 2);
     return "${options[index]}的$label";
   }
 
   /// 拟人化强度描述文案映射 (带强度后缀，兼容旧版)
-  static String getPersonifiedMoodDescription(String label, double intensity, {String? tag}) {
+  static String getPersonifiedMoodDescription(
+    String label,
+    double intensity, {
+    String? tag,
+  }) {
     // 如果有自定义标签，直接显示标签及其强度，不添加预设形容词
     if (tag != null && tag.trim().isNotEmpty) {
       return "${tag.trim()}/${intensity.toInt()}";
@@ -121,7 +137,9 @@ class DiaryUtils {
     Widget image;
     if (path.startsWith('http')) {
       image = Image.network(path, width: width, height: height, fit: fit);
-    } else if (path.startsWith('/') || path.contains('cache/') || path.contains('files/')) {
+    } else if (path.startsWith('/') ||
+        path.contains('cache/') ||
+        path.contains('files/')) {
       // 移动端文件路径
       image = Image.file(io.File(path), width: width, height: height, fit: fit);
     } else {
@@ -153,11 +171,14 @@ class DiaryUtils {
   }
 
   /// 将图片字节流保存为临时文件供分享/导出
-  static Future<String?> saveImageToTempFile(Uint8List bytes,
-      {String? fileName}) async {
+  static Future<String?> saveImageToTempFile(
+    Uint8List bytes, {
+    String? fileName,
+  }) async {
     try {
       final tempDir = await getTemporaryDirectory();
-      final name = fileName ??
+      final name =
+          fileName ??
           "diary_share_${DateTime.now().millisecondsSinceEpoch}.png";
       final file = io.File('${tempDir.path}/$name');
       await file.writeAsBytes(bytes);
