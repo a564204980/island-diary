@@ -288,7 +288,12 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
                         height: currentBottomAreaHeight,
                         color: const Color(0xFFF9EED8).withOpacity(0.95),
                         child: isEmojiOpen
-                            ? EmojiPanel(onEmojiSelected: onEmojiSelected)
+                            ? EmojiPanel(
+                                onEmojiSelected: onEmojiSelected,
+                                onBackspace: handleEmojiBackspace,
+                                onSend: handleEmojiSend,
+                                onCustomEmojiSelected: handleCustomEmojiSelected,
+                              )
                             : const SizedBox.shrink(),
                       ),
                     ],

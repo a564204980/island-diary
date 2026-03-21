@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:uuid/uuid.dart';
 import '../models/diary_block.dart';
+import '../utils/emoji_mapping.dart';
 import '../diary_entry_sheet.dart';
 import '../utils/diary_utils.dart';
 import '../components/font_size_picker_sheet.dart';
@@ -517,7 +518,10 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
         Rect.zero,
       );
 
-      final scrollable = Scrollable.of(context);
+      final blockContext = key.currentContext;
+      if (blockContext == null) return;
+      
+      final scrollable = Scrollable.of(blockContext);
       final scrollObject = scrollable.context.findRenderObject();
       if (scrollObject is! RenderBox) {
         return;
@@ -745,6 +749,102 @@ mixin DiaryEditorMixin<T extends MoodDiaryEntrySheet> on State<T> {
       ),
     );
     onBlocksChanged();
+  }
+
+  void handleEmojiBackspace() {
+    final activeBlock = activeTextBlock;
+    if (activeBlock == null) return;
+    final controller = activeBlock.controller;
+    final text = controller.text;
+    final selection = controller.selection;
+    if (!selection.isValid || selection.start == 0) return;
+
+    if (selection.isCollapsed) {
+      int start = selection.start - 1;
+      
+      if (text[start] == ']') {
+        final openBracketIndex = text.lastIndexOf('[', start);
+        if (openBracketIndex != -1) {
+          final content = text.substring(openBracketIndex + 1, start);
+          if (EmojiMapping.nameToPath.containsKey(content)) {
+            start = openBracketIndex;
+          } else if (start > 0 && 
+              text.codeUnitAt(start - 1) >= 0xD800 && 
+              text.codeUnitAt(start - 1) <= 0xDBFF) {
+            start -= 1; 
+          }
+        }
+      } else if (start > 0 && 
+          text.codeUnitAt(start - 1) >= 0xD800 && 
+          text.codeUnitAt(start - 1) <= 0xDBFF) {
+        start -= 1; 
+      }
+      final newText = text.replaceRange(start, selection.start, '');
+      controller.value = controller.value.copyWith(
+        text: newText,
+        selection: TextSelection.collapsed(offset: start),
+      );
+    } else {
+      final newText = text.replaceRange(selection.start, selection.end, '');
+      controller.value = controller.value.copyWith(
+        text: newText,
+        selection: TextSelection.collapsed(offset: selection.start),
+      );
+    }
+    onBlocksChanged();
+  }
+
+  void handleEmojiSend() {
+    onSave();
+  }
+
+  void handleCustomEmojiSelected(String imagePath) {
+    if (!mounted) return;
+    final activeBlock = activeTextBlock;
+    TextSelection? savedSelection;
+    if (activeBlock != null) savedSelection = activeBlock.controller.selection;
+
+    final int insertIndex;
+    TextBlock? newBottomBlock;
+
+    if (activeBlock != null) {
+      final controller = activeBlock.controller;
+      final selection = savedSelection ?? controller.selection;
+      final text = controller.text;
+      final int splitOffset = selection.isValid
+          ? selection.extentOffset.clamp(0, text.length)
+          : text.length;
+      final beforeText = text.substring(0, splitOffset);
+      final afterText = text.substring(splitOffset);
+      final originalIndex = _blocks.indexOf(activeBlock);
+      controller.text = beforeText;
+      insertIndex = originalIndex + 1;
+      newBottomBlock = TextBlock(afterText, baseColor: _currentTextColor);
+    } else {
+      insertIndex = _blocks.length;
+      newBottomBlock = TextBlock('', baseColor: _currentTextColor);
+    }
+
+    final imageBlock = ImageBlock(XFile(imagePath));
+
+    setState(() {
+      _blocks.insert(insertIndex, imageBlock);
+      _blocks.insert(insertIndex + 1, newBottomBlock!);
+      _blockKeys[imageBlock.id] = GlobalKey();
+      _blockKeys[newBottomBlock.id] = GlobalKey();
+      _lastFocusedBlockId = newBottomBlock.id;
+      _addFocusListener(newBottomBlock);
+    });
+
+    onBlocksChanged();
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted && newBottomBlock != null) {
+        newBottomBlock.controller.selection = const TextSelection.collapsed(offset: 0);
+        newBottomBlock.focusNode.requestFocus();
+        scrollToActiveBlock();
+      }
+    });
   }
 
   void toggleRecord() {

@@ -197,12 +197,20 @@ class EmojiMapping {
     final keys = unicodeToPath.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
     final emojiPattern = keys.map((e) => RegExp.escape(e)).join('|');
     
-    if (emojiPattern.isEmpty) {
+    final nameKeys = nameToPath.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
+    final namePattern = nameKeys.map((e) => RegExp.escape('[$e]')).join('|');
+
+    final pattern = [
+      if (emojiPattern.isNotEmpty) emojiPattern,
+      if (namePattern.isNotEmpty) namePattern,
+    ].join('|');
+    
+    if (pattern.isEmpty) {
       chunks.add(TextChunk(text: text));
       return chunks;
     }
 
-    final regExp = RegExp(emojiPattern);
+    final regExp = RegExp(pattern);
     int lastMatchEnd = 0;
 
     for (final match in regExp.allMatches(text)) {
@@ -210,9 +218,16 @@ class EmojiMapping {
         chunks.add(TextChunk(text: text.substring(lastMatchEnd, match.start)));
       }
 
-      final emojiChar = match.group(0)!;
-      final path = getPathForEmoji(emojiChar);
-      chunks.add(TextChunk(text: emojiChar, emojiPath: path));
+      final matchedStr = match.group(0)!;
+      String? path;
+      if (matchedStr.startsWith('[') && matchedStr.endsWith(']')) {
+        final name = matchedStr.substring(1, matchedStr.length - 1);
+        path = nameToPath[name];
+      } else {
+        path = getPathForEmoji(matchedStr);
+      }
+      
+      chunks.add(TextChunk(text: matchedStr, emojiPath: path));
 
       lastMatchEnd = match.end;
     }

@@ -267,14 +267,30 @@ class TopicTextEditingController extends TextEditingController {
     }
 
     // 2. 获取所有表情范围
-    final emojiKeys = EmojiMapping.unicodeToPath.keys.toList()
-      ..sort((a, b) => b.length.compareTo(a.length));
+    final emojiKeys = EmojiMapping.unicodeToPath.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
     final emojiPattern = emojiKeys.map((e) => RegExp.escape(e)).join('|');
-    if (emojiPattern.isNotEmpty) {
-      final RegExp emojiRegExp = RegExp(emojiPattern);
+    
+    final nameKeys = EmojiMapping.nameToPath.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
+    final namePattern = nameKeys.map((e) => RegExp.escape('[$e]')).join('|');
+
+    final pattern = [
+      if (emojiPattern.isNotEmpty) emojiPattern,
+      if (namePattern.isNotEmpty) namePattern,
+    ].join('|');
+    
+    if (pattern.isNotEmpty) {
+      final RegExp emojiRegExp = RegExp(pattern);
       for (final Match match in emojiRegExp.allMatches(textContent)) {
-        final emojiChar = match.group(0)!;
-        final path = EmojiMapping.getPathForEmoji(emojiChar);
+        final matchedStr = match.group(0)!;
+        String? path;
+        
+        if (matchedStr.startsWith('[') && matchedStr.endsWith(']')) {
+          final name = matchedStr.substring(1, matchedStr.length - 1);
+          path = EmojiMapping.nameToPath[name];
+        } else {
+          path = EmojiMapping.getPathForEmoji(matchedStr);
+        }
+        
         if (path != null) {
           highlights.add({
             'start': match.start,
