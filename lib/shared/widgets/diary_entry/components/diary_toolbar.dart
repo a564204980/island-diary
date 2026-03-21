@@ -87,16 +87,16 @@ class DiaryToolbar extends StatelessWidget {
       },
       {'path': 'assets/images/icons/photo_icon.png', 'onTap': onImagePick},
       {'path': 'assets/images/icons/topic_icon.png', 'onTap': onTopicClick},
-      {'path': 'assets/images/icons/pencil_icon.png', 'onTap': onColorClick},
-      {'path': 'assets/images/icons/address_icon.png', 'onTap': onLocationClick},
-      {'path': 'assets/images/icons/fontSize_icon.png', 'onTap': onFontSizeClick},
-      {'path': 'assets/images/icons/finally_icon.png', 'onTap': onFontClick},
-      
-      // 第二行 (6个已定，总 13 个)
-      {'path': 'assets/images/icons/calligraphy_icon.png', 'onTap': onBgColorClick},
       {'path': 'assets/images/icons/calendar.png', 'onTap': onDateClick},
       {'path': 'assets/images/icons/time.png', 'onTap': onTimeClick},
+      {'path': 'assets/images/icons/address_icon.png', 'onTap': onLocationClick},
       {'path': 'assets/images/icons/tag.png', 'onTap': onTagClick},
+      
+      // 第二行 (6个已定，总 13 个)
+      {'path': 'assets/images/icons/fontSize_icon.png', 'onTap': onFontSizeClick},
+      {'path': 'assets/images/icons/finally_icon.png', 'onTap': onFontClick},
+      {'path': 'assets/images/icons/pencil_icon.png', 'onTap': onColorClick},
+      {'path': 'assets/images/icons/calligraphy_icon.png', 'onTap': onBgColorClick},
       {'path': 'assets/images/icons/watcher.png', 'onTap': onWeatherClick},
       {'path': 'assets/images/icons/more.png', 'onTap': onMoreClick},
     ];

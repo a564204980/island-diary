@@ -175,16 +175,24 @@ class DiaryUtils {
     Uint8List bytes, {
     String? fileName,
   }) async {
+    return saveDataToTempFile(bytes, fileName: fileName);
+  }
+
+  /// 将任意二进制数据保存为临时文件供分享/导出
+  static Future<String?> saveDataToTempFile(
+    Uint8List bytes, {
+    String? fileName,
+  }) async {
     try {
       final tempDir = await getTemporaryDirectory();
       final name =
           fileName ??
-          "diary_share_${DateTime.now().millisecondsSinceEpoch}.png";
+          "diary_data_${DateTime.now().millisecondsSinceEpoch}.bin";
       final file = io.File('${tempDir.path}/$name');
       await file.writeAsBytes(bytes);
       return file.path;
     } catch (e) {
-      debugPrint("Save temp file failed: $e");
+      debugPrint("Save temp data failed: $e");
       return null;
     }
   }

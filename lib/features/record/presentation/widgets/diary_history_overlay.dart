@@ -498,15 +498,33 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
       await ExportService.exportToPdf(allDiaries, "岛屿日记 · 岁月成书", userName);
     } catch (e) {
       if (mounted) {
-        // 使用更明显的提示或者更详细的错误信息
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('导出失败: $e'),
-            backgroundColor: Colors.redAccent,
-            duration: const Duration(seconds: 10),
-            action: SnackBarAction(label: '确定', onPressed: () {}, textColor: Colors.white),
-          ),
-        );
+        if (e == 'PRINT_SERVICE_NOT_FOUND') {
+          // 打印预览拉不起来（常见于部分安卓系统），尝试保存为文件并弹出分享
+          try {
+            final bytes = await ExportService.generatePdfBytes(allDiaries, "岛屿日记 · 岁月成书", userName);
+            if (bytes != null) {
+              final fileName = 'isle_diary_book_${DateTime.now().millisecondsSinceEpoch}.pdf';
+              final path = await DiaryUtils.saveDataToTempFile(bytes, fileName: fileName);
+              if (path != null) {
+                await Share.shareXFiles([XFile(path)], text: '这是我的岛屿日记书 ✨');
+              }
+            }
+          } catch (shareError) {
+             ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('导出与分享均失败: $shareError'), backgroundColor: Colors.redAccent),
+            );
+          }
+        } else {
+          // 其他常规错误
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('导出失败: $e'),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 10),
+              action: SnackBarAction(label: '确定', onPressed: () {}, textColor: Colors.white),
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) {

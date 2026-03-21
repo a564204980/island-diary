@@ -10,10 +10,32 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart
 class ExportService {
   static Future<void> exportToPdf(
       List<DiaryEntry> entries, String title, String userName) async {
+    try {
+      final bytes = await generatePdfBytes(entries, title, userName);
+      if (bytes == null) return;
+      
+      try {
+        await Printing.layoutPdf(
+          onLayout: (PdfPageFormat format) async => bytes,
+          name: 'isle_diary_book_${DateTime.now().millisecondsSinceEpoch}.pdf',
+        );
+      } catch (e) {
+        print("PDF CORE: Printing.layoutPdf failed, falling back to share: $e");
+        throw 'PRINT_SERVICE_NOT_FOUND';
+      }
+    } catch (e, stack) {
+      if (e == 'PRINT_SERVICE_NOT_FOUND') rethrow;
+      print("PDF CORE ERROR: $e\n$stack");
+      rethrow;
+    }
+  }
+
+  static Future<Uint8List?> generatePdfBytes(
+      List<DiaryEntry> entries, String title, String userName) async {
     final pdf = pw.Document();
 
     try {
-      // 1. 并行加载核心字体与基础资源 (优化点：减少线性等待)
+      // 1. 并行加载核心字体与基础资源
       print("PDF CORE: Parallel loading started...");
       final fontFuture = rootBundle.load("assets/fonts/LXGWWenKai-Regular.ttf");
       final emojiFontFuture = rootBundle.load("assets/fonts/nishiki-teki.ttf");
@@ -31,8 +53,11 @@ class ExportService {
         final idx = i;
         moodFutures.add(() async {
           try {
-            final iconData = await rootBundle.load(kMoods[idx].iconPath!);
-            moodIcons[idx] = pw.MemoryImage(iconData.buffer.asUint8List());
+            final iconPath = kMoods[idx].iconPath;
+            if (iconPath != null) {
+              final iconData = await rootBundle.load(iconPath);
+              moodIcons[idx] = pw.MemoryImage(iconData.buffer.asUint8List());
+            }
           } catch (e) {
              print("PDF CORE: Icon $idx load error: $e");
           }
@@ -105,17 +130,11 @@ class ExportService {
         ),
       );
 
-      // 6. 最终导出并拉起预览
       print("PDF CORE: Finalizing layout...");
-      final bytes = await pdf.save();
-      
-      await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => bytes,
-        name: 'isle_diary_book_${DateTime.now().millisecondsSinceEpoch}.pdf',
-      );
+      return await pdf.save();
     } catch (e, stack) {
       print("PDF CORE ERROR: $e\n$stack");
-      rethrow;
+      return null;
     }
   }
 

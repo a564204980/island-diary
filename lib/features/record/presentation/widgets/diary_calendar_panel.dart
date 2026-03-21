@@ -39,63 +39,47 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          _buildStaticWeekRow(),
-          const SizedBox(height: 4),
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.only(top: 8, bottom: 80), 
-              itemBuilder: (context, index) {
-                return _MonthSection(
-                  index: index, // 传递 index 用于 Stagger 动画
-                  month: _getMonthForIndex(index),
-                  isNight: widget.isNight,
-                  onDateSelected: widget.onDateSelected,
-                  onShareMonth: widget.onShareMonth,
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isWide = constraints.maxWidth > 700;
+        final int crossAxisCount = isWide ? 2 : 1;
 
-  Widget _buildStaticWeekRow() {
-    final List<String> weekDays = ["一", "二", "三", "四", "五", "六", "日"];
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: weekDays.map((d) => SizedBox(
-          width: 40,
-          child: Center(
-            child: Text(
-              d,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: widget.isNight ? Colors.white30 : Colors.black.withOpacity(0.12),
-                fontFamily: 'LXGWWenKai',
-              ),
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: GridView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.only(top: 16, bottom: 80),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: isWide ? 0.74 : 0.72, // 调整比例为 6 行日历提供足够空间
+              mainAxisExtent: isWide ? 520 : null, // 宽屏下固定高度增加到 520，防止6行日历溢出
             ),
+            itemCount: 24, // 默认显示两年，保持原样逻辑或自定义
+            itemBuilder: (context, index) {
+              return _MonthSection(
+                index: index,
+                month: _getMonthForIndex(index),
+                isNight: widget.isNight,
+                onDateSelected: widget.onDateSelected,
+                onShareMonth: widget.onShareMonth,
+                showWeekdayHeader: true, // 强制每个卡片显示自己的星期头
+              );
+            },
           ),
-        )).toList(),
-      ),
+        );
+      },
     );
   }
 }
 
 class _MonthSection extends StatelessWidget {
-  final int index; // 新增 index
+  final int index;
   final DateTime month;
   final bool isNight;
   final Function(DateTime) onDateSelected;
+  final bool showWeekdayHeader;
 
   const _MonthSection({
     required this.index,
@@ -103,6 +87,7 @@ class _MonthSection extends StatelessWidget {
     required this.isNight,
     required this.onDateSelected,
     this.onShareMonth,
+    this.showWeekdayHeader = false,
   });
 
   final Function(DateTime)? onShareMonth;
@@ -165,6 +150,11 @@ class _MonthSection extends StatelessWidget {
               ],
             ),
           ),
+
+          if (showWeekdayHeader) ...[
+            _buildInternalWeekRow(isNight),
+            const SizedBox(height: 12),
+          ],
 
           ValueListenableBuilder<List<DiaryEntry>>(
             valueListenable: UserState().savedDiaries,
@@ -242,7 +232,27 @@ class _MonthSection extends StatelessWidget {
     )
     .animate()
     .fadeIn(delay: (index * 80).ms, duration: 400.ms)
-    .moveX(begin: 12, end: 0); // 对标主列表的入场动画
+    .moveX(begin: 12, end: 0); 
+  }
+
+  Widget _buildInternalWeekRow(bool isNight) {
+    final List<String> weekDays = ["一", "二", "三", "四", "五", "六", "日"];
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: weekDays.map((d) => Expanded(
+        child: Center(
+          child: Text(
+            d,
+            style: TextStyle(
+              fontSize: 12, // 内部表头稍小一点
+              fontWeight: FontWeight.w800,
+              color: isNight ? Colors.white24 : Colors.black.withOpacity(0.12),
+              fontFamily: 'LXGWWenKai',
+            ),
+          ),
+        ),
+      )).toList(),
+    );
   }
 }
 

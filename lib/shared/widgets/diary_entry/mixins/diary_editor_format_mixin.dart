@@ -1,0 +1,254 @@
+import 'package:flutter/material.dart';
+import '../models/diary_block.dart';
+import '../diary_entry_sheet.dart';
+import '../utils/diary_utils.dart';
+import '../components/font_size_picker_sheet.dart';
+import '../components/color_picker_sheet.dart';
+import '../components/font_picker_sheet.dart';
+import '../utils/emoji_mapping.dart';
+import './diary_editor_core_mixin.dart';
+
+mixin DiaryEditorFormatMixin<T extends MoodDiaryEntrySheet> on State<T>, DiaryEditorCoreMixin<T> {
+  void showColorPicker() {
+    FocusScope.of(context).unfocus();
+    setState(() => isColorPickerOpen = true);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => DiaryColorPickerSheet(
+        title: '选择文字颜色',
+        currentTextColor: currentTextColor,
+        colors: DiaryUtils.presetTextColors,
+        onApplyColor: (color) {
+          final activeBlock = activeTextBlock;
+          final selection = activeBlock?.controller.selection;
+
+          setState(() {
+            currentTextColor = color;
+            if (activeBlock != null && selection != null && !selection.isCollapsed) {
+              (activeBlock.controller as TopicTextEditingController)
+                  .applyAttributeToSelection(selection, color: color);
+            } else {
+              for (var block in blocks) {
+                if (block is TextBlock) {
+                  (block.controller as TopicTextEditingController).updateBaseColor(color);
+                }
+              }
+            }
+          });
+          onBlocksChanged();
+          Navigator.pop(context);
+        },
+        onClear: () {
+          final activeBlock = activeTextBlock;
+          final selection = activeBlock?.controller.selection;
+          if (activeBlock != null && selection != null && !selection.isCollapsed) {
+            setState(() {
+              (activeBlock.controller as TopicTextEditingController)
+                  .applyAttributeToSelection(selection, clearColor: true);
+            });
+            onBlocksChanged();
+          }
+          Navigator.pop(context);
+        },
+      ),
+    ).then((_) {
+      if (mounted) setState(() => isColorPickerOpen = false);
+    });
+  }
+
+  void showBackgroundColorPicker() {
+    FocusScope.of(context).unfocus();
+    setState(() => isColorPickerOpen = true);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => DiaryColorPickerSheet(
+        title: '选择文字背景色',
+        currentTextColor: Colors.transparent,
+        colors: DiaryUtils.presetBgColors,
+        onApplyColor: (color) {
+          final activeBlock = activeTextBlock;
+          final selection = activeBlock?.controller.selection;
+          setState(() {
+            if (activeBlock != null && selection != null && !selection.isCollapsed) {
+              (activeBlock.controller as TopicTextEditingController)
+                  .applyAttributeToSelection(selection, bgColor: color);
+            }
+          });
+          onBlocksChanged();
+          Navigator.pop(context);
+        },
+        onClear: () {
+          final activeBlock = activeTextBlock;
+          final selection = activeBlock?.controller.selection;
+          if (activeBlock != null && selection != null && !selection.isCollapsed) {
+            setState(() {
+              (activeBlock.controller as TopicTextEditingController)
+                  .applyAttributeToSelection(selection, clearBgColor: true);
+            });
+            onBlocksChanged();
+          }
+          Navigator.pop(context);
+        },
+      ),
+    ).then((_) {
+      if (mounted) setState(() => isColorPickerOpen = false);
+    });
+  }
+
+  void showFontSizePicker() {
+    FocusScope.of(context).unfocus();
+    setState(() => isColorPickerOpen = true);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return DiaryFontSizePickerSheet(
+            currentFontSize: currentFontSize,
+            onApplyFontSize: (size) {
+              setModalState(() {
+                currentFontSize = size;
+              });
+              onApplyFontSize(size);
+            },
+          );
+        },
+      ),
+    ).then((_) {
+      if (mounted) setState(() => isColorPickerOpen = false);
+    });
+  }
+
+  void onApplyFontSize(double size) {
+    final activeBlock = activeTextBlock;
+    final selection = activeBlock?.controller.selection;
+
+    setState(() {
+      currentFontSize = size;
+      if (activeBlock != null &&
+          selection != null &&
+          !selection.isCollapsed) {
+        (activeBlock.controller as TopicTextEditingController)
+            .applyAttributeToSelection(selection, fontSize: size);
+      } else {
+        // 全局应用
+        for (var block in blocks) {
+          if (block is TextBlock) {
+            (block.controller as TopicTextEditingController)
+                .updateBaseFontSize(size);
+          }
+        }
+      }
+    });
+    onBlocksChanged();
+  }
+
+  void showFontPicker() {
+    FocusScope.of(context).unfocus();
+    setState(() => isColorPickerOpen = true);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DiaryFontPickerSheet(
+        currentFontFamily: currentFontFamily,
+        onApplyFontFamily: onApplyFontFamily,
+      ),
+    ).then((_) {
+      if (mounted) setState(() => isColorPickerOpen = false);
+    });
+  }
+
+  void onApplyFontFamily(String family) {
+    setState(() {
+      currentFontFamily = family;
+      for (var block in blocks) {
+        if (block is TextBlock) {
+          (block.controller as TopicTextEditingController).updateBaseFontFamily(family);
+        }
+      }
+    });
+    onBlocksChanged();
+    Navigator.pop(context);
+  }
+
+  void toggleEmoji() {
+    setState(() {
+      isEmojiOpen = !isEmojiOpen;
+      if (isEmojiOpen) {
+        FocusScope.of(context).unfocus();
+      } else {
+        activeTextBlock?.focusNode.requestFocus();
+      }
+    });
+  }
+
+  void onEmojiSelected(String emoji) {
+    final activeBlock = activeTextBlock;
+    if (activeBlock == null) return;
+    final controller = activeBlock.controller;
+    final text = controller.text;
+    final selection = controller.selection;
+    final newText = text.replaceRange(
+      selection.start.clamp(0, text.length),
+      selection.end.clamp(0, text.length),
+      emoji,
+    );
+    controller.value = controller.value.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(offset: selection.start + emoji.length),
+    );
+    onBlocksChanged();
+  }
+
+  void handleEmojiBackspace() {
+    final activeBlock = activeTextBlock;
+    if (activeBlock == null) return;
+    final controller = activeBlock.controller;
+    final text = controller.text;
+    final selection = controller.selection;
+    if (!selection.isValid || selection.start == 0) return;
+
+    if (selection.isCollapsed) {
+      int start = selection.start - 1;
+      
+      if (text[start] == ']') {
+        final openBracketIndex = text.lastIndexOf('[', start);
+        if (openBracketIndex != -1) {
+          final content = text.substring(openBracketIndex + 1, start);
+          if (EmojiMapping.nameToPath.containsKey(content)) {
+            start = openBracketIndex;
+          } else if (start > 0 && 
+              text.codeUnitAt(start - 1) >= 0xD800 && 
+              text.codeUnitAt(start - 1) <= 0xDBFF) {
+            start -= 1; 
+          }
+        }
+      } else if (start > 0 && 
+          text.codeUnitAt(start - 1) >= 0xD800 && 
+          text.codeUnitAt(start - 1) <= 0xDBFF) {
+        start -= 1; 
+      }
+      final newText = text.replaceRange(start, selection.start, '');
+      controller.value = controller.value.copyWith(
+        text: newText,
+        selection: TextSelection.collapsed(offset: start),
+      );
+    } else {
+      final newText = text.replaceRange(selection.start, selection.end, '');
+      controller.value = controller.value.copyWith(
+        text: newText,
+        selection: TextSelection.collapsed(offset: selection.start),
+      );
+    }
+    onBlocksChanged();
+  }
+
+  void handleEmojiSend() {
+    onSave();
+  }
+}

@@ -9,8 +9,11 @@ import 'components/mood_tag.dart';
 import 'components/hand_drawn_divider.dart';
 import '../mood_picker/config/mood_config.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'mixins/diary_editor_core_mixin.dart';
+import 'mixins/diary_editor_media_mixin.dart';
+import 'mixins/diary_editor_format_mixin.dart';
+import 'mixins/diary_editor_insert_mixin.dart';
 import 'utils/diary_utils.dart';
-import 'mixins/diary_editor_mixin.dart';
 
 class MoodDiaryEntrySheet extends StatefulWidget {
   final int moodIndex;
@@ -29,7 +32,11 @@ class MoodDiaryEntrySheet extends StatefulWidget {
 }
 
 class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
-    with DiaryEditorMixin {
+    with
+        DiaryEditorCoreMixin<MoodDiaryEntrySheet>,
+        DiaryEditorMediaMixin<MoodDiaryEntrySheet>,
+        DiaryEditorFormatMixin<MoodDiaryEntrySheet>,
+        DiaryEditorInsertMixin<MoodDiaryEntrySheet> {
   @override
   void initState() {
     super.initState();

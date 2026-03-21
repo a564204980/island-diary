@@ -100,18 +100,19 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
                           border: Border.all(
                             color: isSelected
                                 ? const Color(0xFF8B5E3C)
-                                : Colors.white.withOpacity(0.5),
+                                : const Color(0xFF8B5E3C).withOpacity(0.15),
                             width: isSelected ? 3 : 1.5,
                           ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: color.withOpacity(0.3),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
-                                  ),
-                                ]
-                              : [],
+                          boxShadow: [
+                            BoxShadow(
+                              color: isSelected 
+                                  ? color.withOpacity(0.3) 
+                                  : Colors.black.withOpacity(0.05),
+                              blurRadius: isSelected ? 10 : 4,
+                              spreadRadius: isSelected ? 2 : 0,
+                              offset: isSelected ? Offset.zero : const Offset(0, 2),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -129,6 +130,13 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
                           color: const Color(0xFF8B5E3C).withOpacity(0.3),
                           width: 1.5,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: const Icon(
                         Icons.block,
