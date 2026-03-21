@@ -272,43 +272,56 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
               right: 0,
               child: Builder(
                 builder: (context) {
+                  final double screenWidth = MediaQuery.of(context).size.width;
+                  final bool isWide = screenWidth > 600;
+                  final double paperMaxWidth = isWide ? screenWidth * 0.7 : double.infinity;
+                  // 工具栏比信纸稍微宽一点点，两边伸展出一点距离，显得更自然
+                  final double toolbarMaxWidth = isWide ? paperMaxWidth + 24 : double.infinity;
+
                   final double currentBottomAreaHeight = isEmojiOpen
                       ? keyboardHeight
                       : 0;
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      DiaryToolbar(
-                        isEmojiOpen: isEmojiOpen,
-                        onEmojiToggle: toggleEmoji,
-                        onImagePick: onImageButtonPressed,
-                        onTopicClick: insertTopic,
-                        onColorClick: showColorPicker,
-                        onBgColorClick: showBackgroundColorPicker,
-                        onLocationClick: onLocationClick,
-                        onFontSizeClick: showFontSizePicker,
-                        onFontClick: showFontPicker,
-                        onDateClick: onDateClick,
-                        onTimeClick: onTimeClick,
-                        onTagClick: onTagClick,
-                        onWeatherClick: onWeatherClick,
-                        onMoreClick: onMoreClick,
+                      
+                  return Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      width: toolbarMaxWidth,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DiaryToolbar(
+                            isEmojiOpen: isEmojiOpen,
+                            onEmojiToggle: toggleEmoji,
+                            onImagePick: onImageButtonPressed,
+                            onTopicClick: insertTopic,
+                            onColorClick: showColorPicker,
+                            onBgColorClick: showBackgroundColorPicker,
+                            onLocationClick: onLocationClick,
+                            onFontSizeClick: showFontSizePicker,
+                            onFontClick: showFontPicker,
+                            onDateClick: onDateClick,
+                            onTimeClick: onTimeClick,
+                            onTagClick: onTagClick,
+                            onWeatherClick: onWeatherClick,
+                            onMoreClick: onMoreClick,
+                          ),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOutCubic,
+                            height: currentBottomAreaHeight,
+                            color: const Color(0xFFF9EED8).withOpacity(0.95),
+                            child: isEmojiOpen
+                                ? EmojiPanel(
+                                    onEmojiSelected: onEmojiSelected,
+                                    onBackspace: handleEmojiBackspace,
+                                    onSend: handleEmojiSend,
+                                    onCustomEmojiSelected: handleCustomEmojiSelected,
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                        ],
                       ),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeOutCubic,
-                        height: currentBottomAreaHeight,
-                        color: const Color(0xFFF9EED8).withOpacity(0.95),
-                        child: isEmojiOpen
-                            ? EmojiPanel(
-                                onEmojiSelected: onEmojiSelected,
-                                onBackspace: handleEmojiBackspace,
-                                onSend: handleEmojiSend,
-                                onCustomEmojiSelected: handleCustomEmojiSelected,
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ],
+                    ),
                   );
                 },
               ),

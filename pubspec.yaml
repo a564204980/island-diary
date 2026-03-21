@@ -55,6 +55,7 @@ dependencies:
   printing: ^5.13.0
   wechat_assets_picker: ^9.5.0
   video_player: ^2.9.2
+  lunar: ^1.7.8
 
 dev_dependencies:
   flutter_test:

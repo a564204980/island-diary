@@ -193,19 +193,40 @@ class HandDrawnToolbarPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
-    // 创建一个稍微带点波动的长条路径
+    // 创建带波动感的手绘路径
     final path = Path();
     final w = size.width;
     final h = size.height;
 
-    // 绘制稍微不规则的顶部边缘
-    path.moveTo(0, 5);
+    // 1. 顶部边缘 (向右)
+    path.moveTo(2, 5);
+    int step = 0;
     for (double i = 0; i <= w; i += 20) {
-      path.lineTo(i, 2.0 + (i % 40 == 0 ? 3.0 : -1.0));
+      final double x = i > w ? w : i;
+      path.lineTo(x, 2.0 + (step % 2 == 0 ? 3.0 : 0.0));
+      step++;
     }
-    path.lineTo(w, 0);
+
+    // 2. 右侧边缘 (向下)
+    step = 0;
+    for (double y = 0; y <= h; y += 15) {
+      final double currentY = y > h ? h : y;
+      path.lineTo(w - 1.0 - (step % 2 == 0 ? 3.0 : 0.0), currentY);
+      step++;
+    }
+
+    // 3. 底部边缘 (直线，按要求取消起伏)
     path.lineTo(w, h);
     path.lineTo(0, h);
+
+    // 4. 左侧边缘 (向上)
+    step = 0;
+    for (double y = h; y >= 0; y -= 15) {
+      final double currentY = y < 0 ? 0 : y;
+      path.lineTo(1.0 + (step % 2 == 0 ? 3.0 : 0.0), currentY);
+      step++;
+    }
+
     path.close();
 
     canvas.drawPath(path, paint);

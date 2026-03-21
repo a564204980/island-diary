@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart'; // 引入 flutter_animate
+import 'package:lunar/lunar.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
@@ -26,6 +27,25 @@ class DiaryCalendarPanel extends StatefulWidget {
 class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
   final ScrollController _scrollController = ScrollController();
   final DateTime _now = DateTime.now();
+  int _loadedMonths = 2; // 极致优化：首屏只计算和渲染 2 个月份（刚好填满手机屏幕），彻底消除耗时
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 监听滚动，如果滚动到底部附近，再慢慢加载更前面的月份
+    _scrollController.addListener(() {
+      if (!mounted) return;
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 800) {
+        if (_loadedMonths < 36) { // 总共大约看3年 (36个月)
+          setState(() {
+            // 每次追加加载 4 个月
+            _loadedMonths = (_loadedMonths + 4).clamp(0, 36);
+          });
+        }
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -39,35 +59,65 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isWide = constraints.maxWidth > 700;
-        final int crossAxisCount = isWide ? 2 : 1;
+    return ValueListenableBuilder<List<DiaryEntry>>(
+      valueListenable: UserState().savedDiaries,
+      builder: (context, allDiaries, _) {
+        // 计算最早记录月份距离当前的总月数，以限制日历无限往回滚
+        int maxMonths = 36;
+        if (allDiaries.isNotEmpty) {
+          DateTime earliest = allDiaries.first.dateTime;
+          for (var d in allDiaries) {
+            if (d.dateTime.isBefore(earliest)) {
+              earliest = d.dateTime;
+            }
+          }
+          final monthDiff = (_now.year - earliest.year) * 12 + (_now.month - earliest.month) + 1;
+          maxMonths = monthDiff > 0 ? monthDiff : 1;
+        }
 
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: GridView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.only(top: 16, bottom: 80),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: isWide ? 0.74 : 0.72, // 调整比例为 6 行日历提供足够空间
-              mainAxisExtent: isWide ? 520 : null, // 宽屏下固定高度增加到 520，防止6行日历溢出
-            ),
-            itemCount: 24, // 默认显示两年，保持原样逻辑或自定义
-            itemBuilder: (context, index) {
-              return _MonthSection(
-                index: index,
-                month: _getMonthForIndex(index),
-                isNight: widget.isNight,
-                onDateSelected: widget.onDateSelected,
-                onShareMonth: widget.onShareMonth,
-                showWeekdayHeader: true, // 强制每个卡片显示自己的星期头
-              );
-            },
-          ),
+        // 全局 O(N) 预处理，按月份分组，避免在每个子组件里重复遍历百千条数据
+        final Map<String, List<DiaryEntry>> monthMap = {};
+        for (var d in allDiaries) {
+          final k = "${d.dateTime.year}-${d.dateTime.month}";
+          monthMap.putIfAbsent(k, () => []).add(d);
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isWide = constraints.maxWidth > 700;
+            final int crossAxisCount = isWide ? 2 : 1;
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: GridView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.only(top: 16, bottom: 80),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: isWide ? 0.74 : 0.72,
+                  mainAxisExtent: isWide ? 520 : null,
+                ),
+                itemCount: _loadedMonths < maxMonths ? _loadedMonths : maxMonths, // 只渲染已上线加载且不超过最早记录的月份
+                itemBuilder: (context, index) {
+                  final month = _getMonthForIndex(index);
+                  final k = "${month.year}-${month.month}";
+                  final monthDiaries = monthMap[k] ?? [];
+
+                  return _MonthSection(
+                    index: index,
+                    month: month,
+                    isNight: widget.isNight,
+                    onDateSelected: widget.onDateSelected,
+                    onShareMonth: widget.onShareMonth,
+                    showWeekdayHeader: true,
+                    monthDiaries: monthDiaries,
+                  );
+                },
+              ),
+            );
+          },
         );
       },
     );
@@ -80,12 +130,14 @@ class _MonthSection extends StatelessWidget {
   final bool isNight;
   final Function(DateTime) onDateSelected;
   final bool showWeekdayHeader;
+  final List<DiaryEntry> monthDiaries;
 
   const _MonthSection({
     required this.index,
     required this.month,
     required this.isNight,
     required this.onDateSelected,
+    required this.monthDiaries,
     this.onShareMonth,
     this.showWeekdayHeader = false,
   });
@@ -156,24 +208,18 @@ class _MonthSection extends StatelessWidget {
             const SizedBox(height: 12),
           ],
 
-          ValueListenableBuilder<List<DiaryEntry>>(
-            valueListenable: UserState().savedDiaries,
-            builder: (context, allDiaries, _) {
-              final Map<String, List<DiaryEntry>> dayMap = {};
-              final monthDiaries = <DiaryEntry>[];
-              
-              for (var entry in allDiaries) {
-                if (entry.dateTime.year == month.year && entry.dateTime.month == month.month) {
-                  monthDiaries.add(entry);
-                }
-                final key = "${entry.dateTime.year}-${entry.dateTime.month}-${entry.dateTime.day}";
-                dayMap.putIfAbsent(key, () => []).add(entry);
-              }
-
-              final activeDays = monthDiaries.map((e) => "${e.dateTime.year}-${e.dateTime.month}-${e.dateTime.day}").toSet().length;
+          Builder(
+            builder: (context) {
+              // 局部聚合：将该月的数据按“天数(int)”分组，O(K) 极速操作
+              final Map<int, List<DiaryEntry>> dayMap = {};
+              final Set<int> activeDaysSet = {};
               int totalWords = 0;
-              for (var e in monthDiaries) {
-                totalWords += e.content.length;
+              
+              for (var entry in monthDiaries) {
+                final d = entry.dateTime.day;
+                dayMap.putIfAbsent(d, () => []).add(entry);
+                activeDaysSet.add(d);
+                totalWords += entry.content.length;
               }
 
               return Column(
@@ -194,14 +240,13 @@ class _MonthSection extends StatelessWidget {
                       if (index < emptySlotsBefore) return const SizedBox.shrink();
 
                       final int day = index - emptySlotsBefore + 1;
-                      final dateKey = "${month.year}-${month.month}-$day";
-                      final entries = dayMap[dateKey];
+                      final entries = dayMap[day];
                       final bool isToday = DateTime.now().year == month.year &&
                           DateTime.now().month == month.month &&
                           DateTime.now().day == day;
 
                       return _CalendarDayCell(
-                        day: day,
+                        date: DateTime(month.year, month.month, day),
                         entries: entries,
                         isToday: isToday,
                         isNight: isNight,
@@ -214,7 +259,7 @@ class _MonthSection extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 18, right: 4),
                       child: Text(
-                        "$activeDays天 | ${monthDiaries.length}篇 | $totalWords字",
+                        "${activeDaysSet.length}天 | ${monthDiaries.length}篇 | ${totalWords}字",
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -231,8 +276,9 @@ class _MonthSection extends StatelessWidget {
       ),
     )
     .animate()
-    .fadeIn(delay: (index * 80).ms, duration: 400.ms)
-    .moveX(begin: 12, end: 0); 
+    // 动画明显提速，进场更干脆，不拖泥带水
+    .fadeIn(delay: ((index % 2) * 40).ms, duration: 200.ms)
+    .moveX(begin: 8, end: 0); 
   }
 
   Widget _buildInternalWeekRow(bool isNight) {
@@ -257,14 +303,14 @@ class _MonthSection extends StatelessWidget {
 }
 
 class _CalendarDayCell extends StatelessWidget {
-  final int day;
+  final DateTime date;
   final List<DiaryEntry>? entries;
   final bool isToday;
   final bool isNight;
   final VoidCallback onTap;
 
   const _CalendarDayCell({
-    required this.day,
+    required this.date,
     this.entries,
     required this.isToday,
     required this.isNight,
@@ -290,6 +336,35 @@ class _CalendarDayCell extends StatelessWidget {
       }
     }
 
+    // 阴历与节假日计算
+    String lunarStr = '';
+    final lunar = Lunar.fromDate(date);
+    final solar = Solar.fromDate(date);
+    
+    final solarFests = solar.getFestivals();
+    final lunarFests = lunar.getFestivals();
+    final jieQi = lunar.getJieQi();
+    
+    // 优先级：公历节日 > 农历节日 > 节气 > 节日/初一 > 普通农历日
+    if (solarFests.isNotEmpty) {
+      lunarStr = solarFests[0];
+    } else if (lunarFests.isNotEmpty) {
+      lunarStr = lunarFests[0];
+    } else if (jieQi.isNotEmpty) {
+      lunarStr = jieQi;
+    } else {
+      if (lunar.getDay() == 1) {
+        lunarStr = '${lunar.getMonthInChinese()}月';
+      } else {
+        lunarStr = lunar.getDayInChinese();
+      }
+    }
+
+    // 短期截断 (如果有超长节日比如 "国际劳动妇女节" 或 "国庆长假")
+    if (lunarStr.length > 5) {
+      lunarStr = lunarStr.substring(0, 4);
+    }
+
     final TextStyle dayStyle = TextStyle(
       fontSize: 17,
       fontWeight: FontWeight.w900,
@@ -304,6 +379,25 @@ class _CalendarDayCell extends StatelessWidget {
           offset: Offset(0, 1.5),
         )
       ] : null,
+    );
+
+    final Color lunarColor = (solarFests.isNotEmpty || lunarFests.isNotEmpty || jieQi.isNotEmpty)
+        ? (hasEntry ? Colors.white : const Color(0xFFD4A373)) // 节日用亮色
+        : (isNight ? Colors.white30 : Colors.black38); // 普通农历用淡色
+
+    final TextStyle lunarStyle = TextStyle(
+      fontSize: 9.5,
+      fontWeight: FontWeight.w600,
+      fontFamily: 'LXGWWenKai',
+      color: hasEntry ? Colors.white70 : lunarColor,
+      shadows: hasEntry ? [
+        const Shadow(
+          blurRadius: 3,
+          color: Colors.black54,
+          offset: Offset(0, 1),
+        )
+      ] : null,
+      height: 1.1,
     );
 
     return GestureDetector(
@@ -363,7 +457,14 @@ class _CalendarDayCell extends StatelessWidget {
               ),
 
             Center(
-              child: Text("$day", style: dayStyle),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text("${date.day}", style: dayStyle),
+                  const SizedBox(height: 1),
+                  Text(lunarStr, style: lunarStyle),
+                ],
+              ),
             ),
 
             if (hasEntry && entries!.length > 1)

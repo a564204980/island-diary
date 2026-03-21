@@ -4,6 +4,7 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
+import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 
 /// 每一份日记卡片
 class DiaryHistoryCard extends StatefulWidget {
@@ -31,6 +32,69 @@ class DiaryHistoryCard extends StatefulWidget {
 
 class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
   bool _isExpanded = false;
+
+  List<InlineSpan> _parseTextWithEmojis(String text, TextStyle style) {
+    return EmojiMapping.parseText(text).map((chunk) {
+      if (chunk.isEmoji) {
+        return WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Image.asset(
+              chunk.emojiPath!,
+              width: 18,
+              height: 18,
+            ),
+          ),
+        );
+      }
+      return TextSpan(
+        text: chunk.text,
+        style: style,
+      );
+    }).toList();
+  }
+
+  List<InlineSpan> _buildRichTextSpans(TextStyle baseStyle) {
+    if (widget.entry.blocks.isEmpty) {
+      return _parseTextWithEmojis(widget.entry.content.trim(), baseStyle);
+    }
+
+    final spans = <InlineSpan>[];
+    for (var b in widget.entry.blocks) {
+      if (b['type'] == 'text') {
+        final block = DiaryBlock.fromMap(Map<String, dynamic>.from(b as Map));
+        if (block is TextBlock) {
+          final controller = block.controller;
+          if (controller is TopicTextEditingController) {
+            controller.baseColor = baseStyle.color ?? Colors.black;
+            controller.baseFontFamily = baseStyle.fontFamily ?? 'LXGWWenKai';
+            controller.baseFontSize = baseStyle.fontSize ?? 15.5;
+
+            final span = controller.buildTextSpan(
+              context: context,
+              style: baseStyle,
+              withComposing: false,
+            );
+
+            if (span.children != null) {
+              spans.addAll(span.children!);
+            } else {
+              spans.add(span);
+            }
+          }
+          block.dispose();
+        }
+      }
+    }
+
+    // fallback
+    if (spans.isEmpty && widget.entry.content.trim().isNotEmpty) {
+      return _parseTextWithEmojis(widget.entry.content.trim(), baseStyle);
+    }
+
+    return spans;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -190,13 +254,18 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                             final estimateWidth =
                                 screenWidth - 165; // 减去左侧间距、边距和边框
 
-                            final span = TextSpan(
+                            final richSpans = _buildRichTextSpans(textStyle);
+                            final displaySpan = TextSpan(children: richSpans);
+                            
+                            // 恢复原有的纯文本估算逻辑，因为 TextPainter 无法离线估算带 WidgetSpan 的布局，否则会报 dimensions != null 的红屏
+                            final layoutSpan = TextSpan(
                               text: widget.entry.content,
                               style: textStyle,
                             );
+
                             final tp =
                                 TextPainter(
-                                  text: span,
+                                  text: layoutSpan,
                                   maxLines: 3,
                                   textDirection: TextDirection.ltr,
                                 )..layout(
@@ -212,30 +281,12 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                               children: [
                                 RichText(
                                   maxLines: _isExpanded ? null : 3,
+                                  // 规避 Flutter 原生 Bug: 当 RichText 包含 WidgetSpan 并使用 ellipsis 时，文本截断会导致布局计算发生致命死锁并抛出 debugNeedsLayout is not true。
+                                  // 这里改用 clip 裁剪溢出内容，配合下方的「展开全文」按钮，既能保证排版，又能避开框架崩溃。
                                   overflow: _isExpanded
                                       ? TextOverflow.visible
-                                      : TextOverflow.ellipsis,
-                                  text: TextSpan(
-                                    children: EmojiMapping.parseText(widget.entry.content.trim()).map((chunk) {
-                                      if (chunk.isEmoji) {
-                                        return WidgetSpan(
-                                          alignment: PlaceholderAlignment.middle,
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 2),
-                                            child: Image.asset(
-                                              chunk.emojiPath!,
-                                              width: 18,
-                                              height: 18,
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                      return TextSpan(
-                                        text: chunk.text,
-                                        style: textStyle,
-                                      );
-                                    }).toList(),
-                                  ),
+                                      : TextOverflow.clip,
+                                  text: displaySpan,
                                 ),
                                 if (hasOverflow) ...[
                                   const SizedBox(height: 8),

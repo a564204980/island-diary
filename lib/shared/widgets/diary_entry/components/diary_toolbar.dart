@@ -40,37 +40,41 @@ class DiaryToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double rowWidth = MediaQuery.of(context).size.width - 16;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double rowWidth = constraints.maxWidth - 16;
 
-    return Container(
-      height: 110,
-      width: double.infinity,
-      child: Stack(
-        children: [
-          // 背景 - 磨砂玻璃 + 手绘线条
-          Positioned.fill(
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: CustomPaint(
-                  painter: HandDrawnToolbarPainter(
-                    color: const Color(0xFFF9EED8).withOpacity(0.85),
-                    borderColor: const Color(0xFF8B5E3C),
+        return Container(
+          height: 110,
+          width: double.infinity,
+          child: Stack(
+            children: [
+              // 背景 - 磨砂玻璃 + 手绘线条
+              Positioned.fill(
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                    child: CustomPaint(
+                      painter: HandDrawnToolbarPainter(
+                        color: const Color(0xFFF9EED8).withOpacity(0.85),
+                        borderColor: const Color(0xFF8B5E3C),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+              // 双行图标列表
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: _buildDualRowToolbarIcons(rowWidth),
+                ),
+              ),
+            ],
           ),
-          // 双行图标列表
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: _buildDualRowToolbarIcons(rowWidth),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

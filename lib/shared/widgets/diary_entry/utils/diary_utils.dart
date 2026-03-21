@@ -1,6 +1,7 @@
 import 'dart:io' as io;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
@@ -135,16 +136,47 @@ class DiaryUtils {
     BorderRadius? borderRadius,
   }) {
     Widget image;
-    if (path.startsWith('http')) {
-      image = Image.network(path, width: width, height: height, fit: fit);
+    // 限制解码分辨率，防止大图瞬间打满内存导致严重卡顿
+    final int? cacheW = width != null ? (width * 3).toInt() : 400;
+
+    if (path.startsWith('http') || path.startsWith('blob:')) {
+      image = Image.network(
+        path, 
+        width: width, 
+        height: height, 
+        fit: fit,
+        // network暂不支持直接设置 cacheWidth, 但由于网络图通常经过后端压缩，这里主要关注本地大图
+      );
     } else if (path.startsWith('/') ||
         path.contains('cache/') ||
         path.contains('files/')) {
       // 移动端文件路径
-      image = Image.file(io.File(path), width: width, height: height, fit: fit);
+      if (kIsWeb) {
+        // 在 Web 平台上，所有的本地文件路径实际上是由浏览器代理的 blob 或相对路径，必须使用 Image.network
+        image = Image.network(
+          path, 
+          width: width, 
+          height: height, 
+          fit: fit,
+        );
+      } else {
+        image = Image.file(
+          io.File(path), 
+          width: width, 
+          height: height, 
+          fit: fit,
+          cacheWidth: cacheW, // 关键优化：限制本地原图解码尺寸
+        );
+      }
     } else {
       // 默认作为资产路径
-      image = Image.asset(path, width: width, height: height, fit: fit);
+      image = Image.asset(
+        path, 
+        width: width, 
+        height: height, 
+        fit: fit,
+        cacheWidth: cacheW,
+      );
     }
 
     if (borderRadius != null) {

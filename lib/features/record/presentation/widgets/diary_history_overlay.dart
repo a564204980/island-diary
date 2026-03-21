@@ -7,10 +7,9 @@ import 'package:island_diary/features/record/presentation/widgets/diary_search_p
 import 'package:island_diary/features/record/presentation/widgets/diary_calendar_panel.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_share_card_builder.dart';
-import 'package:island_diary/shared/services/export_service.dart';
+import 'package:island_diary/features/record/presentation/widgets/export_config_dialog.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:share_plus/share_plus.dart';
-
 /// 时间轴历史记录全屏覆盖层
 class DiaryHistoryOverlay extends StatefulWidget {
   final VoidCallback onClose;
@@ -195,15 +194,16 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
           ),
 
           // 3.5 悬浮：导出成书入口 (极致性能优化版)
-          ValueListenableBuilder<Offset?>(
-            valueListenable: _dragPosition,
-            builder: (context, dragOffset, _) {
-              final size = MediaQuery.of(context).size;
-              // 初始/默认位置：右侧中间
-              final defaultPos = Offset(size.width - 66, size.height / 2 - 23);
-              final currentPos = dragOffset ?? defaultPos;
+          if (!_isCalendarView)
+            ValueListenableBuilder<Offset?>(
+              valueListenable: _dragPosition,
+              builder: (context, dragOffset, _) {
+                final size = MediaQuery.of(context).size;
+                // 初始/默认位置：右侧中间
+                final defaultPos = Offset(size.width - 66, size.height / 2 - 23);
+                final currentPos = dragOffset ?? defaultPos;
  
-              return Positioned(
+                return Positioned(
                 left: currentPos.dx,
                 top: currentPos.dy,
                 child: RepaintBoundary(
@@ -470,7 +470,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
     );
   }
  
-  Future<void> _exportAllAsBook() async {
+  void _exportAllAsBook() {
     final allDiaries = UserState().savedDiaries.value;
  
     if (allDiaries.isEmpty) {
@@ -486,54 +486,25 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
       return;
     }
  
-    setState(() {
-      _isBookShare = true;
-      _isCapturing = true;
-    });
- 
-    print("DiaryHistoryOverlay: User requested PDF export.");
-    final userName = UserState().userName.value.isNotEmpty ? UserState().userName.value : "旅人";
-    
-    try {
-      await ExportService.exportToPdf(allDiaries, "岛屿日记 · 岁月成书", userName);
-    } catch (e) {
-      if (mounted) {
-        if (e == 'PRINT_SERVICE_NOT_FOUND') {
-          // 打印预览拉不起来（常见于部分安卓系统），尝试保存为文件并弹出分享
-          try {
-            final bytes = await ExportService.generatePdfBytes(allDiaries, "岛屿日记 · 岁月成书", userName);
-            if (bytes != null) {
-              final fileName = 'isle_diary_book_${DateTime.now().millisecondsSinceEpoch}.pdf';
-              final path = await DiaryUtils.saveDataToTempFile(bytes, fileName: fileName);
-              if (path != null) {
-                await Share.shareXFiles([XFile(path)], text: '这是我的岛屿日记书 ✨');
-              }
-            }
-          } catch (shareError) {
-             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('导出与分享均失败: $shareError'), backgroundColor: Colors.redAccent),
-            );
-          }
-        } else {
-          // 其他常规错误
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('导出失败: $e'),
-              backgroundColor: Colors.redAccent,
-              duration: const Duration(seconds: 10),
-              action: SnackBarAction(label: '确定', onPressed: () {}, textColor: Colors.white),
-            ),
-          );
-        }
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isBookShare = false;
-          _isCapturing = false;
-        });
-      }
-    }
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'ExportConfig',
+      barrierColor: Colors.black.withOpacity(0.4),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return ExportConfigDialog(allDiaries: allDiaries);
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.2),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+    );
   }
 
   Future<void> _executeCaptureAndShare(String fileName) async {
