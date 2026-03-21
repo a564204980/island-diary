@@ -5,6 +5,7 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
+import '../pages/diary_detail_page.dart';
 
 /// 每一份日记卡片
 class DiaryHistoryCard extends StatefulWidget {
@@ -34,6 +35,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
   bool _isExpanded = false;
 
   List<InlineSpan> _parseTextWithEmojis(String text, TextStyle style) {
+    if (text.isEmpty) return [];
     return EmojiMapping.parseText(text).map((chunk) {
       if (chunk.isEmoji) {
         return WidgetSpan(
@@ -55,9 +57,9 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     }).toList();
   }
 
-  List<InlineSpan> _buildRichTextSpans(TextStyle baseStyle) {
+  List<InlineSpan> _buildRichTextSpans(TextStyle baseStyle, {String? filteredContent}) {
     if (widget.entry.blocks.isEmpty) {
-      return _parseTextWithEmojis(widget.entry.content.trim(), baseStyle);
+      return _parseTextWithEmojis(filteredContent?.trim() ?? widget.entry.content.trim(), baseStyle);
     }
 
     final spans = <InlineSpan>[];
@@ -115,7 +117,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
       children: [
         // 贯穿全高的轴线 (处于底层)
         Positioned(
-          left: 76, // 基于原有的 width:60 + width:16 对齐
+          left: 76,
           top: 0,
           bottom: 0,
           child: Container(
@@ -134,241 +136,235 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           ),
         ),
         // 顶层内容
-        Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. 左侧：时刻 (字号加大)
-              Container(
-                width: 60,
-                padding: const EdgeInsets.only(top: 14),
-                alignment: Alignment.topRight,
-                child: Text(
-                  timelineLabel,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    fontSize: widget.showDate ? 13 : 15,
-                    color: widget.isNight ? Colors.white30 : Colors.black.withOpacity(0.35),
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'LXGWWenKai',
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DiaryDetailPage(
+                  entry: widget.entry,
+                  isNight: widget.isNight,
+                ),
+              ),
+            );
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. 左侧：时刻 (字号加大)
+                Container(
+                  width: 60,
+                  padding: const EdgeInsets.only(top: 14),
+                  alignment: Alignment.topRight,
+                  child: Text(
+                    timelineLabel,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontSize: widget.showDate ? 13 : 15,
+                      color: widget.isNight ? Colors.white30 : Colors.black.withOpacity(0.35),
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'LXGWWenKai',
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              // 2. 中间：书脊装订轴
-              SizedBox(
-                width: 24,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    // 实心装订点 (模拟缝线或小扣子)
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: widget.isNight ? Colors.white10 : const Color(0xFFC4B69E),
-                        shape: BoxShape.circle,
-                        boxShadow: widget.isNight
-                            ? null
-                            : [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 2,
-                                  offset: const Offset(1, 1),
-                                ),
-                              ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-                // 右侧内容卡片
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 24, right: 8),
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: widget.isNight
-                          ? const Color(0xFF383531)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: widget.isNight
-                            ? Colors.white.withOpacity(0.05)
-                            : Colors.black.withOpacity(0.03),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(
-                            widget.isNight ? 0.35 : 0.12,
-                          ), // 略微调深，配合较明亮的背景
-                          blurRadius: 10,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _buildMoodBadge(
-                                widget.entry.moodIndex,
-                                widget.entry.intensity,
-                                isNight: widget.isNight,
-                                tag: widget.entry.tag,
-                              ),
-                            ),
-                            if (widget.onShare != null)
-                              GestureDetector(
-                                onTap: widget.onShare,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(
-                                    left: 8,
-                                    bottom: 8,
-                                  ),
-                                  child: Icon(
-                                    Icons.ios_share_rounded,
-                                    size: 18,
-                                    color: widget.isNight
-                                        ? Colors.white24
-                                        : Colors.black.withOpacity(0.15),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Builder(
-                          builder: (context) {
-                            // 移除 LayoutBuilder 以避免与 IntrinsicHeight 冲突导致渲染失败
-                            // 使用 MediaQuery 估算可用宽度进行溢出检测
-                            final screenWidth = MediaQuery.of(
-                              context,
-                            ).size.width;
-                            final estimateWidth =
-                                screenWidth - 165; // 减去左侧间距、边距和边框
-
-                            final richSpans = _buildRichTextSpans(textStyle);
-                            final displaySpan = TextSpan(children: richSpans);
-                            
-                            // 恢复原有的纯文本估算逻辑，因为 TextPainter 无法离线估算带 WidgetSpan 的布局，否则会报 dimensions != null 的红屏
-                            final layoutSpan = TextSpan(
-                              text: widget.entry.content,
-                              style: textStyle,
-                            );
-
-                            final tp =
-                                TextPainter(
-                                  text: layoutSpan,
-                                  maxLines: 3,
-                                  textDirection: TextDirection.ltr,
-                                )..layout(
-                                  maxWidth: estimateWidth > 0
-                                      ? estimateWidth
-                                      : 200,
-                                );
-
-                            final bool hasOverflow = tp.didExceedMaxLines;
-
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                RichText(
-                                  maxLines: _isExpanded ? null : 3,
-                                  // 规避 Flutter 原生 Bug: 当 RichText 包含 WidgetSpan 并使用 ellipsis 时，文本截断会导致布局计算发生致命死锁并抛出 debugNeedsLayout is not true。
-                                  // 这里改用 clip 裁剪溢出内容，配合下方的「展开全文」按钮，既能保证排版，又能避开框架崩溃。
-                                  overflow: _isExpanded
-                                      ? TextOverflow.visible
-                                      : TextOverflow.clip,
-                                  text: displaySpan,
-                                ),
-                                if (hasOverflow) ...[
-                                  const SizedBox(height: 8),
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _isExpanded = !_isExpanded;
-                                        });
-                                      },
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            _isExpanded ? "收起" : "展开全文",
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: widget.isNight
-                                                  ? const Color(
-                                                      0xFFD4A373,
-                                                    ).withOpacity(0.8)
-                                                  : const Color(0xFFD4A373),
-                                              fontWeight: FontWeight.bold,
-                                              fontFamily: 'LXGWWenKai',
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Icon(
-                                            _isExpanded
-                                                ? Icons.keyboard_arrow_up
-                                                : Icons.keyboard_arrow_down,
-                                            size: 16,
-                                            color: widget.isNight
-                                                ? const Color(
-                                                    0xFFD4A373,
-                                                  ).withOpacity(0.8)
-                                                : const Color(0xFFD4A373),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                const SizedBox(width: 16),
+                // 2. 中间：书脊装订轴
+                SizedBox(
+                  width: 24,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      // 实心装订点
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: widget.isNight ? Colors.white10 : const Color(0xFFC4B69E),
+                          shape: BoxShape.circle,
+                          boxShadow: widget.isNight
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 2,
+                                    offset: const Offset(1, 1),
                                   ),
                                 ],
-                              ],
-                            );
-                          },
                         ),
-                        if (widget.entry.blocks.any(
-                          (b) => b['type'] == 'image',
-                        )) ...[
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: widget.entry.blocks
-                                .where((b) => b['type'] == 'image')
-                                .take(_isExpanded ? 999 : 4)
-                                .map(
-                                  (b) => DiaryUtils.buildImage(
-                                    b['path'],
-                                    width: 46,
-                                    height: 46,
-                                    fit: BoxFit.cover,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ],
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(width: 12),
+                  // 右侧内容卡片
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 24, right: 8),
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: widget.isNight
+                            ? const Color(0xFF383531)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: widget.isNight
+                              ? Colors.white.withOpacity(0.05)
+                              : Colors.black.withOpacity(0.03),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(
+                              widget.isNight ? 0.35 : 0.12,
+                            ),
+                            blurRadius: 10,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: _buildMoodBadge(
+                                  widget.entry.moodIndex,
+                                  widget.entry.intensity,
+                                  isNight: widget.isNight,
+                                  tag: widget.entry.tag,
+                                ),
+                              ),
+                              if (widget.onShare != null)
+                                GestureDetector(
+                                  onTap: widget.onShare,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 8,
+                                      bottom: 8,
+                                    ),
+                                    child: Icon(
+                                      Icons.ios_share_rounded,
+                                      size: 18,
+                                      color: widget.isNight
+                                          ? Colors.white24
+                                          : Colors.black.withOpacity(0.15),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Builder(
+                            builder: (context) {
+                              final screenWidth = MediaQuery.of(context).size.width;
+                              final estimateWidth = screenWidth - 165;
+
+                              final filteredContent = DiaryUtils.getFilteredContent(widget.entry.content);
+                              final richSpans = _buildRichTextSpans(textStyle, filteredContent: filteredContent);
+                              final displaySpan = TextSpan(children: richSpans);
+                              
+                              final layoutSpan = TextSpan(
+                                text: filteredContent,
+                                style: textStyle,
+                              );
+
+                              final tp = TextPainter(
+                                text: layoutSpan,
+                                maxLines: 3,
+                                textDirection: TextDirection.ltr,
+                              )..layout(
+                                maxWidth: estimateWidth > 0 ? estimateWidth : 200,
+                              );
+
+                              final bool hasOverflow = tp.didExceedMaxLines;
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  RichText(
+                                    maxLines: _isExpanded ? null : 3,
+                                    overflow: _isExpanded ? TextOverflow.visible : TextOverflow.clip,
+                                    text: displaySpan,
+                                  ),
+                                  if (hasOverflow) ...[
+                                    const SizedBox(height: 8),
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _isExpanded = !_isExpanded;
+                                          });
+                                        },
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              _isExpanded ? "收起" : "展开全文",
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: widget.isNight
+                                                    ? const Color(0xFFD4A373).withOpacity(0.8)
+                                                    : const Color(0xFFD4A373),
+                                                fontWeight: FontWeight.bold,
+                                                fontFamily: 'LXGWWenKai',
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                              size: 16,
+                                              color: widget.isNight
+                                                  ? const Color(0xFFD4A373).withOpacity(0.8)
+                                                  : const Color(0xFFD4A373),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              );
+                            },
+                          ),
+                          if (widget.entry.blocks.any((b) => b['type'] == 'image')) ...[
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: widget.entry.blocks
+                                  .where((b) => b['type'] == 'image')
+                                  .take(_isExpanded ? 999 : 4)
+                                  .map(
+                                    (b) => DiaryUtils.buildImage(
+                                      b['path'],
+                                      width: 46,
+                                      height: 46,
+                                      fit: BoxFit.cover,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ],
+                          _buildFooterInfo(widget.entry.content, widget.isNight),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
-        ],
-      )
-            .animate()
-            .fadeIn(delay: (widget.index * 60).ms, duration: 350.ms)
-            .moveX(begin: 12, end: 0);
+        ),
+      ],
+    )
+    .animate()
+    .fadeIn(delay: (widget.index * 60).ms, duration: 350.ms)
+    .moveX(begin: 12, end: 0);
   }
 
   Widget _buildMoodBadge(
@@ -385,24 +381,24 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // 1. 心情描述标签 (仅在无自定义标签时显示)
         if (tag == null || tag.isEmpty) ...[
           Flexible(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: badgeColor.withOpacity(
-                  isNight ? 0.15 : 0.18,
-                ), // 白天模式下微调背景透明度
+                color: badgeColor.withOpacity(isNight ? 0.15 : 0.18),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.asset(
-                    mood.iconPath ?? 'assets/images/icons/sun.png',
-                    width: 14,
-                    height: 14,
+                  Hero(
+                    tag: 'mood_${widget.entry.id}',
+                    child: Image.asset(
+                      mood.iconPath ?? 'assets/images/icons/sun.png',
+                      width: 14,
+                      height: 14,
+                    ),
                   ),
                   const SizedBox(width: 4),
                   Flexible(
@@ -428,9 +424,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: badgeColor.withOpacity(
-              isNight ? 0.08 : 0.12,
-            ), // 白天模式下增加背景透明度，使其更明显
+            color: badgeColor.withOpacity(isNight ? 0.08 : 0.12),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: badgeColor.withOpacity(isNight ? 0.2 : 0.25),
@@ -441,15 +435,12 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
             "强度 ${intensity.toInt()}",
             style: TextStyle(
               fontSize: 11,
-              fontWeight: FontWeight.bold, // 加粗一点
-              color: badgeColor.withOpacity(
-                isNight ? 0.6 : 1.0,
-              ), // 白天模式下使用不透明颜色
+              fontWeight: FontWeight.bold,
+              color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
               fontFamily: 'LXGWWenKai',
             ),
           ),
         ),
-        // 自定义标签 (如果存在)
         if (tag != null && tag.isNotEmpty) ...[
           const SizedBox(width: 8),
           Flexible(
@@ -501,5 +492,64 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
         ],
       ],
     );
+  }
+
+  Widget _buildFooterInfo(String content, bool isNight) {
+    final info = DiaryUtils.getExtraInfoFromContent(content);
+    if (info.isEmpty) return const SizedBox.shrink();
+
+    final textColor = isNight ? Colors.white30 : Colors.black.withOpacity(0.3);
+    final iconColor = isNight ? Colors.white24 : Colors.black.withOpacity(0.2);
+
+    return Column(
+      children: [
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            if (info.containsKey('location')) ...[
+              Icon(Icons.location_on_outlined, size: 14, color: iconColor),
+              const SizedBox(width: 4),
+              Text(
+                info['location']!,
+                style: TextStyle(fontSize: 12, color: textColor, fontFamily: 'LXGWWenKai'),
+              ),
+              if (info.containsKey('weather')) ...[
+                const SizedBox(width: 8),
+                Text('·', style: TextStyle(fontSize: 12, color: textColor, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 8),
+              ],
+            ],
+            if (info.containsKey('weather')) ...[
+              Icon(_getWeatherIcon(info['weather']!), size: 14, color: iconColor),
+              const SizedBox(width: 4),
+              Text(
+                "${info['weather']} · ${info['temp']}",
+                style: TextStyle(fontSize: 12, color: textColor, fontFamily: 'LXGWWenKai'),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  IconData _getWeatherIcon(String label) {
+    switch (label) {
+      case "晴": return Icons.wb_sunny_outlined;
+      case "多云": return Icons.wb_cloudy_outlined;
+      case "阴": return Icons.cloud_outlined;
+      case "雨": return Icons.umbrella_outlined;
+      case "雪": return Icons.ac_unit_outlined;
+      case "风": return Icons.air_outlined;
+      case "雾霾": return Icons.grain_outlined;
+      case "雷暴": return Icons.thunderstorm_outlined;
+      case "冻雨": return Icons.water_drop_outlined;
+      case "冰雹": return Icons.severe_cold_outlined;
+      case "炎热": return Icons.thermostat_outlined;
+      case "严寒": return Icons.ac_unit_outlined;
+      case "沙尘": return Icons.waves_outlined;
+      case "极端风暴": return Icons.cyclone_outlined;
+      default: return Icons.wb_cloudy_outlined;
+    }
   }
 }

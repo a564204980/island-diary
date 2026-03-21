@@ -228,4 +228,32 @@ class DiaryUtils {
       return null;
     }
   }
+
+  /// 从内容中提取位置和天气信息
+  static Map<String, String> getExtraInfoFromContent(String content) {
+    final info = <String, String>{};
+    final locationMatch = RegExp(r'#地点:\s*([^\n#]+)').firstMatch(content);
+    if (locationMatch != null) {
+      info['location'] = locationMatch.group(1)?.trim() ?? "";
+    }
+    final weatherMatch = RegExp(r'#天气:\s*(.+?)\s*(-?\d+°C)').firstMatch(content);
+    if (weatherMatch != null) {
+      info['weather'] = weatherMatch.group(1)?.trim() ?? "";
+      info['temp'] = weatherMatch.group(2)?.trim() ?? "";
+    }
+    return info;
+  }
+
+  /// 过滤掉正文中的位置和天气标记
+  static String getFilteredContent(String content) {
+    final info = getExtraInfoFromContent(content);
+    String filtered = content;
+    if (info.containsKey('location')) {
+      filtered = filtered.replaceFirst(RegExp(r'\n?#地点:\s*[^\n#]+\s*'), "");
+    }
+    if (info.containsKey('weather')) {
+      filtered = filtered.replaceFirst(RegExp(r'\n?#天气:\s*(.+?)\s*-?\d+°C\s*'), "");
+    }
+    return filtered.trim();
+  }
 }

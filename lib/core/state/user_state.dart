@@ -170,6 +170,33 @@ class UserState {
     await clearDraft();
   }
 
+  /// 更新已有的日记
+  Future<void> updateDiary(DiaryEntry entry) async {
+    final newList = List<DiaryEntry>.from(savedDiaries.value);
+    final index = newList.indexWhere((e) => e.id == entry.id);
+    if (index != -1) {
+      newList[index] = entry;
+      savedDiaries.value = newList;
+
+      // 持久化整个列表
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = savedDiaries.value.map((e) => e.toMap()).toList();
+      await prefs.setString(_keySavedDiaries, jsonEncode(jsonList));
+    }
+  }
+
+  /// 删除日记
+  Future<void> deleteDiary(DiaryEntry entry) async {
+    final newList = List<DiaryEntry>.from(savedDiaries.value);
+    newList.removeWhere((e) => e.id == entry.id);
+    savedDiaries.value = newList;
+
+    // 持久化整个列表
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = savedDiaries.value.map((e) => e.toMap()).toList();
+    await prefs.setString(_keySavedDiaries, jsonEncode(jsonList));
+  }
+
   /// 更新用户名称并持久化到本地
   Future<void> setUserName(String name) async {
     final trimmed = name.trim();

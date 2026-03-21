@@ -317,6 +317,12 @@ class _CalendarDayCell extends StatelessWidget {
     required this.onTap,
   });
 
+  // 节日白名单：仅显示核心重要节日，精简视觉噪音
+  static const Set<String> _importantFests = {
+    '元旦', '除夕', '春节', '元宵节', '清明', '劳动节', '端午节', '中秋节', '国庆节',
+    '情人节', '妇女节', '儿童节', '教师节', '圣诞节', '冬至', '七夕', '重阳', '腊八',
+  };
+
   @override
   Widget build(BuildContext context) {
     final bool hasEntry = entries != null && entries!.isNotEmpty;
@@ -345,24 +351,23 @@ class _CalendarDayCell extends StatelessWidget {
     final lunarFests = lunar.getFestivals();
     final jieQi = lunar.getJieQi();
     
-    // 优先级：公历节日 > 农历节日 > 节气 > 节日/初一 > 普通农历日
-    if (solarFests.isNotEmpty) {
-      lunarStr = solarFests[0];
-    } else if (lunarFests.isNotEmpty) {
-      lunarStr = lunarFests[0];
-    } else if (jieQi.isNotEmpty) {
-      lunarStr = jieQi;
+    // 检查是否包含重要节日 (支持部分匹配，如 "国庆节" 匹配 "国庆假期")
+    String? importantFest;
+    for (final f in [...solarFests, ...lunarFests, if (jieQi.isNotEmpty) jieQi]) {
+      if (_importantFests.any((important) => f.contains(important))) {
+        importantFest = _importantFests.firstWhere((important) => f.contains(important));
+        break;
+      }
+    }
+
+    if (importantFest != null) {
+      lunarStr = importantFest;
     } else {
       if (lunar.getDay() == 1) {
         lunarStr = '${lunar.getMonthInChinese()}月';
       } else {
         lunarStr = lunar.getDayInChinese();
       }
-    }
-
-    // 短期截断 (如果有超长节日比如 "国际劳动妇女节" 或 "国庆长假")
-    if (lunarStr.length > 5) {
-      lunarStr = lunarStr.substring(0, 4);
     }
 
     final TextStyle dayStyle = TextStyle(
@@ -381,8 +386,8 @@ class _CalendarDayCell extends StatelessWidget {
       ] : null,
     );
 
-    final Color lunarColor = (solarFests.isNotEmpty || lunarFests.isNotEmpty || jieQi.isNotEmpty)
-        ? (hasEntry ? Colors.white : const Color(0xFFD4A373)) // 节日用亮色
+    final Color lunarColor = (importantFest != null)
+        ? (hasEntry ? Colors.white : const Color(0xFFD4A373)) // 仅重要节日用亮色
         : (isNight ? Colors.white30 : Colors.black38); // 普通农历用淡色
 
     final TextStyle lunarStyle = TextStyle(

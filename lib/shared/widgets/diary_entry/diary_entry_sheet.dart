@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'components/diary_paper_canvas.dart';
 import 'components/diary_toolbar.dart';
@@ -19,12 +20,14 @@ class MoodDiaryEntrySheet extends StatefulWidget {
   final int moodIndex;
   final double intensity;
   final String? tag;
+  final DiaryEntry? entry;
 
   const MoodDiaryEntrySheet({
     super.key,
     required this.moodIndex,
     required this.intensity,
     this.tag,
+    this.entry,
   });
 
   @override
@@ -40,7 +43,7 @@ class _MoodDiaryEntrySheetState extends State<MoodDiaryEntrySheet>
   @override
   void initState() {
     super.initState();
-    initializeEditor();
+    initializeEditor(entry: widget.entry);
   }
 
   @override

@@ -5,6 +5,7 @@ import '../diary_entry_sheet.dart';
 import '../utils/diary_utils.dart';
 import '../components/diary_date_picker_sheet.dart';
 import '../components/diary_time_picker_sheet.dart';
+import '../components/diary_weather_picker_sheet.dart';
 import './diary_editor_core_mixin.dart';
 
 mixin DiaryEditorInsertMixin<T extends MoodDiaryEntrySheet> on State<T>, DiaryEditorCoreMixin<T> {
@@ -254,7 +255,45 @@ mixin DiaryEditorInsertMixin<T extends MoodDiaryEntrySheet> on State<T>, DiaryEd
   }
 
   void onWeatherClick() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('天气功能开发中...')));
+    FocusScope.of(context).unfocus();
+    setState(() => isColorPickerOpen = true);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DiaryWeatherPickerSheet(
+        onConfirm: (weather, temp) {
+          final activeBlock = activeTextBlock;
+          if (activeBlock != null) {
+            final controller = activeBlock.controller;
+            final text = controller.text;
+            final selection = controller.selection;
+            final insertion = "#天气: $weather $temp°C ";
+
+            final newText = (selection.isValid)
+                ? text.replaceRange(
+                    selection.start.clamp(0, text.length),
+                    selection.end.clamp(0, text.length),
+                    insertion,
+                  )
+                : text + insertion;
+
+            setState(() {
+              controller.value = controller.value.copyWith(
+                text: newText,
+                selection: TextSelection.collapsed(
+                  offset: (selection.isValid ? selection.start : text.length) + insertion.length,
+                ),
+              );
+            });
+            activeBlock.focusNode.requestFocus();
+            onBlocksChanged();
+          }
+          Navigator.pop(context);
+        },
+      ),
+    ).then((_) {
+      if (mounted) setState(() => isColorPickerOpen = false);
+    });
   }
 
   void onMoreClick() {

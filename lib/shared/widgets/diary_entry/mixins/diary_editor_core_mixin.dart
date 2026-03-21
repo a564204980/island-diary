@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/diary_block.dart';
+import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import '../diary_entry_sheet.dart';
 import '../utils/diary_utils.dart';
 import '../../../../core/state/user_state.dart';
@@ -28,14 +29,19 @@ mixin DiaryEditorCoreMixin<T extends MoodDiaryEntrySheet> on State<T> {
 
   String get fixedQuote => _fixedQuote ?? '';
 
-  void initializeEditor() {
+  void initializeEditor({DiaryEntry? entry}) {
     if (blocks.isEmpty) {
       currentTextColor = UserState().isNight
           ? const Color(0xFFE0C097)
           : const Color(0xFF5D4037);
     }
     
-    loadDraft();
+    if (entry != null) {
+      _loadFromEntry(entry);
+    } else {
+      loadDraft();
+    }
+    
     final mood = kMoods[widget.moodIndex];
     _fixedQuote = DiaryUtils.getMoodQuote(mood.label);
     
@@ -47,6 +53,19 @@ mixin DiaryEditorCoreMixin<T extends MoodDiaryEntrySheet> on State<T> {
       if (tc.text.isNotEmpty) {
         currentTextColor = tc.baseColor;
       }
+    }
+  }
+
+  void _loadFromEntry(DiaryEntry entry) {
+    blocks.clear();
+    blockKeys.clear();
+    for (var item in entry.blocks) {
+      final block = DiaryBlock.fromMap(item);
+      if (block is TextBlock) {
+        addFocusListener(block);
+      }
+      blocks.add(block);
+      blockKeys[block.id] = GlobalKey();
     }
   }
 
@@ -140,8 +159,29 @@ mixin DiaryEditorCoreMixin<T extends MoodDiaryEntrySheet> on State<T> {
     }
 
     try {
-      await onBlocksChanged();
-      await UserState().saveDiary();
+      final content = blocks
+          .whereType<TextBlock>()
+          .map((b) => b.controller.text)
+          .join('\n');
+
+      if (widget.entry != null) {
+        // 修改模式
+        final updatedEntry = DiaryEntry(
+          id: widget.entry!.id,
+          dateTime: widget.entry!.dateTime,
+          moodIndex: widget.moodIndex,
+          intensity: widget.intensity,
+          content: content,
+          tag: widget.tag,
+          blocks: blocks.map((b) => b.toMap()).toList(),
+        );
+        await UserState().updateDiary(updatedEntry);
+      } else {
+        // 新建模式
+        await onBlocksChanged();
+        await UserState().saveDiary();
+      }
+      
       if (mounted) Navigator.of(context).pop(true);
       return true;
     } catch (e) {
