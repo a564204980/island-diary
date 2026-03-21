@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/sprite_animation.dart';
 import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
@@ -29,11 +30,14 @@ class _RecordPageState extends State<RecordPage>
   Timer? _jumpTimer;
   Timer? _dialogueTimer; // 处理落地后的延迟
   Timer? _bookHintTimer; // 控制书籍提示出现的时机
+  late AudioPlayer _audioPlayer; // 音效播放器
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _audioPlayer = AudioPlayer();
+    _audioPlayer.setVolume(0.6); // 微微调小音量
     _resolveImageSize();
 
     _jumpController = AnimationController(
@@ -107,6 +111,7 @@ class _RecordPageState extends State<RecordPage>
     _bookHintTimer?.cancel();
     _jumpController.dispose();
     _scrollController.dispose();
+    _audioPlayer.dispose();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UserState().isSlimeInBottomMenu.value = true;
     });
@@ -291,6 +296,13 @@ class _RecordPageState extends State<RecordPage>
                   _isJumpStarted = false;
                 });
                 UserState().isSlimeInBottomMenu.value = true;
+                // 播放打开书本音效 (跳过前 1.5s 的空白/过度)
+                _audioPlayer.setSource(AssetSource('audio/openBooks.mp3')).then((_) {
+                  if (mounted) {
+                    _audioPlayer.seek(const Duration(milliseconds: 1500));
+                    _audioPlayer.resume();
+                  }
+                });
                 await _openHistoryTimeline();
                 if (mounted) setState(() => _showBookHint = true);
               }

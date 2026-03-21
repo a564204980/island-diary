@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 
 /// 每一份日记卡片
 class DiaryHistoryCard extends StatefulWidget {
@@ -46,80 +47,79 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
       fontFamily: 'LXGWWenKai',
     );
 
-    return Container(
+    return Stack(
+      children: [
+        // 贯穿全高的轴线 (处于底层)
+        Positioned(
+          left: 76, // 基于原有的 width:60 + width:16 对齐
+          top: 0,
+          bottom: 0,
+          child: Container(
+            width: 4,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  widget.isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                  widget.isNight ? Colors.white.withOpacity(0.01) : Colors.black.withOpacity(0.01),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+        // 顶层内容
+        Container(
           margin: const EdgeInsets.only(bottom: 16),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. 左侧：时刻 (字号加大)
-                Container(
-                  width: 60,
-                  padding: const EdgeInsets.only(top: 14),
-                  alignment: Alignment.topRight,
-                  child: Text(
-                    timelineLabel,
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontSize: widget.showDate ? 13 : 15, // 日期模式下字号稍微缩小一点以适应对齐
-                      color: widget.isNight
-                          ? Colors.white30
-                          : Colors.black.withOpacity(0.35),
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'LXGWWenKai',
-                    ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. 左侧：时刻 (字号加大)
+              Container(
+                width: 60,
+                padding: const EdgeInsets.only(top: 14),
+                alignment: Alignment.topRight,
+                child: Text(
+                  timelineLabel,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    fontSize: widget.showDate ? 13 : 15,
+                    color: widget.isNight ? Colors.white30 : Colors.black.withOpacity(0.35),
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'LXGWWenKai',
                   ),
                 ),
-                const SizedBox(width: 16),
-                // 2. 中间：书脊装订轴 (改为拟物化感)
-                SizedBox(
-                  width: 24,
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      // 实心装订点 (模拟缝线或小扣子)
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: widget.isNight
-                              ? Colors.white10
-                              : const Color(0xFFC4B69E), // 古典铜金色调
-                          shape: BoxShape.circle,
-                          boxShadow: widget.isNight
-                              ? null
-                              : [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 2,
-                                    offset: const Offset(1, 1),
-                                  ),
-                                ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          width: 4,
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                widget.isNight
-                                    ? Colors.white.withOpacity(0.05)
-                                    : Colors.black.withOpacity(0.05),
-                                widget.isNight
-                                    ? Colors.white.withOpacity(0.01)
-                                    : Colors.black.withOpacity(0.01),
+              ),
+              const SizedBox(width: 16),
+              // 2. 中间：书脊装订轴
+              SizedBox(
+                width: 24,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    // 实心装订点 (模拟缝线或小扣子)
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: widget.isNight ? Colors.white10 : const Color(0xFFC4B69E),
+                        shape: BoxShape.circle,
+                        boxShadow: widget.isNight
+                            ? null
+                            : [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 2,
+                                  offset: const Offset(1, 1),
+                                ),
                               ],
-                            ),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
+              ),
+              const SizedBox(width: 12),
                 // 右侧内容卡片
                 Expanded(
                   child: Container(
@@ -210,13 +210,32 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  widget.entry.content.trim(),
+                                RichText(
                                   maxLines: _isExpanded ? null : 3,
                                   overflow: _isExpanded
                                       ? TextOverflow.visible
                                       : TextOverflow.ellipsis,
-                                  style: textStyle,
+                                  text: TextSpan(
+                                    children: EmojiMapping.parseText(widget.entry.content.trim()).map((chunk) {
+                                      if (chunk.isEmoji) {
+                                        return WidgetSpan(
+                                          alignment: PlaceholderAlignment.middle,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                                            child: Image.asset(
+                                              chunk.emojiPath!,
+                                              width: 18,
+                                              height: 18,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      return TextSpan(
+                                        text: chunk.text,
+                                        style: textStyle,
+                                      );
+                                    }).toList(),
+                                  ),
                                 ),
                                 if (hasOverflow) ...[
                                   const SizedBox(height: 8),
@@ -294,10 +313,11 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
               ],
             ),
           ),
-        )
-        .animate()
-        .fadeIn(delay: (widget.index * 60).ms, duration: 350.ms)
-        .moveX(begin: 12, end: 0);
+        ],
+      )
+            .animate()
+            .fadeIn(delay: (widget.index * 60).ms, duration: 350.ms)
+            .moveX(begin: 12, end: 0);
   }
 
   Widget _buildMoodBadge(

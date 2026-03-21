@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import '../utils/emoji_mapping.dart';
 
 abstract class DiaryBlock {
   final String id;
@@ -246,11 +247,11 @@ class TopicTextEditingController extends TextEditingController {
           height: 1.6,
         );
 
-    // 1. 获取所有正则话题范围
-    final RegExp regExp = RegExp(r'#[^\s#]+', multiLine: true);
     final List<Map<String, dynamic>> highlights = [];
 
-    for (final Match match in regExp.allMatches(textContent)) {
+    // 1. 获取所有正则话题范围
+    final RegExp topicRegExp = RegExp(r'#[^\s#]+', multiLine: true);
+    for (final Match match in topicRegExp.allMatches(textContent)) {
       highlights.add({
         'start': match.start,
         'end': match.end,
@@ -265,7 +266,27 @@ class TopicTextEditingController extends TextEditingController {
       });
     }
 
-    // 2. 获取所有手动属性范围
+    // 2. 获取所有表情范围
+    final emojiKeys = EmojiMapping.unicodeToPath.keys.toList()
+      ..sort((a, b) => b.length.compareTo(a.length));
+    final emojiPattern = emojiKeys.map((e) => RegExp.escape(e)).join('|');
+    if (emojiPattern.isNotEmpty) {
+      final RegExp emojiRegExp = RegExp(emojiPattern);
+      for (final Match match in emojiRegExp.allMatches(textContent)) {
+        final emojiChar = match.group(0)!;
+        final path = EmojiMapping.getPathForEmoji(emojiChar);
+        if (path != null) {
+          highlights.add({
+            'start': match.start,
+            'end': match.end,
+            'emojiPath': path,
+            'priority': 3,
+          });
+        }
+      }
+    }
+
+    // 3. 获取所有手动属性范围
     for (var attr in attributes) {
       final start = attr.start.clamp(0, textContent.length);
       final end = attr.end.clamp(0, textContent.length);
@@ -288,7 +309,7 @@ class TopicTextEditingController extends TextEditingController {
       return TextSpan(style: rootStyle, text: textContent);
     }
 
-    // 3. 按照索引动态切分并在渲染时合并样式
+    // 4. 按照索引动态切分并在渲染时合并样式
     final Set<int> boundaries = {0, textContent.length};
     for (var h in highlights) {
       boundaries.add(h['start']);
@@ -304,16 +325,35 @@ class TopicTextEditingController extends TextEditingController {
 
       final chunk = textContent.substring(start, end);
 
+      Map<String, dynamic>? emojiMatch;
+      for (var h in highlights) {
+        if (h['priority'] == 3 && start >= h['start'] && end <= h['end']) {
+          emojiMatch = h;
+          break;
+        }
+      }
+
+      if (emojiMatch != null) {
+        children.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2.0),
+            child: Image.asset(
+              emojiMatch['emojiPath'],
+              width: 20,
+              height: 20,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ));
+        continue;
+      }
+
       TextStyle combinedStyle = rootStyle;
-      // 先应用手动属性（低优先级）
       for (var h in highlights) {
         if (h['priority'] == 1 && start >= h['start'] && end <= h['end']) {
           combinedStyle = combinedStyle.merge(h['style']);
-        }
-      }
-      // 后应用话题样式（高优先级），确保话题样式能覆盖手动设置的颜色但不破坏基础字体/行高
-      for (var h in highlights) {
-        if (h['priority'] == 2 && start >= h['start'] && end <= h['end']) {
+        } else if (h['priority'] == 2 && start >= h['start'] && end <= h['end']) {
           combinedStyle = combinedStyle.merge(h['style']);
         }
       }

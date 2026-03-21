@@ -7,6 +7,7 @@ import 'package:island_diary/features/record/presentation/widgets/diary_search_p
 import 'package:island_diary/features/record/presentation/widgets/diary_calendar_panel.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_share_card_builder.dart';
+import 'package:island_diary/shared/services/export_service.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -31,12 +32,21 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
   List<DiaryEntry> _shareEntries = [];
   String _shareTitle = "";
   bool _isMonthShare = false;
+  bool _isBookShare = false;
+  late final ValueNotifier<Offset?> _dragPosition; // 使用 ValueNotifier 优化拖拽性能
 
   @override
   void initState() {
     super.initState();
+    _dragPosition = ValueNotifier<Offset?>(null);
     // 默认显示全部记录，或者选中今天
     _selectedDate = null;
+  }
+
+  @override
+  void dispose() {
+    _dragPosition.dispose();
+    super.dispose();
   }
 
   @override
@@ -154,6 +164,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                   ),
                                 )
                               : ListView.builder(
+                                  key: const ValueKey('list'),
                                   padding: const EdgeInsets.only(
                                     left: 16,
                                     right: 16,
@@ -181,6 +192,79 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                 ],
               ),
             ),
+          ),
+
+          // 3.5 悬浮：导出成书入口 (极致性能优化版)
+          ValueListenableBuilder<Offset?>(
+            valueListenable: _dragPosition,
+            builder: (context, dragOffset, _) {
+              final size = MediaQuery.of(context).size;
+              // 初始/默认位置：右侧中间
+              final defaultPos = Offset(size.width - 66, size.height / 2 - 23);
+              final currentPos = dragOffset ?? defaultPos;
+ 
+              return Positioned(
+                left: currentPos.dx,
+                top: currentPos.dy,
+                child: RepaintBoundary(
+                  child: GestureDetector(
+                    onPanUpdate: (details) {
+                      // 关键：始终基于当前 ValueNotifier 的最新值进行叠加，消除视觉上的延迟
+                      final val = _dragPosition.value ?? defaultPos;
+                      _dragPosition.value = val + details.delta;
+                    },
+                    onTap: _exportAllAsBook,
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: UserState().isNight
+                            ? const Color(0xFF2C2E30).withOpacity(0.9)
+                            : Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: UserState().isNight
+                              ? Colors.white10
+                              : const Color(0xFFD4A373).withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.auto_stories_rounded,
+                          size: 20, // 稍微调小一点，腾出位置给文字
+                          color: UserState().isNight
+                              ? const Color(0xFFD4A373).withOpacity(0.9)
+                              : const Color(0xFFD4A373),
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          "导出",
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'LXGWWenKai',
+                            color: UserState().isNight
+                                ? const Color(0xFFD4A373).withOpacity(0.8)
+                                : const Color(0xFFD4A373),
+                          ),
+                        ),
+                      ],
+                    ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
 
           // 4. 底部工具栏
@@ -277,6 +361,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                 entries: _shareEntries,
                 title: _shareTitle,
                 isMonthMode: _isMonthShare,
+                isBookMode: _isBookShare,
               ),
             ),
 
@@ -285,15 +370,15 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
             Positioned.fill(
               child: Container(
                 color: Colors.black.withOpacity(0.3),
-                child: const Center(
+                child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(color: Colors.white),
-                      SizedBox(height: 16),
+                      const CircularProgressIndicator(color: Colors.white),
+                      const SizedBox(height: 16),
                       Text(
-                        "正在制作分享卡片...",
-                        style: TextStyle(
+                        _isBookShare ? "正在编撰你的岁月之书..." : "正在制作分享卡片...",
+                        style: const TextStyle(
                           color: Colors.white,
                           fontFamily: 'LXGWWenKai',
                         ),
@@ -339,6 +424,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
       _shareEntries = dayEntries;
       _shareTitle = dayLabel;
       _isMonthShare = false;
+      _isBookShare = false;
       _isCapturing = true;
     });
 
@@ -375,12 +461,61 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
       _shareEntries = monthEntries;
       _shareTitle = monthLabel;
       _isMonthShare = true;
+      _isBookShare = false;
       _isCapturing = true;
     });
 
     await _executeCaptureAndShare(
       "diary_month_${now.millisecondsSinceEpoch}.png",
     );
+  }
+ 
+  Future<void> _exportAllAsBook() async {
+    final allDiaries = UserState().savedDiaries.value;
+ 
+    if (allDiaries.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "岛上空荡荡的，还没有日记记录可以导出哦~",
+            style: TextStyle(fontFamily: 'LXGWWenKai'),
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+ 
+    setState(() {
+      _isBookShare = true;
+      _isCapturing = true;
+    });
+ 
+    print("DiaryHistoryOverlay: User requested PDF export.");
+    final userName = UserState().userName.value.isNotEmpty ? UserState().userName.value : "旅人";
+    
+    try {
+      await ExportService.exportToPdf(allDiaries, "岛屿日记 · 岁月成书", userName);
+    } catch (e) {
+      if (mounted) {
+        // 使用更明显的提示或者更详细的错误信息
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('导出失败: $e'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 10),
+            action: SnackBarAction(label: '确定', onPressed: () {}, textColor: Colors.white),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBookShare = false;
+          _isCapturing = false;
+        });
+      }
+    }
   }
 
   Future<void> _executeCaptureAndShare(String fileName) async {
@@ -400,7 +535,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
     setState(() => _isCapturing = false);
 
     if (path != null) {
-      await Share.shareXFiles([XFile(path)], text: '分享我在小岛日记的点滴记录 ✨');
+      await Share.shareXFiles([XFile(path)], text: '分享我在岛屿日记的点滴记录 ✨');
     }
   }
 
@@ -485,7 +620,7 @@ class PaperBackgroundPainter extends CustomPainter {
 }
 
 /// 水平周历组件
-class HorizontalWeekCalendar extends StatelessWidget {
+class HorizontalWeekCalendar extends StatefulWidget {
   final DateTime? selectedDate;
   final Function(DateTime?) onDateSelected;
   final bool isNight;
@@ -496,6 +631,26 @@ class HorizontalWeekCalendar extends StatelessWidget {
     required this.onDateSelected,
     required this.isNight,
   });
+
+  @override
+  State<HorizontalWeekCalendar> createState() => _HorizontalWeekCalendarState();
+}
+
+class _HorizontalWeekCalendarState extends State<HorizontalWeekCalendar> {
+  late ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    // 自动滚动到最右侧（今天）
+    _scrollController = ScrollController(initialScrollOffset: 1000.0);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -517,7 +672,7 @@ class HorizontalWeekCalendar extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 20, right: 12),
             child: GestureDetector(
-              onTap: () => onDateSelected(null),
+              onTap: () => widget.onDateSelected(null),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -525,7 +680,7 @@ class HorizontalWeekCalendar extends StatelessWidget {
                     "全部",
                     style: TextStyle(
                       fontSize: 12,
-                      color: isNight
+                      color: widget.isNight
                           ? Colors.white30
                           : Colors.black.withOpacity(0.25),
                       fontFamily: 'LXGWWenKai',
@@ -536,14 +691,14 @@ class HorizontalWeekCalendar extends StatelessWidget {
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: selectedDate == null
+                      color: widget.selectedDate == null
                           ? const Color(0xFFD4A373)
                           : Colors.transparent,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: selectedDate == null
+                        color: widget.selectedDate == null
                             ? Colors.transparent
-                            : (isNight
+                            : (widget.isNight
                                   ? Colors.white10
                                   : Colors.black.withOpacity(0.05)),
                       ),
@@ -552,9 +707,9 @@ class HorizontalWeekCalendar extends StatelessWidget {
                       child: Icon(
                         Icons.all_inclusive,
                         size: 20,
-                        color: selectedDate == null
+                        color: widget.selectedDate == null
                             ? Colors.white
-                            : (isNight ? Colors.white30 : Colors.black38),
+                            : (widget.isNight ? Colors.white30 : Colors.black38),
                       ),
                     ),
                   ),
@@ -567,7 +722,7 @@ class HorizontalWeekCalendar extends StatelessWidget {
           Container(
             width: 1,
             height: 30,
-            color: isNight ? Colors.white10 : Colors.black.withOpacity(0.05),
+            color: widget.isNight ? Colors.white10 : Colors.black.withOpacity(0.05),
           ),
 
           // 2. 可滚动的日期列表
@@ -576,8 +731,7 @@ class HorizontalWeekCalendar extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              // 自动滚动到最右侧（今天）
-              controller: ScrollController(initialScrollOffset: 1000.0),
+              controller: _scrollController,
               child: Row(
                 children: weekDates.map((date) {
                   final isToday =
@@ -585,14 +739,14 @@ class HorizontalWeekCalendar extends StatelessWidget {
                       date.month == now.month &&
                       date.year == now.year;
                   final isSelected =
-                      selectedDate != null &&
-                      date.day == selectedDate!.day &&
-                      date.month == selectedDate!.month &&
-                      date.year == selectedDate!.year;
+                      widget.selectedDate != null &&
+                      date.day == widget.selectedDate!.day &&
+                      date.month == widget.selectedDate!.month &&
+                      date.year == widget.selectedDate!.year;
                   final dayName = weekDays[date.weekday % 7];
 
                   return GestureDetector(
-                    onTap: () => onDateSelected(date),
+                    onTap: () => widget.onDateSelected(date),
                     child: Container(
                       width: 45, // 固定宽度确保对齐
                       margin: const EdgeInsets.symmetric(horizontal: 2),
@@ -609,7 +763,7 @@ class HorizontalWeekCalendar extends StatelessWidget {
                                   : FontWeight.normal,
                               color: isToday
                                   ? const Color(0xFFD4A373).withOpacity(0.8)
-                                  : (isNight
+                                  : (widget.isNight
                                         ? Colors.white30
                                         : Colors.black.withOpacity(0.25)),
                               fontFamily: 'LXGWWenKai',
@@ -640,7 +794,7 @@ class HorizontalWeekCalendar extends StatelessWidget {
                                           : FontWeight.w500,
                                       color: isSelected
                                           ? Colors.white
-                                          : (isNight
+                                          : (widget.isNight
                                                 ? Colors.white70
                                                 : Colors.black87),
                                       fontFamily: 'LXGWWenKai',

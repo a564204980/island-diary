@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/emoji_mapping.dart';
 
 /// 表情选择面板
 class EmojiPanel extends StatelessWidget {
@@ -6,51 +7,33 @@ class EmojiPanel extends StatelessWidget {
 
   const EmojiPanel({super.key, required this.onEmojiSelected});
 
-  // 基础表情列表
-  static const List<String> _emojis = [
-    '😊',
-    '🥰',
-    '🥳',
-    '😎',
-    '🤩',
-    '😇',
-    '😭',
-    '😱',
-    '😡',
-    '😴',
-    '🙄',
-    '🤔',
-    '❤️',
-    '✨',
-    '🔥',
-    '☁️',
-    '🌙',
-    '🌟',
-    '🍃',
-    '🌸',
-    '🌊',
-    '🐱',
-    '🐶',
-    '🍕',
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final emojis = EmojiMapping.commonEmojis;
+
     return Container(
       color: const Color(0xFFF9EED8).withOpacity(0.95),
       child: GridView.builder(
         padding: const EdgeInsets.all(16),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 6,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
+          mainAxisSpacing: 15,
+          crossAxisSpacing: 15,
         ),
-        itemCount: _emojis.length,
+        itemCount: emojis.length,
         itemBuilder: (context, index) {
+          final emoji = emojis[index];
+          final unicode = emoji['unicode'] ?? emoji['name']!;
+
           return InkWell(
-            onTap: () => onEmojiSelected(_emojis[index]),
+            onTap: () => onEmojiSelected(unicode),
             child: Center(
-              child: Text(_emojis[index], style: const TextStyle(fontSize: 28)),
+              child: Image.asset(
+                emoji['path']!,
+                width: 32,
+                height: 32,
+                fit: BoxFit.contain,
+              ),
             ),
           );
         },
