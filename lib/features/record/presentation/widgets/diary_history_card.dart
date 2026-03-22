@@ -77,6 +77,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
               context: context,
               style: baseStyle,
               withComposing: false,
+              hideMarkdownSymbols: true, // 隐藏 Markdown 符号
             );
 
             if (span.children != null) {
@@ -169,7 +170,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 6), // 本来是 16，改小 10px 使点线对齐
                 // 2. 中间：书脊装订轴
                 SizedBox(
                   width: 24,
@@ -197,7 +198,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 22), // 本来是 12，增加 10px 补偿位置并保持卡片不动
                   // 右侧内容卡片
                   Expanded(
                     child: Container(

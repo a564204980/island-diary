@@ -149,19 +149,24 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       extendBodyBehindAppBar: true, 
       body: Stack(
         children: [
-          SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(24, 32, 24, 120), // 增加底部边距以防内容被遮挡
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(isNight),
-                const SizedBox(height: 32),
-                _buildRichTextView(isNight),
-                const SizedBox(height: 48),
-                _buildImages(isNight),
-                const SizedBox(height: 48),
-              ],
+          Positioned.fill(
+            child: SafeArea(
+              bottom: false,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 120), // 调整顶部边距配合 SafeArea
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(isNight),
+                    const SizedBox(height: 32),
+                    _buildRichTextView(isNight),
+                    const SizedBox(height: 48),
+                    _buildImages(isNight),
+                    const SizedBox(height: 48),
+                  ],
+                ),
+              ),
             ),
           ),
           _buildFloatingActions(isNight),
@@ -179,66 +184,49 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       bottom: 30, // 对齐列表页工具栏高度
       child: Center(
         child: Container(
+          height: 54,
+          padding: const EdgeInsets.symmetric(horizontal: 20), // 统一 Padding 为 20
           decoration: BoxDecoration(
+            color: isNight 
+                ? const Color(0xFF2C2E30) 
+                : Colors.white,
             borderRadius: BorderRadius.circular(27),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.12),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-                spreadRadius: -2,
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(27),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(
-                height: 54,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: isNight 
-                      ? const Color(0xFF2C2E30).withOpacity(0.7) 
-                      : Colors.white.withOpacity(0.65),
-                  borderRadius: BorderRadius.circular(27),
-                  border: Border.all(
-                    color: isNight 
-                        ? Colors.white.withOpacity(0.08) 
-                        : Colors.black.withOpacity(0.05),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildActionButton(
-                      icon: Icons.arrow_back_ios_new_rounded,
-                      color: iconColor,
-                      onTap: () => Navigator.pop(context),
-                      label: "返回",
-                      width: 68,
-                    ),
-                    const SizedBox(width: 20),
-                    _buildActionButton(
-                      icon: Icons.edit_note_rounded,
-                      color: iconColor,
-                      onTap: _handleEdit,
-                      label: "编辑",
-                      iconSize: 28,
-                      width: 68,
-                    ),
-                    const SizedBox(width: 20),
-                    _buildActionButton(
-                      icon: Icons.delete_outline_rounded,
-                      color: Colors.redAccent.withOpacity(0.8),
-                      onTap: _handleDelete,
-                      label: "删除",
-                      width: 68,
-                    ),
-                  ],
-                ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildActionButton(
+                icon: Icons.arrow_back_ios_new_rounded,
+                color: iconColor,
+                onTap: () => Navigator.pop(context),
+                label: "返回",
+                width: 40, // 统一宽度为 40
               ),
-            ),
+              const SizedBox(width: 40), // 统一间距为 40
+              _buildActionButton(
+                icon: Icons.edit_note_rounded,
+                color: iconColor,
+                onTap: _handleEdit,
+                label: "编辑",
+                iconSize: 28,
+                width: 40, // 统一宽度为 40
+              ),
+              const SizedBox(width: 40), // 统一间距为 40
+              _buildActionButton(
+                icon: Icons.delete_outline_rounded,
+                color: Colors.redAccent.withOpacity(0.8),
+                onTap: _handleDelete,
+                label: "删除",
+                width: 40, // 统一宽度为 40
+              ),
+            ],
           ),
         ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.9, 0.9)),
       ),
@@ -450,6 +438,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       context: context,
       style: textStyle,
       withComposing: false,
+      hideMarkdownSymbols: true, // 隐藏 Markdown 符号
     );
 
     return RichText(

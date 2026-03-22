@@ -252,33 +252,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                       ),
                       
                       const SizedBox(height: 48),
-                      // 保存与返回按钮（详情页没有这些，但编辑器需要，放在内容末尾或工具栏）
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: Text(
-                              '关闭',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: isNight ? const Color(0xFFBDB2A7) : const Color(0xFFA68A78),
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: onSave,
-                            child: Text(
-                              '完成',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: isNight ? const Color(0xFFE0C097) : const Color(0xFF8B5E3C),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
@@ -305,6 +278,52 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // 移到底部的快捷操作按钮 (紧贴工具栏上方)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    '关闭',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontFamily: 'LXGWWenKai',
+                                      color: isNight 
+                                          ? Colors.white.withOpacity(0.4) 
+                                          : const Color(0xFFA68A78).withOpacity(0.8),
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: onSave,
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    '完成',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: 'LXGWWenKai',
+                                      color: isNight 
+                                          ? (mood.glowColor ?? const Color(0xFFE0C097))
+                                          : const Color(0xFF8B5E3C),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           DiaryToolbar(
                             isEmojiOpen: isEmojiOpen,
                             onEmojiToggle: toggleEmoji,

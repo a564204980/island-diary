@@ -344,12 +344,9 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                         // 移除了全局分享按钮，改为卡片内分享
                       ],
                     ),
-                  ),
+                  ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.9, 0.9)),
                 ),
-              )
-              .animate()
-              .fadeIn(delay: 200.ms)
-              .scale(begin: const Offset(0.9, 0.9)),
+              ),
 
           // 5. 隐藏的截图区域
           if (_isCapturing)
