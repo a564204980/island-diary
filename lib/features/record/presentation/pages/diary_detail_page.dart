@@ -164,6 +164,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     const SizedBox(height: 48),
                     _buildImages(isNight),
                     const SizedBox(height: 48),
+                    _buildReplies(isNight), // Add this line
                   ],
                 ),
               ),
@@ -181,11 +182,11 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     return Positioned(
       left: 0,
       right: 0,
-      bottom: 30, // 对齐列表页工具栏高度
+      bottom: 30,
       child: Center(
         child: Container(
           height: 54,
-          padding: const EdgeInsets.symmetric(horizontal: 20), // 统一 Padding 为 20
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
             color: isNight 
                 ? const Color(0xFF2C2E30) 
@@ -207,30 +208,234 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 color: iconColor,
                 onTap: () => Navigator.pop(context),
                 label: "返回",
-                width: 40, // 统一宽度为 40
+                width: 40,
               ),
-              const SizedBox(width: 40), // 统一间距为 40
+              const SizedBox(width: 30),
+              _buildActionButton(
+                icon: Icons.chat_bubble_outline_rounded,
+                color: iconColor,
+                onTap: _showReplySheet,
+                label: "回响",
+                iconSize: 24,
+                width: 40,
+              ),
+              const SizedBox(width: 30),
               _buildActionButton(
                 icon: Icons.edit_note_rounded,
                 color: iconColor,
                 onTap: _handleEdit,
                 label: "编辑",
                 iconSize: 28,
-                width: 40, // 统一宽度为 40
+                width: 40,
               ),
-              const SizedBox(width: 40), // 统一间距为 40
+              const SizedBox(width: 30),
               _buildActionButton(
                 icon: Icons.delete_outline_rounded,
                 color: Colors.redAccent.withOpacity(0.8),
                 onTap: _handleDelete,
                 label: "删除",
-                width: 40, // 统一宽度为 40
+                width: 40,
               ),
             ],
           ),
         ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.9, 0.9)),
       ),
     );
+  }
+
+  void _showReplySheet() {
+    final isNight = widget.isNight;
+    final controller = TextEditingController();
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isNight ? const Color(0xFF2D2A26) : const Color(0xFFFDF7E9),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            border: Border.all(
+              color: isNight ? Colors.white10 : const Color(0xFFE8D5B5),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "留下此刻的回响",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isNight ? Colors.white70 : const Color(0xFF5D4037),
+                      fontFamily: 'LXGWWenKai',
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: isNight ? Colors.white30 : Colors.black26),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                maxLines: 4,
+                autofocus: true,
+                style: TextStyle(
+                  color: isNight ? Colors.white : Colors.black87,
+                  fontFamily: 'LXGWWenKai',
+                ),
+                decoration: InputDecoration(
+                  hintText: "记录下这一刻的触动...",
+                  hintStyle: TextStyle(
+                    color: isNight ? Colors.white24 : Colors.black26,
+                    fontSize: 16,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(
+                      color: isNight ? Colors.white10 : const Color(0xFFE8D5B5),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(
+                      color: isNight ? Colors.white24 : const Color(0xFFD4A373),
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: isNight ? Colors.black12 : Colors.white24,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: () => _handleReplySubmit(controller.text),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4A373),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    "完成回响",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'LXGWWenKai',
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleReplySubmit(String content) async {
+    if (content.trim().isEmpty) return;
+    
+    await UserState().addReplyToDiary(_currentEntry.id, content);
+    
+    if (mounted) {
+      Navigator.pop(context);
+      // 刷新当前页面状态
+      final updated = UserState().savedDiaries.value.firstWhere(
+        (e) => e.id == _currentEntry.id,
+      );
+      setState(() {
+        _currentEntry = updated;
+      });
+    }
+  }
+
+  Widget _buildReplies(bool isNight) {
+    if (_currentEntry.replies.isEmpty) return const SizedBox.shrink();
+
+    final accentColor = isNight 
+        ? const Color(0xFFD4A373) 
+        : const Color(0xFF8B5E3C);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 48),
+        Row(
+          children: [
+            Container(
+              width: 4,
+              height: 20,
+              decoration: BoxDecoration(
+                color: accentColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              "时光回响",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: isNight ? Colors.white70 : const Color(0xFF5D4037),
+                fontFamily: 'LXGWWenKai',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        ..._currentEntry.replies.map((reply) => Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isNight ? Colors.white10 : Colors.black.withOpacity(0.05),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                reply.content,
+                style: TextStyle(
+                  fontSize: 16,
+                  height: 1.6,
+                  color: isNight ? Colors.white.withOpacity(0.8) : const Color(0xFF4A342E),
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "${reply.dateTime.year}/${reply.dateTime.month}/${reply.dateTime.day} ${reply.dateTime.hour.toString().padLeft(2, '0')}:${reply.dateTime.minute.toString().padLeft(2, '0')}",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isNight ? Colors.white24 : Colors.black26,
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+            ],
+          ),
+        )).toList(),
+      ],
+    ).animate().fadeIn(delay: 700.ms, duration: 800.ms).moveY(begin: 10, end: 0);
   }
 
   Widget _buildActionButton({
@@ -476,8 +681,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       fontFamily: 'LXGWWenKai',
     );
 
-    // 使用 TopicTextEditingController 的解析逻辑来实现话题高亮
-    final controller = TopicTextEditingController(text: filteredContent);
+    // 使用 DiaryTextEditingController 的解析逻辑来实现富文本展示
+    final controller = DiaryTextEditingController(text: filteredContent);
     controller.baseColor = textStyle.color ?? Colors.black;
     controller.baseFontFamily = textStyle.fontFamily ?? 'LXGWWenKai';
     controller.baseFontSize = textStyle.fontSize ?? 18;

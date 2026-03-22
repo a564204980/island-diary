@@ -7,47 +7,8 @@ import '../components/diary_time_picker_sheet.dart';
 import '../components/diary_weather_picker_sheet.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import './diary_editor_core_mixin.dart';
-import '../models/diary_block.dart';
 
 mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
-  void insertTopic() {
-    final activeBlock = activeTextBlock;
-    if (activeBlock == null) return;
-    final controller = activeBlock.controller;
-    final text = controller.text;
-    final selection = controller.selection;
-    
-    final int start = selection.isValid ? selection.start : text.length;
-    final int end = selection.isValid ? selection.end : text.length;
-    
-    final insertion = "#话题 ";
-    final newText = text.replaceRange(
-      start.clamp(0, text.length),
-      end.clamp(0, text.length),
-      insertion,
-    );
-    
-    final newSelection = TextSelection(
-      baseOffset: start + 1,
-      extentOffset: start + 3,
-    );
-    
-    controller.value = controller.value.copyWith(
-      text: newText,
-      selection: newSelection,
-    );
-    
-    // 标记为话题属性
-    if (controller is TopicTextEditingController) {
-      controller.applyAttributeToSelection(
-        TextSelection(baseOffset: start, extentOffset: start + 3),
-        isTopic: true,
-      );
-    }
-    addFocusListener(activeBlock);
-    activeBlock.focusNode.requestFocus();
-    onBlocksChanged();
-  }
 
   void onLocationClick() async {
     if (mounted) {

@@ -178,6 +178,8 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                       isFilteredMode: true,
                                       isNight: UserState().isNight,
                                       showDate: _selectedDate == null,
+                                      isFirst: index == 0,
+                                      isLast: index == filtered.length - 1,
                                       onShare: () => _shareCurrentDay(
                                         filtered[index].dateTime,
                                       ),

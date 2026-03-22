@@ -165,6 +165,11 @@ class DiaryShareCardBuilder extends StatelessWidget {
                       .toList(),
                 ),
               ],
+              // 整合回复部分
+              if (entry.replies.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildRepliesSection(entry),
+              ],
             ],
           ),
         );
@@ -506,12 +511,95 @@ class DiaryShareCardBuilder extends StatelessWidget {
                           .toList(),
                     ),
                   ],
+                  // 整合回复部分
+                  if (entry.replies.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _buildRepliesSection(entry, compact: true),
+                  ],
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRepliesSection(DiaryEntry entry, {bool compact = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 分割线或小标题
+        Row(
+          children: [
+            Container(
+              width: 2,
+              height: 12,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4A373).withOpacity(0.5),
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              "时光回响",
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF8B7763),
+                fontFamily: 'LXGWWenKai',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...entry.replies.map((reply) => Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: EdgeInsets.all(compact ? 8 : 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFD4A373).withOpacity(0.04),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: TextSpan(
+                  children: EmojiMapping.parseText(reply.content.trim()).map((chunk) {
+                    if (chunk.isEmoji) {
+                      return WidgetSpan(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 1),
+                          child: Image.asset(chunk.emojiPath!, width: 14, height: 14),
+                        ),
+                      );
+                    }
+                    return TextSpan(
+                      text: chunk.text,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF5D4037),
+                        fontFamily: 'LXGWWenKai',
+                        height: 1.4,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "${reply.dateTime.year}/${reply.dateTime.month}/${reply.dateTime.day} ${reply.dateTime.hour.toString().padLeft(2, '0')}:${reply.dateTime.minute.toString().padLeft(2, '0')}",
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: Colors.black12,
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+            ],
+          ),
+        )).toList(),
+      ],
     );
   }
 }

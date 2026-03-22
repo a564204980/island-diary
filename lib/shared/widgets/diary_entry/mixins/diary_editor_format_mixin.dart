@@ -27,12 +27,12 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
           setState(() {
             currentTextColor = color;
             if (activeBlock != null && selection != null && !selection.isCollapsed) {
-              (activeBlock.controller as TopicTextEditingController)
+              (activeBlock.controller as DiaryTextEditingController)
                   .applyAttributeToSelection(selection, color: color);
             } else {
               for (var block in blocks) {
                 if (block is TextBlock) {
-                  (block.controller as TopicTextEditingController).updateBaseColor(color);
+                  (block.controller as DiaryTextEditingController).updateBaseColor(color);
                 }
               }
             }
@@ -45,7 +45,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
           final selection = activeBlock?.controller.selection;
           if (activeBlock != null && selection != null && !selection.isCollapsed) {
             setState(() {
-              (activeBlock.controller as TopicTextEditingController)
+              (activeBlock.controller as DiaryTextEditingController)
                   .applyAttributeToSelection(selection, clearColor: true);
             });
             onBlocksChanged();
@@ -74,7 +74,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
           final selection = activeBlock?.controller.selection;
           setState(() {
             if (activeBlock != null && selection != null && !selection.isCollapsed) {
-              (activeBlock.controller as TopicTextEditingController)
+              (activeBlock.controller as DiaryTextEditingController)
                   .applyAttributeToSelection(selection, bgColor: color);
             }
           });
@@ -86,7 +86,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
           final selection = activeBlock?.controller.selection;
           if (activeBlock != null && selection != null && !selection.isCollapsed) {
             setState(() {
-              (activeBlock.controller as TopicTextEditingController)
+              (activeBlock.controller as DiaryTextEditingController)
                   .applyAttributeToSelection(selection, clearBgColor: true);
             });
             onBlocksChanged();
@@ -133,13 +133,13 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       if (activeBlock != null &&
           selection != null &&
           !selection.isCollapsed) {
-        (activeBlock.controller as TopicTextEditingController)
+        (activeBlock.controller as DiaryTextEditingController)
             .applyAttributeToSelection(selection, fontSize: size);
       } else {
         // 全局应用
         for (var block in blocks) {
           if (block is TextBlock) {
-            (block.controller as TopicTextEditingController)
+            (block.controller as DiaryTextEditingController)
                 .updateBaseFontSize(size);
           }
         }
@@ -168,7 +168,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       currentFontFamily = family;
       for (var block in blocks) {
         if (block is TextBlock) {
-          (block.controller as TopicTextEditingController).updateBaseFontFamily(family);
+          (block.controller as DiaryTextEditingController).updateBaseFontFamily(family);
         }
       }
     });

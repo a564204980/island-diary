@@ -27,7 +27,7 @@ abstract class DiaryBlock {
       final block = TextBlock(content, attributes: attrs, id: id);
       if (map['baseColor'] != null) {
         final controller = block.controller;
-        if (controller is TopicTextEditingController) {
+        if (controller is DiaryTextEditingController) {
           controller.baseColor = Color(map['baseColor']);
           if (map['baseFontSize'] != null) {
             controller.baseFontSize = map['baseFontSize'].toDouble();
@@ -87,7 +87,6 @@ class TextAttribute {
   final Color? color;
   final Color? backgroundColor;
   final double? fontSize;
-  final bool isTopic;
 
   TextAttribute({
     required this.start,
@@ -95,7 +94,6 @@ class TextAttribute {
     this.color,
     this.backgroundColor,
     this.fontSize,
-    this.isTopic = false, // 是否为话题标签
   });
 
   Map<String, dynamic> toMap() => {
@@ -104,7 +102,6 @@ class TextAttribute {
     if (color != null) 'color': color!.value,
     if (backgroundColor != null) 'backgroundColor': backgroundColor!.value,
     if (fontSize != null) 'fontSize': fontSize,
-    if (isTopic) 'isTopic': true,
   };
 
   factory TextAttribute.fromMap(Map<String, dynamic> map) => TextAttribute(
@@ -115,17 +112,16 @@ class TextAttribute {
         ? Color(map['backgroundColor'])
         : null,
     fontSize: map['fontSize']?.toDouble(),
-    isTopic: map['isTopic'] ?? false,
   );
 }
 
-class TopicTextEditingController extends TextEditingController {
+class DiaryTextEditingController extends TextEditingController {
   Color baseColor;
   double baseFontSize;
   String baseFontFamily;
   late List<TextAttribute> attributes;
 
-  TopicTextEditingController({
+  DiaryTextEditingController({
     String? text,
     Color? baseColor,
     double? baseFontSize,
@@ -199,7 +195,6 @@ class TopicTextEditingController extends TextEditingController {
               color: attr.color,
               backgroundColor: attr.backgroundColor,
               fontSize: attr.fontSize,
-              isTopic: attr.isTopic,
             ),
           );
         }
@@ -241,9 +236,8 @@ class TopicTextEditingController extends TextEditingController {
     bool clearColor = false,
     bool clearBgColor = false,
     bool clearFontSize = false,
-    bool? isTopic,
   }) {
-    if (selection.isCollapsed && isTopic == null) return;
+    if (selection.isCollapsed) return;
 
     final start = selection.start;
     final end = selection.end;
@@ -294,20 +288,6 @@ class TopicTextEditingController extends TextEditingController {
       }
     }
 
-    // 处理话题逻辑
-    if (isTopic != null) {
-      attributes.removeWhere(
-        (attr) =>
-            attr.isTopic &&
-            ((attr.start >= start && attr.start < end) ||
-                (attr.end > start && attr.end <= end) ||
-                (attr.start <= start && attr.end >= end)),
-      );
-      if (isTopic) {
-        attributes.add(TextAttribute(start: start, end: end, isTopic: true));
-      }
-    }
-
     // 2. 排序以优化渲染性能
     attributes.sort((a, b) => a.start.compareTo(b.start));
 
@@ -319,7 +299,7 @@ class TopicTextEditingController extends TextEditingController {
     required BuildContext context,
     TextStyle? style,
     required bool withComposing,
-    bool hideMarkdownSymbols = false, // 新增：是否隐藏 Markdown 符号（详情页使用）
+    bool hideMarkdownSymbols = false,
   }) {
     final textContent = this.text;
     if (textContent.isEmpty) return TextSpan(style: style, text: textContent);
@@ -340,45 +320,7 @@ class TopicTextEditingController extends TextEditingController {
 
     final List<Map<String, dynamic>> highlights = [];
 
-    // 1. 话题范围 (仅手动标记，即：点击话题按钮插入的内容)
-    // 根据用户要求，移除正则表达式自动识别话题的逻辑，
-    // 确保只有点击图标输入的才是橙色话题，手动输入的 # 均为标题。
-
-    // b. 手动标记的话题 (由按钮插入，具有 isTopic 属性)
-    // 根据用户要求：只要探测到标记，就自动扩展到整个连续单词（从 # 到空格），解决编辑时断色问题。
-    for (var attr in attributes) {
-      if (attr.isTopic) {
-        int start = attr.start.clamp(0, textContent.length);
-        int end = attr.end.clamp(0, textContent.length);
-        
-        // 向前寻找 #
-        while (start > 0 && textContent[start - 1] != '#' && !textContent[start - 1].contains(RegExp(r'\s'))) {
-          start--;
-        }
-        if (start > 0 && textContent[start - 1] == '#') {
-          start--;
-        }
-        
-        // 向后寻找空格或换行
-        while (end < textContent.length && !textContent[end].contains(RegExp(r'\s'))) {
-          end++;
-        }
-
-        if (start >= end) continue;
-
-        highlights.add({
-          'start': start,
-          'end': end,
-          'style': const TextStyle(
-            color: Color(0xFFE67E22),
-            fontWeight: FontWeight.bold,
-          ),
-          'priority': 10,
-        });
-      }
-    }
-
-    // 2. 获取所有表情范围
+    // 1. 获取所有表情范围
     final emojiKeys = EmojiMapping.unicodeToPath.keys.toList()
       ..sort((a, b) => b.length.compareTo(a.length));
     final emojiPattern = emojiKeys.map((e) => "(?:${RegExp.escape(e)})[\ufe00-\ufe0f\u200d]*").join('|');
@@ -555,77 +497,70 @@ class TopicTextEditingController extends TextEditingController {
     for (var line in lines) {
       final match = RegExp(r'(?:^|\s)(#+)\s*(.*)$').firstMatch(line);
       if (match != null) {
-        final level = match.group(1)!.length;
         final hashGroup = match.group(1)!;
-        final hashOffsetInMatch = match.group(0)!.indexOf(hashGroup);
-        final startPos = currentOffset + match.start + hashOffsetInMatch;
+        final level = hashGroup.length;
+        final startPos = (currentOffset + line.indexOf(hashGroup)).clamp(0, textContent.length);
 
-        // 核心冲突处理：区分手动输入与按钮话题
-        // 如果该位置的 # 带有 isTopic 属性（说明由话题按钮插入），则不将其识别为 Markdown 标题
-        final isButtonTopic = attributes.any((attr) =>
-            attr.isTopic && attr.start <= startPos && attr.end > startPos);
+        // 标题颜色跟随文字的基础颜色 (baseColor)
+        final headerColor = baseColor;
 
-        if (!isButtonTopic) {
-          // 标题颜色跟随文字的基础颜色 (baseColor)
-          final headerColor = baseColor;
+        final double headerFontSize =
+            level == 1
+                ? baseFontSize + 10
+                : (level == 2 ? baseFontSize + 6 : baseFontSize + 4);
 
-          final double headerFontSize = level == 1
-              ? baseFontSize + 10
-              : (level == 2 ? baseFontSize + 6 : baseFontSize + 4);
+        final int lineEnd = (currentOffset + line.length).clamp(
+          0,
+          textContent.length,
+        );
+        final int symbolEnd = (startPos + hashGroup.length).clamp(
+          0,
+          textContent.length,
+        );
 
-          final int lineEnd = (currentOffset + line.length).clamp(
-            0,
-            textContent.length,
-          );
-          final int symbolEnd = (startPos + hashGroup.length).clamp(
-            0,
-            textContent.length,
-          );
+        // 标题符号隐藏逻辑：仅当光标直接处于符号上方时才显示，输入内容后即自动隐藏
+        final bool isSymbolFocused =
+            !hideMarkdownSymbols &&
+            selection.start >= startPos &&
+            selection.start <= symbolEnd;
 
-          // 标题符号隐藏逻辑：仅当光标直接处于符号上方时才显示，输入内容后即自动隐藏
-          final bool isSymbolFocused =
-              !hideMarkdownSymbols &&
-              selection.start >= startPos &&
-              selection.start <= symbolEnd;
+        final currentSymbolStyle = TextStyle(
+          color: headerColor.withOpacity(
+            hideMarkdownSymbols ? 0 : (isSymbolFocused ? 0.3 : 0),
+          ),
+          fontSize: (hideMarkdownSymbols || !isSymbolFocused)
+              ? 0.01
+              : headerFontSize,
+        );
 
-          final currentSymbolStyle = TextStyle(
-            color: headerColor.withOpacity(
-              hideMarkdownSymbols ? 0 : (isSymbolFocused ? 0.3 : 0),
-            ),
-            fontSize: (hideMarkdownSymbols || !isSymbolFocused)
-                ? 0.01
-                : headerFontSize,
-          );
+        // 为整行应用标题字号（低优先级），确保行内话题能正确继承大小
+        highlights.add({
+          'start': currentOffset,
+          'end': lineEnd,
+          'style': TextStyle(fontSize: headerFontSize),
+          'priority': 0,
+        });
 
-          // 为整行应用标题字号（低优先级），确保行内话题能正确继承大小
-          highlights.add({
-            'start': currentOffset,
-            'end': lineEnd,
-            'style': TextStyle(fontSize: headerFontSize),
-            'priority': 0,
-          });
-
-          // 符号部分 (#)
-          highlights.add({
-            'start': startPos,
-            'end': symbolEnd,
-            'style': currentSymbolStyle,
-            'priority': 5,
-            'isSymbol': true,
-          });
-          // 文本部分
-          highlights.add({
-            'start': symbolEnd,
-            'end': lineEnd,
-            'style': TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: headerFontSize,
-              color: headerColor,
-            ),
-            'priority': 5,
-          });
-        }
-    }
+        // 符号部分 (#)
+        highlights.add({
+          'start': startPos,
+          'end': symbolEnd,
+          'style': currentSymbolStyle,
+          'priority': 5,
+          'isSymbol': true,
+        });
+        // 文本部分
+        highlights.add({
+          'start': symbolEnd,
+          'end': lineEnd,
+          'style': TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: headerFontSize,
+            color: headerColor,
+          ),
+          'priority': 5,
+        });
+      }
       currentOffset += line.length + 1;
     }
 
@@ -634,8 +569,9 @@ class TopicTextEditingController extends TextEditingController {
     for (var line in lines) {
       final trimmedLine = line.trimLeft();
       if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+        final startChar = trimmedLine.substring(0, 1);
         final startPos =
-            (currentOffset + line.indexOf(trimmedLine.substring(0, 1))).clamp(
+            (currentOffset + line.indexOf(startChar)).clamp(
               0,
               textContent.length,
             );
@@ -672,20 +608,6 @@ class TopicTextEditingController extends TextEditingController {
       });
     }
 
-    // --- 预处理：移除所有与话题（Priority 10）重叠的语法符号高亮 ---
-    final List<Map<String, int>> topicRanges = highlights
-        .where((h) => h['priority'] == 10)
-        .map((h) => {'start': h['start'] as int, 'end': h['end'] as int})
-        .toList();
-
-    highlights.removeWhere((h) {
-      if (h['isSymbol'] != true) return false;
-      final int hStart = h['start'] as int;
-      final int hEnd = h['end'] as int;
-      return topicRanges.any(
-        (tr) => hStart < tr['end']! && hEnd > tr['start']!,
-      );
-    });
     // -----------------------------------------------------------
 
     if (highlights.isEmpty) {
@@ -693,12 +615,15 @@ class TopicTextEditingController extends TextEditingController {
     }
 
     // 4. 按照索引动态切分并在渲染时合并样式
-    final Set<int> boundaries = {0, textContent.length};
+    final int len = textContent.length;
+    final Set<int> boundaries = {0, len};
     for (var h in highlights) {
-      boundaries.add(h['start']);
-      boundaries.add(h['end']);
+      final int s = (h['start'] as int).clamp(0, len);
+      final int e = (h['end'] as int).clamp(s, len);
+      boundaries.add(s);
+      boundaries.add(e);
     }
-    
+
     // 过滤掉位于 Unicode 代理对 (Surrogate Pairs) 中间的边界，防止 substring 产生无效字符
     final sortedBoundaries = boundaries.toList()..sort();
     final List<int> safeBoundaries = [];
@@ -707,7 +632,10 @@ class TopicTextEditingController extends TextEditingController {
         final prev = textContent.codeUnitAt(b - 1);
         final next = textContent.codeUnitAt(b);
         // 如果 prev 是高代理且 next 是低代理，则 b 处于代理对中间，应跳过
-        if (prev >= 0xD800 && prev <= 0xDBFF && next >= 0xDC00 && next <= 0xDFFF) {
+        if (prev >= 0xD800 &&
+            prev <= 0xDBFF &&
+            next >= 0xDC00 &&
+            next <= 0xDFFF) {
           continue;
         }
       }
@@ -753,28 +681,10 @@ class TopicTextEditingController extends TextEditingController {
         highlights,
       )..sort((a, b) => (a['priority'] as int).compareTo(b['priority'] as int));
 
-      final bool isTopicSegment = highlights.any(
-        (h) => h['priority'] == 10 && start >= h['start'] && end <= h['end'],
-      );
-
       for (var h in sortedHighlights) {
-        if (h['priority'] == 3) continue;
-        if (start >= h['start'] && end <= h['end']) {
-          combinedStyle = combinedStyle.merge(h['style'] as TextStyle?);
+        if (start >= h['start'] && end <= h['end'] && h['style'] != null) {
+          combinedStyle = combinedStyle.merge(h['style']);
         }
-      }
-
-      // 最终保障：如果是话题片段，强制锁定样式，确保可见并保持颜色一致
-      if (isTopicSegment) {
-        combinedStyle = combinedStyle.copyWith(
-          color: const Color(0xFFE67E22),
-          fontWeight: FontWeight.bold,
-          fontSize:
-              (combinedStyle.fontSize != null && combinedStyle.fontSize! > 1)
-              ? combinedStyle.fontSize
-              : baseFontSize,
-          decoration: TextDecoration.none,
-        );
       }
 
       children.add(TextSpan(text: chunk, style: combinedStyle));
@@ -793,7 +703,7 @@ class TextBlock extends DiaryBlock {
     List<TextAttribute>? attributes,
     Color? baseColor,
     super.id,
-  }) : controller = TopicTextEditingController(
+  }) : controller = DiaryTextEditingController(
          text: text,
          attributes: attributes,
          baseColor: baseColor,
@@ -803,7 +713,7 @@ class TextBlock extends DiaryBlock {
   @override
   Map<String, dynamic> toMap() {
     final tc = controller;
-    if (tc is TopicTextEditingController) {
+    if (tc is DiaryTextEditingController) {
       return {
         'id': id,
         'type': 'text',

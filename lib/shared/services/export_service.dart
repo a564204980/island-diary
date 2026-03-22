@@ -105,6 +105,15 @@ class ExportService {
             usedEmojiPaths.add(chunk.emojiPath!);
           }
         }
+        // 扫描回复中的表情
+        for (var reply in entry.replies) {
+          final replyChunks = EmojiMapping.parseText(reply.content);
+          for (var chunk in replyChunks) {
+            if (chunk.isEmoji) {
+              usedEmojiPaths.add(chunk.emojiPath!);
+            }
+          }
+        }
       }
 
       final Map<String, pw.ImageProvider> emojiImages = {};
@@ -331,6 +340,10 @@ class ExportService {
           else
             pw.SizedBox(height: 6),
 
+      // 整合回复部分
+      if (entry.replies.isNotEmpty)
+        _buildPdfReplies(entry, font, colors, emojiImages),
+
       pw.SizedBox(height: 12),
       pw.Divider(height: 1, color: colors.divider, thickness: 0.5),
     ];
@@ -347,14 +360,7 @@ class ExportService {
     // 1. 收集所有关键边界点
     final Set<int> boundaries = {0, textContent.length};
 
-    // a. 话题边界 (#话题)
-    final topicRegExp = RegExp(r'#[^\s#]+');
-    for (final match in topicRegExp.allMatches(textContent)) {
-      boundaries.add(match.start);
-      boundaries.add(match.end);
-    }
-
-    // b. 表情边界 (Unicode 或 [名称])
+    // a. 表情边界 (Unicode 或 [名称])
     final emojiKeys = EmojiMapping.unicodeToPath.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
     final emojiPattern = emojiKeys.map((e) => RegExp.escape(e)).join('|');
     final nameKeys = EmojiMapping.nameToPath.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
@@ -408,18 +414,6 @@ class ExportService {
         // 默认基础样式
         PdfColor currentTextColor = baseColor;
         PdfColor? currentBgColor;
-        bool isBold = false;
-        bool isUnderline = false;
-
-        // 话题样式应用 (优先级较高)
-        if (topicRegExp.hasMatch(chunk)) {
-            final matches = topicRegExp.allMatches(chunk);
-            if (matches.any((m) => m.start == 0 && m.end == chunk.length)) {
-              currentTextColor = const PdfColor.fromInt(0xFFE67E22);
-              isBold = true;
-              isUnderline = true;
-            }
-        }
 
         // 手动属性样式叠加
         for (var attr in attributes) {
@@ -428,7 +422,6 @@ class ExportService {
             if (attr['backgroundColor'] != null) currentBgColor = PdfColor.fromInt(attr['backgroundColor']);
           }
         }
-
         spans.add(pw.TextSpan(
           text: chunk,
           style: pw.TextStyle(
@@ -436,8 +429,8 @@ class ExportService {
             fontSize: 10.5,
             color: currentTextColor,
             background: currentBgColor != null ? pw.BoxDecoration(color: currentBgColor) : null,
-            fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
-            decoration: isUnderline ? pw.TextDecoration.underline : pw.TextDecoration.none,
+            fontWeight: pw.FontWeight.normal,
+            decoration: pw.TextDecoration.none,
             decorationColor: currentTextColor,
             height: 1.25,
           ),
@@ -554,5 +547,52 @@ class ExportService {
     final regex = RegExp(r'[^\n\r\u0020-\u007E\u4e00-\u9fa5\u3000-\u303F\uff00-\uffef]');
     final cleaned = text.replaceAll(regex, '').trim();
     return cleaned.isEmpty ? fallback : cleaned;
+  }
+
+  static pw.Widget _buildPdfReplies(DiaryEntry entry, pw.Font font, _PdfThemeColors colors, Map<String, pw.ImageProvider> emojiImages) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.SizedBox(height: 8),
+        for (var reply in entry.replies)
+          pw.Container(
+            margin: const pw.EdgeInsets.only(bottom: 6),
+            padding: const pw.EdgeInsets.only(left: 10),
+            decoration: pw.BoxDecoration(
+              border: pw.Border(left: pw.BorderSide(color: colors.divider, width: 2)),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Wrap(
+                  crossAxisAlignment: pw.WrapCrossAlignment.center,
+                  children: EmojiMapping.parseText(reply.content).map((chunk) {
+                    if (chunk.isEmoji && emojiImages.containsKey(chunk.emojiPath)) {
+                      return pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 1),
+                        child: pw.Image(emojiImages[chunk.emojiPath!]!, width: 12, height: 12),
+                      );
+                    }
+                    return pw.Text(
+                      chunk.text,
+                      style: pw.TextStyle(
+                        font: font,
+                        fontSize: 9.5,
+                        color: colors.secondaryText,
+                        height: 1.2,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                pw.SizedBox(height: 2),
+                pw.Text(
+                  "${reply.dateTime.year}/${reply.dateTime.month}/${reply.dateTime.day} ${reply.dateTime.hour.toString().padLeft(2, '0')}:${reply.dateTime.minute.toString().padLeft(2, '0')}",
+                  style: pw.TextStyle(font: font, fontSize: 7, color: colors.tertiaryText),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 }

@@ -14,6 +14,8 @@ class DiaryHistoryCard extends StatefulWidget {
   final bool isFilteredMode;
   final bool isNight;
   final bool showDate;
+  final bool isFirst;
+  final bool isLast;
 
   const DiaryHistoryCard({
     super.key,
@@ -22,6 +24,8 @@ class DiaryHistoryCard extends StatefulWidget {
     this.isFilteredMode = false,
     this.isNight = false,
     this.showDate = false,
+    this.isFirst = false,
+    this.isLast = false,
     this.onShare,
   });
 
@@ -68,7 +72,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
         final block = DiaryBlock.fromMap(Map<String, dynamic>.from(b as Map));
         if (block is TextBlock) {
           final controller = block.controller;
-          if (controller is TopicTextEditingController) {
+          if (controller is DiaryTextEditingController) {
             controller.baseColor = baseStyle.color ?? Colors.black;
             controller.baseFontFamily = baseStyle.fontFamily ?? 'LXGWWenKai';
             controller.baseFontSize = baseStyle.fontSize ?? 15.5;
@@ -116,26 +120,24 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
 
     return Stack(
       children: [
-        // 贯穿全高的轴线 (处于底层)
-        Positioned(
-          left: 76,
-          top: 0,
-          bottom: 0,
-          child: Container(
-            width: 4,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  widget.isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-                  widget.isNight ? Colors.white.withOpacity(0.01) : Colors.black.withOpacity(0.01),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(2),
-            ),
+        // 贯穿全高的轴线 (处于底层) - 拆分为两段，并避开圆点区域
+        // 上半段：从顶部到圆点顶缘 (6px)
+        if (!widget.isFirst)
+          Positioned(
+            left: 76,
+            top: 0,
+            height: 6, 
+            child: _buildTimelineLine(isTop: true),
           ),
-        ),
+        // 下半段：从圆点底缘 (6px padding + 10px 直径 = 16px) 向下延伸
+        if (!widget.isLast)
+          Positioned(
+            left: 76,
+            top: 16,
+            bottom: 0,
+            child: _buildTimelineLine(isTop: false),
+          ),
+
         // 顶层内容
         GestureDetector(
           onTap: () {
@@ -157,7 +159,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                 // 1. 左侧：时刻 (字号加大)
                 Container(
                   width: 60,
-                  padding: const EdgeInsets.only(top: 14),
+                  padding: const EdgeInsets.only(top: 6), // 稍微留白，更精致
                   alignment: Alignment.topRight,
                   child: Text(
                     timelineLabel,
@@ -170,13 +172,13 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 6), // 本来是 16，改小 10px 使点线对齐
+                const SizedBox(width: 6), 
                 // 2. 中间：书脊装订轴
                 SizedBox(
                   width: 24,
                   child: Column(
                     children: [
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 6), // 对齐时刻
                       // 实心装订点
                       Container(
                         width: 10,
@@ -352,6 +354,52 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                                   .toList(),
                             ),
                           ],
+                          const SizedBox(height: 12),
+                          // 底部信息行：日期+时刻 (左) & 回复数 (右)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Builder(
+                                builder: (context) {
+                                  final dt = widget.entry.dateTime;
+                                  final weekDays = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"];
+                                  final weekDay = weekDays[dt.weekday - 1];
+                                  final m = dt.month.toString().padLeft(2, '0');
+                                  final d = dt.day.toString().padLeft(2, '0');
+                                  final dateStr = "${dt.year}/$m/$d $weekDay ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+                                  return Text(
+                                    dateStr,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: widget.isNight ? Colors.white24 : Colors.black26,
+                                      fontFamily: 'LXGWWenKai',
+                                    ),
+                                  );
+                                },
+                              ),
+                              if (widget.entry.replies.isNotEmpty)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.chat_bubble_outline_rounded,
+                                      size: 14,
+                                      color: widget.isNight ? Colors.white24 : Colors.black26,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      widget.entry.replies.length.toString(),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: widget.isNight ? Colors.white24 : Colors.black26,
+                                        fontFamily: 'LXGWWenKai',
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
                           // _buildFooterInfo 现在已经不再需要，因为天气和地点已作为标签展示
                         ],
                       ),
@@ -366,6 +414,23 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     .animate()
     .fadeIn(delay: (widget.index * 60).ms, duration: 350.ms)
     .moveX(begin: 12, end: 0);
+  }
+
+  Widget _buildTimelineLine({required bool isTop}) {
+    return Container(
+      width: 4,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            widget.isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+            widget.isNight ? Colors.white.withOpacity(0.01) : Colors.black.withOpacity(0.01),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
   }
 
   Widget _buildMoodBadge(
@@ -526,64 +591,6 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: isNight ? Colors.white70 : const Color(0xFF8B7763),
-                    fontFamily: 'LXGWWenKai',
-                  ),
-                ),
-              ],
-            ),
-          ),
-        // 6. 自定义日期标签
-        if (widget.entry.customDate != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: badgeColor.withOpacity(isNight ? 0.08 : 0.12),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: badgeColor.withOpacity(isNight ? 0.2 : 0.25),
-                width: 0.5,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.calendar_today_outlined, size: 10, color: badgeColor.withOpacity(isNight ? 0.6 : 1.0)),
-                const SizedBox(width: 2),
-                Text(
-                  widget.entry.customDate!,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
-                    fontFamily: 'LXGWWenKai',
-                  ),
-                ),
-              ],
-            ),
-          ),
-        // 7. 自定义时间标签
-        if (widget.entry.customTime != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: badgeColor.withOpacity(isNight ? 0.08 : 0.12),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: badgeColor.withOpacity(isNight ? 0.2 : 0.25),
-                width: 0.5,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.access_time_outlined, size: 10, color: badgeColor.withOpacity(isNight ? 0.6 : 1.0)),
-                const SizedBox(width: 2),
-                Text(
-                  widget.entry.customTime!,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
                     fontFamily: 'LXGWWenKai',
                   ),
                 ),

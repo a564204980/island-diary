@@ -15,6 +15,7 @@ class DiaryEntry {
   final String? location;
   final String? customDate;
   final String? customTime;
+  final List<DiaryReply> replies; // 自我回复/回响列表
 
   DiaryEntry({
     String? id,
@@ -29,7 +30,9 @@ class DiaryEntry {
     this.location,
     this.customDate,
     this.customTime,
-  }) : id = id ?? const Uuid().v4();
+    List<DiaryReply>? replies,
+  })  : id = id ?? const Uuid().v4(),
+        replies = replies ?? [];
 
   Map<String, dynamic> toMap() {
     return {
@@ -45,6 +48,7 @@ class DiaryEntry {
       'location': location,
       'customDate': customDate,
       'customTime': customTime,
+      'replies': replies.map((x) => x.toMap()).toList(),
     };
   }
 
@@ -62,6 +66,10 @@ class DiaryEntry {
       location: map['location'],
       customDate: map['customDate'],
       customTime: map['customTime'],
+      replies: map['replies'] != null
+          ? List<DiaryReply>.from(
+              (map['replies'] as List).map((x) => DiaryReply.fromMap(x)))
+          : [],
     );
   }
 
@@ -69,4 +77,33 @@ class DiaryEntry {
 
   factory DiaryEntry.fromJson(String source) =>
       DiaryEntry.fromMap(jsonDecode(source));
+}
+
+/// 自我回复/回响模型
+class DiaryReply {
+  final String id;
+  final String content;
+  final DateTime dateTime;
+
+  DiaryReply({
+    String? id,
+    required this.content,
+    required this.dateTime,
+  }) : id = id ?? const Uuid().v4();
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'content': content,
+      'dateTime': dateTime.toIso8601String(),
+    };
+  }
+
+  factory DiaryReply.fromMap(Map<String, dynamic> map) {
+    return DiaryReply(
+      id: map['id'],
+      content: map['content'],
+      dateTime: DateTime.parse(map['dateTime']),
+    );
+  }
 }

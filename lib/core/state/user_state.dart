@@ -197,12 +197,51 @@ class UserState {
     savedDiaries.value = newList;
 
     // 持久化整个列表
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = savedDiaries.value.map((e) => e.toMap()).toList();
-    await prefs.setString(_keySavedDiaries, jsonEncode(jsonList));
+    await _saveDiariesToStorage();
 
     // 保存后清空草稿
     await clearDraft();
+  }
+
+  /// 为指定日记添加一条回复（感悟）
+  Future<void> addReplyToDiary(String diaryId, String content) async {
+    final index = savedDiaries.value.indexWhere((e) => e.id == diaryId);
+    if (index == -1) return;
+
+    final entry = savedDiaries.value[index];
+    final newReply = DiaryReply(
+      content: content,
+      dateTime: DateTime.now(),
+    );
+
+    final updatedEntry = DiaryEntry(
+      id: entry.id,
+      dateTime: entry.dateTime,
+      moodIndex: entry.moodIndex,
+      intensity: entry.intensity,
+      content: entry.content,
+      tag: entry.tag,
+      blocks: entry.blocks,
+      weather: entry.weather,
+      temp: entry.temp,
+      location: entry.location,
+      customDate: entry.customDate,
+      customTime: entry.customTime,
+      replies: [...entry.replies, newReply],
+    );
+
+    final newList = List<DiaryEntry>.from(savedDiaries.value);
+    newList[index] = updatedEntry;
+    savedDiaries.value = newList;
+
+    await _saveDiariesToStorage();
+  }
+
+  /// 私有方法：同步日记列表到本地存储
+  Future<void> _saveDiariesToStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = savedDiaries.value.map((e) => e.toMap()).toList();
+    await prefs.setString(_keySavedDiaries, jsonEncode(jsonList));
   }
 
   /// 更新已有的日记
@@ -214,9 +253,7 @@ class UserState {
       savedDiaries.value = newList;
 
       // 持久化整个列表
-      final prefs = await SharedPreferences.getInstance();
-      final jsonList = savedDiaries.value.map((e) => e.toMap()).toList();
-      await prefs.setString(_keySavedDiaries, jsonEncode(jsonList));
+      await _saveDiariesToStorage();
     }
   }
 

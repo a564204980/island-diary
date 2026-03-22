@@ -392,7 +392,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             isEmojiOpen: isEmojiOpen,
                             onEmojiToggle: toggleEmoji,
                             onImagePick: onImageButtonPressed,
-                            onTopicClick: insertTopic,
                             onColorClick: showColorPicker,
                             onBgColorClick: showBackgroundColorPicker,
                             onLocationClick: onLocationClick,

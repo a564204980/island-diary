@@ -52,8 +52,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
 
     final firstTextBlock = blocks.whereType<TextBlock>().firstOrNull;
     if (firstTextBlock != null &&
-        firstTextBlock.controller is TopicTextEditingController) {
-      final tc = firstTextBlock.controller as TopicTextEditingController;
+        firstTextBlock.controller is DiaryTextEditingController) {
+      final tc = firstTextBlock.controller as DiaryTextEditingController;
       currentFontFamily = tc.baseFontFamily;
       currentFontSize = tc.baseFontSize;
       if (tc.text.isNotEmpty) {
@@ -104,7 +104,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           final newId = const Uuid().v4();
           if (block is TextBlock) {
             final tc = block.controller;
-            final attrs = (tc is TopicTextEditingController)
+            final attrs = (tc is DiaryTextEditingController)
                 ? tc.attributes
                 : null;
             block = TextBlock(tc.text, attributes: attrs, id: newId);
@@ -208,6 +208,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           customDate: customDate,
           customTime: customTime,
           blocks: blocks.map((b) => b.toMap()).toList(),
+          replies: widget.entry!.replies,
         );
         await UserState().updateDiary(updatedEntry);
       } else {
