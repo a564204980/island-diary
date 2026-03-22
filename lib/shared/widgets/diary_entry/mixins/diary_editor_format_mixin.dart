@@ -193,14 +193,19 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     final controller = activeBlock.controller;
     final text = controller.text;
     final selection = controller.selection;
+    
+    final int start = selection.isValid ? selection.start : text.length;
+    final int end = selection.isValid ? selection.end : text.length;
+    
     final newText = text.replaceRange(
-      selection.start.clamp(0, text.length),
-      selection.end.clamp(0, text.length),
+      start.clamp(0, text.length),
+      end.clamp(0, text.length),
       emoji,
     );
+    
     controller.value = controller.value.copyWith(
       text: newText,
-      selection: TextSelection.collapsed(offset: selection.start + emoji.length),
+      selection: TextSelection.collapsed(offset: start + emoji.length),
     );
     onBlocksChanged();
   }

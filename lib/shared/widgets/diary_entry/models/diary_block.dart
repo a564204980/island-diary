@@ -381,7 +381,7 @@ class TopicTextEditingController extends TextEditingController {
     // 2. 获取所有表情范围
     final emojiKeys = EmojiMapping.unicodeToPath.keys.toList()
       ..sort((a, b) => b.length.compareTo(a.length));
-    final emojiPattern = emojiKeys.map((e) => RegExp.escape(e)).join('|');
+    final emojiPattern = emojiKeys.map((e) => "(?:${RegExp.escape(e)})[\ufe00-\ufe0f\u200d]*").join('|');
 
     final nameKeys = EmojiMapping.nameToPath.keys.toList()
       ..sort((a, b) => b.length.compareTo(a.length));
@@ -698,12 +698,26 @@ class TopicTextEditingController extends TextEditingController {
       boundaries.add(h['start']);
       boundaries.add(h['end']);
     }
+    
+    // 过滤掉位于 Unicode 代理对 (Surrogate Pairs) 中间的边界，防止 substring 产生无效字符
     final sortedBoundaries = boundaries.toList()..sort();
+    final List<int> safeBoundaries = [];
+    for (int b in sortedBoundaries) {
+      if (b > 0 && b < textContent.length) {
+        final prev = textContent.codeUnitAt(b - 1);
+        final next = textContent.codeUnitAt(b);
+        // 如果 prev 是高代理且 next 是低代理，则 b 处于代理对中间，应跳过
+        if (prev >= 0xD800 && prev <= 0xDBFF && next >= 0xDC00 && next <= 0xDFFF) {
+          continue;
+        }
+      }
+      safeBoundaries.add(b);
+    }
 
     final List<InlineSpan> children = [];
-    for (int i = 0; i < sortedBoundaries.length - 1; i++) {
-      final start = sortedBoundaries[i];
-      final end = sortedBoundaries[i + 1];
+    for (int i = 0; i < safeBoundaries.length - 1; i++) {
+      final start = safeBoundaries[i];
+      final end = safeBoundaries[i + 1];
       if (start >= end) continue;
 
       final chunk = textContent.substring(start, end);

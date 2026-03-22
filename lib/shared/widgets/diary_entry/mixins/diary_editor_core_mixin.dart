@@ -38,18 +38,19 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           ? const Color(0xFFE0C097)
           : const Color(0xFF5D4037);
     }
-    
+
     if (entry != null) {
       _loadFromEntry(entry);
     } else {
       loadDraft();
     }
-    
+
     final mood = kMoods[widget.moodIndex];
     _fixedQuote = DiaryUtils.getMoodQuote(mood.label);
-    
+
     final firstTextBlock = blocks.whereType<TextBlock>().firstOrNull;
-    if (firstTextBlock != null && firstTextBlock.controller is TopicTextEditingController) {
+    if (firstTextBlock != null &&
+        firstTextBlock.controller is TopicTextEditingController) {
       final tc = firstTextBlock.controller as TopicTextEditingController;
       currentFontFamily = tc.baseFontFamily;
       currentFontSize = tc.baseFontSize;
@@ -79,6 +80,10 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     block.focusNode.addListener(() {
       if (block.focusNode.hasFocus) {
         lastFocusedBlockId = block.id;
+        // 如果当前开启了表情面板，点击正文自动收起以弹出键盘
+        if (isEmojiOpen) {
+          setState(() => isEmojiOpen = false);
+        }
       }
     });
   }
@@ -95,7 +100,9 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           final newId = const Uuid().v4();
           if (block is TextBlock) {
             final tc = block.controller;
-            final attrs = (tc is TopicTextEditingController) ? tc.attributes : null;
+            final attrs = (tc is TopicTextEditingController)
+                ? tc.attributes
+                : null;
             block = TextBlock(tc.text, attributes: attrs, id: newId);
           } else if (block is ImageBlock) {
             block = ImageBlock(block.file, id: newId);
@@ -112,7 +119,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       weather = UserState().diaryDraft.value?.weather;
       temp = UserState().diaryDraft.value?.temp;
       location = UserState().diaryDraft.value?.location;
-      
+
       if (draftModified) {
         onBlocksChanged();
       }
@@ -143,10 +150,14 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   }
 
   TextBlock? get activeTextBlock {
-    final focused = blocks.whereType<TextBlock>().where((b) => b.focusNode.hasFocus);
+    final focused = blocks.whereType<TextBlock>().where(
+      (b) => b.focusNode.hasFocus,
+    );
     if (focused.isNotEmpty) return focused.first;
     if (lastFocusedBlockId != null) {
-      final lastFocused = blocks.whereType<TextBlock>().where((b) => b.id == lastFocusedBlockId);
+      final lastFocused = blocks.whereType<TextBlock>().where(
+        (b) => b.id == lastFocusedBlockId,
+      );
       if (lastFocused.isNotEmpty) return lastFocused.first;
     }
     if (blocks.whereType<TextBlock>().isNotEmpty) {
@@ -164,10 +175,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     if (fullText.trim().isEmpty &&
         blocks.whereType<ImageBlock>().isEmpty &&
         blocks.whereType<AudioBlock>().isEmpty) {
-      IslandAlert.show(
-        context,
-        message: '从心出发，总要留下点什么（日记内容不能为空哦）',
-      );
+      IslandAlert.show(context, message: '从心出发，总要留下点什么（日记内容不能为空哦）');
       return false;
     }
 
@@ -197,15 +205,11 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
         await onBlocksChanged();
         await UserState().saveDiary();
       }
-      
+
       if (mounted) Navigator.of(context).pop(true);
       return true;
     } catch (e) {
-      IslandAlert.show(
-        context,
-        icon: '🏮',
-        message: '日记暂时无法保存: $e',
-      );
+      IslandAlert.show(context, icon: '🏮', message: '日记暂时无法保存: $e');
       return false;
     }
   }
@@ -223,11 +227,13 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     if (key == null) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final RenderBox? box = key.currentContext?.findRenderObject() as RenderBox?;
+      final RenderBox? box =
+          key.currentContext?.findRenderObject() as RenderBox?;
       if (box == null || !box.hasSize) {
         if (retryCount < 5) {
           Future.delayed(const Duration(milliseconds: 50), () {
-            if (mounted) _performScrollToActiveBlock(retryCount: retryCount + 1);
+            if (mounted)
+              _performScrollToActiveBlock(retryCount: retryCount + 1);
           });
         }
         return;
@@ -260,7 +266,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
 
       final blockContext = key.currentContext;
       if (blockContext == null) return;
-      
+
       final scrollable = Scrollable.of(blockContext);
       final scrollObject = scrollable.context.findRenderObject();
       if (scrollObject is! RenderBox) return;

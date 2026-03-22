@@ -83,7 +83,7 @@ class DiaryBlockItem extends StatelessWidget {
       controller: block.controller,
       focusNode: block.focusNode,
       maxLines: null,
-      readOnly: isEmojiOpen,
+      readOnly: false,
       showCursor: true,
       cursorColor: isNight 
           ? const Color(0xFFE0C097) 
