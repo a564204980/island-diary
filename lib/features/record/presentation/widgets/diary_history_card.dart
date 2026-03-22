@@ -532,6 +532,64 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
               ],
             ),
           ),
+        // 6. 自定义日期标签
+        if (widget.entry.customDate != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: badgeColor.withOpacity(isNight ? 0.08 : 0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: badgeColor.withOpacity(isNight ? 0.2 : 0.25),
+                width: 0.5,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.calendar_today_outlined, size: 10, color: badgeColor.withOpacity(isNight ? 0.6 : 1.0)),
+                const SizedBox(width: 2),
+                Text(
+                  widget.entry.customDate!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        // 7. 自定义时间标签
+        if (widget.entry.customTime != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: badgeColor.withOpacity(isNight ? 0.08 : 0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: badgeColor.withOpacity(isNight ? 0.2 : 0.25),
+                width: 0.5,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.access_time_outlined, size: 10, color: badgeColor.withOpacity(isNight ? 0.6 : 1.0)),
+                const SizedBox(width: 2),
+                Text(
+                  widget.entry.customTime!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }

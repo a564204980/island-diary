@@ -23,6 +23,8 @@ class UserState {
   static const _keyDraftWeather = 'diary_draft_weather';
   static const _keyDraftTemp = 'diary_draft_temp';
   static const _keyDraftLocation = 'diary_draft_location';
+  static const _keyDraftCustomDate = 'diary_draft_custom_date';
+  static const _keyDraftCustomTime = 'diary_draft_custom_time';
   static const _keySavedDiaries = 'saved_diaries';
   static const _keyThemeMode = 'theme_mode'; // 新增主题模式键
   static const _keyRecordGuidance = 'has_seen_record_guidance'; // 记录页引导
@@ -82,6 +84,8 @@ class UserState {
     String? weather,
     String? temp,
     String? location,
+    String? customDate,
+    String? customTime,
     List<Map<String, dynamic>>? blocks,
   }) async {
     final draft = DiaryDraft(
@@ -92,6 +96,8 @@ class UserState {
       weather: weather,
       temp: temp,
       location: location,
+      customDate: customDate,
+      customTime: customTime,
       blocks: blocks,
     );
     diaryDraft.value = draft;
@@ -114,6 +120,10 @@ class UserState {
     else await prefs.remove(_keyDraftTemp);
     if (location != null) await prefs.setString(_keyDraftLocation, location);
     else await prefs.remove(_keyDraftLocation);
+    if (customDate != null) await prefs.setString(_keyDraftCustomDate, customDate);
+    else await prefs.remove(_keyDraftCustomDate);
+    if (customTime != null) await prefs.setString(_keyDraftCustomTime, customTime);
+    else await prefs.remove(_keyDraftCustomTime);
   }
 
   /// 清空草稿
@@ -128,6 +138,8 @@ class UserState {
     await prefs.remove(_keyDraftWeather);
     await prefs.remove(_keyDraftTemp);
     await prefs.remove(_keyDraftLocation);
+    await prefs.remove(_keyDraftCustomDate);
+    await prefs.remove(_keyDraftCustomTime);
   }
 
   /// 将当前草稿保存为正式日记并持久化
@@ -174,6 +186,8 @@ class UserState {
       weather: draft.weather,
       temp: draft.temp,
       location: draft.location,
+      customDate: draft.customDate,
+      customTime: draft.customTime,
       blocks: blocks,
     );
 
@@ -300,6 +314,8 @@ class UserState {
         weather: prefs.getString(_keyDraftWeather),
         temp: prefs.getString(_keyDraftTemp),
         location: prefs.getString(_keyDraftLocation),
+        customDate: prefs.getString(_keyDraftCustomDate),
+        customTime: prefs.getString(_keyDraftCustomTime),
         blocks: blocks,
       );
     }
@@ -335,6 +351,8 @@ class DiaryDraft {
   final String? weather;
   final String? temp;
   final String? location;
+  final String? customDate;
+  final String? customTime;
   final List<Map<String, dynamic>>? blocks; // 结构化分块数据
 
   DiaryDraft({
@@ -345,6 +363,8 @@ class DiaryDraft {
     this.weather,
     this.temp,
     this.location,
+    this.customDate,
+    this.customTime,
     this.blocks,
   });
 }

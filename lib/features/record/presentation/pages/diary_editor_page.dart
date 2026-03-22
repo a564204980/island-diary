@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_toolbar.dart';
@@ -226,6 +227,54 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                 ],
                               ),
                             ),
+                          // 自定义日期标签
+                          if (customDate != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: accentColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.calendar_today_outlined, size: 12, color: accentColor),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    customDate!,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: accentColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          // 自定义时间标签
+                          if (customTime != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: accentColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.access_time_outlined, size: 12, color: accentColor),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    customTime!,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: accentColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -260,16 +309,31 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
             
             // 底部工具栏 (根据要求：不要动)
             Positioned(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+              bottom: 0,
               left: 0,
               right: 0,
               child: Builder(
                 builder: (context) {
+                  final double viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
+                  // 实时捕获并记忆最大键盘高度
+                  if (viewInsetsBottom > 100 && viewInsetsBottom > keyboardHeight) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted && viewInsetsBottom != keyboardHeight) {
+                        setState(() => keyboardHeight = viewInsetsBottom);
+                      }
+                    });
+                  }
+
                   final double screenWidth = MediaQuery.of(context).size.width;
                   final bool isWide = screenWidth > 600;
                   final double paperMaxWidth = isWide ? screenWidth * 0.7 : double.infinity;
                   final double toolbarMaxWidth = isWide ? paperMaxWidth + 24 : double.infinity;
-                  final double currentBottomAreaHeight = isEmojiOpen ? keyboardHeight : 0;
+                  
+                  // 核心改进：计算整体底部占位高度
+                  // 当表情开启时，高度至少为 keyboardHeight；当键盘弹出时，跟随 keyboard 变化。
+                  final double totalBottomHeight = isEmojiOpen 
+                      ? math.max(viewInsetsBottom, keyboardHeight) 
+                      : viewInsetsBottom;
                       
                   return Align(
                     alignment: Alignment.bottomCenter,
@@ -341,18 +405,22 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             onMoreClick: onMoreClick,
                           ),
                           AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
+                            duration: Duration(milliseconds: isEmojiOpen ? 150 : 250),
                             curve: Curves.easeOutCubic,
-                            height: currentBottomAreaHeight,
-                            color: const Color(0xFFF9EED8).withOpacity(0.95),
-                            child: isEmojiOpen
-                                ? EmojiPanel(
-                                    onEmojiSelected: onEmojiSelected,
-                                    onBackspace: handleEmojiBackspace,
-                                    onSend: handleEmojiSend,
-                                    onCustomEmojiSelected: handleCustomEmojiSelected,
-                                  )
-                                : const SizedBox.shrink(),
+                            height: totalBottomHeight,
+                            color: (isEmojiOpen || viewInsetsBottom > 0) 
+                              ? const Color(0xFFF9EED8).withOpacity(0.95)
+                              : Colors.transparent,
+                            child: Visibility(
+                              visible: isEmojiOpen,
+                              maintainState: true,
+                              child: EmojiPanel(
+                                onEmojiSelected: onEmojiSelected,
+                                onBackspace: handleEmojiBackspace,
+                                onSend: handleEmojiSend,
+                                onCustomEmojiSelected: handleCustomEmojiSelected,
+                              ),
+                            ),
                           ),
                         ],
                       ),

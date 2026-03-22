@@ -409,6 +409,54 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   ],
                 ),
               ),
+            // 自定义日期标签
+            if (_currentEntry.customDate != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.calendar_today_outlined, size: 12, color: accentColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      _currentEntry.customDate!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: accentColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            // 自定义时间标签
+            if (_currentEntry.customTime != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.access_time_outlined, size: 12, color: accentColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      _currentEntry.customTime!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: accentColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ],

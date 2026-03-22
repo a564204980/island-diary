@@ -66,7 +66,7 @@ class DiaryUtils {
 
   /// 获取完整的格式化时间 (HH:mm:ss)
   static String getFormattedFullTime(TimeOfDay time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:00';
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
   /// 根据心情获取治愈系语录

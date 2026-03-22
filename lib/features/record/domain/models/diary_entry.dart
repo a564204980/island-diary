@@ -13,6 +13,8 @@ class DiaryEntry {
   final String? weather;
   final String? temp;
   final String? location;
+  final String? customDate;
+  final String? customTime;
 
   DiaryEntry({
     String? id,
@@ -25,6 +27,8 @@ class DiaryEntry {
     this.weather,
     this.temp,
     this.location,
+    this.customDate,
+    this.customTime,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toMap() {
@@ -39,6 +43,8 @@ class DiaryEntry {
       'weather': weather,
       'temp': temp,
       'location': location,
+      'customDate': customDate,
+      'customTime': customTime,
     };
   }
 
@@ -54,6 +60,8 @@ class DiaryEntry {
       weather: map['weather'],
       temp: map['temp'],
       location: map['location'],
+      customDate: map['customDate'],
+      customTime: map['customTime'],
     );
   }
 

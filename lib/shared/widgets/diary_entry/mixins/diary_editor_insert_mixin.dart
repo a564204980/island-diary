@@ -158,6 +158,9 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
   }
 
   void onDateClick() {
+    final activeBlock = activeTextBlock;
+    final bool hadFocus = activeBlock?.focusNode.hasFocus ?? false;
+
     FocusScope.of(context).unfocus();
     setState(() => isColorPickerOpen = true);
     showModalBottomSheet(
@@ -166,30 +169,39 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       builder: (context) => DiaryDatePickerSheet(
         initialDate: DateTime.now(),
         onConfirm: (date) {
-          final activeBlock = activeTextBlock;
-          if (activeBlock != null) {
+          final String insertion = DiaryUtils.getFormattedDateWithWeekday(date);
+          
+          if (hadFocus && activeBlock != null) {
             final controller = activeBlock.controller;
             final text = controller.text;
             final selection = controller.selection;
-            final insertion = DiaryUtils.getFormattedDateWithWeekday(date);
+            
+            // 需求：内容插入时前后加个空格
+            final String spacedInsertion = " $insertion ";
 
             final newText = (selection.isValid)
                 ? text.replaceRange(
                     selection.start.clamp(0, text.length),
                     selection.end.clamp(0, text.length),
-                    insertion,
+                    spacedInsertion,
                   )
-                : text + insertion;
+                : text + spacedInsertion;
 
             setState(() {
               controller.value = controller.value.copyWith(
                 text: newText,
                 selection: TextSelection.collapsed(
-                  offset: (selection.isValid ? selection.start : text.length) + insertion.length,
+                  offset: (selection.isValid ? selection.start : text.length) + spacedInsertion.length,
                 ),
               );
             });
             activeBlock.focusNode.requestFocus();
+            onBlocksChanged();
+          } else {
+            // 无焦点模式：作为标签
+            setState(() {
+              customDate = insertion;
+            });
             onBlocksChanged();
           }
           Navigator.pop(context);
@@ -201,6 +213,9 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
   }
 
   void onTimeClick() {
+    final activeBlock = activeTextBlock;
+    final bool hadFocus = activeBlock?.focusNode.hasFocus ?? false;
+
     FocusScope.of(context).unfocus();
     setState(() => isColorPickerOpen = true);
     showModalBottomSheet(
@@ -209,30 +224,39 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       builder: (context) => DiaryTimePickerSheet(
         initialTime: TimeOfDay.now(),
         onConfirm: (time) {
-          final activeBlock = activeTextBlock;
-          if (activeBlock != null) {
+          final String insertion = DiaryUtils.getFormattedFullTime(time);
+          
+          if (hadFocus && activeBlock != null) {
             final controller = activeBlock.controller;
             final text = controller.text;
             final selection = controller.selection;
-            final insertion = DiaryUtils.getFormattedFullTime(time);
+            
+            // 需求：内容插入时前后加个空格
+            final String spacedInsertion = " $insertion ";
 
             final newText = (selection.isValid)
                 ? text.replaceRange(
                     selection.start.clamp(0, text.length),
                     selection.end.clamp(0, text.length),
-                    insertion,
+                    spacedInsertion,
                   )
-                : text + insertion;
+                : text + spacedInsertion;
 
             setState(() {
               controller.value = controller.value.copyWith(
                 text: newText,
                 selection: TextSelection.collapsed(
-                  offset: (selection.isValid ? selection.start : text.length) + insertion.length,
+                  offset: (selection.isValid ? selection.start : text.length) + spacedInsertion.length,
                 ),
               );
             });
             activeBlock.focusNode.requestFocus();
+            onBlocksChanged();
+          } else {
+            // 无焦点模式：作为标签
+            setState(() {
+              customTime = insertion;
+            });
             onBlocksChanged();
           }
           Navigator.pop(context);

@@ -21,7 +21,9 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   bool isColorPickerOpen = false;
   bool isImagePickerOpen = false;
   bool isRecording = false;
-  double keyboardHeight = 280;
+  String? customDate;
+  String? customTime;
+  double keyboardHeight = 330;
   Color currentTextColor = UserState().isNight
       ? const Color(0xFFE0C097)
       : const Color(0xFF5D4037);
@@ -74,6 +76,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     weather = entry.weather;
     temp = entry.temp;
     location = entry.location;
+    customDate = entry.customDate;
+    customTime = entry.customTime;
   }
 
   void addFocusListener(TextBlock block) {
@@ -119,6 +123,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       weather = UserState().diaryDraft.value?.weather;
       temp = UserState().diaryDraft.value?.temp;
       location = UserState().diaryDraft.value?.location;
+      customDate = UserState().diaryDraft.value?.customDate;
+      customTime = UserState().diaryDraft.value?.customTime;
 
       if (draftModified) {
         onBlocksChanged();
@@ -145,6 +151,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       weather: weather,
       temp: temp,
       location: location,
+      customDate: customDate,
+      customTime: customTime,
       blocks: blocks.map((b) => b.toMap()).toList(),
     );
   }
@@ -197,6 +205,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           weather: weather,
           temp: temp,
           location: location,
+          customDate: customDate,
+          customTime: customTime,
           blocks: blocks.map((b) => b.toMap()).toList(),
         );
         await UserState().updateDiary(updatedEntry);
