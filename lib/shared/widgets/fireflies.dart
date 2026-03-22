@@ -43,22 +43,19 @@ class _FirefliesState extends State<Fireflies> with TickerProviderStateMixin {
                 return Positioned(
                   left: x * constraints.maxWidth,
                   top: y * constraints.maxHeight,
-                  child: Opacity(
-                    opacity: f.pulseAnimation.value,
-                    child: Container(
-                      width: f.size,
-                      height: f.size,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFFEFFF8E),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFD4FF00).withValues(alpha: 0.8),
-                            blurRadius: f.size * 2,
-                            spreadRadius: f.size / 2,
-                          ),
-                        ],
-                      ),
+                  child: Container(
+                    width: f.size,
+                    height: f.size,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFEFFF8E).withValues(alpha: f.pulseAnimation.value),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFD4FF00).withValues(alpha: 0.8 * f.pulseAnimation.value),
+                          blurRadius: f.size * 2,
+                          spreadRadius: f.size / 2,
+                        ),
+                      ],
                     ),
                   ),
                 );

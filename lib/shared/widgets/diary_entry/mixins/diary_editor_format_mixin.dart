@@ -181,6 +181,12 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       isEmojiOpen = !isEmojiOpen;
       if (isEmojiOpen) {
         FocusScope.of(context).unfocus();
+        // 延时等待面板动画（约 250ms）开启后，触发自动滚动以确保光标可见
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted && isEmojiOpen) {
+            scrollToActiveBlock();
+          }
+        });
       } else {
         activeTextBlock?.focusNode.requestFocus();
       }
@@ -208,6 +214,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       selection: TextSelection.collapsed(offset: start + emoji.length),
     );
     onBlocksChanged();
+    scrollToActiveBlock();
   }
 
   void handleEmojiBackspace() {
@@ -251,6 +258,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       );
     }
     onBlocksChanged();
+    scrollToActiveBlock();
   }
 
   void handleEmojiSend() {

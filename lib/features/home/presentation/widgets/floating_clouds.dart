@@ -168,16 +168,14 @@ class _SingleCloudState extends State<_SingleCloud>
         return Positioned(
           top: screenHeight * _currentTop,
           left: xPos,
-          child: Opacity(
-            // 增加不透明度（特别是前景层）以确保有效遮挡星星
-            opacity: widget.isForeground ? 0.85 : 0.65,
-            child: Transform.scale(
-              scale: widget.scale,
-              child: Image.asset(
-                'assets/images/icons/clouds$_currentIndex${widget.isNight ? '_night' : ''}.png',
-                width: cloudWidth,
-                fit: BoxFit.contain,
-              ),
+          child: Transform.scale(
+            scale: widget.scale,
+            child: Image.asset(
+              'assets/images/icons/clouds$_currentIndex${widget.isNight ? '_night' : ''}.png',
+              width: cloudWidth,
+              fit: BoxFit.contain,
+              color: Colors.white.withValues(alpha: widget.isForeground ? 0.85 : 0.65),
+              colorBlendMode: BlendMode.modulate,
             ),
           ),
         );

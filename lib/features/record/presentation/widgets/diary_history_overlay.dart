@@ -301,16 +301,21 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                             isScrollControlled: true,
                             builder: (context) => DiarySearchPanel(
                               isNight: UserState().isNight,
-                              onSearch: (query, moodIdx) {
+                              initialDate: _selectedDate,
+                              onSearch: (query, moodIdx, date) {
                                 setState(() {
                                   _searchQuery = query;
                                   _filterMoodIndex = moodIdx;
+                                  if (date != null) {
+                                    _selectedDate = date;
+                                  }
                                 });
                               },
                               onClear: () {
                                 setState(() {
                                   _searchQuery = "";
                                   _filterMoodIndex = null;
+                                  _selectedDate = null;
                                 });
                               },
                             ),

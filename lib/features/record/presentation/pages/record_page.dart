@@ -90,9 +90,12 @@ class _RecordPageState extends State<RecordPage>
   }
 
   void _centerBackground() {
+    if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       if (_scrollController.hasClients &&
-          _scrollController.position.hasContentDimensions) {
+          _scrollController.position.hasContentDimensions &&
+          _scrollController.position.maxScrollExtent > 0) {
         final double maxScroll = _scrollController.position.maxScrollExtent;
         _scrollController.jumpTo(maxScroll / 2);
       }
@@ -394,17 +397,19 @@ class _ParallaxBackground extends StatelessWidget {
             scrollController.position.hasContentDimensions &&
             scrollController.position.hasPixels) {
           final double maxScroll = scrollController.position.maxScrollExtent;
-          final double currentScroll = scrollController.offset.clamp(0, maxScroll);
-          final double scrollRatio = maxScroll > 0 ? currentScroll / maxScroll : 0.5;
+          if (maxScroll > 0) {
+            final double currentScroll = scrollController.offset.clamp(0, maxScroll);
+            final double scrollRatio = currentScroll / maxScroll;
 
-          if (scrollRatio < 0.2) {
-            currentScale = 1.05 + (0.13 * (scrollRatio / 0.2));
-          } else if (scrollRatio < 0.5) {
-            currentScale = 1.18 + (0.07 * ((scrollRatio - 0.2) / 0.3));
-          } else if (scrollRatio < 0.8) {
-            currentScale = 1.25 - (0.07 * ((scrollRatio - 0.5) / 0.3));
-          } else {
-            currentScale = 1.18 - (0.13 * ((scrollRatio - 0.8) / 0.2));
+            if (scrollRatio < 0.2) {
+              currentScale = 1.05 + (0.13 * (scrollRatio / 0.2));
+            } else if (scrollRatio < 0.5) {
+              currentScale = 1.18 + (0.07 * ((scrollRatio - 0.2) / 0.3));
+            } else if (scrollRatio < 0.8) {
+              currentScale = 1.25 - (0.07 * ((scrollRatio - 0.5) / 0.3));
+            } else {
+              currentScale = 1.18 - (0.13 * ((scrollRatio - 0.8) / 0.2));
+            }
           }
         }
         return Transform.scale(

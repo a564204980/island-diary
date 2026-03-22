@@ -18,6 +18,9 @@ class DiaryToolbar extends StatelessWidget {
   final VoidCallback? onTagClick;
   final VoidCallback? onWeatherClick;
   final VoidCallback? onMoreClick;
+  final VoidCallback? onClose;
+  final VoidCallback? onSave;
+  final Color? accentColor;
 
   const DiaryToolbar({
     super.key,
@@ -34,6 +37,9 @@ class DiaryToolbar extends StatelessWidget {
     this.onTagClick,
     this.onWeatherClick,
     this.onMoreClick,
+    this.onClose,
+    this.onSave,
+    this.accentColor,
   });
 
   @override
@@ -100,6 +106,16 @@ class DiaryToolbar extends StatelessWidget {
       {'path': 'assets/images/icons/pencil_icon.png', 'onTap': onColorClick},
       {'path': 'assets/images/icons/calligraphy_icon.png', 'onTap': onBgColorClick},
       {'path': 'assets/images/icons/more.png', 'onTap': onMoreClick},
+      {
+        'icon': Icons.close_rounded,
+        'onTap': onClose,
+        'color': Colors.redAccent.withOpacity(0.7),
+      },
+      {
+        'icon': Icons.check_rounded,
+        'onTap': onSave,
+        'color': accentColor ?? const Color(0xFF8B5E3C),
+      },
     ];
 
     final double itemWidth = rowWidth / 7;
@@ -112,8 +128,10 @@ class DiaryToolbar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: row1Icons.map((icon) {
           return _buildToolbarItem(
-            icon['path'],
             itemWidth,
+            assetPath: icon['path'],
+            icon: icon['icon'],
+            iconColor: icon['color'],
             onTap: icon['onTap'],
           );
         }).toList(),
@@ -122,8 +140,10 @@ class DiaryToolbar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: row2Icons.map((icon) {
           return _buildToolbarItem(
-            icon['path'],
             itemWidth,
+            assetPath: icon['path'],
+            icon: icon['icon'],
+            iconColor: icon['color'],
             onTap: icon['onTap'],
           );
         }).toList(),
@@ -135,8 +155,10 @@ class DiaryToolbar extends StatelessWidget {
 
 
   Widget _buildToolbarItem(
-    String assetPath,
     double width, {
+    String? assetPath,
+    IconData? icon,
+    Color? iconColor,
     VoidCallback? onTap,
     bool isSelected = false,
   }) {
@@ -158,12 +180,18 @@ class DiaryToolbar extends StatelessWidget {
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Image.asset(
-                      assetPath,
-                      width: 34,
-                      height: 34,
-                      fit: BoxFit.contain,
-                    ),
+                    child: assetPath != null
+                        ? Image.asset(
+                            assetPath,
+                            width: 34,
+                            height: 34,
+                            fit: BoxFit.contain,
+                          )
+                        : Icon(
+                            icon,
+                            size: 30,
+                            color: iconColor,
+                          ),
                   )
                   .animate(target: isSelected ? 1 : 0)
                   .scale(

@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 
 class DiarySearchPanel extends StatefulWidget {
-  final Function(String query, int? moodIndex) onSearch;
+  final Function(String query, int? moodIndex, DateTime? date) onSearch;
   final VoidCallback onClear;
   final bool isNight;
+  final DateTime? initialDate;
 
   const DiarySearchPanel({
     super.key,
     required this.onSearch,
     required this.onClear,
     this.isNight = false,
+    this.initialDate,
   });
 
   @override
@@ -20,9 +22,16 @@ class DiarySearchPanel extends StatefulWidget {
 class _DiarySearchPanelState extends State<DiarySearchPanel> {
   final TextEditingController _controller = TextEditingController();
   int? _selectedMoodIndex;
+  DateTime? _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = widget.initialDate;
+  }
 
   void _handleSearch() {
-    widget.onSearch(_controller.text, _selectedMoodIndex);
+    widget.onSearch(_controller.text, _selectedMoodIndex, _selectedDate);
   }
 
   @override
@@ -73,7 +82,8 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
             ),
             child: TextField(
               controller: _controller,
-              onChanged: (_) => _handleSearch(),
+              onSubmitted: (_) => _handleSearch(),
+              textInputAction: TextInputAction.search,
               style: TextStyle(color: textColor, fontFamily: 'LXGWWenKai'),
               decoration: InputDecoration(
                 hintText: "寻找某段回忆...",
@@ -84,7 +94,9 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                   ? IconButton(
                       icon: Icon(Icons.clear_rounded, color: hintColor, size: 18),
                       onPressed: () {
-                        _controller.clear();
+                        setState(() {
+                          _controller.clear();
+                        });
                         _handleSearch();
                       },
                     )
@@ -94,6 +106,110 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
           ),
           
           const SizedBox(height: 20),
+
+          // 日期筛选
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "按日期筛选",
+                style: TextStyle(
+                  fontSize: 13,
+                  color: hintColor,
+                  fontFamily: 'LXGWWenKai',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (_selectedDate != null)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedDate = null;
+                    });
+                    _handleSearch();
+                  },
+                  child: Text(
+                    "清除日期",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: const Color(0xFFD4A373).withOpacity(0.8),
+                      fontFamily: 'LXGWWenKai',
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          
+          const SizedBox(height: 12),
+
+          GestureDetector(
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _selectedDate ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime.now(),
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: ColorScheme.light(
+                        primary: const Color(0xFFD4A373),
+                        onPrimary: Colors.white,
+                        surface: widget.isNight ? const Color(0xFF2C2E30) : Colors.white,
+                        onSurface: widget.isNight ? Colors.white70 : Colors.black87,
+                      ),
+                      textButtonTheme: TextButtonThemeData(
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFFD4A373),
+                        ),
+                      ),
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              if (picked != null) {
+                setState(() {
+                  _selectedDate = picked;
+                });
+                _handleSearch();
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: widget.isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _selectedDate != null 
+                    ? const Color(0xFFD4A373).withOpacity(0.5)
+                    : (widget.isNight ? Colors.white10 : Colors.black.withOpacity(0.05)),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today_rounded,
+                    size: 18,
+                    color: _selectedDate != null ? const Color(0xFFD4A373) : hintColor,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    _selectedDate == null 
+                      ? "选择日期..." 
+                      : "${_selectedDate!.year}年${_selectedDate!.month}月${_selectedDate!.day}日",
+                    style: TextStyle(
+                      color: _selectedDate != null ? textColor : hintColor,
+                      fontSize: 14,
+                      fontFamily: 'LXGWWenKai',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 24),
           
           // 心情筛选标题
           Text(

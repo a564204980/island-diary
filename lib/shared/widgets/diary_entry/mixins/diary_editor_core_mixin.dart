@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/diary_block.dart';
@@ -23,6 +24,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   bool isRecording = false;
   String? customDate;
   String? customTime;
+  List<DiaryReply> replies = []; // 新增：保存当前日记的回复内容
   double keyboardHeight = 330;
   Color currentTextColor = UserState().isNight
       ? const Color(0xFFE0C097)
@@ -78,6 +80,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     location = entry.location;
     customDate = entry.customDate;
     customTime = entry.customTime;
+    replies = List<DiaryReply>.from(entry.replies); // 初始化回复内容
   }
 
   void addFocusListener(TextBlock block) {
@@ -208,7 +211,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           customDate: customDate,
           customTime: customTime,
           blocks: blocks.map((b) => b.toMap()).toList(),
-          replies: widget.entry!.replies,
+          replies: replies, // 使用本地维护的回复状态
         );
         await UserState().updateDiary(updatedEntry);
       } else {
@@ -288,8 +291,17 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       );
       final double currentScroll = scrollController.offset;
       final double viewportHeight = scrollObject.size.height;
+
+      // 核心迭代：考虑底部由于表情包/键盘导致的遮挡高度
+      final double viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
+      final double panelHeight = isEmojiOpen ? math.max(viewInsetsBottom, keyboardHeight) : viewInsetsBottom;
+      
+      // 有效视口高度 = 总高度 - 底部遮挡 - 顶部状态栏等安全区（估算值或从 Padding 获取）
+      final double visibleViewportHeight = viewportHeight - panelHeight;
+      
+      // 目标：将光标定位在“有效视口”的中间偏上位置（约 1/3 处最舒适）
       final double targetScroll =
-          currentScroll + caretInScrollOffset.dy - (viewportHeight / 2);
+          currentScroll + caretInScrollOffset.dy - (visibleViewportHeight * 0.35);
 
       if (scrollController.hasClients &&
           scrollController.position.hasContentDimensions) {

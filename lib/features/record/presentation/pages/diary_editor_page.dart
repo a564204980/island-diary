@@ -52,6 +52,21 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         ? (mood.glowColor ?? const Color(0xFFE0C097)) 
         : Color.lerp(mood.glowColor ?? const Color(0xFF8B5E3C), Colors.black, 0.45)!;
 
+    final double viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
+    // 实时捕获并记忆最大键盘高度，移至主 build 以供内容区域 padding 使用
+    if (viewInsetsBottom > 100 && viewInsetsBottom > keyboardHeight) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && viewInsetsBottom != keyboardHeight) {
+          setState(() => keyboardHeight = viewInsetsBottom);
+        }
+      });
+    }
+
+    // 计算当前底部遮挡总高度
+    final double currentBottomHeight = isEmojiOpen 
+        ? math.max(viewInsetsBottom, keyboardHeight) 
+        : viewInsetsBottom;
+
     return PopScope(
       canPop: true,
       child: Scaffold(
@@ -85,8 +100,14 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                 height: double.infinity,
                 color: Colors.transparent,
                 child: SingleChildScrollView(
+                  controller: scrollController, // 确保关联控制器
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 160), // 底部留出工具栏空间
+                  padding: EdgeInsets.fromLTRB(
+                    24, 
+                    32, 
+                    24, 
+                    math.max(160, currentBottomHeight + 100) // 动态 Padding：根据键盘/面板高度留白
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -314,27 +335,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
               right: 0,
               child: Builder(
                 builder: (context) {
-                  final double viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
-                  // 实时捕获并记忆最大键盘高度
-                  if (viewInsetsBottom > 100 && viewInsetsBottom > keyboardHeight) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted && viewInsetsBottom != keyboardHeight) {
-                        setState(() => keyboardHeight = viewInsetsBottom);
-                      }
-                    });
-                  }
-
                   final double screenWidth = MediaQuery.of(context).size.width;
                   final bool isWide = screenWidth > 600;
                   final double paperMaxWidth = isWide ? screenWidth * 0.7 : double.infinity;
                   final double toolbarMaxWidth = isWide ? paperMaxWidth + 24 : double.infinity;
                   
-                  // 核心改进：计算整体底部占位高度
-                  // 当表情开启时，高度至少为 keyboardHeight；当键盘弹出时，跟随 keyboard 变化。
-                  final double totalBottomHeight = isEmojiOpen 
-                      ? math.max(viewInsetsBottom, keyboardHeight) 
-                      : viewInsetsBottom;
-                      
+                  final double totalBottomHeight = currentBottomHeight;
+                  
                   return Align(
                     alignment: Alignment.bottomCenter,
                     child: SizedBox(
@@ -342,52 +349,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 移到底部的快捷操作按钮 (紧贴工具栏上方)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: Text(
-                                    '关闭',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontFamily: 'LXGWWenKai',
-                                      color: isNight 
-                                          ? Colors.white.withOpacity(0.4) 
-                                          : const Color(0xFFA68A78).withOpacity(0.8),
-                                    ),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: onSave,
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: Text(
-                                    '完成',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: 'LXGWWenKai',
-                                      color: isNight 
-                                          ? (mood.glowColor ?? const Color(0xFFE0C097))
-                                          : const Color(0xFF8B5E3C),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          const SizedBox(height: 8),
                           DiaryToolbar(
                             isEmojiOpen: isEmojiOpen,
                             onEmojiToggle: toggleEmoji,
@@ -402,6 +364,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             onTagClick: onTagClick,
                             onWeatherClick: onWeatherClick,
                             onMoreClick: onMoreClick,
+                            onClose: () => Navigator.of(context).pop(),
+                            onSave: onSave,
+                            accentColor: accentColor,
                           ),
                           AnimatedContainer(
                             duration: Duration(milliseconds: isEmojiOpen ? 150 : 250),

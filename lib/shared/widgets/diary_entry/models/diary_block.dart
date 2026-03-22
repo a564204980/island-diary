@@ -140,8 +140,42 @@ class DiaryTextEditingController extends TextEditingController {
 
   @override
   set value(TextEditingValue newValue) {
+    TextEditingValue finalValue = newValue;
+
+    // 原子删除表情标签逻辑：处理 [名称] 格式的自定义表情
+    if (newValue.text.length < value.text.length &&
+        newValue.selection.isCollapsed &&
+        value.selection.isCollapsed) {
+      final String oldText = value.text;
+      final int oldPos = value.selection.baseOffset;
+      final int newPos = newValue.selection.baseOffset;
+
+      // 检测是否是单个退格操作且删除了 ']'
+      if (oldPos - newPos == 1 && oldPos > 0 && oldText[oldPos - 1] == ']') {
+        int start = oldPos - 2;
+        // 向前搜索最近的 '['，限制长度防止误伤长文本
+        while (start >= 0 &&
+            oldText[start] != '[' &&
+            oldText[start] != ']' &&
+            (oldPos - start) < 12) {
+          start--;
+        }
+
+        if (start >= 0 && oldText[start] == '[') {
+          final tagContent = oldText.substring(start + 1, oldPos - 1);
+          if (EmojiMapping.nameToPath.containsKey(tagContent)) {
+            // 确认为合法表情标签，执行整块删除
+            finalValue = newValue.copyWith(
+              text: oldText.substring(0, start) + oldText.substring(oldPos),
+              selection: TextSelection.collapsed(offset: start),
+            );
+          }
+        }
+      }
+    }
+
     final String oldText = value.text;
-    final String newText = newValue.text;
+    final String newText = finalValue.text;
 
     if (oldText != newText && attributes.isNotEmpty) {
       // 计算变化发生的起始点和长度差异
@@ -203,7 +237,7 @@ class DiaryTextEditingController extends TextEditingController {
       attributes.addAll(updatedAttributes);
     }
 
-    super.value = newValue;
+    super.value = finalValue;
   }
 
   void updateBaseColor(Color newColor) {
@@ -650,6 +684,17 @@ class DiaryTextEditingController extends TextEditingController {
 
       final chunk = textContent.substring(start, end);
 
+      TextStyle combinedStyle = rootStyle;
+      final sortedHighlights = List<Map<String, dynamic>>.from(
+        highlights,
+      )..sort((a, b) => (a['priority'] as int).compareTo(b['priority'] as int));
+
+      for (var h in sortedHighlights) {
+        if (start >= h['start'] && end <= h['end'] && h['style'] != null) {
+          combinedStyle = combinedStyle.merge(h['style']);
+        }
+      }
+
       Map<String, dynamic>? emojiMatch;
       for (var h in highlights) {
         if (h['priority'] == 3 && start >= h['start'] && end <= h['end']) {
@@ -659,6 +704,8 @@ class DiaryTextEditingController extends TextEditingController {
       }
 
       if (emojiMatch != null) {
+        // 核心修复：WidgetSpan 本身只占用 1 个索引。
+        // 如果原始匹配字符串（如 [发呆]）长度大于 1，必须补齐缺口，否则光标位置会错乱。
         children.add(
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
@@ -673,18 +720,20 @@ class DiaryTextEditingController extends TextEditingController {
             ),
           ),
         );
-        continue;
-      }
-
-      TextStyle combinedStyle = rootStyle;
-      final sortedHighlights = List<Map<String, dynamic>>.from(
-        highlights,
-      )..sort((a, b) => (a['priority'] as int).compareTo(b['priority'] as int));
-
-      for (var h in sortedHighlights) {
-        if (start >= h['start'] && end <= h['end'] && h['style'] != null) {
-          combinedStyle = combinedStyle.merge(h['style']);
+        // 如果原文本长度 > 1，则用透明且极小的 TextSpan 补平索引，确保 textContent 索引映射正确
+        if (chunk.length > 1) {
+          children.add(
+            TextSpan(
+              text: chunk.substring(1),
+              style: combinedStyle.copyWith(
+                fontSize: 0.01,
+                color: Colors.transparent,
+                letterSpacing: -1, // 进一步挤压空间
+              ),
+            ),
+          );
         }
+        continue;
       }
 
       children.add(TextSpan(text: chunk, style: combinedStyle));
