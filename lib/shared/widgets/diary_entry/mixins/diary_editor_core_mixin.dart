@@ -3,18 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/diary_block.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
-import '../diary_entry_sheet.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import '../utils/diary_utils.dart';
 import '../../../../core/state/user_state.dart';
 import '../../mood_picker/config/mood_config.dart';
 import '../../island_alert.dart';
 
-mixin DiaryEditorCoreMixin<T extends MoodDiaryEntrySheet> on State<T> {
+mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   final List<DiaryBlock> blocks = [];
   final ScrollController scrollController = ScrollController();
   final Map<String, GlobalKey> blockKeys = {};
 
   bool isEmojiOpen = false;
+  String? weather;
+  String? temp;
+  String? location;
   bool isColorPickerOpen = false;
   bool isImagePickerOpen = false;
   bool isRecording = false;
@@ -67,6 +70,9 @@ mixin DiaryEditorCoreMixin<T extends MoodDiaryEntrySheet> on State<T> {
       blocks.add(block);
       blockKeys[block.id] = GlobalKey();
     }
+    weather = entry.weather;
+    temp = entry.temp;
+    location = entry.location;
   }
 
   void addFocusListener(TextBlock block) {
@@ -103,6 +109,10 @@ mixin DiaryEditorCoreMixin<T extends MoodDiaryEntrySheet> on State<T> {
         blocks.add(block);
         blockKeys[block.id] = GlobalKey();
       }
+      weather = UserState().diaryDraft.value?.weather;
+      temp = UserState().diaryDraft.value?.temp;
+      location = UserState().diaryDraft.value?.location;
+      
       if (draftModified) {
         onBlocksChanged();
       }
@@ -125,6 +135,9 @@ mixin DiaryEditorCoreMixin<T extends MoodDiaryEntrySheet> on State<T> {
       intensity: widget.intensity,
       content: content,
       tag: widget.tag,
+      weather: weather,
+      temp: temp,
+      location: location,
       blocks: blocks.map((b) => b.toMap()).toList(),
     );
   }
@@ -173,6 +186,9 @@ mixin DiaryEditorCoreMixin<T extends MoodDiaryEntrySheet> on State<T> {
           intensity: widget.intensity,
           content: content,
           tag: widget.tag,
+          weather: weather,
+          temp: temp,
+          location: location,
           blocks: blocks.map((b) => b.toMap()).toList(),
         );
         await UserState().updateDiary(updatedEntry);

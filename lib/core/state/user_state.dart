@@ -20,6 +20,9 @@ class UserState {
   static const _keyDraftMood = 'diary_draft_mood';
   static const _keyDraftIntensity = 'diary_draft_intensity';
   static const _keyDraftTag = 'diary_draft_tag';
+  static const _keyDraftWeather = 'diary_draft_weather';
+  static const _keyDraftTemp = 'diary_draft_temp';
+  static const _keyDraftLocation = 'diary_draft_location';
   static const _keySavedDiaries = 'saved_diaries';
   static const _keyThemeMode = 'theme_mode'; // 新增主题模式键
   static const _keyRecordGuidance = 'has_seen_record_guidance'; // 记录页引导
@@ -76,6 +79,9 @@ class UserState {
     required double intensity,
     required String content,
     String? tag,
+    String? weather,
+    String? temp,
+    String? location,
     List<Map<String, dynamic>>? blocks,
   }) async {
     final draft = DiaryDraft(
@@ -83,6 +89,9 @@ class UserState {
       intensity: intensity,
       content: content,
       tag: tag,
+      weather: weather,
+      temp: temp,
+      location: location,
       blocks: blocks,
     );
     diaryDraft.value = draft;
@@ -99,6 +108,12 @@ class UserState {
     if (blocks != null) {
       await prefs.setString(_keyDraftBlocks, jsonEncode(blocks));
     }
+    if (weather != null) await prefs.setString(_keyDraftWeather, weather);
+    else await prefs.remove(_keyDraftWeather);
+    if (temp != null) await prefs.setString(_keyDraftTemp, temp);
+    else await prefs.remove(_keyDraftTemp);
+    if (location != null) await prefs.setString(_keyDraftLocation, location);
+    else await prefs.remove(_keyDraftLocation);
   }
 
   /// 清空草稿
@@ -110,6 +125,9 @@ class UserState {
     await prefs.remove(_keyDraftMood);
     await prefs.remove(_keyDraftIntensity);
     await prefs.remove(_keyDraftTag);
+    await prefs.remove(_keyDraftWeather);
+    await prefs.remove(_keyDraftTemp);
+    await prefs.remove(_keyDraftLocation);
   }
 
   /// 将当前草稿保存为正式日记并持久化
@@ -153,6 +171,9 @@ class UserState {
       intensity: draft.intensity,
       content: draft.content,
       tag: draft.tag,
+      weather: draft.weather,
+      temp: draft.temp,
+      location: draft.location,
       blocks: blocks,
     );
 
@@ -276,6 +297,9 @@ class UserState {
         moodIndex: prefs.getInt(_keyDraftMood) ?? 0,
         intensity: prefs.getDouble(_keyDraftIntensity) ?? 5.0,
         tag: prefs.getString(_keyDraftTag),
+        weather: prefs.getString(_keyDraftWeather),
+        temp: prefs.getString(_keyDraftTemp),
+        location: prefs.getString(_keyDraftLocation),
         blocks: blocks,
       );
     }
@@ -308,6 +332,9 @@ class DiaryDraft {
   final double intensity;
   final String content;
   final String? tag;
+  final String? weather;
+  final String? temp;
+  final String? location;
   final List<Map<String, dynamic>>? blocks; // 结构化分块数据
 
   DiaryDraft({
@@ -315,6 +342,9 @@ class DiaryDraft {
     required this.intensity,
     required this.content,
     this.tag,
+    this.weather,
+    this.temp,
+    this.location,
     this.blocks,
   });
 }

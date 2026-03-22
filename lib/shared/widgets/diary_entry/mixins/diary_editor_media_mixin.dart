@@ -5,10 +5,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import '../models/diary_block.dart';
-import '../diary_entry_sheet.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import './diary_editor_core_mixin.dart';
 
-mixin DiaryEditorMediaMixin<T extends MoodDiaryEntrySheet> on State<T>, DiaryEditorCoreMixin<T> {
+mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
   void onImageButtonPressed() async {
     FocusScope.of(context).unfocus();
     setState(() => isImagePickerOpen = true);

@@ -255,7 +255,7 @@ class TopicTextEditingController extends TextEditingController {
     final List<Map<String, dynamic>> highlights = [];
 
     // 1. 获取所有正则话题范围
-    final RegExp topicRegExp = RegExp(r'#[^\s#]+', multiLine: true);
+    final RegExp topicRegExp = RegExp(r'#[^\s#]*', multiLine: true);
     for (final Match match in topicRegExp.allMatches(textContent)) {
       highlights.add({
         'start': match.start,
@@ -263,8 +263,6 @@ class TopicTextEditingController extends TextEditingController {
         'style': const TextStyle(
           color: Color(0xFFE67E22),
           fontWeight: FontWeight.bold,
-          decoration: TextDecoration.underline,
-          decorationColor: Color(0xFFE67E22),
           height: 1.6,
         ),
         'priority': 2,

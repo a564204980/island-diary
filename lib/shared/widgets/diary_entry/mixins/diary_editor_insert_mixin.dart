@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import '../diary_entry_sheet.dart';
 import '../utils/diary_utils.dart';
 import '../components/diary_date_picker_sheet.dart';
 import '../components/diary_time_picker_sheet.dart';
 import '../components/diary_weather_picker_sheet.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import './diary_editor_core_mixin.dart';
 
-mixin DiaryEditorInsertMixin<T extends MoodDiaryEntrySheet> on State<T>, DiaryEditorCoreMixin<T> {
+mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
   void insertTopic() {
     final activeBlock = activeTextBlock;
     if (activeBlock == null) return;
     final controller = activeBlock.controller;
     final text = controller.text;
     final selection = controller.selection;
-    final insertion = "#话题 ";
+    final insertion = "# ";
     final newText = text.replaceRange(
       selection.start.clamp(0, text.length),
       selection.end.clamp(0, text.length),
@@ -31,10 +31,6 @@ mixin DiaryEditorInsertMixin<T extends MoodDiaryEntrySheet> on State<T>, DiaryEd
   }
 
   void onLocationClick() async {
-    final activeBlock = activeTextBlock;
-    TextSelection? savedSelection;
-    if (activeBlock != null) savedSelection = activeBlock.controller.selection;
-
     if (mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -136,32 +132,10 @@ mixin DiaryEditorInsertMixin<T extends MoodDiaryEntrySheet> on State<T>, DiaryEd
       address = "东经${position.longitude.toStringAsFixed(2)}°, 北纬${position.latitude.toStringAsFixed(2)}°";
     }
 
-    if (activeBlock != null) {
-      final controller = activeBlock.controller;
-      final text = controller.text;
-      final selection = savedSelection ?? controller.selection;
-      final insertion = "\n#地点: $address ";
-      
-      final newText = text.replaceRange(
-        selection.start.clamp(0, text.length),
-        selection.end.clamp(0, text.length),
-        insertion,
-      );
-      
-      setState(() {
-        controller.value = controller.value.copyWith(
-          text: newText,
-          selection: TextSelection.collapsed(offset: selection.start + insertion.length),
-        );
-      });
-      onBlocksChanged();
-      Future.delayed(Duration.zero, () {
-        if (mounted) {
-          activeBlock.focusNode.requestFocus();
-          scrollToActiveBlock();
-        }
-      });
-    }
+    setState(() {
+      location = address;
+    });
+    onBlocksChanged();
   }
 
   void onDateClick() {
@@ -261,33 +235,12 @@ mixin DiaryEditorInsertMixin<T extends MoodDiaryEntrySheet> on State<T>, DiaryEd
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => DiaryWeatherPickerSheet(
-        onConfirm: (weather, temp) {
-          final activeBlock = activeTextBlock;
-          if (activeBlock != null) {
-            final controller = activeBlock.controller;
-            final text = controller.text;
-            final selection = controller.selection;
-            final insertion = "#天气: $weather $temp°C ";
-
-            final newText = (selection.isValid)
-                ? text.replaceRange(
-                    selection.start.clamp(0, text.length),
-                    selection.end.clamp(0, text.length),
-                    insertion,
-                  )
-                : text + insertion;
-
-            setState(() {
-              controller.value = controller.value.copyWith(
-                text: newText,
-                selection: TextSelection.collapsed(
-                  offset: (selection.isValid ? selection.start : text.length) + insertion.length,
-                ),
-              );
-            });
-            activeBlock.focusNode.requestFocus();
-            onBlocksChanged();
-          }
+        onConfirm: (w, t) {
+          setState(() {
+            weather = w;
+            temp = "$t°C";
+          });
+          onBlocksChanged();
           Navigator.pop(context);
         },
       ),

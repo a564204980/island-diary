@@ -9,7 +9,7 @@ import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/shared/widgets/mood_picker/mood_picker_sheet.dart';
 import 'package:island_diary/core/services/slime_dialogue_service.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
-import 'package:island_diary/shared/widgets/diary_entry/diary_entry_sheet.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 
 import 'nav_item.dart';
 import 'nav_bar_clipper.dart';
@@ -418,14 +418,15 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   void _openDiaryEntry(int moodIndex, double intensity, {String? tag}) {
     UserState().isDiarySheetOpen.value = true;
-    showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false,
-      enableDrag: false,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withOpacity(0.6),
-      builder: (context) => MoodDiaryEntrySheet(moodIndex: moodIndex, intensity: intensity, tag: tag),
+    Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DiaryEditorPage(
+          moodIndex: moodIndex,
+          intensity: intensity,
+          tag: tag,
+        ),
+      ),
     ).then((success) {
       UserState().isDiarySheetOpen.value = false;
       if (success == true && widget.onSaveSuccess != null) widget.onSaveSuccess!();

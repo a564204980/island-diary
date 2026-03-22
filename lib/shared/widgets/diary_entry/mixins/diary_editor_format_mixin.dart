@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/diary_block.dart';
-import '../diary_entry_sheet.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import '../utils/diary_utils.dart';
 import '../components/font_size_picker_sheet.dart';
 import '../components/color_picker_sheet.dart';
@@ -8,7 +8,7 @@ import '../components/font_picker_sheet.dart';
 import '../utils/emoji_mapping.dart';
 import './diary_editor_core_mixin.dart';
 
-mixin DiaryEditorFormatMixin<T extends MoodDiaryEntrySheet> on State<T>, DiaryEditorCoreMixin<T> {
+mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
   void showColorPicker() {
     FocusScope.of(context).unfocus();
     setState(() => isColorPickerOpen = true);

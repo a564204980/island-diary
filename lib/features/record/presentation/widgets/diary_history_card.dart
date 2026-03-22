@@ -351,7 +351,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                                   .toList(),
                             ),
                           ],
-                          _buildFooterInfo(widget.entry.content, widget.isNight),
+                          // _buildFooterInfo 现在已经不再需要，因为天气和地点已作为标签展示
                         ],
                       ),
                     ),
@@ -377,50 +377,44 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     final mood = kMoods[moodIdx];
     final Color badgeColor = mood.glowColor ?? const Color(0xFFC4B69E);
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        if (tag == null || tag.isEmpty) ...[
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: badgeColor.withOpacity(isNight ? 0.15 : 0.18),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Hero(
-                    tag: 'mood_${widget.entry.id}',
-                    child: Image.asset(
-                      mood.iconPath ?? 'assets/images/icons/sun.png',
-                      width: 14,
-                      height: 14,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      DiaryUtils.getPureMoodDescription(mood.label, intensity),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: badgeColor.withOpacity(isNight ? 0.8 : 1.0),
-                        fontFamily: 'LXGWWenKai',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        // 1. 心情标签 (图标 + 纯心情文字)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: badgeColor.withOpacity(isNight ? 0.15 : 0.18),
+            borderRadius: BorderRadius.circular(10),
           ),
-          const SizedBox(width: 8),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Hero(
+                tag: 'mood_${widget.entry.id}',
+                child: Image.asset(
+                  mood.iconPath ?? 'assets/images/icons/sun.png',
+                  width: 14,
+                  height: 14,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                mood.label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: badgeColor.withOpacity(isNight ? 0.8 : 1.0),
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+            ],
+          ),
+        ),
 
+        // 2. 强度标签 (文字描述)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
@@ -432,7 +426,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
             ),
           ),
           child: Text(
-            "强度 ${intensity.toInt()}",
+            DiaryUtils.getMoodIntensityPrefix(mood.label, intensity),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
@@ -441,115 +435,104 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
             ),
           ),
         ),
-        if (tag != null && tag.isNotEmpty) ...[
-          const SizedBox(width: 8),
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: isNight
-                    ? Colors.white.withOpacity(0.08)
-                    : const Color(0xFF8B7763).withOpacity(0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isNight
-                      ? Colors.white12
-                      : const Color(0xFF8B7763).withOpacity(0.15),
-                  width: 0.5,
-                ),
+
+        // 3. 天气标签 (如果有)
+        if (widget.entry.weather != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: badgeColor.withOpacity(isNight ? 0.08 : 0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: badgeColor.withOpacity(isNight ? 0.2 : 0.25),
+                width: 0.5,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '#',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isNight
-                          ? Colors.white38
-                          : const Color(0xFF8B7763).withOpacity(0.5),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  Flexible(
-                    child: Text(
-                      tag,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: isNight ? Colors.white70 : const Color(0xFF8B7763),
-                        fontFamily: 'LXGWWenKai',
-                      ),
-                    ),
-                  ),
-                ],
+            ),
+            child: Text(
+              "${widget.entry.weather} ${widget.entry.temp ?? ''}",
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
+                fontFamily: 'LXGWWenKai',
               ),
             ),
           ),
-        ],
-      ],
-    );
-  }
 
-  Widget _buildFooterInfo(String content, bool isNight) {
-    final info = DiaryUtils.getExtraInfoFromContent(content);
-    if (info.isEmpty) return const SizedBox.shrink();
-
-    final textColor = isNight ? Colors.white30 : Colors.black.withOpacity(0.3);
-    final iconColor = isNight ? Colors.white24 : Colors.black.withOpacity(0.2);
-
-    return Column(
-      children: [
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            if (info.containsKey('location')) ...[
-              Icon(Icons.location_on_outlined, size: 14, color: iconColor),
-              const SizedBox(width: 4),
-              Text(
-                info['location']!,
-                style: TextStyle(fontSize: 12, color: textColor, fontFamily: 'LXGWWenKai'),
+        // 4. 地点标签 (如果有)
+        if (widget.entry.location != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: badgeColor.withOpacity(isNight ? 0.08 : 0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: badgeColor.withOpacity(isNight ? 0.2 : 0.25),
+                width: 0.5,
               ),
-              if (info.containsKey('weather')) ...[
-                const SizedBox(width: 8),
-                Text('·', style: TextStyle(fontSize: 12, color: textColor, fontWeight: FontWeight.bold)),
-                const SizedBox(width: 8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.location_on_outlined, size: 10, color: badgeColor.withOpacity(isNight ? 0.6 : 1.0)),
+                const SizedBox(width: 2),
+                Text(
+                  widget.entry.location!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
               ],
-            ],
-            if (info.containsKey('weather')) ...[
-              Icon(_getWeatherIcon(info['weather']!), size: 14, color: iconColor),
-              const SizedBox(width: 4),
-              Text(
-                "${info['weather']} · ${info['temp']}",
-                style: TextStyle(fontSize: 12, color: textColor, fontFamily: 'LXGWWenKai'),
+            ),
+          ),
+
+        // 5. 话题标签 (如果有)
+        if (tag != null && tag.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: isNight
+                  ? Colors.white.withOpacity(0.08)
+                  : const Color(0xFF8B7763).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isNight
+                    ? Colors.white12
+                    : const Color(0xFF8B7763).withOpacity(0.15),
+                width: 0.5,
               ),
-            ],
-          ],
-        ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '#',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isNight
+                        ? Colors.white38
+                        : const Color(0xFF8B7763).withOpacity(0.5),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  tag,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: isNight ? Colors.white70 : const Color(0xFF8B7763),
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
 
-  IconData _getWeatherIcon(String label) {
-    switch (label) {
-      case "晴": return Icons.wb_sunny_outlined;
-      case "多云": return Icons.wb_cloudy_outlined;
-      case "阴": return Icons.cloud_outlined;
-      case "雨": return Icons.umbrella_outlined;
-      case "雪": return Icons.ac_unit_outlined;
-      case "风": return Icons.air_outlined;
-      case "雾霾": return Icons.grain_outlined;
-      case "雷暴": return Icons.thunderstorm_outlined;
-      case "冻雨": return Icons.water_drop_outlined;
-      case "冰雹": return Icons.severe_cold_outlined;
-      case "炎热": return Icons.thermostat_outlined;
-      case "严寒": return Icons.ac_unit_outlined;
-      case "沙尘": return Icons.waves_outlined;
-      case "极端风暴": return Icons.cyclone_outlined;
-      default: return Icons.wb_cloudy_outlined;
-    }
-  }
 }

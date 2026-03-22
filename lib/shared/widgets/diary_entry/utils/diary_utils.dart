@@ -86,25 +86,32 @@ class DiaryUtils {
     return options[DateTime.now().second % options.length];
   }
 
-  /// 拟人化展示文案 (仅形容词+标题，不带强度后缀)
-  static String getPureMoodDescription(String label, double intensity) {
+  /// 获取心情强度描述文字 (如：万分激动)
+  static String getMoodIntensityPrefix(String label, double intensity) {
     const Map<String, List<String>> moodPrefixes = {
       '期待': ['略带憧憬', '满心向往', '迫不及待'],
       '厌恶': ['有些反感', '深感蹙眉', '嫌弃至极'],
       '恐惧': ['隐约不安', '忐忑紧锁', '灵魂颤栗'],
       '惊喜': ['意料之外', '万分激动', '喜从天降'],
       '平静': ['凡事从容', '岁月安好', '万籁寂静'],
-      '愤怒': ['隐块不快', '火冒三丈', '怒气冲天'],
+      '愤怒': ['隐隐不快', '火冒三丈', '怒气冲天'],
       '悲伤': ['隐隐哀愁', '满怀感伤', '痛彻心扉'],
       '开心': ['眉开眼笑', '神采飞扬', '狂喜雀跃'],
     };
 
     final int level = intensity.toInt();
     final List<String>? options = moodPrefixes[label];
-    if (options == null) return label;
+    if (options == null) return "";
 
     final int index = level <= 3 ? 0 : (level <= 7 ? 1 : 2);
-    return "${options[index]}的$label";
+    return options[index];
+  }
+
+  /// 拟人化展示文案 (仅形容词+标题，不带强度后缀)
+  static String getPureMoodDescription(String label, double intensity) {
+    final prefix = getMoodIntensityPrefix(label, intensity);
+    if (prefix.isEmpty) return label;
+    return "${prefix}的$label";
   }
 
   /// 拟人化强度描述文案映射 (带强度后缀，兼容旧版)

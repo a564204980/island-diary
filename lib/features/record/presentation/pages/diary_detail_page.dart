@@ -4,10 +4,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
-import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
-import 'package:island_diary/shared/widgets/diary_entry/diary_entry_sheet.dart';
+// import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/hand_drawn_divider.dart';
+import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 // import 'package:lunar/lunar.dart'; // 移除未使用导入
 
 class DiaryDetailPage extends StatefulWidget {
@@ -112,20 +113,18 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
   }
 
   void _handleEdit() {
-    showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withOpacity(0.6),
-      builder: (context) => MoodDiaryEntrySheet(
-        moodIndex: _currentEntry.moodIndex,
-        intensity: _currentEntry.intensity,
-        tag: _currentEntry.tag,
-        entry: _currentEntry,
+    Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DiaryEditorPage(
+          moodIndex: _currentEntry.moodIndex,
+          intensity: _currentEntry.intensity,
+          tag: _currentEntry.tag,
+          entry: _currentEntry,
+        ),
       ),
     ).then((success) {
       if (success == true) {
-        // 通过 UserState 寻找更新后的条目
         try {
           final updated = UserState().savedDiaries.value.firstWhere(
             (e) => e.id == _currentEntry.id,
@@ -134,7 +133,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             _currentEntry = updated;
           });
         } catch (e) {
-          // 如果没找到（极其罕见的情况），则保持现状
+          // 如果没找到，保持原样
         }
       }
     });
@@ -148,88 +147,100 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     return Scaffold(
       backgroundColor: bgColor,
       extendBodyBehindAppBar: true, 
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(24, 60, 24, 40), // 减少底部边距
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(isNight),
-            const SizedBox(height: 32),
-            _buildRichTextView(isNight),
-            const SizedBox(height: 48),
-            _buildImages(isNight),
-            const SizedBox(height: 48),
-          ],
-        ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 120), // 增加底部边距以防内容被遮挡
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(isNight),
+                const SizedBox(height: 32),
+                _buildRichTextView(isNight),
+                const SizedBox(height: 48),
+                _buildImages(isNight),
+                const SizedBox(height: 48),
+              ],
+            ),
+          ),
+          _buildFloatingActions(isNight),
+        ],
       ),
-      bottomNavigationBar: _buildFloatingActions(isNight),
     );
   }
 
   Widget _buildFloatingActions(bool isNight) {
     final iconColor = isNight ? Colors.white70 : const Color(0xFF8B5E3C);
     
-    return Container(
-      height: 100, // 足够高以包含悬浮位置偏移
-      color: Colors.transparent, // 保持全透明背景
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            bottom: 30, // 距离屏幕物理底部的固定偏移
-            child: Container(
-              height: 54,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: isNight 
-                    ? const Color(0xFF2C2E30) 
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(27),
-                border: Border.all(
-                  color: isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    blurRadius: 15,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 30, // 对齐列表页工具栏高度
+      child: Center(
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(27),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+                spreadRadius: -2,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildActionButton(
-                    icon: Icons.arrow_back_ios_new_rounded,
-                    color: iconColor,
-                    onTap: () => Navigator.pop(context),
-                    label: "返回",
-                    width: 68,
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(27),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: Container(
+                height: 54,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: isNight 
+                      ? const Color(0xFF2C2E30).withOpacity(0.7) 
+                      : Colors.white.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(27),
+                  border: Border.all(
+                    color: isNight 
+                        ? Colors.white.withOpacity(0.08) 
+                        : Colors.black.withOpacity(0.05),
                   ),
-                  _buildVerticalDivider(isNight),
-                  _buildActionButton(
-                    icon: Icons.edit_note_rounded,
-                    color: iconColor,
-                    onTap: _handleEdit,
-                    label: "编辑",
-                    iconSize: 28,
-                    width: 68,
-                  ),
-                  _buildVerticalDivider(isNight),
-                  _buildActionButton(
-                    icon: Icons.delete_outline_rounded,
-                    color: Colors.redAccent.withOpacity(0.8),
-                    onTap: _handleDelete,
-                    label: "删除",
-                    width: 68,
-                  ),
-                ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildActionButton(
+                      icon: Icons.arrow_back_ios_new_rounded,
+                      color: iconColor,
+                      onTap: () => Navigator.pop(context),
+                      label: "返回",
+                      width: 68,
+                    ),
+                    const SizedBox(width: 20),
+                    _buildActionButton(
+                      icon: Icons.edit_note_rounded,
+                      color: iconColor,
+                      onTap: _handleEdit,
+                      label: "编辑",
+                      iconSize: 28,
+                      width: 68,
+                    ),
+                    const SizedBox(width: 20),
+                    _buildActionButton(
+                      icon: Icons.delete_outline_rounded,
+                      color: Colors.redAccent.withOpacity(0.8),
+                      onTap: _handleDelete,
+                      label: "删除",
+                      width: 68,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.9, 0.9), curve: Curves.easeOutBack),
-        ],
+          ),
+        ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.9, 0.9)),
       ),
     );
   }
@@ -253,13 +264,6 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     );
   }
 
-  Widget _buildVerticalDivider(bool isNight) {
-    return Container(
-      width: 1,
-      height: 20,
-      color: isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
-    );
-  }
 
   Widget _buildHeader(bool isNight) {
     final dt = _currentEntry.dateTime;
@@ -325,8 +329,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         ),
         const SizedBox(height: 20),
         // 浮动信息：心情标签 + 地点 + 天气
-        Row(
+        // 标签行
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
+            // 心情标签
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
@@ -346,7 +354,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    DiaryUtils.getPureMoodDescription(mood.label, _currentEntry.intensity),
+                    mood.label,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -356,49 +364,74 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            _buildQuickInfo(isNight),
+            // 强度标签
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                DiaryUtils.getMoodIntensityPrefix(mood.label, _currentEntry.intensity),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: accentColor,
+                ),
+              ),
+            ),
+            // 天气标签
+            if (_currentEntry.weather != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  "${_currentEntry.weather} ${_currentEntry.temp ?? ''}",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                  ),
+                ),
+              ),
+            // 地点标签
+            if (_currentEntry.location != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 12, color: accentColor),
+                    const SizedBox(width: 2),
+                    Text(
+                      _currentEntry.location!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: accentColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ],
     ).animate().fadeIn(duration: 600.ms).moveY(begin: 10, end: 0);
   }
 
-  Widget _buildQuickInfo(bool isNight) {
-    final info = DiaryUtils.getExtraInfoFromContent(_currentEntry.content);
-    final textColor = isNight ? Colors.white30 : const Color(0xFF8B7E74);
 
-    return Expanded(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            if (info.containsKey('location')) ...[
-              const Text(" · ", style: TextStyle(color: Colors.black12)),
-              Icon(Icons.location_on_outlined, size: 12, color: textColor),
-              const SizedBox(width: 2),
-              Text(info['location']!, style: TextStyle(fontSize: 12, color: textColor)),
-            ],
-            if (info.containsKey('weather')) ...[
-              const Text(" · ", style: TextStyle(color: Colors.black12)),
-              Icon(Icons.wb_cloudy_outlined, size: 12, color: textColor),
-              const SizedBox(width: 2),
-              Text("${info['weather']} ${info['temp']}", style: TextStyle(fontSize: 12, color: textColor)),
-            ],
-            if (_currentEntry.tag != null && _currentEntry.tag!.isNotEmpty) ...[
-              const Text(" · ", style: TextStyle(color: Colors.black12)),
-              Text("# ${_currentEntry.tag}", style: TextStyle(fontSize: 12, color: textColor)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 
 
   Widget _buildRichTextView(bool isNight) {
     final filteredContent = DiaryUtils.getFilteredContent(_currentEntry.content);
-    final chunks = EmojiMapping.parseText(filteredContent);
     
     final textStyle = TextStyle(
       fontSize: 18,
@@ -407,25 +440,20 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       fontFamily: 'LXGWWenKai',
     );
 
+    // 使用 TopicTextEditingController 的解析逻辑来实现话题高亮
+    final controller = TopicTextEditingController(text: filteredContent);
+    controller.baseColor = textStyle.color ?? Colors.black;
+    controller.baseFontFamily = textStyle.fontFamily ?? 'LXGWWenKai';
+    controller.baseFontSize = textStyle.fontSize ?? 18;
+
+    final span = controller.buildTextSpan(
+      context: context,
+      style: textStyle,
+      withComposing: false,
+    );
+
     return RichText(
-      text: TextSpan(
-        children: chunks.map((chunk) {
-          if (chunk.isEmoji) {
-            return WidgetSpan(
-              alignment: PlaceholderAlignment.middle,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Image.asset(
-                  chunk.emojiPath!,
-                  width: 24,
-                  height: 24,
-                ),
-              ),
-            );
-          }
-          return TextSpan(text: chunk.text, style: textStyle);
-        }).toList(),
-      ),
+      text: span,
     ).animate().fadeIn(delay: 300.ms, duration: 800.ms);
   }
 

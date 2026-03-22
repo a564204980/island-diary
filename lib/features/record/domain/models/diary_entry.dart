@@ -10,6 +10,9 @@ class DiaryEntry {
   final String content;
   final String? tag;
   final List<Map<String, dynamic>> blocks; // 结构化分块数据
+  final String? weather;
+  final String? temp;
+  final String? location;
 
   DiaryEntry({
     String? id,
@@ -19,6 +22,9 @@ class DiaryEntry {
     required this.content,
     required this.blocks,
     this.tag,
+    this.weather,
+    this.temp,
+    this.location,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toMap() {
@@ -30,6 +36,9 @@ class DiaryEntry {
       'content': content,
       'tag': tag,
       'blocks': blocks,
+      'weather': weather,
+      'temp': temp,
+      'location': location,
     };
   }
 
@@ -42,6 +51,9 @@ class DiaryEntry {
       content: map['content'],
       tag: map['tag'],
       blocks: List<Map<String, dynamic>>.from(map['blocks'] ?? []),
+      weather: map['weather'],
+      temp: map['temp'],
+      location: map['location'],
     );
   }
 
