@@ -267,6 +267,58 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ],
                 ),
               ),
+              // 统一顶部操作栏：仅在首页(0)和记录页(1)显示
+              if (_currentNavIndex == 0 || _currentNavIndex == 1)
+                Positioned.fill(
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // 标题逻辑：仅在首页(0)显示岛屿名称
+                          _currentNavIndex == 0 
+                            ? ValueListenableBuilder<bool>(
+                                valueListenable: UserState().isDiarySheetOpen,
+                                builder: (context, isOpen, child) {
+                                  return Text(
+                                    _isLandscape ? '心情漫游' : '${UserState().userName.value}的小岛',
+                                    style: TextStyle(
+                                      color: isNight ? Colors.white : const Color(0xFF5A3E28),
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      shadows: isNight
+                                          ? [
+                                              Shadow(color: Colors.black.withValues(alpha: 0.3), offset: const Offset(0, 2), blurRadius: 4),
+                                            ]
+                                          : null,
+                                    ),
+                                  ).animate(target: isOpen ? 0 : 1).fade(duration: 400.ms);
+                                },
+                              )
+                            : const SizedBox.shrink(),
+                          
+                          Row(
+                            children: [
+                              _buildTopIconButton(
+                                icon: _isLandscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                                isNight: isNight,
+                                onTap: _toggleOrientation,
+                              ),
+                              const SizedBox(width: 16),
+                              _buildTopIconButton(
+                                icon: Icons.palette_outlined,
+                                isNight: isNight,
+                                onTap: _toggleOrientation,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
 
               AnimatedPositioned(
                 duration: 800.ms,
@@ -300,7 +352,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       isWide: MediaQuery.of(context).size.width > 600,
     );
     final islandPath = _getIslandImageForCurrentTime();
-    final screenWidth = MediaQuery.of(context).size.width;
 
     return Stack(
       key: const ValueKey('HomeContent'),
@@ -416,54 +467,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               shouldAnimate: _currentNavIndex == 0,
             ),
           ),
-        Positioned.fill(
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ValueListenableBuilder<bool>(
-                    valueListenable: UserState().isDiarySheetOpen,
-                    builder: (context, isOpen, child) {
-                      return Text(
-                        _isLandscape ? '心情漫游' : '${UserState().userName.value}的小岛',
-                        style: TextStyle(
-                          color: isNight ? Colors.white : const Color(0xFF5A3E28),
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          shadows: isNight
-                              ? [
-                                  Shadow(color: Colors.black.withValues(alpha: 0.3), offset: const Offset(0, 2), blurRadius: 4),
-                                ]
-                              : null,
-                        ),
-                      ).animate(target: isOpen ? 0 : 1).fade(duration: 400.ms);
-                    },
-                  ),
-                  Row(
-                    children: [
-                      _buildTopIconButton(
-                        icon: _isLandscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
-                        isNight: isNight,
-                        onTap: _toggleOrientation,
-                      ),
-                      const SizedBox(width: 16),
-                      _buildTopIconButton(
-                        icon: Icons.palette_outlined,
-                        isNight: isNight,
-                        onTap: () {
-                          // TODO: 装扮功能
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        // 移除了内部的顶部操作栏，已提升至上层 Stack
       ],
     );
   }
@@ -542,16 +546,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          size: 24,
-          color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF5A3E28),
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isNight 
+                ? Colors.white.withValues(alpha: 0.15) 
+                : Colors.black.withValues(alpha: 0.25),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isNight 
+                  ? Colors.white.withValues(alpha: 0.1) 
+                  : Colors.black.withValues(alpha: 0.05),
+                width: 0.5,
+              ),
+            ),
+            child: Icon(
+              icon,
+              size: 24,
+              color: Colors.white.withValues(alpha: 0.95),
+            ),
+          ),
         ),
       ),
     ).animate(onPlay: (controller) => controller.repeat(reverse: true)).scale(

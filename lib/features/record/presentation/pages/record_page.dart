@@ -18,6 +18,7 @@ class RecordPage extends StatefulWidget {
 class _RecordPageState extends State<RecordPage>
     with SingleTickerProviderStateMixin {
   late ScrollController _scrollController;
+  late final ValueNotifier<double> _scrollOffsetNotifier;
   double _aspectRatio = 1.0;
 
   // 跳跃动画相关
@@ -29,10 +30,12 @@ class _RecordPageState extends State<RecordPage>
   Timer? _jumpTimer;
   Timer? _dialogueTimer; // 处理落地后的延迟
   Timer? _bookHintTimer; // 控制书籍提示出现的时机
+
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _scrollOffsetNotifier = ValueNotifier<double>(0.0);
     _resolveImageSize();
 
     _jumpController = AnimationController(
@@ -75,7 +78,7 @@ class _RecordPageState extends State<RecordPage>
   }
 
   void _resolveImageSize() {
-    const path = 'assets/images/indoor.png';
+    const path = 'assets/images/decoration/furniture/house.png';
     final stream = const AssetImage(path).resolve(ImageConfiguration.empty);
     stream.addListener(
       ImageStreamListener((ImageInfo info, bool _) {
@@ -109,6 +112,8 @@ class _RecordPageState extends State<RecordPage>
     _bookHintTimer?.cancel();
     _jumpController.dispose();
     _scrollController.dispose();
+    _scrollOffsetNotifier.dispose();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UserState().isSlimeInBottomMenu.value = true;
     });
@@ -121,15 +126,11 @@ class _RecordPageState extends State<RecordPage>
       valueListenable: UserState().themeMode,
       builder: (context, themeMode, _) {
         final bool isNight = UserState().isNight;
-        final String bgPath =
-            isNight ? 'assets/images/indoor3.png' : 'assets/images/indoor.png';
+        const String bgPath = 'assets/images/decoration/furniture/house.png';
 
-        const double bgScale = 1.0;
-        const double leftBuffer = 175.0;
-        const double rightBuffer = 325.0;
-
-        final Color bgColor =
-            isNight ? const Color(0xFF13131F) : const Color(0xFFD2B48C);
+        final Color bgColor = isNight
+            ? const Color(0xFF13131F)
+            : const Color(0xFFD2B48C);
 
         return Scaffold(
           backgroundColor: bgColor,
@@ -138,34 +139,50 @@ class _RecordPageState extends State<RecordPage>
               Positioned.fill(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final double h = constraints.maxHeight * bgScale;
+                    final isLandscape =
+                        constraints.maxWidth > constraints.maxHeight;
+                    final double currentBgScale = isLandscape ? 1.4 : 2.0;
+
+                    final double h = constraints.maxHeight * currentBgScale;
                     final double fullWidth = h * _aspectRatio;
 
-                    final deskRelX = fullWidth * 0.456 - leftBuffer;
-                    final deskY = h * 0.546;
-                    final bedRelX = fullWidth * 0.56 - leftBuffer;
-                    final bedY = h * 0.58;
+                    // 重新对 3x 画面进行交互点微调
+                    final deskRelX = fullWidth * 0.44;
+                    final deskY = h * 0.62;
+                    final bedRelX = fullWidth * 0.74;
+                    final bedY = h * 0.64;
 
-                    return SingleChildScrollView(
-                      controller: _scrollController,
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          _buildBackground(bgPath, h, leftBuffer),
-                          if (_isJumpStarted)
-                            _buildSlimeJumpAnimation(
-                                h, bedRelX, bedY, deskRelX, deskY, constraints),
-                          if (_showBookHint)
-                            _buildBookHint(deskRelX, deskY),
-                          if (_showDeskDialogue)
-                            _buildDeskDialogue(deskRelX, deskY),
-                          SizedBox(
-                            width: fullWidth - leftBuffer - rightBuffer,
-                            height: h,
-                          ),
-                        ],
+                    return NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        if (notification is ScrollUpdateNotification) {
+                          _scrollOffsetNotifier.value =
+                              notification.metrics.pixels;
+                        }
+                        return false;
+                      },
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            _buildBackground(bgPath, h, fullWidth),
+                            if (_isJumpStarted)
+                              _buildSlimeJumpAnimation(
+                                h,
+                                bedRelX,
+                                bedY,
+                                deskRelX,
+                                deskY,
+                                constraints,
+                              ),
+                            if (_showBookHint) _buildBookHint(deskRelX, deskY),
+                            if (_showDeskDialogue)
+                              _buildDeskDialogue(deskRelX, deskY),
+                            SizedBox(width: fullWidth, height: h),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -178,21 +195,26 @@ class _RecordPageState extends State<RecordPage>
     );
   }
 
-  Widget _buildBackground(String bgPath, double h, double leftBuffer) {
-    return Positioned(
-      left: -leftBuffer,
-      top: 0,
-      bottom: 0,
+  Widget _buildBackground(String bgPath, double h, double w) {
+    return Positioned.fill(
       child: _ParallaxBackground(
         bgPath: bgPath,
         h: h,
+        w: w,
+        scrollOffsetNotifier: _scrollOffsetNotifier,
         scrollController: _scrollController,
       ),
     );
   }
 
-  Widget _buildSlimeJumpAnimation(double h, double bedRelX, double bedY,
-      double deskRelX, double deskY, BoxConstraints constraints) {
+  Widget _buildSlimeJumpAnimation(
+    double h,
+    double bedRelX,
+    double bedY,
+    double deskRelX,
+    double deskY,
+    BoxConstraints constraints,
+  ) {
     return Positioned.fill(
       child: AnimatedBuilder(
         animation: _jumpAnimation,
@@ -202,10 +224,12 @@ class _RecordPageState extends State<RecordPage>
           final menuBottomOffset = isWide ? 60.0 : 40.0;
 
           double scrollOffset = 0;
-          if (_scrollController.hasClients && _scrollController.position.hasContentDimensions && _scrollController.position.hasPixels) {
+          if (_scrollController.hasClients &&
+              _scrollController.position.hasContentDimensions &&
+              _scrollController.position.hasPixels) {
             scrollOffset = _scrollController.offset;
           }
-          
+
           final startP = Offset(
             scrollOffset + constraints.maxWidth / 2,
             h - menuBottomOffset - 24.0,
@@ -220,7 +244,9 @@ class _RecordPageState extends State<RecordPage>
             final t = Curves.easeInOut.transform(rawT / 0.25);
             curX = startP.dx + (bedP.dx - startP.dx) * t;
             shadowY = startP.dy + (bedP.dy - startP.dy) * t;
-            jumpArc = (rawT < 0.25) ? (4 * (rawT / 0.25) * (1 - rawT / 0.25) * 140) : 0;
+            jumpArc = (rawT < 0.25)
+                ? (4 * (rawT / 0.25) * (1 - rawT / 0.25) * 140)
+                : 0;
             curY = shadowY - jumpArc;
             slimeScale = 0.8 + (0.15 * t);
           } else if (rawT < 0.75) {
@@ -253,7 +279,11 @@ class _RecordPageState extends State<RecordPage>
                       color: Colors.black,
                       borderRadius: BorderRadius.all(Radius.elliptical(16, 4)),
                       boxShadow: [
-                        BoxShadow(color: Colors.black, blurRadius: 8, spreadRadius: 2),
+                        BoxShadow(
+                          color: Colors.black,
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
                       ],
                     ),
                   ),
@@ -284,58 +314,67 @@ class _RecordPageState extends State<RecordPage>
     return Positioned(
       left: deskRelX - 2,
       top: deskY - 110,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildHintLabel(),
-          const SizedBox(height: 4),
-          BookGlowHint(
-            onTap: () async {
-              if (mounted) {
-                setState(() {
-                  _showDeskDialogue = false;
-                  _showBookHint = false;
-                  _isJumpStarted = false;
-                });
-                UserState().isSlimeInBottomMenu.value = true;
-                await _openHistoryTimeline();
-                if (mounted) setState(() => _showBookHint = true);
-              }
-            },
-          ),
-        ],
-      ).animate().fadeIn(duration: 800.ms).scale(
-            begin: const Offset(0.5, 0.5),
-            duration: 600.ms,
-            curve: Curves.easeOutBack,
-          ),
+      child:
+          Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildHintLabel(),
+                  const SizedBox(height: 4),
+                  BookGlowHint(
+                    onTap: () async {
+                      if (mounted) {
+                        setState(() {
+                          _showDeskDialogue = false;
+                          _showBookHint = false;
+                          _isJumpStarted = false;
+                        });
+                        UserState().isSlimeInBottomMenu.value = true;
+                        await _openHistoryTimeline();
+                        if (mounted) setState(() => _showBookHint = true);
+                      }
+                    },
+                  ),
+                ],
+              )
+              .animate()
+              .fadeIn(duration: 800.ms)
+              .scale(
+                begin: const Offset(0.5, 0.5),
+                duration: 600.ms,
+                curve: Curves.easeOutBack,
+              ),
     );
   }
 
   Widget _buildHintLabel() {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.4),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.5),
-          ),
-          child: const Text(
-            "旧日回忆",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF5D4037),
-              fontFamily: 'LXGWWenKai',
+          borderRadius: BorderRadius.circular(14),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 0.5,
+                ),
+              ),
+              child: const Text(
+                "旧日回忆",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF5D4037),
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-    ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(
+        )
+        .animate(onPlay: (c) => c.repeat(reverse: true))
+        .moveY(
           begin: 0,
           end: -4,
           duration: 1.5.seconds,
@@ -347,15 +386,19 @@ class _RecordPageState extends State<RecordPage>
     return Positioned(
       left: deskRelX - 108,
       top: deskY - 130,
-      child: SpriteDialogue(
-        text: "点点旁边的书，看看我为你准备了什么",
-        useTypewriter: true,
-        onNext: () => setState(() => _showDeskDialogue = false),
-      ).animate().fade(duration: 400.ms).scale(
-            begin: const Offset(0.8, 0.8),
-            duration: 400.ms,
-            curve: Curves.easeOutBack,
-          ),
+      child:
+          SpriteDialogue(
+                text: "点点旁边的书，看看我为你准备了什么",
+                useTypewriter: true,
+                onNext: () => setState(() => _showDeskDialogue = false),
+              )
+              .animate()
+              .fade(duration: 400.ms)
+              .scale(
+                begin: const Offset(0.8, 0.8),
+                duration: 400.ms,
+                curve: Curves.easeOutBack,
+              ),
     );
   }
 
@@ -379,43 +422,49 @@ class _RecordPageState extends State<RecordPage>
 class _ParallaxBackground extends StatelessWidget {
   final String bgPath;
   final double h;
+  final double w;
+  final ValueNotifier<double> scrollOffsetNotifier;
   final ScrollController scrollController;
 
   const _ParallaxBackground({
     required this.bgPath,
     required this.h,
+    required this.w,
+    required this.scrollOffsetNotifier,
     required this.scrollController,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: scrollController,
-      builder: (context, _) {
+    return ValueListenableBuilder<double>(
+      valueListenable: scrollOffsetNotifier,
+      builder: (context, currentScroll, _) {
         double currentScale = 1.05;
-        if (scrollController.hasClients &&
-            scrollController.position.hasContentDimensions &&
-            scrollController.position.hasPixels) {
-          final double maxScroll = scrollController.position.maxScrollExtent;
-          if (maxScroll > 0) {
-            final double currentScroll = scrollController.offset.clamp(0, maxScroll);
-            final double scrollRatio = currentScroll / maxScroll;
 
-            if (scrollRatio < 0.2) {
-              currentScale = 1.05 + (0.13 * (scrollRatio / 0.2));
-            } else if (scrollRatio < 0.5) {
-              currentScale = 1.18 + (0.07 * ((scrollRatio - 0.2) / 0.3));
-            } else if (scrollRatio < 0.8) {
-              currentScale = 1.25 - (0.07 * ((scrollRatio - 0.5) / 0.3));
-            } else {
-              currentScale = 1.18 - (0.13 * ((scrollRatio - 0.8) / 0.2));
+        if (scrollController.hasClients) {
+          try {
+            final double maxScroll = scrollController.position.maxScrollExtent;
+            if (maxScroll > 0) {
+              final double normalizedScroll = currentScroll.clamp(0, maxScroll);
+              final double scrollRatio = normalizedScroll / maxScroll;
+
+              if (scrollRatio < 0.2) {
+                currentScale = 1.05 + (0.13 * (scrollRatio / 0.2));
+              } else if (scrollRatio < 0.5) {
+                currentScale = 1.18 + (0.07 * ((scrollRatio - 0.2) / 0.3));
+              } else if (scrollRatio < 0.8) {
+                currentScale = 1.25 - (0.07 * ((scrollRatio - 0.5) / 0.3));
+              } else {
+                currentScale = 1.18 - (0.13 * ((scrollRatio - 0.8) / 0.2));
+              }
             }
-          }
+          } catch (_) {}
         }
+
         return Transform.scale(
           scale: currentScale,
           alignment: Alignment.center,
-          child: Image.asset(bgPath, height: h, fit: BoxFit.fitHeight),
+          child: Image.asset(bgPath, height: h, width: w, fit: BoxFit.cover),
         );
       },
     );

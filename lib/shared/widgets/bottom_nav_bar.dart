@@ -200,12 +200,21 @@ class _BottomNavBarState extends State<BottomNavBar> {
                       : LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [
-                            const Color(0xFFB3E5FC).withOpacity(0.5),
-                            const Color(0xFFE1F5FE).withOpacity(0.3),
-                          ],
+                          colors: widget.currentIndex == 1
+                              ? [
+                                  const Color(0xFFF5E6CC).withOpacity(0.6),
+                                  const Color(0xFFFFF8E1).withOpacity(0.4),
+                                ]
+                              : [
+                                  const Color(0xFFB3E5FC).withOpacity(0.5),
+                                  const Color(0xFFE1F5FE).withOpacity(0.3),
+                                ],
                         ),
-                  color: widget.isNight ? const Color(0xFF736675).withOpacity(0.2) : null,
+                  color: widget.isNight 
+                      ? (widget.currentIndex == 1 
+                          ? const Color(0xFF4A3C31).withOpacity(0.3) 
+                          : const Color(0xFF736675).withOpacity(0.2))
+                      : null,
                 ),
               ),
             ),
@@ -249,11 +258,15 @@ class _BottomNavBarState extends State<BottomNavBar> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: widget.isNight
-                  ? const [Color(0xFFEEBB3C), Color(0xFF1B2735)]
-                  : [
-                      const Color(0xFFFFF9C4).withOpacity(0.8),
-                      const Color(0xFFB3E5FC).withOpacity(0.2),
-                    ],
+                ? (widget.currentIndex == 1 
+                    ? const [Color(0xFFEEBB3C), Color(0xFF3E2723)] 
+                    : const [Color(0xFFEEBB3C), Color(0xFF1B2735)])
+                : [
+                    const Color(0xFFFFF9C4).withOpacity(0.8),
+                    widget.currentIndex == 1 
+                        ? const Color(0xFFFFCC80).withOpacity(0.3) 
+                        : const Color(0xFFB3E5FC).withOpacity(0.2),
+                  ],
             ),
           ),
         ),

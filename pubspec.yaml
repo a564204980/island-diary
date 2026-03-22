@@ -82,6 +82,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - assets/images/decoration/furniture/
     - assets/images/icons/
     - assets/images/emoji/
     - assets/images/emoji/wechat/face/
