@@ -141,7 +141,7 @@ class _RecordPageState extends State<RecordPage>
                   builder: (context, constraints) {
                     final isLandscape =
                         constraints.maxWidth > constraints.maxHeight;
-                    final double currentBgScale = isLandscape ? 1.4 : 2.0;
+                    final double currentBgScale = isLandscape ? 1.4 : 1.0;
 
                     final double h = constraints.maxHeight * currentBgScale;
                     final double fullWidth = h * _aspectRatio;

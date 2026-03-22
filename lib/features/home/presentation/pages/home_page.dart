@@ -11,6 +11,7 @@ import 'package:island_diary/features/record/presentation/pages/record_page.dart
 import 'package:island_diary/features/profile/presentation/pages/profile_page.dart';
 import 'package:island_diary/shared/widgets/barrage/mood_barrage_wall.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
+import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -232,7 +233,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
-  void _showSuccessEffect() {
+  void _openDecorationPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DecorationPage()),
+    );
+  }
+
+  Future<void> _showSuccessEffect() async {
     OverlayEntry? overlayEntry;
     overlayEntry = OverlayEntry(
       builder: (context) => DiarySuccessOverlay(
@@ -307,11 +315,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 onTap: _toggleOrientation,
                               ),
                               const SizedBox(width: 16),
-                              _buildTopIconButton(
-                                icon: Icons.palette_outlined,
-                                isNight: isNight,
-                                onTap: _toggleOrientation,
-                              ),
+                               _buildTopIconButton(
+                                 icon: _currentNavIndex == 1 ? Icons.chair_outlined : Icons.palette_outlined,
+                                 isNight: isNight,
+                                 onTap: _currentNavIndex == 1 ? _openDecorationPage : _toggleOrientation,
+                               ),
                             ],
                           ),
                         ],
