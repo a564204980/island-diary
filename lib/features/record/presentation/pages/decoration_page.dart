@@ -1,19 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
-
-// --- 网格校准常量 (统一在此修改) ---
-const int kGridRows = 19;
-const int kGridCols = 19;
-const double kGridCenterYFactor = 0.33; // 中心高度比例
-const double kGridRotationDegree = -0.4; // 整体旋转角度
-const double kGridTopTaper = 0.01; // 远端顶点 (0,0) 缩放 (调节右上角)
-const double kGridBottomTaper = 0.06; // 近端顶点 (19,19) 缩放 (调节左下角)
-const double kGridLeftTaper = 0; // 左端顶点 (0,19) 缩放 (调节左上角)
-const double kGridRightTaper = 0.04; // 右端顶点 (19,0) 缩放 (调节右下角)
-// ------------------------------
+import '../../domain/models/furniture_item.dart';
+import '../../domain/models/placed_furniture.dart';
+import '../../data/furniture_data.dart';
+import '../widgets/furniture_sprite.dart';
+import '../widgets/isometric_grid_painter.dart';
+import 'decoration_page_constants.dart';
 
 class DecorationPage extends StatefulWidget {
   const DecorationPage({super.key});
@@ -23,319 +16,413 @@ class DecorationPage extends StatefulWidget {
 }
 
 class _DecorationPageState extends State<DecorationPage> {
-  final ScrollController _scrollController = ScrollController();
-  double _aspectRatio = 16 / 9;
-  bool _showHint = true;
-  Timer? _hintTimer;
   (int, int)? _selectedCell;
-  bool _showTray = true;
-  final List<PlacedFurniture> _placedFurniture = [];
   (int, int)? _ghostCell;
+  PlacedFurniture? _selectedFurniture;
+  final List<PlacedFurniture> _placedFurniture = [];
+  final List<FurnitureItem> _availableItems = List.from(defaultFurnitureItems);
+  final GlobalKey _gridKey = GlobalKey();
 
-  final List<FurnitureItem> _availableItems = [
-    FurnitureItem(
-      id: 'fridge_1',
-      name: '复古冰箱',
-      imagePath: 'assets/images/decoration/furniture/fridges2.png',
-      spriteRect: const Rect.fromLTWH(0, 0, 0.5, 1.0), // 第1个面
-      gridW: 3,
-      gridH: 3,
-      intrinsicWidth: 605,
-      intrinsicHeight: 1072,
-    ),
-  ];
+  ui.Image? _bgImage;
 
   @override
   void initState() {
     super.initState();
     _resolveImageSize();
-    _forceLandscape();
-    _startHintTimer();
-  }
-
-  void _startHintTimer() {
-    _hintTimer = Timer(const Duration(seconds: 10), () {
-      if (mounted) {
-        setState(() {
-          _showHint = false;
-        });
-      }
-    });
-  }
-
-  Future<void> _forceLandscape() async {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  }
-
-  Future<void> _resetOrientation() async {
-    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  }
-
-  @override
-  void dispose() {
-    _hintTimer?.cancel();
-    _resetOrientation();
-    _scrollController.dispose();
-    super.dispose();
   }
 
   void _resolveImageSize() {
     const path = 'assets/images/decoration/furniture/house.png';
-    final image = AssetImage(path);
-    image
-        .resolve(const ImageConfiguration())
-        .addListener(
-          ImageStreamListener((info, _) {
-            if (mounted) {
-              setState(() {
-                _aspectRatio = info.image.width / info.image.height;
-              });
-              // 初始滚动到中间
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (_scrollController.hasClients) {
-                  final maxScroll = _scrollController.position.maxScrollExtent;
-                  _scrollController.jumpTo(maxScroll / 2);
-                }
-              });
-            }
-          }),
-        );
-  }
-
-  void _handleTap(Offset position, double fullWidth, double h) {
-    final cell = _hitTestGrid(position, fullWidth, h);
-    setState(() {
-      _selectedCell = cell;
-    });
+    const image = AssetImage(path);
+    image.resolve(const ImageConfiguration()).addListener(
+      ImageStreamListener((info, _) {
+        if (mounted) {
+          setState(() {
+            _bgImage = info.image;
+          });
+        }
+      }),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_bgImage == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final double screenW = MediaQuery.of(context).size.width;
+    final double screenH = MediaQuery.of(context).size.height;
+
+    final double imgW = _bgImage!.width.toDouble();
+    final double imgH = _bgImage!.height.toDouble();
+
+    double scale = screenH / imgH;
+    final double fullWidth = imgW * scale;
+
+    if (fullWidth < screenW) {
+      scale = screenW / imgW;
+    }
+
+    final double w = imgW * scale * kSceneScaleFactor;
+    final double h = imgH * scale * kSceneScaleFactor;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A2E), // 深色背景
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 背景层：居中的房间
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // 调低缩放比例，确保地板 (0.664 处) 在手机屏幕高度范围内可见
-              final bool isTablet =
-                  MediaQuery.of(context).size.shortestSide >= 600;
-              final double scale = isTablet ? 2.0 : 1.2;
-
-              final double h = constraints.maxHeight * scale;
-              final double fullWidth = h * _aspectRatio;
-
-              return SingleChildScrollView(
-                controller: _scrollController,
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minWidth: constraints.maxWidth,
-                    minHeight: constraints.maxHeight,
-                  ),
-                  child: Align(
-                    alignment: Alignment.bottomCenter, // 地板在 0.664，贴底更稳
-                    child: Stack(
-                      children: [
-                        // 1. 背景室
-                        Image.asset(
-                          'assets/images/decoration/furniture/house.png',
-                          height: h,
-                          width: fullWidth,
-                          fit: BoxFit.cover,
-                        ),
-                        // 2. 网格与拖拽层
-                        Positioned(
-                          left: 0,
-                          top: 0,
-                          width: fullWidth,
-                          height: h,
-                          child: DragTarget<FurnitureItem>(
-                            onMove: (details) {
-                              final cell = _hitTestGrid(
-                                details.offset,
-                                fullWidth,
-                                h,
-                              );
-                              if (cell != _ghostCell) {
-                                setState(() {
-                                  _ghostCell = cell;
-                                });
-                              }
-                            },
-                            onAccept: (item) {
-                              if (_ghostCell != null) {
-                                setState(() {
-                                  _placedFurniture.add(
-                                    PlacedFurniture(
-                                      item: item,
-                                      r: _ghostCell!.$1,
-                                      c: _ghostCell!.$2,
-                                    ),
-                                  );
-                                  _ghostCell = null;
-                                });
-                              }
-                            },
-                            onLeave: (data) =>
-                                setState(() => _ghostCell = null),
-                            builder: (context, candidateData, rejectedData) {
-                              return GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTapDown: (details) => _handleTap(
-                                  details.localPosition,
-                                  fullWidth,
-                                  h,
-                                ),
-                                child: CustomPaint(
-                                  painter: IsometricGridPainter(
-                                    rows: kGridRows,
-                                    cols: kGridCols,
-                                    fullWidth: fullWidth,
-                                    fullHeight: h,
-                                    selectedCell: _selectedCell,
-                                    placedItems: _placedFurniture,
-                                    ghostItem: candidateData.isNotEmpty
-                                        ? (candidateData.first!, _ghostCell)
-                                        : null,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        // 撑开 Stack
-                      ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Container(
+              alignment: Alignment.center,
+              width: math.max(w, screenW),
+              height: math.max(h, screenH),
+              child: SizedBox(
+                key: _gridKey,
+                width: w,
+                height: h,
+                child: Stack(
+                  children: [
+                    Image.asset(
+                      'assets/images/decoration/furniture/house.png',
+                      fit: BoxFit.cover,
+                      width: w,
+                      height: h,
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // 顶栏：返回按钮
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: _buildIconButton(
-                  icon: Icons.arrow_back_ios_new_rounded,
-                  onTap: () => Navigator.pop(context),
+                    Positioned.fill(
+                      child: DragTarget<FurnitureItem>(
+                        onMove: (details) {
+                          final RenderBox? box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+                          if (box == null) return;
+                          
+                          // 统一使用 globalToLocal 获取相对于网格画布的本地坐标
+                          final localPos = box.globalToLocal(details.offset);
+                          
+                          // 使用 DragAnchor.pointer 后，localPos 已经是手指位置
+                          // 我们只需要一个极小的偏移（如 10 像素）来确保手指不完全挡住选中框中心点即可，甚至可以为 0
+                          final correctedPos = Offset(localPos.dx, localPos.dy + 10); 
+                          
+                          final cell = _hitTestGrid(correctedPos, w, h);
+                          if (cell != _ghostCell) {
+                            setState(() {
+                              _ghostCell = cell;
+                            });
+                          }
+                        },
+                        onAccept: (item) {
+                          if (_ghostCell != null && item.quantity > 0) {
+                            setState(() {
+                              _placedFurniture.add(
+                                PlacedFurniture(
+                                  item: item,
+                                  r: _ghostCell!.$1,
+                                  c: _ghostCell!.$2,
+                                ),
+                              );
+                              item.quantity--;
+                              _ghostCell = null;
+                            });
+                          }
+                        },
+                        onLeave: (data) => setState(() => _ghostCell = null),
+                        builder: (context, candidateData, rejectedData) {
+                          return GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTapDown: (details) => _handleTap(details.localPosition, w, h), // localPosition 已经是本地的
+                            child: CustomPaint(
+                              painter: IsometricGridPainter(
+                                rows: kGridRows,
+                                cols: kGridCols,
+                                fullWidth: w,
+                                fullHeight: h,
+                                selectedCell: _selectedCell,
+                                placedItems: _placedFurniture,
+                                selectedFurniture: _selectedFurniture,
+                                ghostItem: candidateData.isNotEmpty
+                                    ? (candidateData.first!, _ghostCell)
+                                    : null,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    if (_selectedFurniture != null) ...[
+                      _buildDragOverlay(w, h),
+                      _buildToolbar(w, h),
+                    ],
+                  ],
                 ),
               ),
             ),
           ),
-
-          // 提示语
           Positioned(
-            bottom: 40,
             left: 0,
             right: 0,
-            child: Center(
-              child: AnimatedOpacity(
-                opacity: _showHint ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 500),
-                child: const Text(
-                  '装修模式：您可以自由布置房间',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
+            bottom: 0,
+            child: _buildFurnitureTray(),
+          ),
+          Positioned(
+            top: 40,
+            left: 20,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+              onPressed: () => Navigator.of(context).pop(),
             ),
           ),
-
-          // 3. 家具选择托盘
-          _buildFurnitureTray(),
         ],
       ),
     );
   }
 
-  Widget _buildFurnitureTray() {
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      bottom: _showTray ? 20 : -140,
-      left: 20,
-      right: 20,
-      child: Container(
-        height: 120,
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: BackdropFilter(
-            filter: ColorFilter.mode(
-              Colors.black.withOpacity(0.1),
-              BlendMode.srcOver,
-            ),
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-              scrollDirection: Axis.horizontal,
-              itemCount: _availableItems.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 15),
-              itemBuilder: (context, index) {
-                final item = _availableItems[index];
-                return _buildFurnitureCard(item);
-              },
-            ),
-          ),
+  Widget _buildDragOverlay(double w, double h) {
+    final pf = _selectedFurniture!;
+    final centerX = w / 2;
+    final centerY = h * kGridCenterYFactor;
+
+    int gw = pf.item.gridW;
+    int gh = pf.item.gridH;
+    if (pf.rotation % 2 != 0) {
+      gw = pf.item.gridH;
+      gh = pf.item.gridW;
+    }
+
+    final pt = _getScreenPoint(
+      pf.r + gw / 2.0,
+      pf.c + gh / 2.0,
+      centerX,
+      centerY,
+      w / 22,
+      w / 44,
+    );
+
+    // 估算家具在屏幕上的大致大小
+    // 为了简单起见，我们使用 _getScreenPoint 逻辑中的 scale
+    final double u = (pf.r + gw / 2.0) / kGridRows;
+    final double v = (pf.c + gh / 2.0) / kGridCols;
+    final double scale = 1.0 +
+        (1 - u) * (1 - v) * kGridTopTaper +
+        u * (1 - v) * kGridRightTaper +
+        (1 - u) * v * kGridLeftTaper +
+        u * v * kGridBottomTaper;
+
+    final double itemW = (w / 22) * gw * scale;
+    final double spriteH = itemW * (1072 / 605);
+    final double overlayH = spriteH + 60; // 稍微多一点区域以便点击到顶部
+
+    return Positioned(
+      left: pt.dx - itemW / 2,
+      top: pt.dy - overlayH + 40,
+      width: itemW,
+      height: overlayH,
+      child: LongPressDraggable<FurnitureItem>(
+        delay: const Duration(milliseconds: 300), // 更短的延迟，更灵敏
+        hapticFeedbackOnStart: true,
+        dragAnchorStrategy: pointerDragAnchorStrategy, // 确保 details.offset 指向手指
+        data: pf.item,
+        feedback: const SizedBox.shrink(),
+        onDragStarted: () {
+          setState(() {
+            pf.item.quantity++;
+            _placedFurniture.remove(pf);
+            _selectedFurniture = null;
+          });
+        },
+        child: Container(
+          color: Colors.transparent, 
+          width: double.infinity,
+          height: double.infinity,
         ),
       ),
     );
   }
 
+  Widget _buildToolbar(double w, double h) {
+    // 简单的工具栏实现，定位逻辑后续优化
+    final pf = _selectedFurniture!;
+    final centerX = w / 2;
+    final centerY = h * kGridCenterYFactor;
+    
+    int gw = pf.item.gridW;
+    int gh = pf.item.gridH;
+    if (pf.rotation % 2 != 0) {
+      gw = pf.item.gridH;
+      gh = pf.item.gridW;
+    }
+
+    final pt = _getScreenPoint(
+      pf.r + gw / 2.0,
+      pf.c + gh / 2.0,
+      centerX,
+      centerY,
+      w / 22,
+      w / 44,
+    );
+
+    // 将工具栏放在物品的最上方，避免遮挡长按热区
+    final double u = (pf.r + gw / 2.0) / kGridRows;
+    final double v = (pf.c + gh / 2.0) / kGridCols;
+    final double scale = 1.0 +
+        (1 - u) * (1 - v) * kGridTopTaper +
+        u * (1 - v) * kGridRightTaper +
+        (1 - u) * v * kGridLeftTaper +
+        u * v * kGridBottomTaper;
+    final double itemW = (w / 22) * gw * scale;
+    final double itemH = itemW * (1072 / 605) + (gw * w / 44) * scale;
+
+    return Positioned(
+      left: pt.dx - 50,
+      top: pt.dy - itemH - 20, // 物品顶部再往上一点
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.rotate_right, color: Colors.white, size: 20),
+              onPressed: () {
+                setState(() {
+                  pf.rotation = (pf.rotation + 1) % 4;
+                });
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+              onPressed: () {
+                setState(() {
+                  _placedFurniture.remove(pf);
+                  pf.item.quantity++;
+                  _selectedFurniture = null;
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 辅助函数：计算网格坐标对应的屏幕像素坐标 (用于工具栏投影)
+  Offset _getScreenPoint(double i, double j, double cx, double cy, double tw, double th) {
+    final double u = i / kGridRows;
+    final double v = j / kGridCols;
+    final double scale = 1.0 +
+        (1 - u) * (1 - v) * kGridTopTaper +
+        u * (1 - v) * kGridRightTaper +
+        (1 - u) * v * kGridLeftTaper +
+        u * v * kGridBottomTaper;
+
+    final double x = (i - j) * (tw / 2) * scale;
+    final double y = (i + j - (kGridRows + kGridCols) / 2) * (th / 2) * scale;
+
+    // 考虑网格本身的旋转 (kGridRotationDegree)
+    final double rad = kGridRotationDegree * math.pi / 180;
+    final double rotatedX = x * math.cos(rad) - y * math.sin(rad);
+    final double rotatedY = x * math.sin(rad) + y * math.cos(rad);
+
+    return Offset(cx + rotatedX, cy + rotatedY);
+  }
+
+  Widget _buildFurnitureTray() {
+    return Container(
+      height: 140,
+      margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _availableItems.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 20),
+        itemBuilder: (context, index) {
+          final item = _availableItems[index];
+          return _buildFurnitureCard(item);
+        },
+      ),
+    );
+  }
+
   Widget _buildFurnitureCard(FurnitureItem item) {
+    final bool isOutOfStock = item.quantity <= 0;
     return Draggable<FurnitureItem>(
+      dragAnchorStrategy: pointerDragAnchorStrategy, // 确保 details.offset 指向手指
       data: item,
+      maxSimultaneousDrags: isOutOfStock ? 0 : 1,
       feedback: const SizedBox.shrink(),
       childWhenDragging: Opacity(opacity: 0.3, child: _buildCardContent(item)),
-      child: _buildCardContent(item),
+      child: Opacity(
+        opacity: isOutOfStock ? 0.4 : 1.0,
+        child: _buildCardContent(item),
+      ),
     );
   }
 
   Widget _buildCardContent(FurnitureItem item) {
     return Column(
       children: [
-        Container(
-          width: 70,
-          height: 70,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white10),
-          ),
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: AspectRatio(
-                aspectRatio: item.intrinsicWidth / item.intrinsicHeight,
-                child: FurnitureSprite(item: item),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: AspectRatio(
+                    aspectRatio: item.intrinsicWidth / item.intrinsicHeight,
+                    child: FurnitureSprite(item: item),
+                  ),
+                ),
               ),
             ),
-          ),
+            Positioned(
+              top: -5,
+              right: -5,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: item.quantity > 0 ? Colors.blueAccent : Colors.grey,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    )
+                  ],
+                ),
+                child: Text(
+                  'x${item.quantity}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 4),
         Text(
@@ -350,510 +437,79 @@ class _DecorationPageState extends State<DecorationPage> {
     );
   }
 
-  (int, int)? _hitTestGrid(Offset localPos, double fullWidth, double h) {
-    final double centerX = fullWidth / 2;
+  void _handleTap(Offset localPos, double fullWidth, double h) {
+    final cell = _hitTestGrid(localPos, fullWidth, h);
+    setState(() {
+      if (cell != null) {
+        // 查找是否点击了家具
+        final clickedFurniture = _placedFurniture.cast<PlacedFurniture?>().firstWhere(
+          (pf) {
+            if (pf == null) return false;
+            // 简单判定：点击坐标是否在家具占用的矩形范围内
+            // 考虑旋转后的 gridW/gridH
+            int gw = pf.item.gridW;
+            int gh = pf.item.gridH;
+            if (pf.rotation % 2 != 0) {
+              gw = pf.item.gridH;
+              gh = pf.item.gridW;
+            }
+            return cell.$1 >= pf.r && cell.$1 < pf.r + gw && 
+                   cell.$2 >= pf.c && cell.$2 < pf.c + gh;
+          },
+          orElse: () => null,
+        );
+
+        if (clickedFurniture != null) {
+          _selectedFurniture = clickedFurniture;
+          _selectedCell = null;
+        } else {
+          _selectedFurniture = null;
+          _selectedCell = cell;
+        }
+      } else {
+        _selectedFurniture = null;
+        _selectedCell = null;
+      }
+    });
+  }
+
+  (int, int)? _hitTestGrid(Offset localPos, double w, double h) {
+    final double centerX = w / 2;
     final double centerY = h * kGridCenterYFactor;
-    final double dx = localPos.dx - centerX;
-    final double dy = localPos.dy - centerY;
+    
+    (int, int)? bestCell;
+    double minDistanceSq = double.infinity;
 
-    final double rad = kGridRotationDegree * math.pi / 180;
-    final double cosA = math.cos(rad);
-    final double sinA = math.sin(rad);
-    final double rx = dx * cosA + dy * sinA;
-    final double ry = -dx * sinA + dy * cosA;
-
-    final double tw = fullWidth / 22;
-    final double th = tw / 2;
-
-    final double roughA = rx / (tw / 2);
-    final double roughB = ry / (th / 2) + (kGridRows + kGridCols) / 2;
-    final double roughI = (roughA + roughB) / 2;
-    final double roughJ = (roughB - roughA) / 2;
-
-    final double u = (roughI / kGridRows).clamp(0.0, 1.0);
-    final double v = (roughJ / kGridCols).clamp(0.0, 1.0);
-    final double scale =
-        1.0 +
-        (1 - u) * (1 - v) * kGridTopTaper +
-        u * (1 - v) * kGridRightTaper +
-        (1 - u) * v * kGridLeftTaper +
-        u * v * kGridBottomTaper;
-
-    final double A = rx / ((tw / 2) * scale);
-    final double B = ry / ((th / 2) * scale) + (kGridRows + kGridCols) / 2;
-    final int i = ((A + B) / 2).round();
-    final int j = ((B - A) / 2).round();
-    if (i >= 0 && i < kGridRows && j >= 0 && j < kGridCols) {
-      return (i, j);
-    }
-    return null;
-  }
-
-  Widget _buildIconButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.4),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Icon(icon, color: Colors.white, size: 20),
-      ),
-    );
-  }
-}
-
-class IsometricGridPainter extends CustomPainter {
-  final int rows;
-  final int cols;
-  final double fullWidth;
-  final double fullHeight;
-  final List<PlacedFurniture> placedItems;
-  final (FurnitureItem, (int, int)?)? ghostItem;
-  final (int, int)? selectedCell;
-
-  IsometricGridPainter({
-    required this.rows,
-    required this.cols,
-    required this.fullWidth,
-    required this.fullHeight,
-    this.selectedCell,
-    this.placedItems = const [],
-    this.ghostItem,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFFF0000)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0;
-
-    final double centerX = fullWidth / 2;
-    final double centerY = fullHeight * kGridCenterYFactor;
-
-    // 旋转整体网格
-    canvas.save();
-    canvas.translate(centerX, centerY);
-    canvas.rotate(kGridRotationDegree * 3.14159 / 180);
-    canvas.translate(-centerX, -centerY);
-
-    // 单个菱形格子的尺寸 (2:1 比例)
-    final double tw = fullWidth / 22;
-    final double th = tw / 2;
-
-    // 网格线绘制逻辑 (移到高亮之前背景绘制)
-
-    // 绘制逻辑
-    for (int j = 0; j <= cols; j++) {
-      for (int i = 0; i < rows; i++) {
-        final start = _getPoint(
-          i.toDouble(),
-          j.toDouble(),
+    // 遍历所有格子，找到中心点距离点击位置最近的格子
+    // 对于 20x20 的小网格，这种暴力搜索在性能上完全可以接受且最为准确
+    // 这种方法天然适配任何复杂的 Taper (变形) 逻辑，无需复杂的数学逆变换
+    for (int r = 0; r < kGridRows; r++) {
+      for (int c = 0; c < kGridCols; c++) {
+        final pt = _getScreenPoint(
+          r + 0.5,
+          c + 0.5,
           centerX,
           centerY,
-          tw,
-          th,
+          w / 22,
+          w / 44,
         );
-        final end = _getPoint(
-          (i + 1).toDouble(),
-          j.toDouble(),
-          centerX,
-          centerY,
-          tw,
-          th,
-        );
-        canvas.drawLine(start, end, paint);
-      }
-    }
-    for (int i = 0; i <= rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        final start = _getPoint(
-          i.toDouble(),
-          j.toDouble(),
-          centerX,
-          centerY,
-          tw,
-          th,
-        );
-        final end = _getPoint(
-          i.toDouble(),
-          (j + 1).toDouble(),
-          centerX,
-          centerY,
-          tw,
-          th,
-        );
-        canvas.drawLine(start, end, paint);
+        
+        final double dx = localPos.dx - pt.dx;
+        final double dy = localPos.dy - pt.dy;
+        final double distSq = dx * dx + dy * dy;
+        
+        if (distSq < minDistanceSq) {
+          minDistanceSq = distSq;
+          bestCell = (r, c);
+        }
       }
     }
 
-    // 绘制序号
-    final textStyle = const TextStyle(
-      color: Colors.white,
-      fontSize: 8,
-      fontWeight: FontWeight.bold,
-    );
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        final pt = _getPoint(i + 0.5, j + 0.5, centerX, centerY, tw, th);
-        final tp = TextPainter(
-          text: TextSpan(text: '$i-$j', style: textStyle),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        tp.paint(canvas, Offset(pt.dx - tp.width / 2, pt.dy - tp.height / 2));
-      }
-    }
+    // 容错范围：如果距离最近的格子中心超过 100 像素（在 w=2000 的场景下），说明点在外面
+    if (minDistanceSq > 150 * 150) return null;
 
-    // --- 绘制已摆放的家具 ---
-    for (final pf in placedItems) {
-      _drawFurniture(
-        canvas,
-        pf.item,
-        pf.r,
-        pf.c,
-        centerX,
-        centerY,
-        tw,
-        th,
-        1.0,
-      );
-    }
+    if (bestCell != null && isCellExcluded(bestCell.$1, bestCell.$2)) return null;
 
-    // --- 绘制拖拽预览 (Ghost) ---
-    if (ghostItem != null && ghostItem!.$2 != null) {
-      _drawFurniture(
-        canvas,
-        ghostItem!.$1,
-        ghostItem!.$2!.$1,
-        ghostItem!.$2!.$2,
-        centerX,
-        centerY,
-        tw,
-        th,
-        0.5,
-      );
-    }
-
-    // --- 绘制选中高亮 (移到最顶层绘制，确保可见) ---
-    if (selectedCell != null) {
-      final i = selectedCell!.$1.toDouble();
-      final j = selectedCell!.$2.toDouble();
-
-      final path = Path()
-        ..moveTo(
-          _getPoint(i, j, centerX, centerY, tw, th).dx,
-          _getPoint(i, j, centerX, centerY, tw, th).dy,
-        )
-        ..lineTo(
-          _getPoint(i + 1, j, centerX, centerY, tw, th).dx,
-          _getPoint(i + 1, j, centerX, centerY, tw, th).dy,
-        )
-        ..lineTo(
-          _getPoint(i + 1, j + 1, centerX, centerY, tw, th).dx,
-          _getPoint(i + 1, j + 1, centerX, centerY, tw, th).dy,
-        )
-        ..lineTo(
-          _getPoint(i, j + 1, centerX, centerY, tw, th).dx,
-          _getPoint(i, j + 1, centerX, centerY, tw, th).dy,
-        )
-        ..close();
-
-      // 1. 填充
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = Colors.yellow.withOpacity(0.3)
-          ..style = PaintingStyle.fill,
-      );
-
-      // 2. 边框 (亮色)
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.0,
-      );
-    }
-
-    canvas.restore();
+    return bestCell;
   }
-
-  Offset _getPoint(
-    double i,
-    double j,
-    double cx,
-    double cy,
-    double tw,
-    double th,
-  ) {
-    // 使用双线性插值计算四个角落的独立缩放
-    final double u = i / kGridRows;
-    final double v = j / kGridCols;
-
-    final double scale =
-        1.0 +
-        (1 - u) * (1 - v) * kGridTopTaper +
-        u * (1 - v) * kGridRightTaper +
-        (1 - u) * v * kGridLeftTaper +
-        u * v * kGridBottomTaper;
-
-    // 基础等距投影坐标
-    final double x = (i - j) * (tw / 2) * scale;
-    final double y = (i + j - (kGridRows + kGridCols) / 2) * (th / 2) * scale;
-
-    return Offset(cx + x, cy + y);
-  }
-
-  void _drawFurniture(
-    Canvas canvas,
-    FurnitureItem item,
-    int r,
-    int c,
-    double cx,
-    double cy,
-    double tw,
-    double th,
-    double opacity,
-  ) {
-    // 渲染家具占位的 3x3 范围 (仅预览/高亮时)
-    final paint = Paint()
-      ..color = Colors.blue.withOpacity(0.1 * opacity)
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    final p0 = _getPoint(r.toDouble(), c.toDouble(), cx, cy, tw, th);
-    final p1 = _getPoint(
-      (r + item.gridW).toDouble(),
-      c.toDouble(),
-      cx,
-      cy,
-      tw,
-      th,
-    );
-    final p2 = _getPoint(
-      (r + item.gridW).toDouble(),
-      (c + item.gridH).toDouble(),
-      cx,
-      cy,
-      tw,
-      th,
-    );
-    final p3 = _getPoint(
-      r.toDouble(),
-      (c + item.gridH).toDouble(),
-      cx,
-      cy,
-      tw,
-      th,
-    );
-    path.moveTo(p0.dx, p0.dy);
-    path.lineTo(p1.dx, p1.dy);
-    path.lineTo(p2.dx, p2.dy);
-    path.lineTo(p3.dx, p3.dy);
-    path.close();
-    canvas.drawPath(path, paint);
-
-    // 绘制家具图片容器 (这里暂时通过 FurnitureSprite 绘制，但 Painter 需要同步)
-    // 注意：Painter 无法直接插入 Widget，我们需要直接在 Painter 里通过 _infosCache 或传参拿到 ui.Image
-    // 为了满足 KISS，我们假设家具图片已加载 (由托盘预览图触发加载)，
-    // 然后在 Painter 里利用 _FurnitureSpriteState 中的记录（或改为全局 Cache）
-    final image = _SpritePainter.getImage(item.imagePath);
-    if (image != null) {
-      // 重新计算该位置的 scale
-      final double u = r / rows;
-      final double v = c / cols;
-      final double s =
-          1.0 +
-          (1 - u) * (1 - v) * kGridTopTaper +
-          u * (1 - v) * kGridRightTaper +
-          (1 - u) * v * kGridLeftTaper +
-          u * v * kGridBottomTaper;
-
-      // 家具显示尺寸：3个格子的宽度约 3 * tw
-      // 这里的比例改为 605:1072 (约 1.77)
-      // 乘数由 1.5 降为 1.1，使模型“瘦身”并显得更协调
-      // 校正家具尺寸：缩放系数恢复至 0.8，使家具在场景中显得更精致
-      final double itemW = tw * item.gridW * s * 0.8;
-      final double itemH = itemW * (1072 / 605);
-
-      final basePoint = _getPoint(
-        r + item.gridW / 2.0,
-        c + item.gridH / 2.0,
-        cx,
-        cy,
-        tw,
-        th,
-      );
-
-      // 垂直对齐逻辑：使容器底边中点与 3x3 地基菱形的底角对齐
-      // 在等轴 2:1 投影下，底角相对于中心的垂直偏移是 (gridW * tw / 4)
-      final double verticalOffset = (item.gridW * tw / 4.0) * s;
-      final dst = Rect.fromCenter(
-        center: Offset(
-          basePoint.dx,
-          basePoint.dy - (itemH / 2.0) + verticalOffset,
-        ),
-        width: itemW,
-        height: itemH,
-      );
-
-      final src = Rect.fromLTWH(
-        item.spriteRect.left * image.width,
-        item.spriteRect.top * image.height,
-        item.spriteRect.width * image.width,
-        item.spriteRect.height * image.height,
-      );
-
-      canvas.drawImageRect(
-        image,
-        src,
-        dst,
-        Paint()..color = Colors.white.withOpacity(opacity),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant IsometricGridPainter oldDelegate) =>
-      oldDelegate.selectedCell != selectedCell ||
-      oldDelegate.fullWidth != fullWidth ||
-      oldDelegate.fullHeight != fullHeight ||
-      oldDelegate.placedItems != placedItems ||
-      oldDelegate.ghostItem != ghostItem;
-}
-
-class FurnitureItem {
-  final String id;
-  final String name;
-  final String imagePath;
-  final Rect spriteRect;
-  final int gridW;
-   final int gridH;
-  final double intrinsicWidth;
-  final double intrinsicHeight;
-
-  FurnitureItem({
-    required this.id,
-    required this.name,
-    required this.imagePath,
-    required this.spriteRect,
-    this.gridW = 1,
-    this.gridH = 1,
-    this.intrinsicWidth = 1,
-    this.intrinsicHeight = 1,
-  });
-}
-
-class PlacedFurniture {
-  final FurnitureItem item;
-  final int r;
-  final int c;
-
-  PlacedFurniture({required this.item, required this.r, required this.c});
-}
-
-class FurnitureSprite extends StatefulWidget {
-  final FurnitureItem item;
-  const FurnitureSprite({super.key, required this.item});
-
-  @override
-  State<FurnitureSprite> createState() => _FurnitureSpriteState();
-}
-
-class _FurnitureSpriteState extends State<FurnitureSprite> {
-  ui.Image? _image;
-  ImageStream? _imageStream;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadImage();
-  }
-
-  void _loadImage() {
-    final ImageStream newStream = AssetImage(
-      widget.item.imagePath,
-    ).resolve(createLocalImageConfiguration(context));
-    if (newStream.key == _imageStream?.key) return;
-
-    _imageStream?.removeListener(ImageStreamListener(_updateImage));
-    _imageStream = newStream;
-    _imageStream!.addListener(ImageStreamListener(_updateImage));
-  }
-
-  void _updateImage(ImageInfo info, bool _) {
-    if (mounted) {
-      _SpritePainter.cacheImage(widget.item.imagePath, info.image);
-      setState(() {
-        _image = info.image;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _imageStream?.removeListener(ImageStreamListener(_updateImage));
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_image == null) return const SizedBox.shrink();
-    return CustomPaint(
-      painter: _SpritePainter(
-        image: _image!,
-        spriteRect: widget.item.spriteRect,
-      ),
-    );
-  }
-}
-
-class _SpritePainter extends CustomPainter {
-  final ui.Image image;
-  final Rect spriteRect;
-  static final Map<String, ui.Image> _imageBucket = {};
-
-  _SpritePainter({required this.image, required this.spriteRect}) {
-    // 自动缓存，供底座共享显示
-    _imageBucket[image.toString()] = image; // 这里用 toString 并不稳，最好用资源的 Key
-  }
-
-  // 修改：改为按 Path 存取
-  static void cacheImage(String path, ui.Image img) => _imageBucket[path] = img;
-  static ui.Image? getImage(String path) => _imageBucket[path];
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final src = Rect.fromLTWH(
-      spriteRect.left * image.width,
-      spriteRect.top * image.height,
-      spriteRect.width * image.width,
-      spriteRect.height * image.height,
-    );
-    final dst = Rect.fromLTWH(0, 0, size.width, size.height);
-    canvas.drawImageRect(
-      image,
-      src,
-      dst,
-      Paint()..filterQuality = ui.FilterQuality.high,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _SpritePainter oldDelegate) =>
-      oldDelegate.image != image || oldDelegate.spriteRect != spriteRect;
 }
