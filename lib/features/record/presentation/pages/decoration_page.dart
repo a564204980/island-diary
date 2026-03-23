@@ -18,6 +18,8 @@ class DecorationPage extends StatefulWidget {
 class _DecorationPageState extends State<DecorationPage> {
   (int, int)? _selectedCell;
   (int, int)? _ghostCell;
+  FurnitureItem? _draggingItem; // 显式记录正在拖动的物品，解决 DragTarget 延迟问题
+  int _draggingRotation = 0; 
   PlacedFurniture? _selectedFurniture;
   final List<PlacedFurniture> _placedFurniture = [];
   final List<FurnitureItem> _availableItems = List.from(defaultFurnitureItems);
@@ -117,18 +119,24 @@ class _DecorationPageState extends State<DecorationPage> {
                                   item: item,
                                   r: _ghostCell!.$1,
                                   c: _ghostCell!.$2,
+                                  rotation: _draggingRotation, // 使用记录的旋转角度
                                 ),
                               );
                               item.quantity--;
                               _ghostCell = null;
+                              _draggingItem = null;
                             });
                           }
                         },
-                        onLeave: (data) => setState(() => _ghostCell = null),
+                        onLeave: (data) => setState(() {
+                          _ghostCell = null;
+                        }),
                         builder: (context, candidateData, rejectedData) {
+                          // 优先使用显式记录的拖拽物品，确保起始瞬间不掉帧
+                          final activeItem = _draggingItem ?? (candidateData.isNotEmpty ? candidateData.first : null);
                           return GestureDetector(
                             behavior: HitTestBehavior.opaque,
-                            onTapDown: (details) => _handleTap(details.localPosition, w, h), // localPosition 已经是本地的
+                            onTapDown: (details) => _handleTap(details.localPosition, w, h), 
                             child: CustomPaint(
                               painter: IsometricGridPainter(
                                 rows: kGridRows,
@@ -138,8 +146,8 @@ class _DecorationPageState extends State<DecorationPage> {
                                 selectedCell: _selectedCell,
                                 placedItems: _placedFurniture,
                                 selectedFurniture: _selectedFurniture,
-                                ghostItem: candidateData.isNotEmpty
-                                    ? (candidateData.first!, _ghostCell)
+                                ghostItem: activeItem != null
+                                    ? (activeItem, _ghostCell, _draggingRotation)
                                     : null,
                               ),
                             ),
@@ -223,9 +231,21 @@ class _DecorationPageState extends State<DecorationPage> {
         feedback: const SizedBox.shrink(),
         onDragStarted: () {
           setState(() {
-            pf.item.quantity++;
+            _draggingItem = pf.item; // 记录正在拖动的物品
+            _draggingRotation = pf.rotation; 
+            _ghostCell = (pf.r, pf.c); 
+            pf.item.quantity++; 
             _placedFurniture.remove(pf);
             _selectedFurniture = null;
+          });
+        },
+        onDraggableCanceled: (velocity, offset) {
+          // 如果拖拽取消，将物品放回原处
+          setState(() {
+            _placedFurniture.add(pf);
+            pf.item.quantity--;
+            _ghostCell = null;
+            _draggingItem = null;
           });
         },
         child: Container(
@@ -272,7 +292,7 @@ class _DecorationPageState extends State<DecorationPage> {
 
     return Positioned(
       left: pt.dx - 50,
-      top: pt.dy - itemH - 20, // 物品顶部再往上一点
+      top: pt.dy - itemH + 30, // 降低工具栏位置，更接近家具顶部
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -360,7 +380,11 @@ class _DecorationPageState extends State<DecorationPage> {
   Widget _buildFurnitureCard(FurnitureItem item) {
     final bool isOutOfStock = item.quantity <= 0;
     return Draggable<FurnitureItem>(
-      dragAnchorStrategy: pointerDragAnchorStrategy, // 确保 details.offset 指向手指
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      onDragStarted: () => setState(() {
+        _draggingItem = item;
+        _draggingRotation = 0;
+      }), 
       data: item,
       maxSimultaneousDrags: isOutOfStock ? 0 : 1,
       feedback: const SizedBox.shrink(),

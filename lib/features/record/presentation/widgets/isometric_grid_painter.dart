@@ -11,7 +11,7 @@ class IsometricGridPainter extends CustomPainter {
   final double fullWidth;
   final double fullHeight;
   final List<PlacedFurniture> placedItems;
-  final (FurnitureItem, (int, int)?)? ghostItem;
+  final (FurnitureItem, (int, int)?, int)? ghostItem; // 增加旋转参数 (item, cell, rotation)
   final (int, int)? selectedCell;
   final PlacedFurniture? selectedFurniture;
 
@@ -107,6 +107,7 @@ class IsometricGridPainter extends CustomPainter {
         tw,
         th,
         0.5,
+        ghostItem!.$3, // 使用传入的旋转角度
       );
     }
 
@@ -210,16 +211,35 @@ class IsometricGridPainter extends CustomPainter {
       final double itemW = tw * gw * s * 0.8;
       final double itemH = itemW * (1072 / 605);
 
+      // 根据用户反馈调整的顺时针映射逻辑：
+      // 0: 面1 (正面左下 +r)
+      // 1: 面2 (背面左上 -c)
+      // 2: 面2 翻转 (背面右上 -r)
+      // 3: 面1 翻转 (正面右下 +c)
+      int faceIndex = 0;
+      bool isFlipped = false;
+      
+      final bool hasMultipleFaces = item.spriteRect.width < 0.9; // 简单判断是否有多个面
+      
+      if (hasMultipleFaces) {
+        switch (rotation) {
+          case 0: faceIndex = 0; isFlipped = false; break;
+          case 1: faceIndex = 1; isFlipped = false; break;
+          case 2: faceIndex = 1; isFlipped = true; break;
+          case 3: faceIndex = 0; isFlipped = true; break;
+        }
+      } else {
+        // 单面素材退化逻辑
+        isFlipped = (rotation == 1 || rotation == 3);
+      }
+
       final basePoint = _getPoint(r + gw / 2.0, c + gh / 2.0, cx, cy, tw, th);
       final double verticalOffset = (gw * tw / 4.0) * s;
       
       canvas.save();
       canvas.translate(basePoint.dx, basePoint.dy + verticalOffset - (itemH / 2.0));
-      // 这里的旋转是视觉上的，可能需要根据具体素材调整
-      // 如果素材本身就是 2.5D 的，简单的旋转可能不对，但用户要求“旋转”
-      // 在等距视图中，典型的旋转是镜像或 90度切换素材
-      // 目前没有多向素材，我们先做简单的 scaleX 也可以作为翻转
-      if (rotation == 1 || rotation == 3) {
+      
+      if (isFlipped) {
         canvas.scale(-1, 1);
       }
 
@@ -230,7 +250,7 @@ class IsometricGridPainter extends CustomPainter {
       );
 
       final src = Rect.fromLTWH(
-        item.spriteRect.left * image.width,
+        (item.spriteRect.left + faceIndex * item.spriteRect.width) * image.width,
         item.spriteRect.top * image.height,
         item.spriteRect.width * image.width,
         item.spriteRect.height * image.height,
