@@ -14,6 +14,8 @@ class IsometricGridPainter extends CustomPainter {
   final (FurnitureItem, (int, int)?, int, bool)? ghostItem; // (item, cell, rotation, isValid)
   final (int, int)? selectedCell;
   final PlacedFurniture? selectedFurniture;
+  final double centerYFactor;
+  final bool isCapturing;
 
   IsometricGridPainter({
     required this.rows,
@@ -24,6 +26,8 @@ class IsometricGridPainter extends CustomPainter {
     this.placedItems = const [],
     this.ghostItem,
     this.selectedFurniture,
+    required this.centerYFactor,
+    this.isCapturing = false,
   });
 
   @override
@@ -34,7 +38,7 @@ class IsometricGridPainter extends CustomPainter {
       ..strokeWidth = 3.0;
 
     final double centerX = fullWidth / 2;
-    final double centerY = fullHeight * kGridCenterYFactor;
+    final double centerY = fullHeight * centerYFactor;
 
     // 旋转整体网格
     canvas.save();
@@ -46,39 +50,42 @@ class IsometricGridPainter extends CustomPainter {
     final double tw = fullWidth / 22;
     final double th = tw / 2;
 
-    // 绘制网格线
-    for (int j = 0; j <= cols; j++) {
-      for (int i = 0; i < rows; i++) {
-        if (isCellExcluded(i, j)) continue;
-        final start = _getPoint(i.toDouble(), j.toDouble(), centerX, centerY, tw, th);
-        final end = _getPoint((i + 1).toDouble(), j.toDouble(), centerX, centerY, tw, th);
-        canvas.drawLine(start, end, paint);
+    // 如果正在截图，跳过网格线和序号的绘制
+    if (!isCapturing) {
+      // 绘制网格线
+      for (int j = 0; j <= cols; j++) {
+        for (int i = 0; i < rows; i++) {
+          if (isCellExcluded(i, j)) continue;
+          final start = _getPoint(i.toDouble(), j.toDouble(), centerX, centerY, tw, th);
+          final end = _getPoint((i + 1).toDouble(), j.toDouble(), centerX, centerY, tw, th);
+          canvas.drawLine(start, end, paint);
+        }
       }
-    }
-    for (int i = 0; i <= rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        if (isCellExcluded(i, j)) continue;
-        final start = _getPoint(i.toDouble(), j.toDouble(), centerX, centerY, tw, th);
-        final end = _getPoint(i.toDouble(), (j + 1).toDouble(), centerX, centerY, tw, th);
-        canvas.drawLine(start, end, paint);
+      for (int i = 0; i <= rows; i++) {
+        for (int j = 0; j < cols; j++) {
+          if (isCellExcluded(i, j)) continue;
+          final start = _getPoint(i.toDouble(), j.toDouble(), centerX, centerY, tw, th);
+          final end = _getPoint(i.toDouble(), (j + 1).toDouble(), centerX, centerY, tw, th);
+          canvas.drawLine(start, end, paint);
+        }
       }
-    }
 
-    // 绘制序号
-    final textStyle = const TextStyle(
-      color: Colors.white,
-      fontSize: 8,
-      fontWeight: FontWeight.bold,
-    );
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        if (isCellExcluded(i, j)) continue;
-        final pt = _getPoint(i + 0.5, j + 0.5, centerX, centerY, tw, th);
-        final tp = TextPainter(
-          text: TextSpan(text: '$i-$j', style: textStyle),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        tp.paint(canvas, Offset(pt.dx - tp.width / 2, pt.dy - tp.height / 2));
+      // 绘制序号
+      final textStyle = const TextStyle(
+        color: Colors.white,
+        fontSize: 8,
+        fontWeight: FontWeight.bold,
+      );
+      for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+          if (isCellExcluded(i, j)) continue;
+          final pt = _getPoint(i + 0.5, j + 0.5, centerX, centerY, tw, th);
+          final tp = TextPainter(
+            text: TextSpan(text: '$i-$j', style: textStyle),
+            textDirection: TextDirection.ltr,
+          )..layout();
+          tp.paint(canvas, Offset(pt.dx - tp.width / 2, pt.dy - tp.height / 2));
+        }
       }
     }
 
@@ -277,5 +284,6 @@ class IsometricGridPainter extends CustomPainter {
       oldDelegate.fullHeight != fullHeight ||
       oldDelegate.placedItems != placedItems ||
       oldDelegate.selectedFurniture != selectedFurniture ||
+      oldDelegate.isCapturing != isCapturing ||
       oldDelegate.ghostItem != ghostItem;
 }

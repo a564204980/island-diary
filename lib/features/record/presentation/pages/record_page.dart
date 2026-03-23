@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -37,6 +39,7 @@ class _RecordPageState extends State<RecordPage>
     _scrollController = ScrollController();
     _scrollOffsetNotifier = ValueNotifier<double>(0.0);
     _resolveImageSize();
+    UserState().decorationSnapshot.addListener(_onSnapshotChanged);
 
     _jumpController = AnimationController(
       vsync: this,
@@ -77,19 +80,42 @@ class _RecordPageState extends State<RecordPage>
     }
   }
 
+  void _onSnapshotChanged() {
+    if (mounted) {
+      _resolveImageSize();
+    }
+  }
+
   void _resolveImageSize() {
-    const path = 'assets/images/decoration/furniture/house.png';
-    final stream = const AssetImage(path).resolve(ImageConfiguration.empty);
-    stream.addListener(
-      ImageStreamListener((ImageInfo info, bool _) {
-        if (mounted) {
-          setState(() {
-            _aspectRatio = info.image.width / info.image.height;
-          });
-          _centerBackground();
-        }
-      }),
-    );
+    final snapshot = UserState().decorationSnapshot.value;
+    if (snapshot != null) {
+      final image = Image.memory(snapshot).image;
+      image
+          .resolve(ImageConfiguration.empty)
+          .addListener(
+            ImageStreamListener((ImageInfo info, bool _) {
+              if (mounted) {
+                setState(() {
+                  _aspectRatio = info.image.width / info.image.height;
+                });
+                _centerBackground();
+              }
+            }),
+          );
+    } else {
+      const path = 'assets/images/decoration/furniture/house.png';
+      final stream = const AssetImage(path).resolve(ImageConfiguration.empty);
+      stream.addListener(
+        ImageStreamListener((ImageInfo info, bool _) {
+          if (mounted) {
+            setState(() {
+              _aspectRatio = info.image.width / info.image.height;
+            });
+            _centerBackground();
+          }
+        }),
+      );
+    }
   }
 
   void _centerBackground() {
@@ -113,6 +139,7 @@ class _RecordPageState extends State<RecordPage>
     _jumpController.dispose();
     _scrollController.dispose();
     _scrollOffsetNotifier.dispose();
+    UserState().decorationSnapshot.removeListener(_onSnapshotChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UserState().isSlimeInBottomMenu.value = true;
@@ -137,58 +164,98 @@ class _RecordPageState extends State<RecordPage>
           body: Stack(
             children: [
               Positioned.fill(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isLandscape =
-                        constraints.maxWidth > constraints.maxHeight;
-                    final double currentBgScale = isLandscape ? 1.4 : 1.0;
+                child: ValueListenableBuilder<Uint8List?>(
+                  valueListenable: UserState().decorationSnapshot,
+                  builder: (context, snapshot, _) {
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isLandscape =
+                            constraints.maxWidth > constraints.maxHeight;
 
-                    final double h = constraints.maxHeight * currentBgScale;
-                    final double fullWidth = h * _aspectRatio;
+                        // 初始缩放比例
+                        double scale = isLandscape ? 1.4 : 1.0;
 
-                    // 重新对 3x 画面进行交互点微调
-                    final deskRelX = fullWidth * 0.44;
-                    final deskY = h * 0.62;
-                    final bedRelX = fullWidth * 0.74;
-                    final bedY = h * 0.64;
+                        if (snapshot != null) {
+                          // 如果有快照，我们尝试让它“缩小并完整显示”
+                          // 首先尝试按高度缩放至 0.4
+                          double targetH = constraints.maxHeight * 0.4;
+                          double targetW = targetH * _aspectRatio;
 
-                    return NotificationListener<ScrollNotification>(
-                      onNotification: (notification) {
-                        if (notification is ScrollUpdateNotification) {
-                          _scrollOffsetNotifier.value =
-                              notification.metrics.pixels;
+                          // 如果按高度缩放后，宽度依然超过了屏幕宽度，则改成按宽度缩放
+                          if (targetW > constraints.maxWidth * 0.95) {
+                            targetW = constraints.maxWidth * 0.95;
+                            targetH = targetW / _aspectRatio;
+                          }
+
+                          scale = targetH / constraints.maxHeight;
                         }
-                        return false;
-                      },
-                      child: SingleChildScrollView(
-                        controller: _scrollController,
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                          child: Center(
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                _buildBackground(bgPath, h, fullWidth),
-                                if (_isJumpStarted)
-                                  _buildSlimeJumpAnimation(
-                                    h,
-                                    bedRelX,
-                                    bedY,
-                                    deskRelX,
-                                    deskY,
-                                    constraints,
-                                  ),
-                                if (_showBookHint) _buildBookHint(deskRelX, deskY),
-                                if (_showDeskDialogue)
-                                  _buildDeskDialogue(deskRelX, deskY),
-                                SizedBox(width: fullWidth, height: h),
-                              ],
+
+                        final double currentBgScale = scale;
+
+                        final double h = constraints.maxHeight * currentBgScale;
+                        final double fullWidth = h * _aspectRatio;
+
+                        // 重新对 3x 画面进行交互点微调
+                        final deskRelX = fullWidth * 0.44;
+                        final deskY = h * 0.62;
+                        final bedRelX = fullWidth * 0.74;
+                        final bedY = h * 0.64;
+
+                        return NotificationListener<ScrollNotification>(
+                          onNotification: (notification) {
+                            if (notification is ScrollUpdateNotification) {
+                              _scrollOffsetNotifier.value =
+                                  notification.metrics.pixels;
+                            }
+                            return false;
+                          },
+                          child: SingleChildScrollView(
+                            controller: _scrollController,
+                            scrollDirection: Axis.horizontal,
+                            physics: fullWidth > constraints.maxWidth
+                                ? const BouncingScrollPhysics()
+                                : const NeverScrollableScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                // 根据内容实际宽度决定滚动范围，只有当场景超出屏宽时才允许滑动
+                                minWidth: math.max(
+                                  fullWidth,
+                                  constraints.maxWidth,
+                                ),
+                                // 必须指定最小高度为屏幕高度，否则 Center 无法在垂直方向居中
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: Center(
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    _buildBackground(
+                                      bgPath,
+                                      snapshot,
+                                      h,
+                                      fullWidth,
+                                    ),
+                                    if (_isJumpStarted)
+                                      _buildSlimeJumpAnimation(
+                                        h,
+                                        bedRelX,
+                                        bedY,
+                                        deskRelX,
+                                        deskY,
+                                        constraints,
+                                      ),
+                                    if (_showBookHint)
+                                      _buildBookHint(deskRelX, deskY),
+                                    if (_showDeskDialogue)
+                                      _buildDeskDialogue(deskRelX, deskY),
+                                    SizedBox(width: fullWidth, height: h),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     );
                   },
                 ),
@@ -200,10 +267,16 @@ class _RecordPageState extends State<RecordPage>
     );
   }
 
-  Widget _buildBackground(String bgPath, double h, double w) {
+  Widget _buildBackground(
+    String bgPath,
+    Uint8List? snapshot,
+    double h,
+    double w,
+  ) {
     return Positioned.fill(
       child: _ParallaxBackground(
         bgPath: bgPath,
+        snapshot: snapshot,
         h: h,
         w: w,
       ),
@@ -424,23 +497,22 @@ class _RecordPageState extends State<RecordPage>
 
 class _ParallaxBackground extends StatelessWidget {
   final String bgPath;
+  final Uint8List? snapshot;
   final double h;
   final double w;
 
   const _ParallaxBackground({
     required this.bgPath,
+    this.snapshot,
     required this.h,
     required this.w,
   });
 
   @override
   Widget build(BuildContext context) {
-    // 已根据需求移除了视差缩放逻辑
-    return Image.asset(
-      bgPath,
-      height: h,
-      width: w,
-      fit: BoxFit.cover,
-    );
+    if (snapshot != null) {
+      return Image.memory(snapshot!, height: h, width: w, fit: BoxFit.cover);
+    }
+    return Image.asset(bgPath, height: h, width: w, fit: BoxFit.cover);
   }
 }

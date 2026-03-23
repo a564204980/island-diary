@@ -12,4 +12,22 @@ class PlacedFurniture {
     required this.c,
     this.rotation = 0,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'item': item.toMap(),
+      'r': r,
+      'c': c,
+      'rotation': rotation,
+    };
+  }
+
+  factory PlacedFurniture.fromMap(Map<String, dynamic> map) {
+    return PlacedFurniture(
+      item: FurnitureItem.fromMap(Map<String, dynamic>.from(map['item'])),
+      r: map['r'],
+      c: map['c'],
+      rotation: map['rotation'],
+    );
+  }
 }

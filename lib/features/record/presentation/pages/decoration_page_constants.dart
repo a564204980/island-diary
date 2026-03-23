@@ -1,7 +1,8 @@
 // --- 网格校准常量 ---
 const int kGridRows = 19;
 const int kGridCols = 19;
-const double kGridCenterYFactor = 0.40; // 中心高度比例 (往上提了点)
+const double kGridCenterYFactorIPad = 0.40;
+const double kGridCenterYFactorPhone = 0.29; 
 const double kGridRotationDegree = -0.4; // 整体旋转角度
 const double kGridTopTaper = 0.01; // 远端顶点 (0,0) 缩放
 const double kGridBottomTaper = 0.06; // 近端顶点 (19,19) 缩放

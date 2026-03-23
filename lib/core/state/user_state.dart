@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
+import 'package:island_diary/features/record/domain/models/placed_furniture.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 
 /// 全局单例用户状态管理
@@ -28,6 +30,11 @@ class UserState {
   static const _keySavedDiaries = 'saved_diaries';
   static const _keyThemeMode = 'theme_mode'; // 新增主题模式键
   static const _keyRecordGuidance = 'has_seen_record_guidance'; // 记录页引导
+  static const _keyDecorationSnapshot = 'decoration_snapshot_bytes'; // 场景快照
+  static const _keyPlacedFurniture = 'placed_furniture'; // 家具布局
+
+  /// 家具布局列表
+  final ValueNotifier<List<PlacedFurniture>> placedFurniture = ValueNotifier<List<PlacedFurniture>>([]);
 
   /// 主题模式枚举
   /// auto: 跟随时间, light: 强制日间, dark: 强制夜间
@@ -65,6 +72,9 @@ class UserState {
 
   /// 记录小软是否在底部菜单中（记录页面小软跳出时设为 false）
   final ValueNotifier<bool> isSlimeInBottomMenu = ValueNotifier<bool>(true);
+
+  /// 装修场景快照数据 (Uint8List)
+  final ValueNotifier<Uint8List?> decorationSnapshot = ValueNotifier<Uint8List?>(null);
 
   /// 上次访问时间
   DateTime? lastVisitTime;
@@ -309,6 +319,25 @@ class UserState {
     }
   }
 
+  /// 设置并保存装修快照
+  Future<void> setDecorationSnapshot(Uint8List? bytes) async {
+    decorationSnapshot.value = bytes;
+    final prefs = await SharedPreferences.getInstance();
+    if (bytes != null) {
+      await prefs.setString(_keyDecorationSnapshot, base64Encode(bytes));
+    } else {
+      await prefs.remove(_keyDecorationSnapshot);
+    }
+  }
+
+  /// 保存家具布局
+  Future<void> savePlacedFurniture(List<PlacedFurniture> list) async {
+    placedFurniture.value = list;
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = list.map((e) => e.toMap()).toList();
+    await prefs.setString(_keyPlacedFurniture, jsonEncode(jsonList));
+  }
+
   /// 从本地存储中读取状态
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -367,6 +396,29 @@ class UserState {
             .toList();
       } catch (e) {
         debugPrint('Error decoding saved diaries: $e');
+      }
+    }
+
+    // 加载家具布局
+    final furnitureJson = prefs.getString(_keyPlacedFurniture);
+    if (furnitureJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(furnitureJson);
+        placedFurniture.value = decoded
+            .map((e) => PlacedFurniture.fromMap(Map<String, dynamic>.from(e)))
+            .toList();
+      } catch (e) {
+        debugPrint('Error decoding placed furniture: $e');
+      }
+    }
+
+    // 加载快照
+    final snapshotBase64 = prefs.getString(_keyDecorationSnapshot);
+    if (snapshotBase64 != null) {
+      try {
+        decorationSnapshot.value = base64Decode(snapshotBase64);
+      } catch (e) {
+        debugPrint('Error decoding decoration snapshot: $e');
       }
     }
   }
