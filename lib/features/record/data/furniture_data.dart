@@ -13,4 +13,15 @@ final List<FurnitureItem> defaultFurnitureItems = [
     intrinsicHeight: 1072,
     quantity: 3,
   ),
+  FurnitureItem(
+    id: 'fridge_2',
+    name: '智能冰箱',
+    imagePath: 'assets/images/decoration/furniture/fridges3.png',
+    spriteRect: const Rect.fromLTWH(0, 0, 0.5, 1.0),
+    gridW: 3,
+    gridH: 3,
+    intrinsicWidth: 605,
+    intrinsicHeight: 1072,
+    quantity: 3,
+  ),
 ];

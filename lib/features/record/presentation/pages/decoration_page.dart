@@ -113,6 +113,13 @@ class _DecorationPageState extends State<DecorationPage> {
                         },
                         onAccept: (item) {
                           if (_ghostCell != null && item.quantity > 0) {
+                            if (!_isAreaAvailable(item, _ghostCell!.$1, _ghostCell!.$2, _draggingRotation)) {
+                               setState(() {
+                                 _ghostCell = null;
+                                 _draggingItem = null;
+                               });
+                               return;
+                            }
                             setState(() {
                               _placedFurniture.add(
                                 PlacedFurniture(
@@ -147,7 +154,12 @@ class _DecorationPageState extends State<DecorationPage> {
                                 placedItems: _placedFurniture,
                                 selectedFurniture: _selectedFurniture,
                                 ghostItem: activeItem != null
-                                    ? (activeItem, _ghostCell, _draggingRotation)
+                                    ? (
+                                        activeItem, 
+                                        _ghostCell, 
+                                        _draggingRotation,
+                                        _ghostCell == null || _isAreaAvailable(activeItem, _ghostCell!.$1, _ghostCell!.$2, _draggingRotation)
+                                      )
                                     : null,
                               ),
                             ),
@@ -306,9 +318,17 @@ class _DecorationPageState extends State<DecorationPage> {
             IconButton(
               icon: const Icon(Icons.rotate_right, color: Colors.white, size: 20),
               onPressed: () {
-                setState(() {
-                  pf.rotation = (pf.rotation + 1) % 4;
-                });
+                final nextRotation = (pf.rotation + 1) % 4;
+                if (_isAreaAvailable(pf.item, pf.r, pf.c, nextRotation, exclude: pf)) {
+                  setState(() {
+                    pf.rotation = nextRotation;
+                  });
+                } else {
+                  // 可选：显示提示或震动反馈
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('该方向位置冲突，无法旋转'), duration: Duration(seconds: 1)),
+                  );
+                }
               },
             ),
             IconButton(
@@ -535,5 +555,44 @@ class _DecorationPageState extends State<DecorationPage> {
     if (bestCell != null && isCellExcluded(bestCell.$1, bestCell.$2)) return null;
 
     return bestCell;
+  }
+
+  bool _isAreaAvailable(FurnitureItem item, int r, int c, int rotation, {PlacedFurniture? exclude}) {
+    int gw = item.gridW;
+    int gh = item.gridH;
+    if (rotation % 2 != 0) {
+      gw = item.gridH;
+      gh = item.gridW;
+    }
+
+    // 1. 检查边界
+    if (r < 0 || c < 0 || r + gw > kGridRows || c + gh > kGridCols) return false;
+
+    // 2. 检查屏蔽区域
+    for (int i = r; i < r + gw; i++) {
+      for (int j = c; j < c + gh; j++) {
+        if (isCellExcluded(i, j)) return false;
+      }
+    }
+
+    // 3. 检查与其他家具冲突
+    for (final pf in _placedFurniture) {
+      if (pf == exclude) continue;
+      
+      int pgw = pf.item.gridW;
+      int pgh = pf.item.gridH;
+      if (pf.rotation % 2 != 0) {
+        pgw = pf.item.gridH;
+        pgh = pf.item.gridW;
+      }
+
+      // 矩形重叠检测
+      if (r < pf.r + pgw && r + gw > pf.r &&
+          c < pf.c + pgh && c + gh > pf.c) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

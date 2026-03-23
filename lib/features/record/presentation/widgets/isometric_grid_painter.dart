@@ -11,7 +11,7 @@ class IsometricGridPainter extends CustomPainter {
   final double fullWidth;
   final double fullHeight;
   final List<PlacedFurniture> placedItems;
-  final (FurnitureItem, (int, int)?, int)? ghostItem; // 增加旋转参数 (item, cell, rotation)
+  final (FurnitureItem, (int, int)?, int, bool)? ghostItem; // (item, cell, rotation, isValid)
   final (int, int)? selectedCell;
   final PlacedFurniture? selectedFurniture;
 
@@ -108,6 +108,7 @@ class IsometricGridPainter extends CustomPainter {
         th,
         0.5,
         ghostItem!.$3, // 使用传入的旋转角度
+        ghostItem!.$4, // 传入合法性
       );
     }
 
@@ -174,6 +175,7 @@ class IsometricGridPainter extends CustomPainter {
     double th,
     double opacity, [
     int rotation = 0,
+    bool isValid = true,
   ]) {
     int gw = item.gridW;
     int gh = item.gridH;
@@ -183,7 +185,7 @@ class IsometricGridPainter extends CustomPainter {
     }
 
     final paint = Paint()
-      ..color = Colors.blue.withOpacity(0.1 * opacity)
+      ..color = (isValid ? Colors.blue : Colors.red).withOpacity(0.1 * opacity)
       ..style = PaintingStyle.fill;
 
     final path = Path();
@@ -256,7 +258,14 @@ class IsometricGridPainter extends CustomPainter {
         item.spriteRect.height * image.height,
       );
 
-      canvas.drawImageRect(image, src, dst, Paint()..color = Colors.white.withOpacity(opacity));
+      canvas.drawImageRect(
+        image, 
+        src, 
+        dst, 
+        Paint()
+          ..color = (isValid ? Colors.white : Colors.redAccent).withOpacity(opacity)
+          ..colorFilter = isValid ? null : const ColorFilter.mode(Colors.red, BlendMode.modulate),
+      );
       canvas.restore();
     }
   }
