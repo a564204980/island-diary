@@ -240,6 +240,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
+
   Future<void> _showSuccessEffect() async {
     OverlayEntry? overlayEntry;
     overlayEntry = OverlayEntry(
@@ -315,7 +316,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 onTap: _toggleOrientation,
                               ),
                               const SizedBox(width: 16),
-                               _buildTopIconButton(
+                                _buildTopIconButton(
                                  icon: _currentNavIndex == 1 ? Icons.chair_outlined : Icons.palette_outlined,
                                  isNight: isNight,
                                  onTap: _currentNavIndex == 1 ? _openDecorationPage : _toggleOrientation,

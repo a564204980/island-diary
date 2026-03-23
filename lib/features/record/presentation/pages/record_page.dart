@@ -164,24 +164,29 @@ class _RecordPageState extends State<RecordPage>
                         controller: _scrollController,
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            _buildBackground(bgPath, h, fullWidth),
-                            if (_isJumpStarted)
-                              _buildSlimeJumpAnimation(
-                                h,
-                                bedRelX,
-                                bedY,
-                                deskRelX,
-                                deskY,
-                                constraints,
-                              ),
-                            if (_showBookHint) _buildBookHint(deskRelX, deskY),
-                            if (_showDeskDialogue)
-                              _buildDeskDialogue(deskRelX, deskY),
-                            SizedBox(width: fullWidth, height: h),
-                          ],
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                          child: Center(
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                _buildBackground(bgPath, h, fullWidth),
+                                if (_isJumpStarted)
+                                  _buildSlimeJumpAnimation(
+                                    h,
+                                    bedRelX,
+                                    bedY,
+                                    deskRelX,
+                                    deskY,
+                                    constraints,
+                                  ),
+                                if (_showBookHint) _buildBookHint(deskRelX, deskY),
+                                if (_showDeskDialogue)
+                                  _buildDeskDialogue(deskRelX, deskY),
+                                SizedBox(width: fullWidth, height: h),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     );
@@ -201,8 +206,6 @@ class _RecordPageState extends State<RecordPage>
         bgPath: bgPath,
         h: h,
         w: w,
-        scrollOffsetNotifier: _scrollOffsetNotifier,
-        scrollController: _scrollController,
       ),
     );
   }
@@ -423,50 +426,21 @@ class _ParallaxBackground extends StatelessWidget {
   final String bgPath;
   final double h;
   final double w;
-  final ValueNotifier<double> scrollOffsetNotifier;
-  final ScrollController scrollController;
 
   const _ParallaxBackground({
     required this.bgPath,
     required this.h,
     required this.w,
-    required this.scrollOffsetNotifier,
-    required this.scrollController,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<double>(
-      valueListenable: scrollOffsetNotifier,
-      builder: (context, currentScroll, _) {
-        double currentScale = 1.05;
-
-        if (scrollController.hasClients) {
-          try {
-            final double maxScroll = scrollController.position.maxScrollExtent;
-            if (maxScroll > 0) {
-              final double normalizedScroll = currentScroll.clamp(0, maxScroll);
-              final double scrollRatio = normalizedScroll / maxScroll;
-
-              if (scrollRatio < 0.2) {
-                currentScale = 1.05 + (0.13 * (scrollRatio / 0.2));
-              } else if (scrollRatio < 0.5) {
-                currentScale = 1.18 + (0.07 * ((scrollRatio - 0.2) / 0.3));
-              } else if (scrollRatio < 0.8) {
-                currentScale = 1.25 - (0.07 * ((scrollRatio - 0.5) / 0.3));
-              } else {
-                currentScale = 1.18 - (0.13 * ((scrollRatio - 0.8) / 0.2));
-              }
-            }
-          } catch (_) {}
-        }
-
-        return Transform.scale(
-          scale: currentScale,
-          alignment: Alignment.center,
-          child: Image.asset(bgPath, height: h, width: w, fit: BoxFit.cover),
-        );
-      },
+    // 已根据需求移除了视差缩放逻辑
+    return Image.asset(
+      bgPath,
+      height: h,
+      width: w,
+      fit: BoxFit.cover,
     );
   }
 }

@@ -376,6 +376,7 @@ class UserState {
     hasFinishedOnboarding.dispose();
     hasSeenRecordGuidance.dispose();
     diaryDraft.dispose();
+    isSlimeInBottomMenu.dispose();
   }
 }
 
