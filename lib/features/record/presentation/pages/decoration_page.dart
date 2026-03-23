@@ -2,6 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 
+// --- 网格校准常量 (统一在此修改) ---
+const int kGridRows = 19;
+const int kGridCols = 19;
+const double kGridCenterYFactor = 0.33; // 中心高度比例
+const double kGridRotationDegree = -0.4; // 整体旋转角度
+const double kGridTopTaper = 0.01; // 远端顶点 (0,0) 缩放 (调节右上角)
+const double kGridBottomTaper = 0.06; // 近端顶点 (19,19) 缩放 (调节左下角)
+const double kGridLeftTaper = 0; // 左端顶点 (0,19) 缩放 (调节左上角)
+const double kGridRightTaper = 0.04; // 右端顶点 (19,0) 缩放 (调节右下角)
+// ------------------------------
+
 class DecorationPage extends StatefulWidget {
   const DecorationPage({super.key});
 
@@ -14,6 +25,7 @@ class _DecorationPageState extends State<DecorationPage> {
   double _aspectRatio = 16 / 9;
   bool _showHint = true;
   Timer? _hintTimer;
+  (int, int)? _selectedCell;
 
   @override
   void initState() {
@@ -77,6 +89,58 @@ class _DecorationPageState extends State<DecorationPage> {
         );
   }
 
+  void _handleTap(Offset position, double fullWidth, double h) {
+    final double centerX = fullWidth / 2;
+    final double centerY = h * kGridCenterYFactor;
+
+    // 1. 相对中心点
+    final double dx = position.dx - centerX;
+    final double dy = position.dy - centerY;
+
+    // 2. 反向旋转
+    final double cosA = 0.999996; // cos(-0.16)
+    final double sinA = 0.00279; // sin(0.16)，反号即反转
+    final double rx = dx * cosA + dy * sinA;
+    final double ry = -dx * sinA + dy * cosA;
+
+    // 3. 基础参数
+    final double tw = fullWidth / 22;
+    final double th = tw / 2;
+
+    // 4. 初步估算 i, j 用于比例
+    final double roughA = rx / (tw / 2);
+    final double roughB = ry / (th / 2) + (kGridRows + kGridCols) / 2;
+    final double roughI = (roughA + roughB) / 2;
+    final double roughJ = (roughB - roughA) / 2;
+
+    // 5. 双线性插值估算 scale
+    final double u = (roughI / kGridRows).clamp(0.0, 1.0);
+    final double v = (roughJ / kGridCols).clamp(0.0, 1.0);
+    final double scale =
+        1.0 +
+        (1 - u) * (1 - v) * kGridTopTaper +
+        u * (1 - v) * kGridRightTaper +
+        (1 - u) * v * kGridLeftTaper +
+        u * v * kGridBottomTaper;
+
+    // 6. 最终计算 i, j
+    final double A = rx / ((tw / 2) * scale);
+    final double B = ry / ((th / 2) * scale) + (kGridRows + kGridCols) / 2;
+
+    final int i = ((A + B) / 2).round();
+    final int j = ((B - A) / 2).round();
+
+    if (i >= 0 && i < kGridRows && j >= 0 && j < kGridCols) {
+      setState(() {
+        _selectedCell = (i, j);
+      });
+    } else {
+      setState(() {
+        _selectedCell = null;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,12 +184,17 @@ class _DecorationPageState extends State<DecorationPage> {
                           top: 0,
                           width: fullWidth,
                           height: h,
-                          child: CustomPaint(
-                            painter: IsometricGridPainter(
-                              rows: 19,
-                              cols: 19,
-                              fullWidth: fullWidth,
-                              fullHeight: h,
+                          child: GestureDetector(
+                            onTapUp: (details) =>
+                                _handleTap(details.localPosition, fullWidth, h),
+                            child: CustomPaint(
+                              painter: IsometricGridPainter(
+                                rows: kGridRows,
+                                cols: kGridCols,
+                                fullWidth: fullWidth,
+                                fullHeight: h,
+                                selectedCell: _selectedCell,
+                              ),
                             ),
                           ),
                         ),
@@ -210,12 +279,14 @@ class IsometricGridPainter extends CustomPainter {
   final int cols;
   final double fullWidth;
   final double fullHeight;
+  final (int, int)? selectedCell;
 
   IsometricGridPainter({
     required this.rows,
     required this.cols,
     required this.fullWidth,
     required this.fullHeight,
+    this.selectedCell,
   });
 
   @override
@@ -226,21 +297,47 @@ class IsometricGridPainter extends CustomPainter {
       ..strokeWidth = 3.0;
 
     final double centerX = fullWidth / 2;
-    // 使用用户微调后的 0.664
-    final double centerY = fullHeight * 0.33;
+    final double centerY = fullHeight * kGridCenterYFactor;
 
-    // 旋转整体网格 (用户微调后的 -0.16 度)
+    // 旋转整体网格
     canvas.save();
     canvas.translate(centerX, centerY);
-    canvas.rotate(-0.16 * 3.14159 / 180);
+    canvas.rotate(kGridRotationDegree * 3.14159 / 180);
     canvas.translate(-centerX, -centerY);
 
     // 单个菱形格子的尺寸 (2:1 比例)
     final double tw = fullWidth / 22;
     final double th = tw / 2;
 
-    // 透视收缩因子 (用户微调后的 0.01)
-    const double taperFactor = 0.01;
+    // 绘制选中高亮
+    if (selectedCell != null) {
+      final highlightPaint = Paint()
+        ..color = Colors.blue.withOpacity(0.4)
+        ..style = PaintingStyle.fill;
+
+      final i = selectedCell!.$1.toDouble();
+      final j = selectedCell!.$2.toDouble();
+
+      final path = Path()
+        ..moveTo(
+          _getPoint(i, j, centerX, centerY, tw, th).dx,
+          _getPoint(i, j, centerX, centerY, tw, th).dy,
+        )
+        ..lineTo(
+          _getPoint(i + 1, j, centerX, centerY, tw, th).dx,
+          _getPoint(i + 1, j, centerX, centerY, tw, th).dy,
+        )
+        ..lineTo(
+          _getPoint(i + 1, j + 1, centerX, centerY, tw, th).dx,
+          _getPoint(i + 1, j + 1, centerX, centerY, tw, th).dy,
+        )
+        ..lineTo(
+          _getPoint(i, j + 1, centerX, centerY, tw, th).dx,
+          _getPoint(i, j + 1, centerX, centerY, tw, th).dy,
+        )
+        ..close();
+      canvas.drawPath(path, highlightPaint);
+    }
 
     // 绘制逻辑
     for (int j = 0; j <= cols; j++) {
@@ -252,7 +349,6 @@ class IsometricGridPainter extends CustomPainter {
           centerY,
           tw,
           th,
-          taperFactor,
         );
         final end = _getPoint(
           (i + 1).toDouble(),
@@ -261,7 +357,6 @@ class IsometricGridPainter extends CustomPainter {
           centerY,
           tw,
           th,
-          taperFactor,
         );
         canvas.drawLine(start, end, paint);
       }
@@ -275,7 +370,6 @@ class IsometricGridPainter extends CustomPainter {
           centerY,
           tw,
           th,
-          taperFactor,
         );
         final end = _getPoint(
           i.toDouble(),
@@ -284,7 +378,6 @@ class IsometricGridPainter extends CustomPainter {
           centerY,
           tw,
           th,
-          taperFactor,
         );
         canvas.drawLine(start, end, paint);
       }
@@ -298,15 +391,7 @@ class IsometricGridPainter extends CustomPainter {
     );
     for (int i = 0; i < rows; i++) {
       for (int j = 0; j < cols; j++) {
-        final pt = _getPoint(
-          i + 0.5,
-          j + 0.5,
-          centerX,
-          centerY,
-          tw,
-          th,
-          taperFactor,
-        );
+        final pt = _getPoint(i + 0.5, j + 0.5, centerX, centerY, tw, th);
         final tp = TextPainter(
           text: TextSpan(text: '$i-$j', style: textStyle),
           textDirection: TextDirection.ltr,
@@ -325,19 +410,28 @@ class IsometricGridPainter extends CustomPainter {
     double cy,
     double tw,
     double th,
-    double taper,
   ) {
-    // 深度比例 (0-1)
-    final double depthT = (i + j) / (rows + cols);
-    final double scale = 1.0 - (depthT - 0.5) * taper;
+    // 使用双线性插值计算四个角落的独立缩放
+    final double u = i / kGridRows;
+    final double v = j / kGridCols;
+
+    final double scale =
+        1.0 +
+        (1 - u) * (1 - v) * kGridTopTaper +
+        u * (1 - v) * kGridRightTaper +
+        (1 - u) * v * kGridLeftTaper +
+        u * v * kGridBottomTaper;
 
     // 基础等距投影坐标
     final double x = (i - j) * (tw / 2) * scale;
-    final double y = (i + j - (rows + cols) / 2) * (th / 2) * scale;
+    final double y = (i + j - (kGridRows + kGridCols) / 2) * (th / 2) * scale;
 
     return Offset(cx + x, cy + y);
   }
 
   @override
-  bool shouldRepaint(covariant IsometricGridPainter oldDelegate) => true;
+  bool shouldRepaint(covariant IsometricGridPainter oldDelegate) =>
+      oldDelegate.selectedCell != selectedCell ||
+      oldDelegate.fullWidth != fullWidth ||
+      oldDelegate.fullHeight != fullHeight;
 }
