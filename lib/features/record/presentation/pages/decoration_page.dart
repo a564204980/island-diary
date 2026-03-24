@@ -94,9 +94,9 @@ class _DecorationPageState extends State<DecorationPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       for (final item in _availableItems) {
         await FurnitureSprite.precacheItem(item, context);
+        // 每加载一个大型素材就刷一下，体验更好
+        if (mounted) setState(() {});
       }
-      // 预加载完成后，强制重绘一次场景
-      if (mounted) setState(() {});
     });
   }
 

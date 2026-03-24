@@ -282,12 +282,5 @@ class IsometricGridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant IsometricGridPainter oldDelegate) =>
-      oldDelegate.selectedCell != selectedCell ||
-      oldDelegate.fullWidth != fullWidth ||
-      oldDelegate.fullHeight != fullHeight ||
-      oldDelegate.placedItems != placedItems ||
-      oldDelegate.selectedFurniture != selectedFurniture ||
-      oldDelegate.isCapturing != isCapturing ||
-      oldDelegate.ghostItem != ghostItem;
+  bool shouldRepaint(covariant IsometricGridPainter oldDelegate) => true;
 }

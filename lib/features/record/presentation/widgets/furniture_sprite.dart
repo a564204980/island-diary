@@ -69,6 +69,15 @@ class _FurnitureSpriteState extends State<FurnitureSprite> {
   }
 
   @override
+  void didUpdateWidget(covariant FurnitureSprite oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.item.id != oldWidget.item.id || 
+        widget.item.imagePath != oldWidget.item.imagePath) {
+      _loadImage();
+    }
+  }
+
+  @override
   void dispose() {
     _imageStream?.removeListener(ImageStreamListener(_updateImage));
     super.dispose();
