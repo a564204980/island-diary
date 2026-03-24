@@ -15,11 +15,7 @@ class DiaryDetailPage extends StatefulWidget {
   final DiaryEntry entry;
   final bool isNight;
 
-  const DiaryDetailPage({
-    super.key,
-    required this.entry,
-    this.isNight = false,
-  });
+  const DiaryDetailPage({super.key, required this.entry, this.isNight = false});
 
   @override
   State<DiaryDetailPage> createState() => _DiaryDetailPageState();
@@ -43,7 +39,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           margin: const EdgeInsets.symmetric(horizontal: 40),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: widget.isNight ? const Color(0xFF2D2A26) : const Color(0xFFFDF7E9),
+            color: widget.isNight
+                ? const Color(0xFF2D2A26)
+                : const Color(0xFFFDF7E9),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: widget.isNight ? Colors.white10 : const Color(0xFFE8D5B5),
@@ -52,17 +50,16 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                "🏮",
-                style: TextStyle(fontSize: 32),
-              ),
+              const Text("🏮", style: TextStyle(fontSize: 32)),
               const SizedBox(height: 16),
               Text(
                 "确定要抹去这段回忆吗？",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: widget.isNight ? Colors.white70 : const Color(0xFF5D4037),
+                  color: widget.isNight
+                      ? Colors.white70
+                      : const Color(0xFF5D4037),
                   fontFamily: 'LXGWWenKai',
                 ),
               ),
@@ -146,7 +143,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      extendBodyBehindAppBar: true, 
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           Positioned.fill(
@@ -154,7 +151,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               bottom: false,
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 120), // 调整顶部边距配合 SafeArea
+                padding: const EdgeInsets.fromLTRB(
+                  24,
+                  16,
+                  24,
+                  120,
+                ), // 调整顶部边距配合 SafeArea
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -164,7 +166,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     const SizedBox(height: 48),
                     _buildImages(isNight),
                     const SizedBox(height: 48),
-                    _buildReplies(isNight), // Add this line
+                    _buildTimeline(isNight),
+                    _buildReplies(isNight),
                   ],
                 ),
               ),
@@ -178,7 +181,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
 
   Widget _buildFloatingActions(bool isNight) {
     final iconColor = isNight ? Colors.white70 : const Color(0xFF8B5E3C);
-    
+
     return Positioned(
       left: 0,
       right: 0,
@@ -188,9 +191,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           height: 54,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
-            color: isNight 
-                ? const Color(0xFF2C2E30) 
-                : Colors.white,
+            color: isNight ? const Color(0xFF2C2E30) : Colors.white,
             borderRadius: BorderRadius.circular(27),
             boxShadow: [
               BoxShadow(
@@ -246,7 +247,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
   void _showReplySheet() {
     final isNight = widget.isNight;
     final controller = TextEditingController();
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -281,7 +282,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: isNight ? Colors.white30 : Colors.black26),
+                    icon: Icon(
+                      Icons.close,
+                      color: isNight ? Colors.white30 : Colors.black26,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -351,9 +355,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
 
   void _handleReplySubmit(String content) async {
     if (content.trim().isEmpty) return;
-    
+
     await UserState().addReplyToDiary(_currentEntry.id, content);
-    
+
     if (mounted) {
       Navigator.pop(context);
       // 刷新当前页面状态
@@ -366,11 +370,91 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     }
   }
 
+  Widget _buildTimeline(bool isNight) {
+    if (_currentEntry.replies.isEmpty) return const SizedBox.shrink();
+
+    final lineColor = isNight ? Colors.white12 : Colors.black.withOpacity(0.05);
+    final tickColor = isNight ? Colors.white24 : Colors.black12;
+    final timeColor = isNight ? Colors.white38 : const Color(0xFFAFA296);
+    final contentColor = isNight ? Colors.white70 : const Color(0xFF5D4037);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 32),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              // 背景长横线
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 32, // 处于 tick 刻度的位置 (时间 14 + 间距 12 + 刻度 4)
+                child: Container(height: 1, color: lineColor),
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _currentEntry.replies.map((reply) {
+                  final timeStr =
+                      "${reply.dateTime.hour.toString().padLeft(2, '0')}:${reply.dateTime.minute.toString().padLeft(2, '0')}";
+                  // 截取简短内容
+                  String snippet = reply.content.trim();
+                  if (snippet.length > 10)
+                    snippet = "${snippet.substring(0, 10)}...";
+
+                  return Container(
+                    width: 120,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 上部：时间
+                        Text(
+                          timeStr,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: timeColor,
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // 中部：刻度线
+                        Container(width: 1.5, height: 8, color: tickColor),
+                        const SizedBox(height: 8),
+                        // 下部：简短内容
+                        Text(
+                          snippet,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: contentColor,
+                            fontFamily: 'LXGWWenKai',
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ).animate().fadeIn(delay: 600.ms, duration: 800.ms).moveX(begin: 20, end: 0);
+  }
+
   Widget _buildReplies(bool isNight) {
     if (_currentEntry.replies.isEmpty) return const SizedBox.shrink();
 
-    final accentColor = isNight 
-        ? const Color(0xFFD4A373) 
+    final accentColor = isNight
+        ? const Color(0xFFD4A373)
         : const Color(0xFF8B5E3C);
 
     return Column(
@@ -400,40 +484,53 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           ],
         ),
         const SizedBox(height: 24),
-        ..._currentEntry.replies.map((reply) => Container(
-          margin: const EdgeInsets.only(bottom: 20),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isNight ? Colors.white10 : Colors.black.withOpacity(0.05),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                reply.content,
-                style: TextStyle(
-                  fontSize: 16,
-                  height: 1.6,
-                  color: isNight ? Colors.white.withOpacity(0.8) : const Color(0xFF4A342E),
-                  fontFamily: 'LXGWWenKai',
+        ..._currentEntry.replies
+            .map(
+              (reply) => Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: isNight
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isNight
+                        ? Colors.white10
+                        : Colors.black.withOpacity(0.05),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      reply.content,
+                      style: TextStyle(
+                        fontSize: 16,
+                        height: 1.6,
+                        color: isNight
+                            ? Colors.white.withOpacity(0.8)
+                            : const Color(0xFF4A342E),
+                        fontFamily: 'LXGWWenKai',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "${reply.dateTime.year}/${reply.dateTime.month}/${reply.dateTime.day} ${reply.dateTime.hour.toString().padLeft(2, '0')}:${reply.dateTime.minute.toString().padLeft(2, '0')}",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isNight ? Colors.white24 : Colors.black26,
+                        fontFamily: 'LXGWWenKai',
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                "${reply.dateTime.year}/${reply.dateTime.month}/${reply.dateTime.day} ${reply.dateTime.hour.toString().padLeft(2, '0')}:${reply.dateTime.minute.toString().padLeft(2, '0')}",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isNight ? Colors.white24 : Colors.black26,
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-            ],
-          ),
-        )).toList(),
+            )
+            .toList(),
       ],
     ).animate().fadeIn(delay: 700.ms, duration: 800.ms).moveY(begin: 10, end: 0);
   }
@@ -457,17 +554,17 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     );
   }
 
-
   Widget _buildHeader(bool isNight) {
     final dt = _currentEntry.dateTime;
     final mood = kMoods[_currentEntry.moodIndex.clamp(0, kMoods.length - 1)];
     final dateStr = "${dt.year}年${dt.month}月${dt.day}日";
-    final timeStr = "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+    final timeStr =
+        "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
     final quote = DiaryUtils.getMoodQuote(mood.label);
 
     final baseGlowColor = mood.glowColor ?? const Color(0xFFD4A373);
-    final accentColor = isNight 
-        ? baseGlowColor 
+    final accentColor = isNight
+        ? baseGlowColor
         : Color.lerp(baseGlowColor, Colors.black, 0.45)!;
 
     return Column(
@@ -516,7 +613,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         CustomPaint(
           size: const Size(double.infinity, 2),
           painter: HandDrawnLinePainter(
-            color: isNight ? Colors.white10 : const Color(0xFF8B5E3C).withOpacity(0.5),
+            color: isNight
+                ? Colors.white10
+                : const Color(0xFF8B5E3C).withOpacity(0.5),
             strokeWidth: 1.5,
           ),
         ),
@@ -565,7 +664,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                DiaryUtils.getMoodIntensityPrefix(mood.label, _currentEntry.intensity),
+                DiaryUtils.getMoodIntensityPrefix(
+                  mood.label,
+                  _currentEntry.intensity,
+                ),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -576,7 +678,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             // 天气标签
             if (_currentEntry.weather != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: accentColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
@@ -593,7 +698,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             // 地点标签
             if (_currentEntry.location != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: accentColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
@@ -601,7 +709,11 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.location_on_outlined, size: 12, color: accentColor),
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 12,
+                      color: accentColor,
+                    ),
                     const SizedBox(width: 2),
                     Text(
                       _currentEntry.location!,
@@ -617,7 +729,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             // 自定义日期标签
             if (_currentEntry.customDate != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: accentColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
@@ -625,7 +740,11 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.calendar_today_outlined, size: 12, color: accentColor),
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      size: 12,
+                      color: accentColor,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       _currentEntry.customDate!,
@@ -641,7 +760,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             // 自定义时间标签
             if (_currentEntry.customTime != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: accentColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
@@ -649,7 +771,11 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.access_time_outlined, size: 12, color: accentColor),
+                    Icon(
+                      Icons.access_time_outlined,
+                      size: 12,
+                      color: accentColor,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       _currentEntry.customTime!,
@@ -668,12 +794,11 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     ).animate().fadeIn(duration: 600.ms).moveY(begin: 10, end: 0);
   }
 
-
-
-
   Widget _buildRichTextView(bool isNight) {
-    final filteredContent = DiaryUtils.getFilteredContent(_currentEntry.content);
-    
+    final filteredContent = DiaryUtils.getFilteredContent(
+      _currentEntry.content,
+    );
+
     final textStyle = TextStyle(
       fontSize: 18,
       height: 1.8,
@@ -700,7 +825,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
   }
 
   Widget _buildImages(bool isNight) {
-    final images = _currentEntry.blocks.where((b) => b['type'] == 'image').toList();
+    final images = _currentEntry.blocks
+        .where((b) => b['type'] == 'image')
+        .toList();
     if (images.isEmpty) return const SizedBox.shrink();
 
     return GridView.builder(
@@ -717,10 +844,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         final path = images[index]['path'];
         return ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: DiaryUtils.buildImage(
-            path,
-            fit: BoxFit.cover,
-          ),
+          child: DiaryUtils.buildImage(path, fit: BoxFit.cover),
         );
       },
     ).animate().fadeIn(delay: 500.ms, duration: 800.ms);

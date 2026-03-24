@@ -16,6 +16,7 @@ class IsometricGridPainter extends CustomPainter {
   final PlacedFurniture? selectedFurniture;
   final double centerYFactor;
   final bool isCapturing;
+  final bool showGrid; // 新增：控制网格显示
 
   IsometricGridPainter({
     required this.rows,
@@ -28,6 +29,7 @@ class IsometricGridPainter extends CustomPainter {
     this.selectedFurniture,
     required this.centerYFactor,
     this.isCapturing = false,
+    this.showGrid = true, // 默认显示
   });
 
   @override
@@ -50,8 +52,8 @@ class IsometricGridPainter extends CustomPainter {
     final double tw = fullWidth / 22;
     final double th = tw / 2;
 
-    // 如果正在截图，跳过网格线和序号的绘制
-    if (!isCapturing) {
+    // 如果正在截图或用户手动关闭网格，跳过网格线和序号的绘制
+    if (showGrid && !isCapturing) {
       // 绘制网格线
       for (int j = 0; j <= cols; j++) {
         for (int i = 0; i < rows; i++) {
@@ -91,7 +93,27 @@ class IsometricGridPainter extends CustomPainter {
 
     // --- 绘制已摆放的家具 (按深度排序：r+c 越大越靠前) ---
     final sortedItems = List<PlacedFurniture>.from(placedItems)
-      ..sort((a, b) => (a.r + a.c).compareTo(b.r + b.c));
+      ..sort((a, b) {
+        // 计算 a 的视觉最远点（最大的网格坐标之和）
+        int gwA = a.item.gridW;
+        int ghA = a.item.gridH;
+        if (a.rotation % 2 != 0) {
+          gwA = a.item.gridH;
+          ghA = a.item.gridW;
+        }
+        final depthA = a.r + gwA + a.c + ghA;
+
+        // 计算 b 的视觉最远点
+        int gwB = b.item.gridW;
+        int ghB = b.item.gridH;
+        if (b.rotation % 2 != 0) {
+          gwB = b.item.gridH;
+          ghB = b.item.gridW;
+        }
+        final depthB = b.r + gwB + b.c + ghB;
+
+        return depthA.compareTo(depthB);
+      });
 
     for (final pf in sortedItems) {
       _drawFurniture(canvas, pf.item, pf.r, pf.c, centerX, centerY, tw, th, 1.0, pf.rotation);

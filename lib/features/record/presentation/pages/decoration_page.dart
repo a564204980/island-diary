@@ -36,6 +36,7 @@ class _DecorationPageState extends State<DecorationPage> {
 
   bool _isTrayExpanded = true;
   bool _isCapturingSnapshot = false; // 是否正在捕获快照
+  bool _showGrid = true; // 是否显示网格
   double _sceneOffsetX = 0; // 手动记录平移偏移量
 
   ui.Image? _bgImage;
@@ -256,6 +257,7 @@ class _DecorationPageState extends State<DecorationPage> {
                                 placedItems: _placedFurniture,
                                 selectedFurniture: _selectedFurniture,
                                 isCapturing: _isCapturingSnapshot,
+                                showGrid: _showGrid, // 传入显示状态
                                 ghostItem: activeItem != null
                                     ? (
                                         activeItem,
@@ -302,14 +304,26 @@ class _DecorationPageState extends State<DecorationPage> {
           Positioned(
             top: 40,
             left: 20,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-              onPressed: () async {
-                // 在退出前捕获快照
-                final bytes = await _captureSnapshot();
-                await UserState().setDecorationSnapshot(bytes);
-                if (mounted) Navigator.of(context).pop();
-              },
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                  onPressed: () async {
+                    // 在退出前捕获快照
+                    final bytes = await _captureSnapshot();
+                    await UserState().setDecorationSnapshot(bytes);
+                    if (mounted) Navigator.of(context).pop();
+                  },
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(
+                    _showGrid ? Icons.grid_on : Icons.grid_off,
+                    color: Colors.white70,
+                  ),
+                  onPressed: () => setState(() => _showGrid = !_showGrid),
+                ),
+              ],
             ),
           ),
         ],
