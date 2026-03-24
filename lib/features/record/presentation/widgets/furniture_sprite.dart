@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import '../../domain/models/furniture_item.dart';
@@ -5,6 +6,33 @@ import '../../domain/models/furniture_item.dart';
 class FurnitureSprite extends StatefulWidget {
   final FurnitureItem item;
   const FurnitureSprite({super.key, required this.item});
+
+  static Future<void> precacheItem(FurnitureItem item, BuildContext context) async {
+    final ImageStream stream = AssetImage(
+      item.imagePath,
+    ).resolve(createLocalImageConfiguration(context));
+    final Completer<void> completer = Completer();
+    
+    ImageStreamListener? listener;
+    listener = ImageStreamListener((ImageInfo info, bool _) {
+      SpritePainter.cacheImage(item.imagePath, info.image);
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
+      // 成功后移除监听，防止内存泄露
+      if (listener != null) {
+        stream.removeListener(listener);
+      }
+    }, onError: (exception, stackTrace) {
+      debugPrint('Failed to precache furniture: ${item.imagePath}');
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
+    });
+
+    stream.addListener(listener);
+    return completer.future;
+  }
 
   @override
   State<FurnitureSprite> createState() => _FurnitureSpriteState();
@@ -63,10 +91,7 @@ class SpritePainter extends CustomPainter {
   final Rect spriteRect;
   static final Map<String, ui.Image> _imageBucket = {};
 
-  SpritePainter({required this.image, required this.spriteRect}) {
-    // 自动缓存，供底座共享显示
-    _imageBucket[image.toString()] = image;
-  }
+  SpritePainter({required this.image, required this.spriteRect});
 
   // 修改：改为按 Path 存取
   static void cacheImage(String path, ui.Image img) => _imageBucket[path] = img;

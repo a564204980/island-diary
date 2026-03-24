@@ -97,16 +97,16 @@ final List<FurnitureItem> defaultFurnitureItems = [
 
   // --- 卧室 ---
   FurnitureItem(
-    id: 'bed_1',
-    name: '单人床',
-    imagePath: 'assets/images/decoration/furniture/fridges4.png', // 暂用
-    spriteRect: const Rect.fromLTWH(0.5, 0, 0.5, 1.0),
+    id: 'bed_comfort_6x5',
+    name: '舒适大床',
+    imagePath: 'assets/images/decoration/furniture/bed1.png',
+    spriteRect: const Rect.fromLTWH(0, 0, 0.5, 1.0),
     category: '卧室',
     subCategory: '床铺',
-    gridW: 4,
-    gridH: 5,
-    intrinsicWidth: 605,
-    intrinsicHeight: 1072,
+    gridW: 7,
+    gridH: 9,
+    intrinsicWidth: 1151, // 2302 / 2
+    intrinsicHeight: 899,
     quantity: 1,
   ),
   FurnitureItem(

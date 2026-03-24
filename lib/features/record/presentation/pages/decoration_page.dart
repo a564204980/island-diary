@@ -89,6 +89,15 @@ class _DecorationPageState extends State<DecorationPage> {
     }
 
     _sceneOffsetX = -120; // 默认向左偏移，避免被右侧物品栏遮挡
+
+    // 预加载所有家具素材，确保 Painter 能在首帧拿到图片
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      for (final item in _availableItems) {
+        await FurnitureSprite.precacheItem(item, context);
+      }
+      // 预加载完成后，强制重绘一次场景
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -370,14 +379,15 @@ class _DecorationPageState extends State<DecorationPage> {
         (1 - u) * v * kGridLeftTaper +
         u * v * kGridBottomTaper;
 
-    final double itemW = (w / 22) * gw * scale * 0.8;
+    final double itemW = (w / 22) * (gw + gh) * scale * 0.45;
     final double spriteH =
         itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
+    final double verticalOffset = ((gw + gh) * w / 176.0) * scale;
     final double overlayH = spriteH + 60; // 稍微多一点区域以便点击到顶部
 
     return Positioned(
       left: pt.dx - itemW / 2,
-      top: pt.dy - overlayH + (gw * w / 88) * scale + 40,
+      top: pt.dy + verticalOffset - spriteH - 30,
       width: itemW,
       height: overlayH,
       child: LongPressDraggable<FurnitureItem>(
@@ -445,13 +455,14 @@ class _DecorationPageState extends State<DecorationPage> {
         u * (1 - v) * kGridRightTaper +
         (1 - u) * v * kGridLeftTaper +
         u * v * kGridBottomTaper;
-    final double itemW = (w / 22) * gw * scale * 0.8;
+    final double itemW = (w / 22) * (gw + gh) * scale * 0.45;
     final double itemH =
         itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
+    final double verticalOffset = ((gw + gh) * w / 176.0) * scale;
 
     return Positioned(
       left: pt.dx - 50,
-      top: pt.dy - itemH + (gw * w / 88) * scale - 70, // 向上移动工具栏，避免遮挡家具顶部
+      top: pt.dy + verticalOffset - itemH - 70, // 向上移动工具栏，避免遮挡家具顶部
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -515,31 +526,32 @@ class _DecorationPageState extends State<DecorationPage> {
 
   // 辅助函数：计算网格坐标对应的屏幕像素坐标 (用于工具栏投影)
   Offset _getScreenPoint(
-    double i,
-    double j,
-    double cx,
-    double cy,
+    double r,
+    double c,
+    double centerX,
+    double centerY,
     double tw,
     double th,
   ) {
-    final double u = i / kGridRows;
-    final double v = j / kGridCols;
-    final double scale =
-        1.0 +
+    final double u = r / kGridRows;
+    final double v = c / kGridCols;
+
+    final double s = 1.0 +
         (1 - u) * (1 - v) * kGridTopTaper +
         u * (1 - v) * kGridRightTaper +
         (1 - u) * v * kGridLeftTaper +
         u * v * kGridBottomTaper;
 
-    final double x = (i - j) * (tw / 2) * scale;
-    final double y = (i + j - (kGridRows + kGridCols) / 2) * (th / 2) * scale;
+    // 与 IsometricGridPainter._getPoint 保持完全同步的坐标转换模型
+    final double x = (r - c) * (tw / 2) * s;
+    final double y = (r + c - (kGridRows + kGridCols) / 2) * (th / 2) * s;
 
     // 考虑网格本身的旋转 (kGridRotationDegree)
     final double rad = kGridRotationDegree * math.pi / 180;
     final double rotatedX = x * math.cos(rad) - y * math.sin(rad);
     final double rotatedY = x * math.sin(rad) + y * math.cos(rad);
 
-    return Offset(cx + rotatedX, cy + rotatedY);
+    return Offset(centerX + rotatedX, centerY + rotatedY);
   }
 
   Widget _buildTrayToggle() {
@@ -937,13 +949,15 @@ class _DecorationPageState extends State<DecorationPage> {
         (1 - u) * v * kGridLeftTaper +
         u * v * kGridBottomTaper;
 
-    final double itemW = (w / 22) * gw * scale * 0.8;
+    // 核心修复：命中测试逻辑与 Painter 保持完全同步 (使用 gw + gh 和 0.45 系数)
+    final double itemW = (w / 22) * (gw + gh) * scale * 0.45;
     final double spriteH =
         itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
+    final double verticalOffset = ((gw + gh) * w / 176.0) * scale;
 
     return Rect.fromLTWH(
       pt.dx - itemW / 2,
-      pt.dy - spriteH + (gw * w / 88) * scale,
+      pt.dy + verticalOffset - spriteH,
       itemW,
       spriteH,
     );

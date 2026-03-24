@@ -209,16 +209,18 @@ class IsometricGridPainter extends CustomPainter {
 
     final image = SpritePainter.getImage(item.imagePath);
     if (image != null) {
-      final double u = r / rows;
-      final double v = c / cols;
+      final double u = (r + gw / 2.0) / rows;
+      final double v = (c + gh / 2.0) / cols;
       final double s = 1.0 +
           (1 - u) * (1 - v) * kGridTopTaper +
           u * (1 - v) * kGridRightTaper +
           (1 - u) * v * kGridLeftTaper +
           u * v * kGridBottomTaper;
 
-      final double itemW = tw * gw * s * 0.8;
-      final double itemH = itemW * (1072 / 605);
+      // 核心修复：根据等距投影几何学，物体的总视觉宽度应与 (gw + gh) 成正比
+      // 0.45 是针对 22 分格系统的视觉平衡系数
+      final double itemW = tw * (gw + gh) * s * 0.45;
+      final double itemH = itemW * (item.intrinsicHeight / item.intrinsicWidth);
 
       // 根据用户反馈调整的顺时针映射逻辑：
       // 0: 面1 (正面左下 +r)
@@ -243,7 +245,9 @@ class IsometricGridPainter extends CustomPainter {
       }
 
       final basePoint = _getPoint(r + gw / 2.0, c + gh / 2.0, cx, cy, tw, th);
-      final double verticalOffset = (gw * tw / 4.0) * s;
+      // 根据几何学，方块底角距离中心的垂直距离为 (gw + gh) * (th / 4)
+      // 这里的 th = tw / 2，所以对应公式为 (gw + gh) * (tw / 8)
+      final double verticalOffset = ((gw + gh) * tw / 8.0) * s;
       
       canvas.save();
       canvas.translate(basePoint.dx, basePoint.dy + verticalOffset - (itemH / 2.0));
