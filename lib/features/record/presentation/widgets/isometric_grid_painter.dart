@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import '../../domain/models/furniture_item.dart';
 import '../../domain/models/placed_furniture.dart';
 import '../pages/decoration_page_constants.dart';
@@ -91,10 +92,21 @@ class IsometricGridPainter extends CustomPainter {
       }
     }
 
-    // --- 绘制已摆放的家具 (按深度排序：r+c 越大越靠前) ---
-    final sortedItems = List<PlacedFurniture>.from(placedItems)
+    // --- 分层渲染：将地板与其他物体分离 ---
+    final floors = placedItems.where((pf) => pf.item.category == '地板').toList();
+    final others = placedItems.where((pf) => pf.item.category != '地板').toList();
+
+    // 1. 绘制地板层 (按坐标顺序绘制即可，地板通常不重叠)
+    for (final pf in floors) {
+      if (pf == selectedFurniture) {
+        _drawSelectionFootprint(canvas, pf, centerX, centerY, tw, th);
+      }
+      _drawFurniture(canvas, pf.item, pf.r, pf.c, centerX, centerY, tw, th, 1.0, pf.rotation);
+    }
+
+    // 2. 绘制其他物体层 (家具、墙壁、装饰) - 需要深度排序
+    final sortedOthers = List<PlacedFurniture>.from(others)
       ..sort((a, b) {
-        // 计算 a 的视觉最远点（最大的网格坐标之和）
         int gwA = a.item.gridW;
         int ghA = a.item.gridH;
         if (a.rotation % 2 != 0) {
@@ -103,7 +115,6 @@ class IsometricGridPainter extends CustomPainter {
         }
         final depthA = a.r + gwA + a.c + ghA;
 
-        // 计算 b 的视觉最远点
         int gwB = b.item.gridW;
         int ghB = b.item.gridH;
         if (b.rotation % 2 != 0) {
@@ -115,8 +126,7 @@ class IsometricGridPainter extends CustomPainter {
         return depthA.compareTo(depthB);
       });
 
-    for (final pf in sortedItems) {
-      // 解决层级问题：如果是被选中的家具，先绘制选中框（地板），再绘制家具（上层物体）
+    for (final pf in sortedOthers) {
       if (pf == selectedFurniture) {
         _drawSelectionFootprint(canvas, pf, centerX, centerY, tw, th);
       }
@@ -135,12 +145,10 @@ class IsometricGridPainter extends CustomPainter {
         tw,
         th,
         0.5,
-        ghostItem!.$3, // 使用传入的旋转角度
-        ghostItem!.$4, // 传入合法性
+        ghostItem!.$3,
+        ghostItem!.$4,
       );
     }
-
-    // --- 绘制选中高亮 (由 _drawSelectionFootprint 在循环中处理) ---
 
     canvas.restore();
   }
@@ -212,16 +220,38 @@ class IsometricGridPainter extends CustomPainter {
       gh = item.gridW;
     }
 
-    final paint = Paint()
-      ..color = (isValid ? Colors.black : Colors.red).withOpacity(0.6 * opacity)
-      ..style = PaintingStyle.fill
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0); // 边缘羽化，使阴影柔和
+    final bool isBack = (rotation == 1 || rotation == 2);
+    final double vScale = isBack ? (item.backVisualScale ?? item.visualScale) : item.visualScale;
+    final Offset vOffset = isBack ? (item.backVisualOffset ?? item.visualOffset) : item.visualOffset;
+    final double vRotX = isBack ? (item.backVisualRotationX ?? item.visualRotationX) : item.visualRotationX;
+    final double vRotY = isBack ? (item.backVisualRotationY ?? item.visualRotationY) : item.visualRotationY;
+    final double vRotZ = isBack ? (item.backVisualRotationZ ?? item.visualRotationZ) : item.visualRotationZ;
+    final Offset vPivot = isBack ? (item.backVisualPivot ?? item.visualPivot) : item.visualPivot;
 
-    final path = Path();
+    int faceIndex = 0;
+    bool isFlipped = false;
+    final bool hasMultipleFaces = item.spriteRect.width < 0.9;
+    if (hasMultipleFaces) {
+      switch (rotation) {
+        case 0: faceIndex = 0; isFlipped = false; break;
+        case 1: faceIndex = 1; isFlipped = false; break;
+        case 2: faceIndex = 1; isFlipped = true; break;
+        case 3: faceIndex = 0; isFlipped = true; break;
+      }
+    } else {
+      isFlipped = (rotation == 1 || rotation == 3);
+    }
+
     final p0 = _getPoint(r.toDouble(), c.toDouble(), cx, cy, tw, th);
     final p1 = _getPoint((r + gw).toDouble(), c.toDouble(), cx, cy, tw, th);
     final p2 = _getPoint((r + gw).toDouble(), (c + gh).toDouble(), cx, cy, tw, th);
     final p3 = _getPoint(r.toDouble(), (c + gh).toDouble(), cx, cy, tw, th);
+
+    final paint = Paint()
+      ..color = (isValid ? Colors.black : Colors.red).withOpacity(0.6 * opacity)
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
     path.moveTo(p0.dx, p0.dy);
     path.lineTo(p1.dx, p1.dy);
     path.lineTo(p2.dx, p2.dy);
@@ -231,101 +261,93 @@ class IsometricGridPainter extends CustomPainter {
 
     final image = SpritePainter.getImage(item.imagePath);
     if (image != null) {
-      final double u = (r + gw / 2.0) / rows;
-      final double v = (c + gh / 2.0) / cols;
-      final double s = 1.0 +
-          (1 - u) * (1 - v) * kGridTopTaper +
-          u * (1 - v) * kGridRightTaper +
-          (1 - u) * v * kGridLeftTaper +
-          u * v * kGridBottomTaper;
+      if (item.category == '地板') {
+        // --- 地板特化：使用顶点映射（透视形变）填满菱形区域 ---
+        final src = Rect.fromLTWH(
+          (item.spriteRect.left + faceIndex * item.spriteRect.width) * image.width,
+          item.spriteRect.top * image.height,
+          item.spriteRect.width * image.width,
+          item.spriteRect.height * image.height,
+        );
 
-      final bool isBack = (rotation == 1 || rotation == 2);
-      final double vScale = isBack ? (item.backVisualScale ?? item.visualScale) : item.visualScale;
-      final Offset vOffset = isBack ? (item.backVisualOffset ?? item.visualOffset) : item.visualOffset;
-      final double vRotX = isBack ? (item.backVisualRotationX ?? item.visualRotationX) : item.visualRotationX;
-      final double vRotY = isBack ? (item.backVisualRotationY ?? item.visualRotationY) : item.visualRotationY;
-      final double vRotZ = isBack ? (item.backVisualRotationZ ?? item.visualRotationZ) : item.visualRotationZ;
-      final Offset vPivot = isBack ? (item.backVisualPivot ?? item.visualPivot) : item.visualPivot;
+        final vertices = ui.Vertices(
+          VertexMode.triangleFan,
+          [p0, p1, p2, p3],
+          textureCoordinates: [
+            Offset(src.left, src.top),
+            Offset(src.right, src.top),
+            Offset(src.right, src.bottom),
+            Offset(src.left, src.bottom),
+          ],
+        );
 
-      // 核心修复：根据等距投影几何学，物体的总视觉宽度应与 (gw + gh) 成正比
-      // 几何修复：在 2:1 等距投影中，视觉总宽度公式为 (gw + gh) * 0.5 * tw
-      // 0.5 保证了家具宽度能完美填满其逻辑占地，消除了宽体家具（如衣柜）的偏差
-      // 新增：应用家具专属的 visualScale 系数
-      final double itemW = tw * (gw + gh) * s * 0.5 * vScale;
-      final double itemH = itemW * (item.intrinsicHeight / item.intrinsicWidth);
-
-      // 根据用户反馈调整的顺时针映射逻辑：
-      // 0: 面1 (正面左下 +r)
-      // 1: 面2 (背面左上 -c)
-      // 2: 面2 翻转 (背面右上 -r)
-      // 3: 面1 翻转 (正面右下 +c)
-      int faceIndex = 0;
-      bool isFlipped = false;
-      
-      final bool hasMultipleFaces = item.spriteRect.width < 0.9; // 简单判断是否有多个面
-      
-      if (hasMultipleFaces) {
-        switch (rotation) {
-          case 0: faceIndex = 0; isFlipped = false; break;
-          case 1: faceIndex = 1; isFlipped = false; break;
-          case 2: faceIndex = 1; isFlipped = true; break;
-          case 3: faceIndex = 0; isFlipped = true; break;
-        }
+        canvas.drawVertices(
+          vertices,
+          BlendMode.srcOver,
+          Paint()
+            ..color = Colors.white.withOpacity(opacity)
+            ..filterQuality = FilterQuality.medium,
+        );
       } else {
-        // 单面素材退化逻辑
-        isFlipped = (rotation == 1 || rotation == 3);
+        // --- 家具与墙壁：正常的垂直渲染 ---
+        final double baseU = (r + gw / 2.0) / rows;
+        final double baseV = (c + gh / 2.0) / cols;
+        final double baseS = 1.0 +
+            (1 - baseU) * (1 - baseV) * kGridTopTaper +
+            baseU * (1 - baseV) * kGridRightTaper +
+            (1 - baseU) * baseV * kGridLeftTaper +
+            baseU * baseV * kGridBottomTaper;
+
+        final double itemW = tw * (gw + gh) * baseS * 0.5 * vScale;
+        final double itemH = itemW * (item.intrinsicHeight / item.intrinsicWidth);
+
+        final basePoint = _getPoint(r + gw / 2.0, c + gh / 2.0, cx, cy, tw, th);
+        final double verticalOffset = itemW / 4.0;
+        
+        canvas.save();
+        canvas.translate(
+          basePoint.dx + vOffset.dx,
+          basePoint.dy + verticalOffset - (itemH / 2.0) + vOffset.dy,
+        );
+        
+        if (isFlipped) {
+          canvas.scale(-1, 1);
+        }
+
+        final dst = Rect.fromCenter(
+          center: Offset.zero,
+          width: itemW,
+          height: itemH,
+        );
+
+        if (vRotX != 0 || vRotY != 0 || vRotZ != 0) {
+          final matrix = Matrix4.identity()
+            ..translate(vPivot.dx, vPivot.dy)
+            ..rotateX(vRotX * math.pi / 180)
+            ..rotateY(vRotY * math.pi / 180)
+            ..rotateZ(vRotZ * math.pi / 180)
+            ..translate(-vPivot.dx, -vPivot.dy);
+          canvas.transform(matrix.storage);
+        }
+
+        final src = Rect.fromLTWH(
+          (item.spriteRect.left + faceIndex * item.spriteRect.width) * image.width,
+          item.spriteRect.top * image.height,
+          item.spriteRect.width * image.width,
+          item.spriteRect.height * image.height,
+        );
+
+        canvas.drawImageRect(
+          image, 
+          src, 
+          dst, 
+          Paint()
+            ..color = (isValid ? Colors.white : Colors.redAccent).withOpacity(opacity)
+            ..filterQuality = FilterQuality.low
+            ..colorFilter = isValid ? null : const ColorFilter.mode(Colors.red, BlendMode.modulate),
+        );
+        canvas.restore();
       }
-
-      final basePoint = _getPoint(r + gw / 2.0, c + gh / 2.0, cx, cy, tw, th);
-      // 核心修复：垂直偏移设为宽度的一半的 0.5 倍（即 /4），使其底部中心对齐到格子底角
-      final double verticalOffset = itemW / 4.0;
-      
-      canvas.save();
-      canvas.translate(
-        basePoint.dx + vOffset.dx,
-        basePoint.dy + verticalOffset - (itemH / 2.0) + vOffset.dy,
-      );
-      
-      if (isFlipped) {
-        canvas.scale(-1, 1);
-      }
-
-      final dst = Rect.fromCenter(
-        center: Offset.zero,
-        width: itemW,
-        height: itemH,
-      );
-
-      // 新增：3D 旋转微调（支持自定义轴心）
-      if (vRotX != 0 || vRotY != 0 || vRotZ != 0) {
-        final matrix = Matrix4.identity()
-          // 先平移到轴心点
-          ..translate(vPivot.dx, vPivot.dy)
-          // 执行旋转
-          ..rotateX(vRotX * math.pi / 180)
-          ..rotateY(vRotY * math.pi / 180)
-          ..rotateZ(vRotZ * math.pi / 180)
-          // 平移回原位
-          ..translate(-vPivot.dx, -vPivot.dy);
-        canvas.transform(matrix.storage);
-      }
-
-      final src = Rect.fromLTWH(
-        (item.spriteRect.left + faceIndex * item.spriteRect.width) * image.width,
-        item.spriteRect.top * image.height,
-        item.spriteRect.width * image.width,
-        item.spriteRect.height * image.height,
-      );
-
-      canvas.drawImageRect(
-        image, 
-        src, 
-        dst, 
-        Paint()
-          ..color = (isValid ? Colors.white : Colors.redAccent).withOpacity(opacity)
-          ..colorFilter = isValid ? null : const ColorFilter.mode(Colors.red, BlendMode.modulate),
-      );
-      canvas.restore();
     }
   }
 

@@ -39,7 +39,7 @@ class _DecorationPageState extends State<DecorationPage> {
   bool _showGrid = false; // 是否显示网格
   double _sceneOffsetX = 0; // 手动记录平移偏移量
 
-  ui.Image? _bgImage;
+  // ui.Image? _bgImage; // 移除未使用的背景图引用
 
   @override
   void initState() {
@@ -122,32 +122,19 @@ class _DecorationPageState extends State<DecorationPage> {
   }
 
   void _resolveImageSize() {
-    const path = 'assets/images/decoration/furniture/house.png';
-    const image = AssetImage(path);
-    image
-        .resolve(const ImageConfiguration())
-        .addListener(
-          ImageStreamListener((info, _) {
-            if (mounted) {
-              setState(() {
-                _bgImage = info.image;
-              });
-            }
-          }),
-        );
+    // 动态搭建模式下不再需要固定背景图
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_bgImage == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+    // 动态搭建模式下直接进入界面
 
     final double screenW = MediaQuery.of(context).size.width;
     final double screenH = MediaQuery.of(context).size.height;
 
-    final double imgW = _bgImage!.width.toDouble();
-    final double imgH = _bgImage!.height.toDouble();
+    // 动态搭建模式下使用基准尺寸
+    const double imgW = 2000; 
+    const double imgH = 2000;
 
     double scale = screenH / imgH;
     final double fullWidth = imgW * scale;
@@ -177,12 +164,7 @@ class _DecorationPageState extends State<DecorationPage> {
                   height: h,
                   child: Stack(
                     children: [
-                      Image.asset(
-                        'assets/images/decoration/furniture/house.png',
-                        fit: BoxFit.cover,
-                        width: w,
-                        height: h,
-                      ),
+                      Container(color: const Color(0xFF1A1A1A)), // 提供一个深色底色背景
                       Positioned.fill(
                       child: DragTarget<FurnitureItem>(
                         onMove: (details) {
@@ -191,25 +173,38 @@ class _DecorationPageState extends State<DecorationPage> {
                                   as RenderBox?;
                           if (box == null) return;
 
-                          // 统一使用 globalToLocal 获取相对于网格画布的本地坐标
                           final localPos = box.globalToLocal(details.offset);
-
-                          // 使用 DragAnchor.pointer 后，localPos 已经是手指位置
-                          // 我们只需要一个极小的偏移（如 10 像素）来确保手指不完全挡住选中框中心点即可，甚至可以为 0
                           final correctedPos = Offset(
                             localPos.dx,
-                            localPos.dy + 10,
+                            localPos.dy, // 不再需要垂直强制偏移，使用居中逻辑更准确
                           );
 
                           final cell = _hitTestGrid(correctedPos, w, h);
-                          if (cell != _ghostCell) {
-                            setState(() {
-                              _ghostCell = cell;
-                            });
+                          if (cell != null) {
+                            final activeItem = _draggingItem;
+                            if (activeItem != null) {
+                              int gw = activeItem.gridW;
+                              int gh = activeItem.gridH;
+                              if (_draggingRotation % 2 != 0) {
+                                gw = activeItem.gridH;
+                                gh = activeItem.gridW;
+                              }
+                              // 计算鼠标指向物品中心的偏移量
+                              final centeredCell = (
+                                cell.$1 - (gw / 2).floor(),
+                                cell.$2 - (gh / 2).floor(),
+                              );
+                              if (centeredCell != _ghostCell) {
+                                setState(() {
+                                  _ghostCell = centeredCell;
+                                });
+                              }
+                            }
                           }
                         },
                         onAccept: (item) {
                           if (_ghostCell != null && item.quantity > 0) {
+                            // 使用与 onMove 相同的 ghostCell，所以这里不需要再重新计算
                             if (!_isAreaAvailable(
                               item,
                               _ghostCell!.$1,
@@ -228,7 +223,7 @@ class _DecorationPageState extends State<DecorationPage> {
                                   item: item,
                                   r: _ghostCell!.$1,
                                   c: _ghostCell!.$2,
-                                  rotation: _draggingRotation, // 使用记录的旋转角度
+                                  rotation: _draggingRotation,
                                 ),
                               );
                               item.quantity--;
@@ -780,6 +775,10 @@ class _DecorationPageState extends State<DecorationPage> {
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
+      case '地板':
+        return Icons.grid_view_rounded;
+      case '墙壁':
+        return Icons.view_quilt_rounded;
       case '厨房':
         return Icons.kitchen;
       case '卧室':
@@ -888,17 +887,28 @@ class _DecorationPageState extends State<DecorationPage> {
         ..sort((a, b) => (b.r + b.c).compareTo(a.r + a.c));
 
       PlacedFurniture? visualHit;
+      // 第一轮判定：核心区域 (Core Hit) 精确度高，绕过前排物体的透明边缘
       for (var pf in foregroundOrderItems) {
-        final rect = _getFurnitureRect(
-          pf,
-          fullWidth,
-          fullHeight,
-          centerX,
-          centerY,
+        final rect = _getFurnitureRect(pf, fullWidth, fullHeight, centerX, centerY);
+        final coreRect = Rect.fromCenter(
+          center: rect.center,
+          width: rect.width * 0.7, // 仅取宽度 70% 避开角部空白
+          height: rect.height,
         );
-        if (rect.contains(localPos)) {
+        if (coreRect.contains(localPos)) {
           visualHit = pf;
           break;
+        }
+      }
+
+      // 第二轮判定：完整区域 (Full Hit) 如果核心区均未命中，则进行全量尝试
+      if (visualHit == null) {
+        for (var pf in foregroundOrderItems) {
+          final rect = _getFurnitureRect(pf, fullWidth, fullHeight, centerX, centerY);
+          if (rect.contains(localPos)) {
+            visualHit = pf;
+            break;
+          }
         }
       }
 
@@ -1061,8 +1071,14 @@ class _DecorationPageState extends State<DecorationPage> {
     }
 
     // 3. 检查与其他家具冲突
+    bool isFloor = item.category == '地板';
+
     for (final pf in _placedFurniture) {
       if (pf == exclude) continue;
+      
+      // 地板块只与地板块冲突，非地板物品（家具、墙壁）只与非地板物品冲突
+      bool otherIsFloor = pf.item.category == '地板';
+      if (isFloor != otherIsFloor) continue;
 
       int pgw = pf.item.gridW;
       int pgh = pf.item.gridH;
