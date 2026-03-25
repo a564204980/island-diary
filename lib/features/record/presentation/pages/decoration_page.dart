@@ -66,6 +66,8 @@ class _DecorationPageState extends State<DecorationPage> {
         intrinsicWidth: item.intrinsicWidth,
         intrinsicHeight: item.intrinsicHeight,
         quantity: item.quantity,
+        visualScale: item.visualScale,
+        visualOffset: item.visualOffset,
       );
     }).toList();
 
@@ -393,15 +395,15 @@ class _DecorationPageState extends State<DecorationPage> {
         (1 - u) * v * kGridLeftTaper +
         u * v * kGridBottomTaper;
 
-    final double itemW = (w / 22) * (gw + gh) * scale * 0.45;
+    final double itemW = (w / 22) * (gw + gh) * scale * 0.5 * pf.item.visualScale;
     final double spriteH =
         itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
-    final double verticalOffset = ((gw + gh) * w / 176.0) * scale;
+    final double verticalOffset = itemW / 4.0;
     final double overlayH = spriteH + 60; // 稍微多一点区域以便点击到顶部
 
     return Positioned(
-      left: pt.dx - itemW / 2,
-      top: pt.dy + verticalOffset - spriteH - 30,
+      left: pt.dx - itemW / 2 + pf.item.visualOffset.dx,
+      top: pt.dy + verticalOffset - spriteH - 30 + pf.item.visualOffset.dy,
       width: itemW,
       height: overlayH,
       child: LongPressDraggable<FurnitureItem>(
@@ -469,14 +471,14 @@ class _DecorationPageState extends State<DecorationPage> {
         u * (1 - v) * kGridRightTaper +
         (1 - u) * v * kGridLeftTaper +
         u * v * kGridBottomTaper;
-    final double itemW = (w / 22) * (gw + gh) * scale * 0.45;
+    final double itemW = (w / 22) * (gw + gh) * scale * 0.5 * pf.item.visualScale;
     final double itemH =
         itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
-    final double verticalOffset = ((gw + gh) * w / 176.0) * scale;
+    final double verticalOffset = itemW / 4.0;
 
     return Positioned(
-      left: pt.dx - 50,
-      top: pt.dy + verticalOffset - itemH - 70, // 向上移动工具栏，避免遮挡家具顶部
+      left: pt.dx - 50 + pf.item.visualOffset.dx,
+      top: pt.dy + verticalOffset - itemH - 70 + pf.item.visualOffset.dy, // 向上移动工具栏，避免遮挡家具顶部
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -964,14 +966,14 @@ class _DecorationPageState extends State<DecorationPage> {
         u * v * kGridBottomTaper;
 
     // 核心修复：命中测试逻辑与 Painter 保持完全同步 (使用 gw + gh 和 0.45 系数)
-    final double itemW = (w / 22) * (gw + gh) * scale * 0.45;
+    final double itemW = (w / 22) * (gw + gh) * scale * 0.5 * pf.item.visualScale;
     final double spriteH =
         itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
-    final double verticalOffset = ((gw + gh) * w / 176.0) * scale;
+    final double verticalOffset = itemW / 4.0;
 
     return Rect.fromLTWH(
-      pt.dx - itemW / 2,
-      pt.dy + verticalOffset - spriteH,
+      pt.dx - itemW / 2 + pf.item.visualOffset.dx,
+      pt.dy + verticalOffset - spriteH + pf.item.visualOffset.dy,
       itemW,
       spriteH,
     );

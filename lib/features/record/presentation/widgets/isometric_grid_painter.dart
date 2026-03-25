@@ -116,12 +116,11 @@ class IsometricGridPainter extends CustomPainter {
       });
 
     for (final pf in sortedItems) {
-      _drawFurniture(canvas, pf.item, pf.r, pf.c, centerX, centerY, tw, th, 1.0, pf.rotation);
-      
-      // 如果是被选中的家具，绘制高亮边框
+      // 解决层级问题：如果是被选中的家具，先绘制选中框（地板），再绘制家具（上层物体）
       if (pf == selectedFurniture) {
         _drawSelectionFootprint(canvas, pf, centerX, centerY, tw, th);
       }
+      _drawFurniture(canvas, pf.item, pf.r, pf.c, centerX, centerY, tw, th, 1.0, pf.rotation);
     }
 
     // --- 绘制拖拽预览 (Ghost) ---
@@ -240,8 +239,10 @@ class IsometricGridPainter extends CustomPainter {
           u * v * kGridBottomTaper;
 
       // 核心修复：根据等距投影几何学，物体的总视觉宽度应与 (gw + gh) 成正比
-      // 0.45 是针对 22 分格系统的视觉平衡系数
-      final double itemW = tw * (gw + gh) * s * 0.45;
+      // 几何修复：在 2:1 等距投影中，视觉总宽度公式为 (gw + gh) * 0.5 * tw
+      // 0.5 保证了家具宽度能完美填满其逻辑占地，消除了宽体家具（如衣柜）的偏差
+      // 新增：应用家具专属的 visualScale 系数
+      final double itemW = tw * (gw + gh) * s * 0.5 * item.visualScale;
       final double itemH = itemW * (item.intrinsicHeight / item.intrinsicWidth);
 
       // 根据用户反馈调整的顺时针映射逻辑：
@@ -267,12 +268,14 @@ class IsometricGridPainter extends CustomPainter {
       }
 
       final basePoint = _getPoint(r + gw / 2.0, c + gh / 2.0, cx, cy, tw, th);
-      // 根据几何学，方块底角距离中心的垂直距离为 (gw + gh) * (th / 4)
-      // 这里的 th = tw / 2，所以对应公式为 (gw + gh) * (tw / 8)
-      final double verticalOffset = ((gw + gh) * tw / 8.0) * s;
+      // 核心修复：垂直偏移设为宽度的一半的 0.5 倍（即 /4），使其底部中心对齐到格子底角
+      final double verticalOffset = itemW / 4.0;
       
       canvas.save();
-      canvas.translate(basePoint.dx, basePoint.dy + verticalOffset - (itemH / 2.0));
+      canvas.translate(
+        basePoint.dx + item.visualOffset.dx,
+        basePoint.dy + verticalOffset - (itemH / 2.0) + item.visualOffset.dy,
+      );
       
       if (isFlipped) {
         canvas.scale(-1, 1);

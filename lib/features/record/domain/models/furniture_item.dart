@@ -11,6 +11,8 @@ class FurnitureItem {
   final double intrinsicHeight;
   final String category;
   final String subCategory;
+  final double visualScale;
+  final Offset visualOffset;
   int quantity;
 
   FurnitureItem({
@@ -25,6 +27,8 @@ class FurnitureItem {
     this.intrinsicWidth = 1,
     this.intrinsicHeight = 1,
     this.quantity = 3,
+    this.visualScale = 1.0,
+    this.visualOffset = Offset.zero,
   });
 
   Map<String, dynamic> toMap() {
@@ -45,6 +49,8 @@ class FurnitureItem {
       'category': category,
       'subCategory': subCategory,
       'quantity': quantity,
+      'visualScale': visualScale,
+      'visualOffset': {'x': visualOffset.dx, 'y': visualOffset.dy},
     };
   }
 
@@ -67,6 +73,13 @@ class FurnitureItem {
       category: map['category'],
       subCategory: map['subCategory'],
       quantity: map['quantity'],
+      visualScale: (map['visualScale'] as num?)?.toDouble() ?? 1.0,
+      visualOffset: map['visualOffset'] != null
+          ? Offset(
+              (map['visualOffset']['x'] as num).toDouble(),
+              (map['visualOffset']['y'] as num).toDouble(),
+            )
+          : Offset.zero,
     );
   }
 }
