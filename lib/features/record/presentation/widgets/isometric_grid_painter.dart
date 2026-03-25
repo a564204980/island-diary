@@ -55,25 +55,55 @@ class IsometricGridPainter extends CustomPainter {
 
     // 如果正在截图或用户手动关闭网格，跳过网格线和序号的绘制
     if (showGrid && !isCapturing) {
-      // 绘制网格线
+      // --- 1. 绘制地面网格 (XY 平面) ---
       for (int j = 0; j <= cols; j++) {
         for (int i = 0; i < rows; i++) {
-          if (isCellExcluded(i, j)) continue;
-          final start = _getPoint(i.toDouble(), j.toDouble(), centerX, centerY, tw, th);
-          final end = _getPoint((i + 1).toDouble(), j.toDouble(), centerX, centerY, tw, th);
+          final start = _getPoint(i.toDouble(), j.toDouble(), 0, centerX, centerY, tw, th);
+          final end = _getPoint((i + 1).toDouble(), j.toDouble(), 0, centerX, centerY, tw, th);
           canvas.drawLine(start, end, paint);
         }
       }
       for (int i = 0; i <= rows; i++) {
         for (int j = 0; j < cols; j++) {
-          if (isCellExcluded(i, j)) continue;
-          final start = _getPoint(i.toDouble(), j.toDouble(), centerX, centerY, tw, th);
-          final end = _getPoint(i.toDouble(), (j + 1).toDouble(), centerX, centerY, tw, th);
+          final start = _getPoint(i.toDouble(), j.toDouble(), 0, centerX, centerY, tw, th);
+          final end = _getPoint(i.toDouble(), (j + 1).toDouble(), 0, centerX, centerY, tw, th);
           canvas.drawLine(start, end, paint);
         }
       }
 
-      // 绘制序号
+      // --- 2. 绘制墙面网格 (XZ 和 YZ 平面) ---
+      final wallPaint = Paint()
+        ..color = Colors.white.withOpacity(0.15)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0;
+      
+      final hFactor = tw / 2; 
+
+      // 左后墙 (XZ 面, 沿 j=0)
+      for (int i = 0; i <= rows; i++) {
+        final bottom = _getPoint(i.toDouble(), 0, 0, centerX, centerY, tw, th);
+        final top = _getPoint(i.toDouble(), 0, kWallGridHeight.toDouble(), centerX, centerY, tw, th, hFactor);
+        canvas.drawLine(bottom, top, wallPaint);
+      }
+      for (int z = 1; z <= kWallGridHeight; z++) {
+        final start = _getPoint(0, 0, z.toDouble(), centerX, centerY, tw, th, hFactor);
+        final end = _getPoint(rows.toDouble(), 0, z.toDouble(), centerX, centerY, tw, th, hFactor);
+        canvas.drawLine(start, end, wallPaint);
+      }
+
+      // 右后墙 (YZ 面, 沿 i=0)
+      for (int j = 0; j <= cols; j++) {
+        final bottom = _getPoint(0, j.toDouble(), 0, centerX, centerY, tw, th);
+        final top = _getPoint(0, j.toDouble(), kWallGridHeight.toDouble(), centerX, centerY, tw, th, hFactor);
+        canvas.drawLine(bottom, top, wallPaint);
+      }
+      for (int z = 1; z <= kWallGridHeight; z++) {
+        final start = _getPoint(0, 0, z.toDouble(), centerX, centerY, tw, th, hFactor);
+        final end = _getPoint(0, cols.toDouble(), z.toDouble(), centerX, centerY, tw, th, hFactor);
+        canvas.drawLine(start, end, wallPaint);
+      }
+
+      // 绘制地面序号
       final textStyle = const TextStyle(
         color: Colors.white,
         fontSize: 8,
@@ -81,8 +111,7 @@ class IsometricGridPainter extends CustomPainter {
       );
       for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-          if (isCellExcluded(i, j)) continue;
-          final pt = _getPoint(i + 0.5, j + 0.5, centerX, centerY, tw, th);
+          final pt = _getPoint(i + 0.5, j + 0.5, 0, centerX, centerY, tw, th);
           final tp = TextPainter(
             text: TextSpan(text: '$i-$j', style: textStyle),
             textDirection: TextDirection.ltr,
@@ -161,11 +190,16 @@ class IsometricGridPainter extends CustomPainter {
       gh = pf.item.gridW;
     }
 
+    final p0 = _getPoint(pf.r.toDouble(), pf.c.toDouble(), 0, cx, cy, tw, th);
+    final p1 = _getPoint((pf.r + gw).toDouble(), pf.c.toDouble(), 0, cx, cy, tw, th);
+    final p2 = _getPoint((pf.r + gw).toDouble(), (pf.c + gh).toDouble(), 0, cx, cy, tw, th);
+    final p3 = _getPoint(pf.r.toDouble(), (pf.c + gh).toDouble(), 0, cx, cy, tw, th);
+
     final path = Path()
-      ..moveTo(_getPoint(pf.r.toDouble(), pf.c.toDouble(), cx, cy, tw, th).dx, _getPoint(pf.r.toDouble(), pf.c.toDouble(), cx, cy, tw, th).dy)
-      ..lineTo(_getPoint((pf.r + gw).toDouble(), pf.c.toDouble(), cx, cy, tw, th).dx, _getPoint((pf.r + gw).toDouble(), pf.c.toDouble(), cx, cy, tw, th).dy)
-      ..lineTo(_getPoint((pf.r + gw).toDouble(), (pf.c + gh).toDouble(), cx, cy, tw, th).dx, _getPoint((pf.r + gw).toDouble(), (pf.c + gh).toDouble(), cx, cy, tw, th).dy)
-      ..lineTo(_getPoint(pf.r.toDouble(), (pf.c + gh).toDouble(), cx, cy, tw, th).dx, _getPoint(pf.r.toDouble(), (pf.c + gh).toDouble(), cx, cy, tw, th).dy)
+      ..moveTo(p0.dx, p0.dy)
+      ..lineTo(p1.dx, p1.dy)
+      ..lineTo(p2.dx, p2.dy)
+      ..lineTo(p3.dx, p3.dy)
       ..close();
 
     canvas.drawPath(
@@ -184,7 +218,7 @@ class IsometricGridPainter extends CustomPainter {
     );
   }
 
-  Offset _getPoint(double i, double j, double cx, double cy, double tw, double th) {
+  Offset _getPoint(double i, double j, double z, double cx, double cy, double tw, double th, [double? hFactor]) {
     final double u = i / kGridRows;
     final double v = j / kGridCols;
 
@@ -196,8 +230,12 @@ class IsometricGridPainter extends CustomPainter {
 
     final double x = (i - j) * (tw / 2) * scale;
     final double y = (i + j - (kGridRows + kGridCols) / 2) * (th / 2) * scale;
+    
+    // 垂直高度缩放偏移
+    final double hUnit = hFactor ?? (tw / 2); // 默认 1 单位高度 = tw/2 (对应 2:1 等距)
+    final double verticalY = -z * hUnit * scale;
 
-    return Offset(cx + x, cy + y);
+    return Offset(cx + x, cy + y + verticalY);
   }
 
   void _drawFurniture(
@@ -242,10 +280,10 @@ class IsometricGridPainter extends CustomPainter {
       isFlipped = (rotation == 1 || rotation == 3);
     }
 
-    final p0 = _getPoint(r.toDouble(), c.toDouble(), cx, cy, tw, th);
-    final p1 = _getPoint((r + gw).toDouble(), c.toDouble(), cx, cy, tw, th);
-    final p2 = _getPoint((r + gw).toDouble(), (c + gh).toDouble(), cx, cy, tw, th);
-    final p3 = _getPoint(r.toDouble(), (c + gh).toDouble(), cx, cy, tw, th);
+    final p0 = _getPoint(r.toDouble(), c.toDouble(), 0, cx, cy, tw, th);
+    final p1 = _getPoint((r + gw).toDouble(), c.toDouble(), 0, cx, cy, tw, th);
+    final p2 = _getPoint((r + gw).toDouble(), (c + gh).toDouble(), 0, cx, cy, tw, th);
+    final p3 = _getPoint(r.toDouble(), (c + gh).toDouble(), 0, cx, cy, tw, th);
 
     final paint = Paint()
       ..color = (isValid ? Colors.black : Colors.red).withOpacity(0.6 * opacity)
@@ -262,7 +300,7 @@ class IsometricGridPainter extends CustomPainter {
     final image = SpritePainter.getImage(item.imagePath);
     if (image != null) {
       if (item.category == '地板') {
-        // --- 地板特化：使用顶点映射（透视形变）填满菱形区域 ---
+        // --- 地板特化：使用顶点映射（透视形变）填满菱形区域 (XY 平面) ---
         final src = Rect.fromLTWH(
           (item.spriteRect.left + faceIndex * item.spriteRect.width) * image.width,
           item.spriteRect.top * image.height,
@@ -288,8 +326,56 @@ class IsometricGridPainter extends CustomPainter {
             ..color = Colors.white.withOpacity(opacity)
             ..filterQuality = FilterQuality.medium,
         );
+      } else if (item.category == '墙壁') {
+        // --- 墙壁特化：映射到垂直平面 (XZ 或 YZ) ---
+        final double h = item.gridH.toDouble(); // 墙壁高度
+        final double l = item.gridW.toDouble(); // 墙壁长度
+        final double hFactor = tw / 2; // 垂直比例
+
+        List<Offset> wallPoints;
+        if (rotation % 2 == 0) {
+          // XZ 平面 (左墙方向)
+          final wp0 = _getPoint(r.toDouble(), c.toDouble(), h, cx, cy, tw, th, hFactor);
+          final wp1 = _getPoint(r + l, c.toDouble(), h, cx, cy, tw, th, hFactor);
+          final wp2 = _getPoint(r + l, c.toDouble(), 0, cx, cy, tw, th, hFactor);
+          final wp3 = _getPoint(r.toDouble(), c.toDouble(), 0, cx, cy, tw, th, hFactor);
+          wallPoints = [wp0, wp1, wp2, wp3];
+        } else {
+          // YZ 平面 (右墙方向)
+          final wp0 = _getPoint(r.toDouble(), c.toDouble(), h, cx, cy, tw, th, hFactor);
+          final wp1 = _getPoint(r.toDouble(), c + l, h, cx, cy, tw, th, hFactor);
+          final wp2 = _getPoint(r.toDouble(), c + l, 0, cx, cy, tw, th, hFactor);
+          final wp3 = _getPoint(r.toDouble(), c.toDouble(), 0, cx, cy, tw, th, hFactor);
+          wallPoints = [wp0, wp1, wp2, wp3];
+        }
+
+        final src = Rect.fromLTWH(
+          (item.spriteRect.left + faceIndex * item.spriteRect.width) * image.width,
+          item.spriteRect.top * image.height,
+          item.spriteRect.width * image.width,
+          item.spriteRect.height * image.height,
+        );
+
+        final vertices = ui.Vertices(
+          VertexMode.triangleFan,
+          wallPoints,
+          textureCoordinates: [
+            Offset(src.left, src.top),
+            Offset(src.right, src.top),
+            Offset(src.right, src.bottom),
+            Offset(src.left, src.bottom),
+          ],
+        );
+
+        canvas.drawVertices(
+          vertices,
+          BlendMode.srcOver,
+          Paint()
+            ..color = Colors.white.withOpacity(opacity)
+            ..filterQuality = FilterQuality.medium,
+        );
       } else {
-        // --- 家具与墙壁：正常的垂直渲染 ---
+        // --- 家具与装饰：正常的垂直广告牌渲染 ---
         final double baseU = (r + gw / 2.0) / rows;
         final double baseV = (c + gh / 2.0) / cols;
         final double baseS = 1.0 +
@@ -301,7 +387,7 @@ class IsometricGridPainter extends CustomPainter {
         final double itemW = tw * (gw + gh) * baseS * 0.5 * vScale;
         final double itemH = itemW * (item.intrinsicHeight / item.intrinsicWidth);
 
-        final basePoint = _getPoint(r + gw / 2.0, c + gh / 2.0, cx, cy, tw, th);
+        final basePoint = _getPoint(r + gw / 2.0, c + gh / 2.0, 0, cx, cy, tw, th);
         final double verticalOffset = itemW / 4.0;
         
         canvas.save();

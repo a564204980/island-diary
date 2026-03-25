@@ -164,7 +164,7 @@ class _DecorationPageState extends State<DecorationPage> {
                   height: h,
                   child: Stack(
                     children: [
-                      Container(color: const Color(0xFF1A1A1A)), // 提供一个深色底色背景
+                      // 使用整体背景，移除局部的 0xFF1A1A1A 容器
                       Positioned.fill(
                       child: DragTarget<FurnitureItem>(
                         onMove: (details) {

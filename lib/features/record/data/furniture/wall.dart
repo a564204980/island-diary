@@ -10,13 +10,11 @@ final List<FurnitureItem> wallItems = [
     spriteRect: const Rect.fromLTWH(0.66, 0.15, 0.1, 0.4),
     category: '墙壁',
     subCategory: '木质',
-    gridW: 1,
-    gridH: 1,
+    gridW: 4,
+    gridH: 4,
     intrinsicWidth: 200,
     intrinsicHeight: 400,
     quantity: 99,
     visualScale: 1.0,
-    // 旋转 0/3 为正面墙，1/2 为侧面墙
-    visualOffset: const Offset(0, -50),
   ),
 ];
