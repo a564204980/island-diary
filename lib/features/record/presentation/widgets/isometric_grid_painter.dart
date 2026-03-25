@@ -213,8 +213,9 @@ class IsometricGridPainter extends CustomPainter {
     }
 
     final paint = Paint()
-      ..color = (isValid ? Colors.blue : Colors.red).withOpacity(0.1 * opacity)
-      ..style = PaintingStyle.fill;
+      ..color = (isValid ? Colors.black : Colors.red).withOpacity(0.6 * opacity)
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0); // 边缘羽化，使阴影柔和
 
     final path = Path();
     final p0 = _getPoint(r.toDouble(), c.toDouble(), cx, cy, tw, th);
@@ -238,11 +239,19 @@ class IsometricGridPainter extends CustomPainter {
           (1 - u) * v * kGridLeftTaper +
           u * v * kGridBottomTaper;
 
+      final bool isBack = (rotation == 1 || rotation == 2);
+      final double vScale = isBack ? (item.backVisualScale ?? item.visualScale) : item.visualScale;
+      final Offset vOffset = isBack ? (item.backVisualOffset ?? item.visualOffset) : item.visualOffset;
+      final double vRotX = isBack ? (item.backVisualRotationX ?? item.visualRotationX) : item.visualRotationX;
+      final double vRotY = isBack ? (item.backVisualRotationY ?? item.visualRotationY) : item.visualRotationY;
+      final double vRotZ = isBack ? (item.backVisualRotationZ ?? item.visualRotationZ) : item.visualRotationZ;
+      final Offset vPivot = isBack ? (item.backVisualPivot ?? item.visualPivot) : item.visualPivot;
+
       // 核心修复：根据等距投影几何学，物体的总视觉宽度应与 (gw + gh) 成正比
       // 几何修复：在 2:1 等距投影中，视觉总宽度公式为 (gw + gh) * 0.5 * tw
       // 0.5 保证了家具宽度能完美填满其逻辑占地，消除了宽体家具（如衣柜）的偏差
       // 新增：应用家具专属的 visualScale 系数
-      final double itemW = tw * (gw + gh) * s * 0.5 * item.visualScale;
+      final double itemW = tw * (gw + gh) * s * 0.5 * vScale;
       final double itemH = itemW * (item.intrinsicHeight / item.intrinsicWidth);
 
       // 根据用户反馈调整的顺时针映射逻辑：
@@ -273,8 +282,8 @@ class IsometricGridPainter extends CustomPainter {
       
       canvas.save();
       canvas.translate(
-        basePoint.dx + item.visualOffset.dx,
-        basePoint.dy + verticalOffset - (itemH / 2.0) + item.visualOffset.dy,
+        basePoint.dx + vOffset.dx,
+        basePoint.dy + verticalOffset - (itemH / 2.0) + vOffset.dy,
       );
       
       if (isFlipped) {
@@ -286,6 +295,20 @@ class IsometricGridPainter extends CustomPainter {
         width: itemW,
         height: itemH,
       );
+
+      // 新增：3D 旋转微调（支持自定义轴心）
+      if (vRotX != 0 || vRotY != 0 || vRotZ != 0) {
+        final matrix = Matrix4.identity()
+          // 先平移到轴心点
+          ..translate(vPivot.dx, vPivot.dy)
+          // 执行旋转
+          ..rotateX(vRotX * math.pi / 180)
+          ..rotateY(vRotY * math.pi / 180)
+          ..rotateZ(vRotZ * math.pi / 180)
+          // 平移回原位
+          ..translate(-vPivot.dx, -vPivot.dy);
+        canvas.transform(matrix.storage);
+      }
 
       final src = Rect.fromLTWH(
         (item.spriteRect.left + faceIndex * item.spriteRect.width) * image.width,

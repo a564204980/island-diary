@@ -36,7 +36,7 @@ class _DecorationPageState extends State<DecorationPage> {
 
   bool _isTrayExpanded = true;
   bool _isCapturingSnapshot = false; // 是否正在捕获快照
-  bool _showGrid = true; // 是否显示网格
+  bool _showGrid = false; // 是否显示网格
   double _sceneOffsetX = 0; // 手动记录平移偏移量
 
   ui.Image? _bgImage;
@@ -68,6 +68,16 @@ class _DecorationPageState extends State<DecorationPage> {
         quantity: item.quantity,
         visualScale: item.visualScale,
         visualOffset: item.visualOffset,
+        visualRotationX: item.visualRotationX,
+        visualRotationY: item.visualRotationY,
+        visualRotationZ: item.visualRotationZ,
+        visualPivot: item.visualPivot,
+        backVisualScale: item.backVisualScale,
+        backVisualOffset: item.backVisualOffset,
+        backVisualRotationX: item.backVisualRotationX,
+        backVisualRotationY: item.backVisualRotationY,
+        backVisualRotationZ: item.backVisualRotationZ,
+        backVisualPivot: item.backVisualPivot,
       );
     }).toList();
 
@@ -965,15 +975,20 @@ class _DecorationPageState extends State<DecorationPage> {
         (1 - u) * v * kGridLeftTaper +
         u * v * kGridBottomTaper;
 
-    // 核心修复：命中测试逻辑与 Painter 保持完全同步 (使用 gw + gh 和 0.45 系数)
-    final double itemW = (w / 22) * (gw + gh) * scale * 0.5 * pf.item.visualScale;
+    // 核心修复：根据正背面选择对应的微调参数
+    final bool isBack = (pf.rotation == 1 || pf.rotation == 2);
+    final double vScale = isBack ? (pf.item.backVisualScale ?? pf.item.visualScale) : pf.item.visualScale;
+    final Offset vOffset = isBack ? (pf.item.backVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset;
+
+    // 核心修复：命中测试逻辑与 Painter 保持完全同步
+    final double itemW = (w / 22) * (gw + gh) * scale * 0.5 * vScale;
     final double spriteH =
         itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
     final double verticalOffset = itemW / 4.0;
 
     return Rect.fromLTWH(
-      pt.dx - itemW / 2 + pf.item.visualOffset.dx,
-      pt.dy + verticalOffset - spriteH + pf.item.visualOffset.dy,
+      pt.dx - itemW / 2 + vOffset.dx,
+      pt.dy + verticalOffset - spriteH + vOffset.dy,
       itemW,
       spriteH,
     );

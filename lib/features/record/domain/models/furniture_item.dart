@@ -13,6 +13,19 @@ class FurnitureItem {
   final String subCategory;
   final double visualScale;
   final Offset visualOffset;
+  final double visualRotationX;
+  final double visualRotationY;
+  final double visualRotationZ;
+  final Offset visualPivot;
+
+  // 背面（旋转 index 为 1, 2 时）的独立微调参数
+  final double? backVisualScale;
+  final Offset? backVisualOffset;
+  final double? backVisualRotationX;
+  final double? backVisualRotationY;
+  final double? backVisualRotationZ;
+  final Offset? backVisualPivot;
+
   int quantity;
 
   FurnitureItem({
@@ -29,6 +42,16 @@ class FurnitureItem {
     this.quantity = 3,
     this.visualScale = 1.0,
     this.visualOffset = Offset.zero,
+    this.visualRotationX = 0,
+    this.visualRotationY = 0,
+    this.visualRotationZ = 0,
+    this.visualPivot = Offset.zero,
+    this.backVisualScale,
+    this.backVisualOffset,
+    this.backVisualRotationX,
+    this.backVisualRotationY,
+    this.backVisualRotationZ,
+    this.backVisualPivot,
   });
 
   Map<String, dynamic> toMap() {
@@ -51,6 +74,16 @@ class FurnitureItem {
       'quantity': quantity,
       'visualScale': visualScale,
       'visualOffset': {'x': visualOffset.dx, 'y': visualOffset.dy},
+      'vRotationX': visualRotationX,
+      'vRotationY': visualRotationY,
+      'vRotationZ': visualRotationZ,
+      'vPivot': {'x': visualPivot.dx, 'y': visualPivot.dy},
+      'bvScale': backVisualScale,
+      'bvOffset': backVisualOffset != null ? {'x': backVisualOffset!.dx, 'y': backVisualOffset!.dy} : null,
+      'bvRotationX': backVisualRotationX,
+      'bvRotationY': backVisualRotationY,
+      'bvRotationZ': backVisualRotationZ,
+      'bvPivot': backVisualPivot != null ? {'x': backVisualPivot!.dx, 'y': backVisualPivot!.dy} : null,
     };
   }
 
@@ -80,14 +113,36 @@ class FurnitureItem {
               (map['visualOffset']['y'] as num).toDouble(),
             )
           : Offset.zero,
+      visualRotationX: (map['vRotationX'] as num?)?.toDouble() ?? 0,
+      visualRotationY: (map['vRotationY'] as num?)?.toDouble() ?? 0,
+      visualRotationZ: (map['vRotationZ'] as num?)?.toDouble() ?? 0,
+      visualPivot: map['vPivot'] != null
+          ? Offset(
+              (map['vPivot']['x'] as num).toDouble(),
+              (map['vPivot']['y'] as num).toDouble(),
+            )
+          : Offset.zero,
+      backVisualScale: (map['bvScale'] as num?)?.toDouble(),
+      backVisualOffset: map['bvOffset'] != null
+          ? Offset(
+              (map['bvOffset']['x'] as num).toDouble(),
+              (map['bvOffset']['y'] as num).toDouble(),
+            )
+          : null,
+      backVisualRotationX: (map['bvRotationX'] as num?)?.toDouble(),
+      backVisualRotationY: (map['bvRotationY'] as num?)?.toDouble(),
+      backVisualRotationZ: (map['bvRotationZ'] as num?)?.toDouble(),
+      backVisualPivot: map['bvPivot'] != null
+          ? Offset(
+              (map['bvPivot']['x'] as num).toDouble(),
+              (map['bvPivot']['y'] as num).toDouble(),
+            )
+          : null,
     );
   }
 }
 
 bool isCellExcluded(int i, int j) {
-  // 屏蔽区域：(0, 4-8) 和 (1, 4-8)
-  if ((i == 0 || i == 1) && (j >= 4 && j <= 8)) {
-    return true;
-  }
+  // 不再屏蔽任何区域
   return false;
 }
