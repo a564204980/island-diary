@@ -161,22 +161,22 @@ class IsometricGridPainter extends CustomPainter {
     // 2. 绘制其他物体层 (家具、墙壁、装饰) - 需要深度排序
     final sortedOthers = List<PlacedFurniture>.from(others)
       ..sort((a, b) {
-        int gwA = a.item.gridW;
-        int ghA = a.item.gridH;
-        if (a.rotation % 2 != 0) {
-          gwA = a.item.gridH;
-          ghA = a.item.gridW;
-        }
-        final depthA = a.r + gwA + a.c + ghA;
+        // A is behind B if its footprint is "further back" than B's footprint
+        // Footprint range for A: [rMinA, rMaxA), [cMinA, cMaxA)
+        int gwA = a.rotation % 2 == 0 ? a.item.gridW : a.item.gridH;
+        int ghA = a.rotation % 2 == 0 ? a.item.gridH : a.item.gridW;
+        
+        int gwB = b.rotation % 2 == 0 ? b.item.gridW : b.item.gridH;
+        int ghB = b.rotation % 2 == 0 ? b.item.gridH : b.item.gridW;
 
-        int gwB = b.item.gridW;
-        int ghB = b.item.gridH;
-        if (b.rotation % 2 != 0) {
-          gwB = b.item.gridH;
-          ghB = b.item.gridW;
-        }
-        final depthB = b.r + gwB + b.c + ghB;
+        // A is behind B if it is further from camera (smaller r or c)
+        // Correct logic for isometric sort comparison:
+        if (a.r + gwA <= b.r || a.c + ghA <= b.c) return -1;
+        if (b.r + gwB <= a.r || b.c + ghB <= a.c) return 1;
 
+        // Fallback to Manhattan center distance
+        final depthA = a.r + gwA / 2.0 + a.c + ghA / 2.0;
+        final depthB = b.r + gwB / 2.0 + b.c + ghB / 2.0;
         return depthA.compareTo(depthB);
       });
 
