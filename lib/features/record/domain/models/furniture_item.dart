@@ -140,6 +140,9 @@ class FurnitureItem {
           : null,
     );
   }
+
+  bool get isFloor => category.contains('地板') || id.toLowerCase().startsWith('floor');
+  bool get isWall => category.contains('墙壁') || id.toLowerCase().startsWith('wall');
 }
 
 bool isCellExcluded(int i, int j) {

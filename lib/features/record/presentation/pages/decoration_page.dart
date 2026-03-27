@@ -9,6 +9,7 @@ import '../../domain/models/furniture_item.dart';
 import '../../domain/models/placed_furniture.dart';
 import '../../data/furniture_data.dart';
 import '../widgets/furniture_sprite.dart';
+import '../widgets/decoration/furniture_inventory_tray.dart';
 import '../widgets/isometric_grid_painter.dart';
 import 'decoration_page_constants.dart';
 
@@ -36,8 +37,11 @@ class _DecorationPageState extends State<DecorationPage> {
 
   bool _isTrayExpanded = true;
   bool _isCapturingSnapshot = false; // 是否正在捕获快照
-  bool _showGrid = false; // 是否显示网格
-  double _sceneOffsetX = 0; // 手动记录平移偏移量
+  bool _showGrid = true; // 是否显示网格 (默认为 true)
+  double _currentScale = 1.0; // 当前缩放比例
+  double _baseScale = 1.0; // 手势开始时的基础比例
+  Offset _sceneOffset = const Offset(-120, 0); // 场景偏移位移
+  Offset _lastFocalPoint = Offset.zero; // 上一次聚焦位置用于计算平移 delta
 
   // ui.Image? _bgImage; // 移除未使用的背景图引用
 
@@ -101,7 +105,7 @@ class _DecorationPageState extends State<DecorationPage> {
       }
     }
 
-    _sceneOffsetX = -120; // 默认向左偏移，避免被右侧物品栏遮挡
+    _sceneOffset = const Offset(-120, 0); // 默认向左偏移，避免被右侧物品栏遮挡
 
     // 预加载所有家具素材，确保 Painter 能在首帧拿到图片
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -143,8 +147,8 @@ class _DecorationPageState extends State<DecorationPage> {
       scale = screenW / imgW;
     }
 
-    final double w = imgW * scale * kSceneScaleFactor;
-    final double h = imgH * scale * kSceneScaleFactor;
+    final double w = imgW * scale * kSceneScaleFactor * _currentScale;
+    final double h = imgH * scale * kSceneScaleFactor * _currentScale;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -157,7 +161,7 @@ class _DecorationPageState extends State<DecorationPage> {
             child: RepaintBoundary(
               key: _repaintKey,
               child: Transform.translate(
-                offset: Offset(_sceneOffsetX, 0),
+                offset: _sceneOffset,
                 child: SizedBox(
                   key: _gridKey,
                   width: w,
@@ -189,10 +193,10 @@ class _DecorationPageState extends State<DecorationPage> {
                                 gw = activeItem.gridH;
                                 gh = activeItem.gridW;
                               }
-                              // 计算鼠标指向物品中心的偏移量
+                              // 计算鼠标指向物品中心的偏移量，并确保其在有效网格范围内 (防止越界变红)
                               final centeredCell = (
-                                cell.$1 - (gw / 2).floor(),
-                                cell.$2 - (gh / 2).floor(),
+                                (cell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
+                                (cell.$2 - (gh / 2).floor()).clamp(0, kGridCols - gh),
                               );
                               if (centeredCell != _ghostCell) {
                                 setState(() {
@@ -247,10 +251,22 @@ class _DecorationPageState extends State<DecorationPage> {
                             behavior: HitTestBehavior.opaque,
                             onTapDown: (details) =>
                                 _handleTap(details.localPosition, w, h),
-                            onPanUpdate: (details) {
+                            onScaleStart: (details) {
+                              _baseScale = _currentScale;
+                              _lastFocalPoint = details.focalPoint;
+                            },
+                            onScaleUpdate: (details) {
                               if (activeItem != null) return;
                               setState(() {
-                                _sceneOffsetX += details.delta.dx;
+                                // 1. 处理缩放 (需双指或组合键)
+                                if (details.pointerCount >= 2) {
+                                  _currentScale = (_baseScale * details.scale).clamp(0.4, 2.5);
+                                }
+                                
+                                // 2. 处理平移
+                                final delta = details.focalPoint - _lastFocalPoint;
+                                _sceneOffset += delta;
+                                _lastFocalPoint = details.focalPoint;
                               });
                             },
                             child: CustomPaint(
@@ -304,7 +320,21 @@ class _DecorationPageState extends State<DecorationPage> {
             child: Row(
               children: [
                 _buildTrayToggle(),
-                _buildFurnitureTray(),
+                FurnitureInventoryTray(
+                  availableItems: _availableItems,
+                  selectedCategory: _selectedCategory,
+                  selectedSubCategory: _selectedSubCategory,
+                  onCategoryChanged: (cat) => setState(() {
+                    _selectedCategory = cat;
+                    _selectedSubCategory = null;
+                  }),
+                  onSubCategoryChanged: (sub) =>
+                      setState(() => _selectedSubCategory = sub),
+                  onDragStarted: (item) => setState(() {
+                    _draggingItem = item;
+                    _draggingRotation = 0;
+                  }),
+                ),
               ],
             ),
           ),
@@ -383,10 +413,11 @@ class _DecorationPageState extends State<DecorationPage> {
     final pt = _getScreenPoint(
       pf.r + gw / 2.0,
       pf.c + gh / 2.0,
+      0,
       centerX,
       centerY,
-      w / 22,
-      w / 44,
+      w / 28,
+      w / 56,
     );
 
     // 估算家具在屏幕上的大致大小
@@ -400,7 +431,7 @@ class _DecorationPageState extends State<DecorationPage> {
         (1 - u) * v * kGridLeftTaper +
         u * v * kGridBottomTaper;
 
-    final double itemW = (w / 22) * (gw + gh) * scale * 0.5 * pf.item.visualScale;
+    final double itemW = (w / 28) * (gw + gh) * scale * 0.5 * pf.item.visualScale;
     final double spriteH =
         itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
     final double verticalOffset = itemW / 4.0;
@@ -461,10 +492,11 @@ class _DecorationPageState extends State<DecorationPage> {
     final pt = _getScreenPoint(
       pf.r + gw / 2.0,
       pf.c + gh / 2.0,
+      pf.item.isWall ? pf.item.gridH / 2.0 : 0, // 墙壁工具栏浮在半空
       centerX,
       centerY,
-      w / 22,
-      w / 44,
+      w / 28,
+      w / 56,
     );
 
     // 将工具栏放在物品的最上方，避免遮挡长按热区
@@ -476,7 +508,7 @@ class _DecorationPageState extends State<DecorationPage> {
         u * (1 - v) * kGridRightTaper +
         (1 - u) * v * kGridLeftTaper +
         u * v * kGridBottomTaper;
-    final double itemW = (w / 22) * (gw + gh) * scale * 0.5 * pf.item.visualScale;
+    final double itemW = (w / 28) * (gw + gh) * scale * 0.5 * pf.item.visualScale;
     final double itemH =
         itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
     final double verticalOffset = itemW / 4.0;
@@ -545,10 +577,11 @@ class _DecorationPageState extends State<DecorationPage> {
     );
   }
 
-  // 辅助函数：计算网格坐标对应的屏幕像素坐标 (用于工具栏投影)
+  // 辅助函数：计算网格坐标对应的屏幕像素坐标 (支持 Z 轴)
   Offset _getScreenPoint(
     double r,
     double c,
+    double z,
     double centerX,
     double centerY,
     double tw,
@@ -566,11 +599,15 @@ class _DecorationPageState extends State<DecorationPage> {
     // 与 IsometricGridPainter._getPoint 保持完全同步的坐标转换模型
     final double x = (r - c) * (tw / 2) * s;
     final double y = (r + c - (kGridRows + kGridCols) / 2) * (th / 2) * s;
+    
+    // 考虑垂直高度
+    final double hFactor = tw / 2;
+    final double verticalY = -z * hFactor * s;
 
     // 考虑网格本身的旋转 (kGridRotationDegree)
     final double rad = kGridRotationDegree * math.pi / 180;
-    final double rotatedX = x * math.cos(rad) - y * math.sin(rad);
-    final double rotatedY = x * math.sin(rad) + y * math.cos(rad);
+    final double rotatedX = x * math.cos(rad) - (y + verticalY) * math.sin(rad);
+    final double rotatedY = x * math.sin(rad) + (y + verticalY) * math.cos(rad);
 
     return Offset(centerX + rotatedX, centerY + rotatedY);
   }
@@ -598,283 +635,6 @@ class _DecorationPageState extends State<DecorationPage> {
     );
   }
 
-  Widget _buildFurnitureTray() {
-    final categories =
-        defaultFurnitureItems.map((e) => e.category).toSet().toList();
-    final subCategories = defaultFurnitureItems
-        .where((e) => e.category == _selectedCategory)
-        .map((e) => e.subCategory)
-        .toSet()
-        .toList();
-
-    final filteredItems = _availableItems.where((item) {
-      bool matchCat = item.category == _selectedCategory;
-      bool matchSub =
-          _selectedSubCategory == null || item.subCategory == _selectedSubCategory;
-      return matchCat && matchSub;
-    }).toList();
-
-    return Container(
-      width: 280,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(-10, 0),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: Row(
-          children: [
-            // 一级分类侧边栏
-            Container(
-              width: 65,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
-                border: Border(right: BorderSide(color: Colors.white10)),
-              ),
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                itemCount: categories.length,
-                itemBuilder: (context, index) {
-                  final cat = categories[index];
-                  final isSelected = cat == _selectedCategory;
-                  return GestureDetector(
-                    onTap: () => setState(() {
-                      _selectedCategory = cat;
-                      _selectedSubCategory = null;
-                    }),
-                    child: Container(
-                      height: 70,
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      decoration: BoxDecoration(
-                        border: isSelected
-                            ? const Border(
-                                right:
-                                    BorderSide(color: Colors.blueAccent, width: 3),
-                              )
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _getCategoryIcon(cat),
-                            color: isSelected ? Colors.blueAccent : Colors.white24,
-                            size: 24,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            cat,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.white30,
-                              fontSize: 10,
-                              fontWeight:
-                                  isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            // 右侧内容区
-            Expanded(
-              child: Column(
-                children: [
-                  // 二级分类选择器
-                  if (subCategories.length > 1)
-                    Container(
-                      height: 50,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: subCategories.length + 1,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemBuilder: (context, index) {
-                          final isAll = index == 0;
-                          final subCat = isAll ? '全部' : subCategories[index - 1];
-                          final isSelected = isAll
-                              ? _selectedSubCategory == null
-                              : subCat == _selectedSubCategory;
-
-                          return Center(
-                            child: GestureDetector(
-                              onTap: () => setState(() {
-                                _selectedSubCategory = isAll ? null : subCat;
-                              }),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? Colors.blueAccent.withOpacity(0.15)
-                                      : Colors.white.withOpacity(0.03),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? Colors.blueAccent.withOpacity(0.4)
-                                        : Colors.white.withOpacity(0.08),
-                                  ),
-                                ),
-                                child: Text(
-                                  subCat,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color:
-                                        isSelected ? Colors.white : Colors.white38,
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    )
-                  else
-                    const SizedBox(height: 16),
-                  // 物品网格
-                  Expanded(
-                    child: GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.75,
-                      ),
-                      itemCount: filteredItems.length,
-                      itemBuilder: (context, index) {
-                        return _buildFurnitureCard(filteredItems[index]);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case '地板':
-        return Icons.grid_view_rounded;
-      case '墙壁':
-        return Icons.view_quilt_rounded;
-      case '厨房':
-        return Icons.kitchen;
-      case '卧室':
-        return Icons.bed;
-      case '客厅':
-        return Icons.chair;
-      case '装饰':
-        return Icons.palette;
-      default:
-        return Icons.category;
-    }
-  }
-
-  Widget _buildFurnitureCard(FurnitureItem item) {
-    final bool isOutOfStock = item.quantity <= 0;
-    return Draggable<FurnitureItem>(
-      dragAnchorStrategy: pointerDragAnchorStrategy,
-      onDragStarted: () => setState(() {
-        _draggingItem = item;
-        _draggingRotation = 0;
-      }),
-      data: item,
-      maxSimultaneousDrags: isOutOfStock ? 0 : 1,
-      feedback: const SizedBox.shrink(),
-      childWhenDragging: Opacity(opacity: 0.3, child: _buildCardContent(item)),
-      child: Opacity(
-        opacity: isOutOfStock ? 0.4 : 1.0,
-        child: _buildCardContent(item),
-      ),
-    );
-  }
-
-  Widget _buildCardContent(FurnitureItem item) {
-    return Column(
-      children: [
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.04),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
-              ),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: AspectRatio(
-                    aspectRatio: item.intrinsicWidth / item.intrinsicHeight,
-                    child: FurnitureSprite(item: item),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: -5,
-              right: -5,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: item.quantity > 0 ? Colors.blueAccent : Colors.grey,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  'x${item.quantity}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          item.name,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
 
   void _handleTap(Offset localPos, double fullWidth, double fullHeight) {
     final double centerX = fullWidth / 2;
@@ -970,10 +730,11 @@ class _DecorationPageState extends State<DecorationPage> {
     final pt = _getScreenPoint(
       pf.r + gw / 2.0,
       pf.c + gh / 2.0,
+      0,
       centerX,
       centerY,
-      w / 22,
-      w / 44,
+      w / 28,
+      w / 56,
     );
 
     final double u = (pf.r + gw / 2.0) / kGridRows;
@@ -991,7 +752,7 @@ class _DecorationPageState extends State<DecorationPage> {
     final Offset vOffset = isBack ? (pf.item.backVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset;
 
     // 核心修复：命中测试逻辑与 Painter 保持完全同步
-    final double itemW = (w / 22) * (gw + gh) * scale * 0.5 * vScale;
+    final double itemW = (w / 28) * (gw + gh) * scale * 0.5 * vScale;
     final double spriteH =
         itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
     final double verticalOffset = itemW / 4.0;
@@ -1016,13 +777,18 @@ class _DecorationPageState extends State<DecorationPage> {
     // 这种方法天然适配任何复杂的 Taper (变形) 逻辑，无需复杂的数学逆变换
     for (int r = 0; r < kGridRows; r++) {
       for (int c = 0; c < kGridCols; c++) {
+        // 如果正在拖拽墙壁，优先测试边缘单元格
+        bool isWallDragging = _draggingItem?.category == '墙壁';
+        if (isWallDragging && r != 0 && c != 0) continue;
+
         final pt = _getScreenPoint(
           r + 0.5,
           c + 0.5,
+          0,
           centerX,
           centerY,
-          w / 22,
-          w / 44,
+          w / 28,
+          w / 56,
         );
 
         final double dx = localPos.dx - pt.dx;
@@ -1052,11 +818,16 @@ class _DecorationPageState extends State<DecorationPage> {
     int rotation, {
     PlacedFurniture? exclude,
   }) {
+    bool isWall = item.isWall;
     int gw = item.gridW;
-    int gh = item.gridH;
+    int gh = isWall ? 1 : item.gridH; // 墙壁在地板上的投影深度始终为 1
+    
     if (rotation % 2 != 0) {
-      gw = item.gridH;
-      gh = item.gridW;
+      if (isWall) {
+        gw = 1; gh = item.gridW;
+      } else {
+        gw = item.gridH; gh = item.gridW;
+      }
     }
 
     // 1. 检查边界
@@ -1071,20 +842,30 @@ class _DecorationPageState extends State<DecorationPage> {
     }
 
     // 3. 检查与其他家具冲突
-    bool isFloor = item.category == '地板';
+    bool isFloor = item.isFloor;
 
     for (final pf in _placedFurniture) {
       if (pf == exclude) continue;
       
-      // 地板块只与地板块冲突，非地板物品（家具、墙壁）只与非地板物品冲突
-      bool otherIsFloor = pf.item.category == '地板';
+      bool otherIsFloor = pf.item.isFloor;
       if (isFloor != otherIsFloor) continue;
 
+      bool otherIsWall = pf.item.isWall;
+      // 允许普通家具靠墙放置 (即 wall 与 non-wall 之间不检测 100% 重叠导致的冲突，只要不完全重合即可)
+      if (isWall != otherIsWall) {
+        // 如果是墙壁和家具的相对检测，我们可以稍微放宽，允许它们共用边界
+        // 或者简单起见，墙壁目前只检查是否与其他墙壁重叠
+        continue; 
+      }
+
       int pgw = pf.item.gridW;
-      int pgh = pf.item.gridH;
+      int pgh = otherIsWall ? 1 : pf.item.gridH;
       if (pf.rotation % 2 != 0) {
-        pgw = pf.item.gridH;
-        pgh = pf.item.gridW;
+        if (otherIsWall) {
+          pgw = 1; pgh = pf.item.gridW;
+        } else {
+          pgw = pf.item.gridH; pgh = pf.item.gridW;
+        }
       }
 
       // 矩形重叠检测

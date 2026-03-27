@@ -10,6 +10,8 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/hand_drawn_divider.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 // import 'package:lunar/lunar.dart'; // 移除未使用导入
+import '../widgets/diary/diary_timeline.dart';
+import '../widgets/diary/diary_replies.dart';
 
 class DiaryDetailPage extends StatefulWidget {
   final DiaryEntry entry;
@@ -166,8 +168,14 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     const SizedBox(height: 48),
                     _buildImages(isNight),
                     const SizedBox(height: 48),
-                    _buildTimeline(isNight),
-                    _buildReplies(isNight),
+                    DiaryTimeline(
+                      replies: _currentEntry.replies,
+                      isNight: isNight,
+                    ),
+                    DiaryReplies(
+                      replies: _currentEntry.replies,
+                      isNight: isNight,
+                    ),
                   ],
                 ),
               ),
@@ -370,170 +378,6 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     }
   }
 
-  Widget _buildTimeline(bool isNight) {
-    if (_currentEntry.replies.isEmpty) return const SizedBox.shrink();
-
-    final lineColor = isNight ? Colors.white12 : Colors.black.withOpacity(0.05);
-    final tickColor = isNight ? Colors.white24 : Colors.black12;
-    final timeColor = isNight ? Colors.white38 : const Color(0xFFAFA296);
-    final contentColor = isNight ? Colors.white70 : const Color(0xFF5D4037);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 32),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Stack(
-            alignment: Alignment.centerLeft,
-            children: [
-              // 背景长横线
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 32, // 处于 tick 刻度的位置 (时间 14 + 间距 12 + 刻度 4)
-                child: Container(height: 1, color: lineColor),
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: _currentEntry.replies.map((reply) {
-                  final timeStr =
-                      "${reply.dateTime.hour.toString().padLeft(2, '0')}:${reply.dateTime.minute.toString().padLeft(2, '0')}";
-                  // 截取简短内容
-                  String snippet = reply.content.trim();
-                  if (snippet.length > 10)
-                    snippet = "${snippet.substring(0, 10)}...";
-
-                  return Container(
-                    width: 120,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // 上部：时间
-                        Text(
-                          timeStr,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: timeColor,
-                            fontFamily: 'LXGWWenKai',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        // 中部：刻度线
-                        Container(width: 1.5, height: 8, color: tickColor),
-                        const SizedBox(height: 8),
-                        // 下部：简短内容
-                        Text(
-                          snippet,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: contentColor,
-                            fontFamily: 'LXGWWenKai',
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ).animate().fadeIn(delay: 600.ms, duration: 800.ms).moveX(begin: 20, end: 0);
-  }
-
-  Widget _buildReplies(bool isNight) {
-    if (_currentEntry.replies.isEmpty) return const SizedBox.shrink();
-
-    final accentColor = isNight
-        ? const Color(0xFFD4A373)
-        : const Color(0xFF8B5E3C);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: 48),
-        Row(
-          children: [
-            Container(
-              width: 4,
-              height: 20,
-              decoration: BoxDecoration(
-                color: accentColor,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              "时光回响",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: isNight ? Colors.white70 : const Color(0xFF5D4037),
-                fontFamily: 'LXGWWenKai',
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        ..._currentEntry.replies
-            .map(
-              (reply) => Container(
-                margin: const EdgeInsets.only(bottom: 20),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: isNight
-                      ? Colors.white.withOpacity(0.05)
-                      : Colors.black.withOpacity(0.03),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isNight
-                        ? Colors.white10
-                        : Colors.black.withOpacity(0.05),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      reply.content,
-                      style: TextStyle(
-                        fontSize: 16,
-                        height: 1.6,
-                        color: isNight
-                            ? Colors.white.withOpacity(0.8)
-                            : const Color(0xFF4A342E),
-                        fontFamily: 'LXGWWenKai',
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "${reply.dateTime.year}/${reply.dateTime.month}/${reply.dateTime.day} ${reply.dateTime.hour.toString().padLeft(2, '0')}:${reply.dateTime.minute.toString().padLeft(2, '0')}",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isNight ? Colors.white24 : Colors.black26,
-                        fontFamily: 'LXGWWenKai',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-            .toList(),
-      ],
-    ).animate().fadeIn(delay: 700.ms, duration: 800.ms).moveY(begin: 10, end: 0);
-  }
 
   Widget _buildActionButton({
     required IconData icon,
