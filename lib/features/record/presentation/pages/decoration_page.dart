@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:island_diary/core/state/user_state.dart';
@@ -11,6 +10,9 @@ import '../../data/furniture_data.dart';
 import '../widgets/furniture_sprite.dart';
 import '../widgets/decoration/furniture_inventory_tray.dart';
 import '../widgets/isometric_grid_painter.dart';
+import '../widgets/decoration/decoration_toolbar.dart';
+import '../widgets/decoration/furniture_drag_overlay.dart';
+import '../utils/isometric_coordinate_utils.dart';
 import 'decoration_page_constants.dart';
 
 class DecorationPage extends StatefulWidget {
@@ -20,7 +22,7 @@ class DecorationPage extends StatefulWidget {
   State<DecorationPage> createState() => _DecorationPageState();
 }
 
-class _DecorationPageState extends State<DecorationPage> {
+class _DecorationPageState extends State<DecorationPage> with SingleTickerProviderStateMixin {
   (int, int)? _selectedCell;
   (int, int)? _ghostCell;
   FurnitureItem? _draggingItem; // 显式记录正在拖动的物品，解决 DragTarget 延迟问题
@@ -38,10 +40,17 @@ class _DecorationPageState extends State<DecorationPage> {
   bool _isTrayExpanded = true;
   bool _isCapturingSnapshot = false; // 是否正在捕获快照
   bool _showGrid = true; // 是否显示网格 (默认为 true)
-  double _currentScale = 1.0; // 当前缩放比例
-  double _baseScale = 1.0; // 手势开始时的基础比例
-  Offset _sceneOffset = const Offset(-120, 0); // 场景偏移位移
-  Offset _lastFocalPoint = Offset.zero; // 上一次聚焦位置用于计算平移 delta
+  
+  // 场景控制与交互状态
+  double _currentScale = 0.6;
+  double _baseScale = 0.6;
+  Offset _sceneOffset = const Offset(-120, 0);
+  Offset _lastFocalPoint = Offset.zero;
+  bool _isInteracting = false; // 用于性能优化：交互时降低渲染质量
+
+  AnimationController? _zoomAnimationController; // 缩放动画控制器
+  double _zoomStartScale = 0.6;
+  double _zoomEndScale = 0.6;
 
   // ui.Image? _bgImage; // 移除未使用的背景图引用
 
@@ -56,6 +65,32 @@ class _DecorationPageState extends State<DecorationPage> {
       DeviceOrientation.landscapeRight,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    _zoomAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    
+    _zoomAnimationController!.addListener(() {
+      if (_zoomAnimationController!.isAnimating) {
+        setState(() {
+          final double t = CurvedAnimation(
+            parent: _zoomAnimationController!, 
+            curve: Curves.easeOutCubic
+          ).value;
+          _currentScale = _zoomStartScale + (_zoomEndScale - _zoomStartScale) * t;
+          _isInteracting = true; // 动画期间隐藏坐标
+        });
+      }
+    });
+
+    _zoomAnimationController!.addStatusListener((status) {
+      if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
+        if (mounted) {
+          setState(() => _isInteracting = false); // 结束后恢复
+        }
+      }
+    });
 
     _availableItems = defaultFurnitureItems.map((item) {
       return FurnitureItem(
@@ -122,6 +157,7 @@ class _DecorationPageState extends State<DecorationPage> {
     // 恢复竖屏和普通 UI 模式
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    _zoomAnimationController?.dispose();
     super.dispose();
   }
 
@@ -131,12 +167,9 @@ class _DecorationPageState extends State<DecorationPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 动态搭建模式下直接进入界面
-
     final double screenW = MediaQuery.of(context).size.width;
     final double screenH = MediaQuery.of(context).size.height;
 
-    // 动态搭建模式下使用基准尺寸
     const double imgW = 2000; 
     const double imgH = 2000;
 
@@ -150,10 +183,18 @@ class _DecorationPageState extends State<DecorationPage> {
     final double w = imgW * scale * kSceneScaleFactor * _currentScale;
     final double h = imgH * scale * kSceneScaleFactor * _currentScale;
 
+    final converter = IsometricCoordinateConverter(
+      centerX: w / 2,
+      centerY: h * _getGridCenterYFactor(context),
+      tw: w / 28,
+      th: w / 56,
+    );
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
+          // 1. 场景渲染层
           Container(
             alignment: Alignment.center,
             width: screenW,
@@ -167,151 +208,201 @@ class _DecorationPageState extends State<DecorationPage> {
                   width: w,
                   height: h,
                   child: Stack(
+                    clipBehavior: Clip.none,
                     children: [
-                      // 使用整体背景，移除局部的 0xFF1A1A1A 容器
+                      // 背景网格与家具绘制
                       Positioned.fill(
-                      child: DragTarget<FurnitureItem>(
-                        onMove: (details) {
-                          final RenderBox? box =
-                              _gridKey.currentContext?.findRenderObject()
-                                  as RenderBox?;
-                          if (box == null) return;
-
-                          final localPos = box.globalToLocal(details.offset);
-                          final correctedPos = Offset(
-                            localPos.dx,
-                            localPos.dy, // 不再需要垂直强制偏移，使用居中逻辑更准确
-                          );
-
-                          final cell = _hitTestGrid(correctedPos, w, h);
-                          if (cell != null) {
-                            final activeItem = _draggingItem;
-                            if (activeItem != null) {
-                              int gw = activeItem.gridW;
-                              int gh = activeItem.gridH;
-                              if (_draggingRotation % 2 != 0) {
-                                gw = activeItem.gridH;
-                                gh = activeItem.gridW;
-                              }
-                              // 计算鼠标指向物品中心的偏移量，并确保其在有效网格范围内 (防止越界变红)
-                              final centeredCell = (
-                                (cell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
-                                (cell.$2 - (gh / 2).floor()).clamp(0, kGridCols - gh),
-                              );
-                              if (centeredCell != _ghostCell) {
-                                setState(() {
-                                  _ghostCell = centeredCell;
-                                });
-                              }
-                            }
-                          }
-                        },
-                        onAccept: (item) {
-                          if (_ghostCell != null && item.quantity > 0) {
-                            // 使用与 onMove 相同的 ghostCell，所以这里不需要再重新计算
-                            if (!_isAreaAvailable(
-                              item,
-                              _ghostCell!.$1,
-                              _ghostCell!.$2,
-                              _draggingRotation,
-                            )) {
-                              setState(() {
-                                _ghostCell = null;
-                                _draggingItem = null;
-                              });
-                              return;
-                            }
-                            setState(() {
-                              _placedFurniture.add(
-                                PlacedFurniture(
-                                  item: item,
-                                  r: _ghostCell!.$1,
-                                  c: _ghostCell!.$2,
-                                  rotation: _draggingRotation,
-                                ),
-                              );
-                              item.quantity--;
-                              _ghostCell = null;
-                              _draggingItem = null;
-                            });
-                            UserState().savePlacedFurniture(_placedFurniture);
-                          }
-                        },
-                        onLeave: (data) => setState(() {
-                          _ghostCell = null;
-                        }),
-                        builder: (context, candidateData, rejectedData) {
-                          // 优先使用显式记录的拖拽物品，确保起始瞬间不掉帧
-                          final activeItem =
-                              _draggingItem ??
-                              (candidateData.isNotEmpty
-                                  ? candidateData.first
-                                  : null);
-                          return GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTapDown: (details) =>
-                                _handleTap(details.localPosition, w, h),
-                            onScaleStart: (details) {
-                              _baseScale = _currentScale;
-                              _lastFocalPoint = details.focalPoint;
-                            },
-                            onScaleUpdate: (details) {
-                              if (activeItem != null) return;
-                              setState(() {
-                                // 1. 处理缩放 (需双指或组合键)
-                                if (details.pointerCount >= 2) {
-                                  _currentScale = (_baseScale * details.scale).clamp(0.4, 2.5);
-                                }
-                                
-                                // 2. 处理平移
-                                final delta = details.focalPoint - _lastFocalPoint;
-                                _sceneOffset += delta;
-                                _lastFocalPoint = details.focalPoint;
-                              });
-                            },
-                            child: CustomPaint(
-                              painter: IsometricGridPainter(
-                                rows: kGridRows,
-                                cols: kGridCols,
-                                fullWidth: w,
-                                fullHeight: h,
-                                centerYFactor: _getGridCenterYFactor(context),
-                                selectedCell: _selectedCell,
-                                placedItems: _placedFurniture,
-                                selectedFurniture: _selectedFurniture,
-                                isCapturing: _isCapturingSnapshot,
-                                showGrid: _showGrid, // 传入显示状态
-                                ghostItem: activeItem != null
-                                    ? (
-                                        activeItem,
-                                        _ghostCell,
-                                        _draggingRotation,
-                                        _ghostCell == null ||
-                                            _isAreaAvailable(
-                                              activeItem,
-                                              _ghostCell!.$1,
-                                              _ghostCell!.$2,
-                                              _draggingRotation,
-                                            ),
-                                      )
-                                    : null,
-                              ),
-                            ),
-                          );
-                        },
+                        child: CustomPaint(
+                          painter: IsometricGridPainter(
+                            rows: kGridRows,
+                            cols: kGridCols,
+                            fullWidth: w,
+                            fullHeight: h,
+                            centerYFactor: _getGridCenterYFactor(context),
+                            selectedCell: _selectedCell,
+                            placedItems: _placedFurniture,
+                            selectedFurniture: _selectedFurniture,
+                            isCapturing: _isCapturingSnapshot,
+                            showGrid: _showGrid,
+                            isInteracting: _isInteracting,
+                            currentScale: _currentScale,
+                            ghostItem: _draggingItem != null
+                                ? (
+                                    _draggingItem!,
+                                    _ghostCell,
+                                    _draggingRotation,
+                                    _ghostCell == null ||
+                                        _isAreaAvailable(
+                                          _draggingItem!,
+                                          _ghostCell!.$1,
+                                          _ghostCell!.$2,
+                                          _draggingRotation,
+                                          converter,
+                                        ),
+                                  )
+                                : null,
+                          ),
+                        ),
                       ),
-                    ),
-                    if (_selectedFurniture != null) ...[
-                      _buildDragOverlay(w, h),
-                      _buildToolbar(w, h),
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-        AnimatedPositioned(
+
+          // 2. 全屏拖拽感知层：不随场景变换，覆盖全屏以消除交互死角
+          Positioned.fill(
+            child: DragTarget<FurnitureItem>(
+              onMove: (details) {
+                final RenderBox? box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+                if (box == null) return;
+                final localPos = box.globalToLocal(details.offset);
+                var cell = converter.getGridCell(localPos);
+                if (cell != null) {
+                  bool isWallDragging = _draggingItem?.category == '墙壁';
+                  if ((isWallDragging && cell.$1 != 0 && cell.$2 != 0) || isCellExcluded(cell.$1, cell.$2)) {
+                    cell = null;
+                  }
+                }
+                if (cell != null) {
+                  final finalCell = cell;
+                  final activeItem = _draggingItem;
+                  if (activeItem != null) {
+                    int gw = activeItem.gridW;
+                    int gh = activeItem.gridH;
+                    if (_draggingRotation % 2 != 0) {
+                      gw = activeItem.gridH;
+                      gh = activeItem.gridW;
+                    }
+                    final centeredCell = (
+                      (finalCell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
+                      (finalCell.$2 - (gh / 2).floor()).clamp(0, kGridCols - gh),
+                    );
+                    if (centeredCell != _ghostCell) {
+                      setState(() {
+                        _ghostCell = centeredCell;
+                        _isInteracting = true;
+                      });
+                    }
+                  }
+                }
+              },
+              onAccept: (item) {
+                setState(() => _isInteracting = false);
+                if (_ghostCell != null && item.quantity > 0) {
+                  if (!_isAreaAvailable(item, _ghostCell!.$1, _ghostCell!.$2, _draggingRotation, converter)) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('该区域无法放置家具'), duration: Duration(seconds: 1)));
+                    setState(() { _ghostCell = null; _draggingItem = null; });
+                    return;
+                  }
+                  setState(() {
+                    _placedFurniture.add(PlacedFurniture(item: item, r: _ghostCell!.$1, c: _ghostCell!.$2, rotation: _draggingRotation));
+                    item.quantity--;
+                    _ghostCell = null;
+                    _draggingItem = null;
+                  });
+                  UserState().savePlacedFurniture(_placedFurniture);
+                }
+              },
+              onLeave: (_) => setState(() => _ghostCell = null),
+              builder: (context, _, __) => const SizedBox.shrink(),
+            ),
+          ),
+
+          // 3. 全屏手势交互层
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTapDown: (details) {
+                if (_draggingItem != null) return;
+                _handleTap(details.globalPosition, converter);
+              },
+              onScaleStart: (details) {
+                if (_draggingItem != null) return;
+                _zoomAnimationController?.stop();
+                setState(() {
+                  _baseScale = _currentScale;
+                  _lastFocalPoint = details.focalPoint;
+                  _isInteracting = true;
+                });
+              },
+              onScaleUpdate: (details) {
+                if (_draggingItem != null) return;
+                setState(() {
+                  _currentScale = (_baseScale * details.scale).clamp(0.4, 3.5);
+                  final Offset d = details.focalPoint - _lastFocalPoint;
+                  _sceneOffset += d;
+                  _lastFocalPoint = details.focalPoint;
+                  _isInteracting = true;
+                });
+              },
+              onScaleEnd: (details) => setState(() => _isInteracting = false),
+            ),
+          ),
+
+          // 4. 装修交互 UI 层：位于手势层之上，防止工具栏操作被误认为点击网格
+          if (_selectedFurniture != null)
+            IgnorePointer(
+              ignoring: false,
+              child: Container(
+                alignment: Alignment.center,
+                width: screenW,
+                height: screenH,
+                child: Transform.translate(
+                  offset: _sceneOffset,
+                  child: SizedBox(
+                    width: w,
+                    height: h,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        FurnitureDragOverlay(
+                          pf: _selectedFurniture!,
+                          converter: converter,
+                          onDragStarted: (item, rot, cell) {
+                            setState(() {
+                              _draggingItem = item;
+                              _draggingRotation = rot;
+                              _ghostCell = cell;
+                              item.quantity++;
+                              _placedFurniture.remove(_selectedFurniture!);
+                              _selectedFurniture = null;
+                            });
+                          },
+                          onDragCanceled: () => setState(() { _ghostCell = null; _draggingItem = null; }),
+                        ),
+                        DecorationToolbar(
+                          pf: _selectedFurniture!,
+                          converter: converter,
+                          onRotate: () {
+                            final pf = _selectedFurniture!;
+                            final nextRotation = (pf.rotation + 1) % 4;
+                            if (_isAreaAvailable(pf.item, pf.r, pf.c, nextRotation, converter, exclude: pf)) {
+                              setState(() => pf.rotation = nextRotation);
+                              UserState().savePlacedFurniture(_placedFurniture);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('该方向位置冲突，无法旋转'), duration: Duration(seconds: 1)));
+                            }
+                          },
+                          onDelete: () {
+                            setState(() {
+                              _placedFurniture.remove(_selectedFurniture!);
+                              _selectedFurniture!.item.quantity++;
+                              _selectedFurniture = null;
+                            });
+                            UserState().savePlacedFurniture(_placedFurniture);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // 5. 静态 UI 层
+          AnimatedPositioned(
             duration: const Duration(milliseconds: 400),
             curve: Curves.fastOutSlowIn,
             top: 20,
@@ -328,11 +419,14 @@ class _DecorationPageState extends State<DecorationPage> {
                     _selectedCategory = cat;
                     _selectedSubCategory = null;
                   }),
-                  onSubCategoryChanged: (sub) =>
-                      setState(() => _selectedSubCategory = sub),
+                  onSubCategoryChanged: (sub) => setState(() => _selectedSubCategory = sub),
                   onDragStarted: (item) => setState(() {
                     _draggingItem = item;
                     _draggingRotation = 0;
+                  }),
+                  onDragEnd: () => setState(() {
+                    _draggingItem = null;
+                    _ghostCell = null;
                   }),
                 ),
               ],
@@ -341,24 +435,43 @@ class _DecorationPageState extends State<DecorationPage> {
           Positioned(
             top: 40,
             left: 20,
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-                  onPressed: () async {
-                    // 在退出前捕获快照
-                    final bytes = await _captureSnapshot();
-                    await UserState().setDecorationSnapshot(bytes);
-                    if (mounted) Navigator.of(context).pop();
-                  },
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                      onPressed: () async {
+                        final bytes = await _captureSnapshot();
+                        await UserState().setDecorationSnapshot(bytes);
+                        if (mounted) Navigator.of(context).pop();
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: Icon(_showGrid ? Icons.grid_on : Icons.grid_off, color: Colors.white70),
+                      onPressed: () => setState(() => _showGrid = !_showGrid),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: Icon(
-                    _showGrid ? Icons.grid_on : Icons.grid_off,
-                    color: Colors.white70,
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
+                  child: Column(
+                    children: [
+                      IconButton(icon: const Icon(Icons.add, color: Colors.white70), onPressed: () => _handleZoom(0.2), tooltip: '放大'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text(
+                          '${(_currentScale * 100).toInt()}%',
+                          style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const Divider(color: Colors.white10, height: 1, indent: 8, endIndent: 8),
+                      IconButton(icon: const Icon(Icons.remove, color: Colors.white70), onPressed: () => _handleZoom(-0.2), tooltip: '缩小'),
+                    ],
                   ),
-                  onPressed: () => setState(() => _showGrid = !_showGrid),
                 ),
               ],
             ),
@@ -366,6 +479,17 @@ class _DecorationPageState extends State<DecorationPage> {
         ],
       ),
     );
+  }
+
+  void _handleZoom(double delta) {
+    if (_zoomAnimationController == null) return;
+    
+    _zoomStartScale = _currentScale;
+    _zoomEndScale = (_zoomStartScale + delta).clamp(0.4, 2.5);
+    
+    if ((_zoomEndScale - _zoomStartScale).abs() < 0.01) return;
+
+    _zoomAnimationController!.forward(from: 0);
   }
 
   Future<Uint8List?> _captureSnapshot() async {
@@ -398,219 +522,7 @@ class _DecorationPageState extends State<DecorationPage> {
     }
   }
 
-  Widget _buildDragOverlay(double w, double h) {
-    final pf = _selectedFurniture!;
-    final centerX = w / 2;
-    final centerY = h * _getGridCenterYFactor(context);
 
-    int gw = pf.item.gridW;
-    int gh = pf.item.gridH;
-    if (pf.rotation % 2 != 0) {
-      gw = pf.item.gridH;
-      gh = pf.item.gridW;
-    }
-
-    final pt = _getScreenPoint(
-      pf.r + gw / 2.0,
-      pf.c + gh / 2.0,
-      0,
-      centerX,
-      centerY,
-      w / 28,
-      w / 56,
-    );
-
-    // 估算家具在屏幕上的大致大小
-    // 为了简单起见，我们使用 _getScreenPoint 逻辑中的 scale
-    final double u = (pf.r + gw / 2.0) / kGridRows;
-    final double v = (pf.c + gh / 2.0) / kGridCols;
-    final double scale =
-        1.0 +
-        (1 - u) * (1 - v) * kGridTopTaper +
-        u * (1 - v) * kGridRightTaper +
-        (1 - u) * v * kGridLeftTaper +
-        u * v * kGridBottomTaper;
-
-    final double itemW = (w / 28) * (gw + gh) * scale * 0.5 * pf.item.visualScale;
-    final double spriteH =
-        itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
-    final double verticalOffset = itemW / 4.0;
-    final double overlayH = spriteH + 60; // 稍微多一点区域以便点击到顶部
-
-    return Positioned(
-      left: pt.dx - itemW / 2 + pf.item.visualOffset.dx,
-      top: pt.dy + verticalOffset - spriteH - 30 + pf.item.visualOffset.dy,
-      width: itemW,
-      height: overlayH,
-      child: LongPressDraggable<FurnitureItem>(
-        delay: const Duration(milliseconds: 300), // 更短的延迟，更灵敏
-        hapticFeedbackOnStart: true,
-        dragAnchorStrategy: pointerDragAnchorStrategy, // 确保 details.offset 指向手指
-        data: pf.item,
-        feedback: const SizedBox.shrink(),
-        onDragStarted: () {
-          setState(() {
-            _draggingItem = pf.item; // 记录正在拖动的物品
-            _draggingRotation = pf.rotation;
-            _ghostCell = (pf.r, pf.c);
-            pf.item.quantity++;
-            _placedFurniture.remove(pf);
-            _selectedFurniture = null;
-          });
-        },
-        onDraggableCanceled: (velocity, offset) {
-          // 如果拖拽取消，将物品放回原处
-          setState(() {
-            _placedFurniture.add(pf);
-            pf.item.quantity--;
-            _ghostCell = null;
-            _draggingItem = null;
-          });
-        },
-        child: Container(
-          color: Colors.transparent,
-          width: double.infinity,
-          height: double.infinity,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToolbar(double w, double h) {
-    // 简单的工具栏实现，定位逻辑后续优化
-    final pf = _selectedFurniture!;
-    final centerX = w / 2;
-    final centerY = h * _getGridCenterYFactor(context);
-
-    int gw = pf.item.gridW;
-    int gh = pf.item.gridH;
-    if (pf.rotation % 2 != 0) {
-      gw = pf.item.gridH;
-      gh = pf.item.gridW;
-    }
-
-    final pt = _getScreenPoint(
-      pf.r + gw / 2.0,
-      pf.c + gh / 2.0,
-      pf.item.isWall ? pf.item.gridH / 2.0 : 0, // 墙壁工具栏浮在半空
-      centerX,
-      centerY,
-      w / 28,
-      w / 56,
-    );
-
-    // 将工具栏放在物品的最上方，避免遮挡长按热区
-    final double u = (pf.r + gw / 2.0) / kGridRows;
-    final double v = (pf.c + gh / 2.0) / kGridCols;
-    final double scale =
-        1.0 +
-        (1 - u) * (1 - v) * kGridTopTaper +
-        u * (1 - v) * kGridRightTaper +
-        (1 - u) * v * kGridLeftTaper +
-        u * v * kGridBottomTaper;
-    final double itemW = (w / 28) * (gw + gh) * scale * 0.5 * pf.item.visualScale;
-    final double itemH =
-        itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
-    final double verticalOffset = itemW / 4.0;
-
-    return Positioned(
-      left: pt.dx - 50 + pf.item.visualOffset.dx,
-      top: pt.dy + verticalOffset - itemH - 70 + pf.item.visualOffset.dy, // 向上移动工具栏，避免遮挡家具顶部
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.black87,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white24),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(
-                Icons.rotate_right,
-                color: Colors.white,
-                size: 20,
-              ),
-              onPressed: () {
-                final nextRotation = (pf.rotation + 1) % 4;
-                if (_isAreaAvailable(
-                  pf.item,
-                  pf.r,
-                  pf.c,
-                  nextRotation,
-                  exclude: pf,
-                )) {
-                  setState(() {
-                    pf.rotation = nextRotation;
-                  });
-                  UserState().savePlacedFurniture(_placedFurniture);
-                } else {
-                  // 可选：显示提示或震动反馈
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('该方向位置冲突，无法旋转'),
-                      duration: Duration(seconds: 1),
-                    ),
-                  );
-                }
-              },
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.delete_outline,
-                color: Colors.redAccent,
-                size: 20,
-              ),
-              onPressed: () {
-                setState(() {
-                  _placedFurniture.remove(pf);
-                  pf.item.quantity++;
-                  _selectedFurniture = null;
-                });
-                UserState().savePlacedFurniture(_placedFurniture);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 辅助函数：计算网格坐标对应的屏幕像素坐标 (支持 Z 轴)
-  Offset _getScreenPoint(
-    double r,
-    double c,
-    double z,
-    double centerX,
-    double centerY,
-    double tw,
-    double th,
-  ) {
-    final double u = r / kGridRows;
-    final double v = c / kGridCols;
-
-    final double s = 1.0 +
-        (1 - u) * (1 - v) * kGridTopTaper +
-        u * (1 - v) * kGridRightTaper +
-        (1 - u) * v * kGridLeftTaper +
-        u * v * kGridBottomTaper;
-
-    // 与 IsometricGridPainter._getPoint 保持完全同步的坐标转换模型
-    final double x = (r - c) * (tw / 2) * s;
-    final double y = (r + c - (kGridRows + kGridCols) / 2) * (th / 2) * s;
-    
-    // 考虑垂直高度
-    final double hFactor = tw / 2;
-    final double verticalY = -z * hFactor * s;
-
-    // 考虑网格本身的旋转 (kGridRotationDegree)
-    final double rad = kGridRotationDegree * math.pi / 180;
-    final double rotatedX = x * math.cos(rad) - (y + verticalY) * math.sin(rad);
-    final double rotatedY = x * math.sin(rad) + (y + verticalY) * math.cos(rad);
-
-    return Offset(centerX + rotatedX, centerY + rotatedY);
-  }
 
   Widget _buildTrayToggle() {
     return GestureDetector(
@@ -636,23 +548,42 @@ class _DecorationPageState extends State<DecorationPage> {
   }
 
 
-  void _handleTap(Offset localPos, double fullWidth, double fullHeight) {
-    final double centerX = fullWidth / 2;
-    final double centerY = fullHeight * _getGridCenterYFactor(context);
-
+  void _handleTap(Offset globalPos, IsometricCoordinateConverter converter) {
     setState(() {
-      // 1. 优先进行视觉区域命中测试 (从前到后遍历家具)
-      // 在等距投影中，Row + Col 越大的家具在视觉上越靠前
+      final RenderBox? box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null) return;
+      final localPos = box.globalToLocal(globalPos);
+
       final foregroundOrderItems = List<PlacedFurniture>.from(_placedFurniture)
         ..sort((a, b) => (b.r + b.c).compareTo(a.r + a.c));
 
       PlacedFurniture? visualHit;
-      // 第一轮判定：核心区域 (Core Hit) 精确度高，绕过前排物体的透明边缘
       for (var pf in foregroundOrderItems) {
-        final rect = _getFurnitureRect(pf, fullWidth, fullHeight, centerX, centerY);
+        int gw = pf.item.gridW;
+        int gh = pf.item.gridH;
+        if (pf.rotation % 2 != 0) {
+          gw = pf.item.gridH;
+          gh = pf.item.gridW;
+        }
+
+        final bool isBack = (pf.rotation == 1 || pf.rotation == 2);
+        final double vScale = isBack ? (pf.item.backVisualScale ?? pf.item.visualScale) : pf.item.visualScale;
+        final Offset vOffset = isBack ? (pf.item.backVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset;
+
+        final rect = converter.getFurnitureRect(
+          r: pf.r,
+          c: pf.c,
+          gw: gw,
+          gh: gh,
+          visualScale: vScale,
+          visualOffset: vOffset,
+          intrinsicWidth: pf.item.intrinsicWidth,
+          intrinsicHeight: pf.item.intrinsicHeight,
+        );
+
         final coreRect = Rect.fromCenter(
           center: rect.center,
-          width: rect.width * 0.7, // 仅取宽度 70% 避开角部空白
+          width: rect.width * 0.7, 
           height: rect.height,
         );
         if (coreRect.contains(localPos)) {
@@ -661,10 +592,29 @@ class _DecorationPageState extends State<DecorationPage> {
         }
       }
 
-      // 第二轮判定：完整区域 (Full Hit) 如果核心区均未命中，则进行全量尝试
       if (visualHit == null) {
         for (var pf in foregroundOrderItems) {
-          final rect = _getFurnitureRect(pf, fullWidth, fullHeight, centerX, centerY);
+          int gw = pf.item.gridW;
+          int gh = pf.item.gridH;
+          if (pf.rotation % 2 != 0) {
+            gw = pf.item.gridH;
+            gh = pf.item.gridW;
+          }
+
+          final bool isBack = (pf.rotation == 1 || pf.rotation == 2);
+          final double vScale = isBack ? (pf.item.backVisualScale ?? pf.item.visualScale) : pf.item.visualScale;
+          final Offset vOffset = isBack ? (pf.item.backVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset;
+
+          final rect = converter.getFurnitureRect(
+            r: pf.r,
+            c: pf.c,
+            gw: gw,
+            gh: gh,
+            visualScale: vScale,
+            visualOffset: vOffset,
+            intrinsicWidth: pf.item.intrinsicWidth,
+            intrinsicHeight: pf.item.intrinsicHeight,
+          );
           if (rect.contains(localPos)) {
             visualHit = pf;
             break;
@@ -679,8 +629,11 @@ class _DecorationPageState extends State<DecorationPage> {
       }
 
       // 2. 如果视觉测试未中，尝试精确的网格地板测试
-      final cell = _hitTestGrid(localPos, fullWidth, fullHeight);
+      var cell = converter.getGridCell(localPos);
+      if (cell != null && isCellExcluded(cell.$1, cell.$2)) cell = null;
+
       if (cell != null) {
+        final finalCell = cell;
         // 查找该格子是否属于某个家具的基础占位
         final clickedFurniture = _placedFurniture
             .cast<PlacedFurniture?>()
@@ -692,10 +645,10 @@ class _DecorationPageState extends State<DecorationPage> {
                 gw = pf.item.gridH;
                 gh = pf.item.gridW;
               }
-              return cell.$1 >= pf.r &&
-                  cell.$1 < pf.r + gw &&
-                  cell.$2 >= pf.c &&
-                  cell.$2 < pf.c + gh;
+              return finalCell.$1 >= pf.r &&
+                  finalCell.$1 < pf.r + gw &&
+                  finalCell.$2 >= pf.c &&
+                  finalCell.$2 < pf.c + gh;
             }, orElse: () => null);
 
         if (clickedFurniture != null) {
@@ -712,115 +665,19 @@ class _DecorationPageState extends State<DecorationPage> {
     });
   }
 
-  // 辅助函数：计算家具在屏幕上的视觉矩形 (逻辑与 IsometricGridPainter._drawFurniture 保持同步)
-  Rect _getFurnitureRect(
-    PlacedFurniture pf,
-    double w,
-    double h,
-    double centerX,
-    double centerY,
-  ) {
-    int gw = pf.item.gridW;
-    int gh = pf.item.gridH;
-    if (pf.rotation % 2 != 0) {
-      gw = pf.item.gridH;
-      gh = pf.item.gridW;
-    }
 
-    final pt = _getScreenPoint(
-      pf.r + gw / 2.0,
-      pf.c + gh / 2.0,
-      0,
-      centerX,
-      centerY,
-      w / 28,
-      w / 56,
-    );
-
-    final double u = (pf.r + gw / 2.0) / kGridRows;
-    final double v = (pf.c + gh / 2.0) / kGridCols;
-    final double scale =
-        1.0 +
-        (1 - u) * (1 - v) * kGridTopTaper +
-        u * (1 - v) * kGridRightTaper +
-        (1 - u) * v * kGridLeftTaper +
-        u * v * kGridBottomTaper;
-
-    // 核心修复：根据正背面选择对应的微调参数
-    final bool isBack = (pf.rotation == 1 || pf.rotation == 2);
-    final double vScale = isBack ? (pf.item.backVisualScale ?? pf.item.visualScale) : pf.item.visualScale;
-    final Offset vOffset = isBack ? (pf.item.backVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset;
-
-    // 核心修复：命中测试逻辑与 Painter 保持完全同步
-    final double itemW = (w / 28) * (gw + gh) * scale * 0.5 * vScale;
-    final double spriteH =
-        itemW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
-    final double verticalOffset = itemW / 4.0;
-
-    return Rect.fromLTWH(
-      pt.dx - itemW / 2 + vOffset.dx,
-      pt.dy + verticalOffset - spriteH + vOffset.dy,
-      itemW,
-      spriteH,
-    );
-  }
-
-  (int, int)? _hitTestGrid(Offset localPos, double w, double h) {
-    final double centerX = w / 2;
-    final double centerY = h * _getGridCenterYFactor(context);
-
-    (int, int)? bestCell;
-    double minDistanceSq = double.infinity;
-
-    // 遍历所有格子，找到中心点距离点击位置最近的格子
-    // 对于 20x20 的小网格，这种暴力搜索在性能上完全可以接受且最为准确
-    // 这种方法天然适配任何复杂的 Taper (变形) 逻辑，无需复杂的数学逆变换
-    for (int r = 0; r < kGridRows; r++) {
-      for (int c = 0; c < kGridCols; c++) {
-        // 如果正在拖拽墙壁，优先测试边缘单元格
-        bool isWallDragging = _draggingItem?.category == '墙壁';
-        if (isWallDragging && r != 0 && c != 0) continue;
-
-        final pt = _getScreenPoint(
-          r + 0.5,
-          c + 0.5,
-          0,
-          centerX,
-          centerY,
-          w / 28,
-          w / 56,
-        );
-
-        final double dx = localPos.dx - pt.dx;
-        final double dy = localPos.dy - pt.dy;
-        final double distSq = dx * dx + dy * dy;
-
-        if (distSq < minDistanceSq) {
-          minDistanceSq = distSq;
-          bestCell = (r, c);
-        }
-      }
-    }
-
-    // 容错范围：如果距离最近的格子中心超过 100 像素（在 w=2000 的场景下），说明点在外面
-    if (minDistanceSq > 150 * 150) return null;
-
-    if (bestCell != null && isCellExcluded(bestCell.$1, bestCell.$2))
-      return null;
-
-    return bestCell;
-  }
 
   bool _isAreaAvailable(
     FurnitureItem item,
     int r,
     int c,
-    int rotation, {
+    int rotation,
+    IsometricCoordinateConverter converter, {
     PlacedFurniture? exclude,
   }) {
     bool isWall = item.isWall;
     int gw = item.gridW;
-    int gh = isWall ? 1 : item.gridH; // 墙壁在地板上的投影深度始终为 1
+    int gh = isWall ? 1 : item.gridH; 
     
     if (rotation % 2 != 0) {
       if (isWall) {
@@ -830,7 +687,6 @@ class _DecorationPageState extends State<DecorationPage> {
       }
     }
 
-    // 1. 检查边界
     if (r < 0 || c < 0 || r + gw > kGridRows || c + gh > kGridCols)
       return false;
 
@@ -851,12 +707,7 @@ class _DecorationPageState extends State<DecorationPage> {
       if (isFloor != otherIsFloor) continue;
 
       bool otherIsWall = pf.item.isWall;
-      // 允许普通家具靠墙放置 (即 wall 与 non-wall 之间不检测 100% 重叠导致的冲突，只要不完全重合即可)
-      if (isWall != otherIsWall) {
-        // 如果是墙壁和家具的相对检测，我们可以稍微放宽，允许它们共用边界
-        // 或者简单起见，墙壁目前只检查是否与其他墙壁重叠
-        continue; 
-      }
+      if (isWall != otherIsWall) continue; 
 
       int pgw = pf.item.gridW;
       int pgh = otherIsWall ? 1 : pf.item.gridH;
@@ -868,7 +719,6 @@ class _DecorationPageState extends State<DecorationPage> {
         }
       }
 
-      // 矩形重叠检测
       if (r < pf.r + pgw && r + gw > pf.r && c < pf.c + pgh && c + gh > pf.c) {
         return false;
       }

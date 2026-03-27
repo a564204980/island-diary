@@ -9,6 +9,7 @@ class FurnitureInventoryTray extends StatelessWidget {
   final Function(String) onCategoryChanged;
   final Function(String?) onSubCategoryChanged;
   final Function(FurnitureItem) onDragStarted;
+  final VoidCallback? onDragEnd;
 
   const FurnitureInventoryTray({
     super.key,
@@ -18,6 +19,7 @@ class FurnitureInventoryTray extends StatelessWidget {
     required this.onCategoryChanged,
     required this.onSubCategoryChanged,
     required this.onDragStarted,
+    this.onDragEnd,
   });
 
   @override
@@ -202,6 +204,9 @@ class FurnitureInventoryTray extends StatelessWidget {
     return Draggable<FurnitureItem>(
       dragAnchorStrategy: pointerDragAnchorStrategy,
       onDragStarted: () => onDragStarted(item),
+      onDragEnd: (_) => onDragEnd?.call(),
+      onDragCompleted: () => onDragEnd?.call(),
+      onDraggableCanceled: (_, __) => onDragEnd?.call(),
       data: item,
       maxSimultaneousDrags: isOutOfStock ? 0 : 1,
       feedback: const SizedBox.shrink(), // 在网格上显示 Preview，不使用默认 feedback
