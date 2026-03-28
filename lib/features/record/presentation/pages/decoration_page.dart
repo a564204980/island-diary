@@ -371,7 +371,15 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
-              onTapDown: (details) {
+              onTap: () {
+                // 单点：彻底清除当前所有选中状态，让场景回归纯净态
+                setState(() {
+                  _selectedFurniture = null;
+                  _selectedCell = null;
+                });
+              },
+              onLongPressStart: (details) {
+                // 长按：作为“编辑意图”的唯一激活口，弹出黄色选中框、工具栏或蓝色引导框
                 if (_draggingItem != null) return;
                 _handleTap(details.globalPosition, converter);
               },
@@ -624,6 +632,13 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
 
       final foregroundOrderItems = List<PlacedFurniture>.from(_placedFurniture)
         ..sort((a, b) {
+          // 1. 分类权重优先：非地板类物品始终在检测列表前部 (优先检测)
+          final bool isFloorA = a.item.category == '地板';
+          final bool isFloorB = b.item.category == '地板';
+          if (isFloorA != isFloorB) {
+            return isFloorA ? 1 : -1;
+          }
+
           int gwA = a.rotation % 2 == 0 ? a.item.gridW : a.item.gridH;
           int ghA = a.rotation % 2 == 0 ? a.item.gridH : a.item.gridW;
           

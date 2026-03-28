@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -15,6 +16,15 @@ void main() async {
   runApp(IslandDiaryApp(startWithHome: hasSavedName));
 }
 
+class AppScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+      };
+}
+
 class IslandDiaryApp extends StatelessWidget {
   final bool startWithHome;
   const IslandDiaryApp({super.key, required this.startWithHome});
@@ -24,6 +34,7 @@ class IslandDiaryApp extends StatelessWidget {
     return MaterialApp(
       title: '岛屿日记',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: AppScrollBehavior(),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F172A)),
         useMaterial3: true,

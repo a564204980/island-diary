@@ -185,35 +185,33 @@ class IsometricGridPainter extends CustomPainter {
 
     // 1. 绘制地板层 (按坐标顺序绘制即可，地板通常不重叠)
     for (final pf in floors) {
-      if (pf == selectedFurniture) {
-        _drawSelectionFootprint(canvas, pf, converter, tw, th);
-      }
       _drawFurniture(canvas, pf.item, pf.r, pf.c, pf.z, converter, tw, th, 1.0, pf.rotation);
+    }
+
+    // --- 地板特化：针对地板在所有地块渲染后、家具前绘制选中框 (确保覆盖地块边缘但被家具挡住) ---
+    if (selectedFurniture != null && selectedFurniture!.item.isFloor) {
+      _drawSelectionFootprint(canvas, selectedFurniture!, converter, tw, th);
     }
 
     // 2. 绘制其他物体层 (家具、墙壁、装饰) - 需要深度排序
     final sortedOthers = List<PlacedFurniture>.from(others)
       ..sort((a, b) {
-        // A is behind B if its footprint is "further back" than B's footprint
-        // Footprint range for A: [rMinA, rMaxA), [cMinA, cMaxA)
         int gwA = a.rotation % 2 == 0 ? a.item.gridW : a.item.gridH;
         int ghA = a.rotation % 2 == 0 ? a.item.gridH : a.item.gridW;
         
         int gwB = b.rotation % 2 == 0 ? b.item.gridW : b.item.gridH;
         int ghB = b.rotation % 2 == 0 ? b.item.gridH : b.item.gridW;
 
-        // A is behind B if it is further from camera (smaller r or c)
-        // Correct logic for isometric sort comparison:
         if (a.r + gwA <= b.r || a.c + ghA <= b.c) return -1;
         if (b.r + gwB <= a.r || b.c + ghB <= a.c) return 1;
 
-        // Fallback to Manhattan center distance
         final depthA = a.r + gwA / 2.0 + a.c + ghA / 2.0;
         final depthB = b.r + gwB / 2.0 + b.c + ghB / 2.0;
         return depthA.compareTo(depthB);
       });
 
     for (final pf in sortedOthers) {
+      // 家具/装饰选中框：恢复在物体之前绘制，以保持正常的深度遮挡
       if (pf == selectedFurniture) {
         _drawSelectionFootprint(canvas, pf, converter, tw, th);
       }
@@ -227,7 +225,7 @@ class IsometricGridPainter extends CustomPainter {
         ghostItem!.$1,
         ghostItem!.$2!.$1,
         ghostItem!.$2!.$2,
-        ghostItem!.$5, // 假设我们将 ghostItem 扩展到 5 个参数
+        ghostItem!.$5, 
         converter,
         tw,
         th,
@@ -235,6 +233,11 @@ class IsometricGridPainter extends CustomPainter {
         ghostItem!.$3,
         ghostItem!.$4,
       );
+    }
+
+    // --- 4. 绘制顶层空格选中标识 (确保不被遮挡) ---
+    if (selectedCell != null && selectedFurniture == null) {
+      _drawSelectionCell(canvas, selectedCell!, converter, tw, th);
     }
 
     canvas.restore();
@@ -528,6 +531,34 @@ class IsometricGridPainter extends CustomPainter {
         canvas.restore();
       }
     }
+  }
+
+  void _drawSelectionCell(Canvas canvas, (int, int) cell, IsometricCoordinateConverter converter, double tw, double th) {
+    final p0 = converter.getScreenPoint(cell.$1.toDouble(), cell.$2.toDouble());
+    final p1 = converter.getScreenPoint((cell.$1 + 1).toDouble(), cell.$2.toDouble());
+    final p2 = converter.getScreenPoint((cell.$1 + 1).toDouble(), (cell.$2 + 1).toDouble());
+    final p3 = converter.getScreenPoint(cell.$1.toDouble(), (cell.$2 + 1).toDouble());
+
+    final path = Path()
+      ..moveTo(p0.dx, p0.dy)
+      ..lineTo(p1.dx, p1.dy)
+      ..lineTo(p2.dx, p2.dy)
+      ..lineTo(p3.dx, p3.dy)
+      ..close();
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.blue.withOpacity(0.3)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.blueAccent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0,
+    );
   }
 
   @override

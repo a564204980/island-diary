@@ -67,18 +67,23 @@ class FurnitureInventoryTray extends StatelessWidget {
                   _buildSubCategorySelector(subCategories),
                   // 物品网格
                   Expanded(
-                    child: GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.75,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: GridView.builder(
+                        key: ValueKey("${selectedCategory}_$selectedSubCategory"),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 0.75,
+                        ),
+                        itemCount: filteredItems.length,
+                        itemBuilder: (context, index) {
+                          return _buildFurnitureCard(filteredItems[index], index);
+                        },
                       ),
-                      itemCount: filteredItems.length,
-                      itemBuilder: (context, index) {
-                        return _buildFurnitureCard(filteredItems[index]);
-                      },
                     ),
                   ),
                 ],
@@ -199,21 +204,41 @@ class FurnitureInventoryTray extends StatelessWidget {
     );
   }
 
-  Widget _buildFurnitureCard(FurnitureItem item) {
+  Widget _buildFurnitureCard(FurnitureItem item, int index) {
     final bool isOutOfStock = item.quantity <= 0;
-    return Draggable<FurnitureItem>(
-      dragAnchorStrategy: pointerDragAnchorStrategy,
-      onDragStarted: () => onDragStarted(item),
-      onDragEnd: (_) => onDragEnd?.call(),
-      onDragCompleted: () => onDragEnd?.call(),
-      onDraggableCanceled: (_, __) => onDragEnd?.call(),
-      data: item,
-      maxSimultaneousDrags: isOutOfStock ? 0 : 1,
-      feedback: const SizedBox.shrink(), // 在网格上显示 Preview，不使用默认 feedback
-      childWhenDragging: Opacity(opacity: 0.3, child: _buildCardContent(item)),
-      child: Opacity(
-        opacity: isOutOfStock ? 0.4 : 1.0,
-        child: _buildCardContent(item),
+    
+    // 手风琴阶梯式进场动画
+    return TweenAnimationBuilder<double>(
+      key: ValueKey("${item.id}_${selectedCategory}_$index"),
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (index * 40).clamp(0, 400)),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        // 使用 Curves.easeOutBack 模拟物理回弹，产生手风琴展开的质感
+        final double slideOffset = 60 * (1.0 - Curves.easeOutBack.transform(value));
+        return Transform.translate(
+          offset: Offset(slideOffset, 0),
+          child: Opacity(
+            opacity: value.clamp(0.0, 1.0),
+            child: child,
+          ),
+        );
+      },
+      child: LongPressDraggable<FurnitureItem>(
+        delay: const Duration(milliseconds: 300),
+        dragAnchorStrategy: pointerDragAnchorStrategy,
+        onDragStarted: () => onDragStarted(item),
+        onDragEnd: (_) => onDragEnd?.call(),
+        onDragCompleted: () => onDragEnd?.call(),
+        onDraggableCanceled: (_, __) => onDragEnd?.call(),
+        data: item,
+        maxSimultaneousDrags: isOutOfStock ? 0 : 1,
+        feedback: const SizedBox.shrink(),
+        childWhenDragging: Opacity(opacity: 0.3, child: _buildCardContent(item)),
+        child: Opacity(
+          opacity: isOutOfStock ? 0.4 : 1.0,
+          child: _buildCardContent(item),
+        ),
       ),
     );
   }
