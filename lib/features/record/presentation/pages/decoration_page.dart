@@ -53,6 +53,10 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
   double _zoomStartScale = 0.6;
   double _zoomEndScale = 0.6;
 
+  // 连贯拖拽相关状态
+  bool _isLongPressDragging = false;
+  PlacedFurniture? _originalFurnitureData;
+
   // ui.Image? _bgImage; // 移除未使用的背景图引用
 
   @override
@@ -259,85 +263,7 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
               onMove: (details) {
                 final RenderBox? box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
                 if (box == null) return;
-                final localPos = box.globalToLocal(details.offset);
-
-                // 墙面物品：专用逻辑（不依赖 getGridCell 的距离阈值）
-                if (_draggingItem != null && _draggingItem!.isWall) {
-                  // 1. 水平位置：将光标 X 坐标投影到最近的墙面
-                  // 视觉左墙(r=0,沿c轴) 在屏幕左侧(x<center)，preferLeftWall=false
-                  // 视觉右墙(c=0,沿r轴) 在屏幕右侧(x>=center)，preferLeftWall=true
-                  final bool preferLeft = localPos.dx >= converter.centerX;
-                  final wallCell = converter.getWallCell(localPos, preferLeftWall: preferLeft);
-
-                  // 自动根据所在墙壁更新朝向（0=左墙，1=右墙）
-                  final int targetRotation = preferLeft ? 0 : 1;
-                  if (_draggingRotation != targetRotation) {
-                    _draggingRotation = targetRotation;
-                  }
-
-                  // 2. Z 轴：直接由光标绝对 Y 坐标映射，无增量累积
-                  final double baseR = preferLeft ? wallCell.$1.toDouble() : 0;
-                  final double baseC = preferLeft ? 0 : wallCell.$2.toDouble();
-                  final double maxAllowableZ = (kWallGridHeight - _draggingItem!.gridH).toDouble();
-
-                  _ghostZ = converter.getWallZ(
-                    localPos,
-                    r: baseR,
-                    c: baseC,
-                    maxZ: kWallGridHeight.toDouble(),
-                  ).clamp(0.0, maxAllowableZ).roundToDouble(); // 增加 roundToDouble() 实现网格吸附
-
-                  // 3. 以物品中心对齐格子，并限制边界
-                  final int gw = _draggingItem!.gridW;
-                  (int, int) centeredCell;
-                  if (preferLeft) {
-                    centeredCell = (
-                      (wallCell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
-                      0,
-                    );
-                  } else {
-                    centeredCell = (
-                      0,
-                      (wallCell.$2 - (gw / 2).floor()).clamp(0, kGridCols - gw),
-                    );
-                  }
-
-                  setState(() {
-                    _ghostCell = centeredCell;
-                    _isInteracting = true;
-                  });
-                  return; // 墙面物品跳过下方地面逻辑
-                }
-
-                // 地面物品：原有逻辑
-                var cell = converter.getGridCell(localPos);
-                if (cell != null) {
-                  if (isCellExcluded(cell.$1, cell.$2)) {
-                    cell = null;
-                  }
-                }
-                if (cell != null) {
-                  final finalCell = cell;
-                  final activeItem = _draggingItem;
-                  if (activeItem != null) {
-                    int gw = activeItem.gridW;
-                    int gh = activeItem.gridH;
-                    if (_draggingRotation % 2 != 0) {
-                      gw = activeItem.gridH;
-                      gh = activeItem.gridW;
-                    }
-                    final centeredCell = (
-                      (finalCell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
-                      (finalCell.$2 - (gh / 2).floor()).clamp(0, kGridCols - gh),
-                    );
-                    if (centeredCell != _ghostCell) {
-                      setState(() {
-                        _ghostCell = centeredCell;
-                        _isInteracting = true;
-                      });
-                    }
-                  }
-                }
+                _updateDragGhost(box.globalToLocal(details.offset), converter);
               },
               onAccept: (item) {
                 setState(() => _isInteracting = false);
@@ -379,9 +305,69 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
                 });
               },
               onLongPressStart: (details) {
-                // 长按：作为“编辑意图”的唯一激活口，弹出黄色选中框、工具栏或蓝色引导框
+                // 长按：作为“编辑意图”的唯一激活口
                 if (_draggingItem != null) return;
-                _handleTap(details.globalPosition, converter);
+                
+                // 1. 优先进行视觉命中测试
+                final hit = _findVisualHitInPage(details.globalPosition, converter);
+                if (hit != null) {
+                  HapticFeedback.mediumImpact();
+                  setState(() {
+                    _originalFurnitureData = hit;
+                    _draggingItem = hit.item;
+                    _draggingRotation = hit.rotation;
+                    _ghostCell = (hit.r, hit.c);
+                    _ghostZ = hit.z;
+                    _placedFurniture.remove(hit);
+                    _selectedFurniture = null; // 拖拽开始，先隐藏工具栏
+                    _isLongPressDragging = true;
+                    _isInteracting = true;
+                  });
+                } else {
+                  // 2. 未击中则普通点击逻辑（选中格子或清空选中）
+                  _handleTap(details.globalPosition, converter);
+                }
+              },
+              onLongPressMoveUpdate: (details) {
+                if (_isLongPressDragging) {
+                  final RenderBox? box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+                  if (box != null) {
+                    _updateDragGhost(box.globalToLocal(details.globalPosition), converter);
+                  }
+                }
+              },
+              onLongPressEnd: (details) {
+                if (_isLongPressDragging) {
+                  if (_ghostCell != null && _isAreaAvailable(_draggingItem!, _ghostCell!.$1, _ghostCell!.$2, _draggingRotation, converter, z: _ghostZ)) {
+                    // 放下并确认新位置
+                    final newPf = PlacedFurniture(
+                      item: _draggingItem!,
+                      r: _ghostCell!.$1,
+                      c: _ghostCell!.$2,
+                      z: _ghostZ,
+                      rotation: _draggingRotation,
+                    );
+                    setState(() {
+                      _placedFurniture.add(newPf);
+                      _selectedFurniture = newPf; // 放下后保持选中态
+                    });
+                    UserState().savePlacedFurniture(_placedFurniture);
+                  } else {
+                    // 位置非法，回滚到原始数据
+                    if (_originalFurnitureData != null) {
+                      setState(() {
+                        _placedFurniture.add(_originalFurnitureData!);
+                        _selectedFurniture = _originalFurnitureData;
+                      });
+                    }
+                  }
+                  setState(() {
+                    _isLongPressDragging = false;
+                    _draggingItem = null;
+                    _ghostCell = null;
+                    _isInteracting = false;
+                  });
+                }
               },
               onScaleStart: (details) {
                 if (_draggingItem != null) return;
@@ -599,6 +585,106 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
   }
 
 
+
+  /// 统一处理坐标跟随逻辑（由 DragTarget.onMove 或 GestureDetector.onLongPressMoveUpdate 调用）
+  void _updateDragGhost(Offset localPos, IsometricCoordinateConverter converter) {
+    if (_draggingItem == null) return;
+
+    // A. 墙面物品逻辑
+    if (_draggingItem!.isWall) {
+      final bool preferLeft = localPos.dx >= converter.centerX;
+      final wallCell = converter.getWallCell(localPos, preferLeftWall: preferLeft);
+      final int targetRotation = preferLeft ? 0 : 1;
+      
+      final double maxAllowedZ = (kWallGridHeight - _draggingItem!.gridH).toDouble();
+      _ghostZ = converter.getWallZ(
+        localPos,
+        r: preferLeft ? wallCell.$1.toDouble() : 0,
+        c: preferLeft ? 0 : wallCell.$2.toDouble(),
+        maxZ: kWallGridHeight.toDouble(),
+      ).clamp(0.0, maxAllowedZ).roundToDouble();
+
+      final int gw = _draggingItem!.gridW;
+      (int, int) centeredCell = preferLeft 
+          ? ((wallCell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw), 0)
+          : (0, (wallCell.$2 - (gw / 2).floor()).clamp(0, kGridCols - gw));
+
+      if (centeredCell != _ghostCell || _draggingRotation != targetRotation) {
+        setState(() {
+          _ghostCell = centeredCell;
+          _draggingRotation = targetRotation;
+          _isInteracting = true;
+        });
+      }
+    } 
+    // B. 地面物品逻辑
+    else {
+      var cell = converter.getGridCell(localPos);
+      if (cell != null && isCellExcluded(cell.$1, cell.$2)) cell = null;
+      if (cell != null) {
+        int gw = _draggingRotation % 2 == 0 ? _draggingItem!.gridW : _draggingItem!.gridH;
+        int gh = _draggingRotation % 2 == 0 ? _draggingItem!.gridH : _draggingItem!.gridW;
+        final centeredCell = (
+          (cell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
+          (cell.$2 - (gh / 2).floor()).clamp(0, kGridCols - gh),
+        );
+        if (centeredCell != _ghostCell) {
+          setState(() {
+            _ghostCell = centeredCell;
+            _isInteracting = true;
+          });
+        }
+      }
+    }
+  }
+
+  /// 封装视觉命中测试，剥离出独立的 PlacedFurniture 检索逻辑
+  PlacedFurniture? _findVisualHitInPage(Offset globalPos, IsometricCoordinateConverter converter) {
+    final RenderBox? box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return null;
+    final localPos = box.globalToLocal(globalPos);
+
+    // 渲染层级逆序排列（近处/上层优先）
+    final sorted = List<PlacedFurniture>.from(_placedFurniture)..sort((a, b) {
+      if (a.item.category == '地板' || b.item.category == '地板') return a.item.category == '地板' ? 1 : -1;
+      int gwA = a.rotation % 2 == 0 ? a.item.gridW : a.item.gridH;
+      int ghA = a.rotation % 2 == 0 ? a.item.gridH : a.item.gridW;
+      int gwB = b.rotation % 2 == 0 ? b.item.gridW : b.item.gridH;
+      int ghB = b.rotation % 2 == 0 ? b.item.gridH : b.item.gridW;
+      if (b.r + gwB <= a.r || b.c + ghB <= a.c) return -1;
+      if (a.r + gwA <= b.r || a.c + ghA <= b.c) return 1;
+      return (b.r + b.c).compareTo(a.r + a.c);
+    });
+
+    for (var pf in sorted) {
+      if (pf.item.isWall) {
+        final double h = pf.item.gridH.toDouble();
+        final double l = pf.item.gridW.toDouble();
+        List<Offset> pts = pf.rotation % 2 == 0
+          ? [converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), pf.z + h), 
+             converter.getScreenPoint(pf.r + l, pf.c.toDouble(), pf.z + h), 
+             converter.getScreenPoint(pf.r + l, pf.c.toDouble(), pf.z), 
+             converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), pf.z)]
+          : [converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), pf.z + h), 
+             converter.getScreenPoint(pf.r.toDouble(), pf.c + l, pf.z + h), 
+             converter.getScreenPoint(pf.r.toDouble(), pf.c + l, pf.z), 
+             converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), pf.z)];
+        if ((Path()..addPolygon(pts, true)).contains(localPos)) return pf;
+      } else {
+        int gw = pf.rotation % 2 == 0 ? pf.item.gridW : pf.item.gridH;
+        int gh = pf.rotation % 2 == 0 ? pf.item.gridH : pf.item.gridW;
+        final bool isBack = pf.rotation == 1 || pf.rotation == 2;
+        final rect = converter.getFurnitureRect(
+          r: pf.r, c: pf.c, gw: gw, gh: gh,
+          visualScale: isBack ? (pf.item.backVisualScale ?? pf.item.visualScale) : pf.item.visualScale,
+          visualOffset: isBack ? (pf.item.backVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset,
+          intrinsicWidth: pf.item.intrinsicWidth, intrinsicHeight: pf.item.intrinsicHeight, z: pf.z
+        );
+        if (rect.contains(localPos)) return pf;
+      }
+    }
+    return null;
+  }
 
   Widget _buildTrayToggle() {
     return GestureDetector(

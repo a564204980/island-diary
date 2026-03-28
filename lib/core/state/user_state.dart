@@ -32,6 +32,11 @@ class UserState {
   static const _keyRecordGuidance = 'has_seen_record_guidance'; // 记录页引导
   static const _keyDecorationSnapshot = 'decoration_snapshot_bytes'; // 场景快照
   static const _keyPlacedFurniture = 'placed_furniture'; // 家具布局
+  static const _keyMomentsCover = 'moments_cover_path'; // 朋友圈背景封面
+  static const _keyDiaryLayoutMode = 'diary_layout_mode'; // 日记布局模式
+
+  /// 朋友圈背景封面 (本地图片路径或 null 使用默认)
+  final ValueNotifier<String?> momentsCoverPath = ValueNotifier<String?>(null);
 
   /// 家具布局列表
   final ValueNotifier<List<PlacedFurniture>> placedFurniture = ValueNotifier<List<PlacedFurniture>>([]);
@@ -39,6 +44,10 @@ class UserState {
   /// 主题模式枚举
   /// auto: 跟随时间, light: 强制日间, dark: 强制夜间
   final ValueNotifier<String> themeMode = ValueNotifier<String>('auto');
+
+  /// 日记布局模式 (由 DiaryHistoryOverlay 使用，需持久化)
+  /// 0: timeline, 1: moments, 2: calendar
+  final ValueNotifier<int> diaryLayoutMode = ValueNotifier<int>(0);
 
   /// 统一的日夜判断逻辑
   bool get isNight {
@@ -338,6 +347,24 @@ class UserState {
     await prefs.setString(_keyPlacedFurniture, jsonEncode(jsonList));
   }
 
+  /// 设置朋友圈背景封面
+  Future<void> setMomentsCoverPath(String? path) async {
+    momentsCoverPath.value = path;
+    final prefs = await SharedPreferences.getInstance();
+    if (path != null) {
+      await prefs.setString(_keyMomentsCover, path);
+    } else {
+      await prefs.remove(_keyMomentsCover);
+    }
+  }
+
+  /// 设置并保存日记布局模式
+  Future<void> setDiaryLayoutMode(int mode) async {
+    diaryLayoutMode.value = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyDiaryLayoutMode, mode);
+  }
+
   /// 从本地存储中读取状态
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -354,9 +381,15 @@ class UserState {
     final recordFinished = prefs.getBool(_keyRecordGuidance) ?? false;
     hasSeenRecordGuidance.value = recordFinished;
 
+    // 加载朋友圈封面
+    momentsCoverPath.value = prefs.getString(_keyMomentsCover);
+
     // 加载主题模式
     final savedTheme = prefs.getString(_keyThemeMode) ?? 'auto';
     themeMode.value = savedTheme;
+
+    // 加载日记布局模式
+    diaryLayoutMode.value = prefs.getInt(_keyDiaryLayoutMode) ?? 0;
 
     // 加载草稿
     final draftContent = prefs.getString(_keyDraftContent);
