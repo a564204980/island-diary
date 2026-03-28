@@ -143,6 +143,15 @@ class FurnitureItem {
 
   bool get isFloor => category.contains('地板') || id.toLowerCase().startsWith('floor');
   bool get isWall => category.contains('墙壁') || id.toLowerCase().startsWith('wall');
+  
+  // 判定是否为墙面挂件（装饰物）：属于墙壁类但不是结构性材质
+  bool get isWallDecoration => isWall && 
+      (subCategory.contains('挂饰') || 
+       subCategory.contains('装饰') || 
+       id.contains('item') || 
+       id.contains('deco') ||
+       name.contains('挂') ||
+       name.contains('窗'));
 }
 
 bool isCellExcluded(int i, int j) {

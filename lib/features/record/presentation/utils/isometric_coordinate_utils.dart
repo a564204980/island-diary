@@ -112,4 +112,49 @@ class IsometricCoordinateConverter {
     if (minDistanceSq > thresholdSq) return null;
     return bestCell;
   }
+  /// 墙面专用投影：将光标投影到指定墙面，返回沿墙方向的格子索引
+  /// [preferLeftWall] true=优先左墙(r轴, c=0)，false=优先右墙(c轴, r=0)
+  /// 返回 (r, c) 始终保持对应墙面的约束 (左墙 c=0, 右墙 r=0)
+  (int, int) getWallCell(Offset localPos, {required bool preferLeftWall}) {
+    if (preferLeftWall) {
+      // 左后墙：XZ 面，c=0，r 从 0 到 kGridRows-1
+      // 在各个 r 位置取墙面中线来比较 x 距离（忽略 y 即高度）
+      int bestR = 0;
+      double minDistX = double.infinity;
+      for (int r = 0; r < kGridRows; r++) {
+        // 取该列底部中心点的 x 坐标作为参考
+        final pt = getScreenPoint(r + 0.5, 0);
+        final double dx = (localPos.dx - pt.dx).abs();
+        if (dx < minDistX) {
+          minDistX = dx;
+          bestR = r;
+        }
+      }
+      return (bestR.clamp(0, kGridRows - 1), 0);
+    } else {
+      // 右后墙：YZ 面，r=0，c 从 0 到 kGridCols-1
+      int bestC = 0;
+      double minDistX = double.infinity;
+      for (int c = 0; c < kGridCols; c++) {
+        final pt = getScreenPoint(0, c + 0.5);
+        final double dx = (localPos.dx - pt.dx).abs();
+        if (dx < minDistX) {
+          minDistX = dx;
+          bestC = c;
+        }
+      }
+      return (0, bestC.clamp(0, kGridCols - 1));
+    }
+  }
+
+  /// 将光标 Y 坐标直接映射为墙面 Z 值（绝对位置，无增量累积）
+  /// [r], [c]: 墙面上当前格子的基准坐标（用于计算该列/行的垂直范围）
+  /// [maxZ]: 墙面高度上限（即 kWallGridHeight）
+  double getWallZ(Offset localPos, {required double r, required double c, required double maxZ}) {
+    final double bottomY = getScreenPoint(r, c, 0).dy;
+    final double topY = getScreenPoint(r, c, maxZ).dy;
+    if ((bottomY - topY).abs() < 1.0) return 0;
+    final double z = maxZ * (bottomY - localPos.dy) / (bottomY - topY);
+    return z.clamp(0.0, maxZ);
+  }
 }

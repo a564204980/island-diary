@@ -14,7 +14,7 @@ class IsometricGridPainter extends CustomPainter {
   final double fullWidth;
   final double fullHeight;
   final List<PlacedFurniture> placedItems;
-  final (FurnitureItem, (int, int)?, int, bool)? ghostItem; // (item, cell, rotation, isValid)
+  final (FurnitureItem, (int, int)?, int, bool, double)? ghostItem; // (item, cell, rotation, isValid, z)
   final bool isInteracting; 
   final double currentScale; 
   final bool showGrid; 
@@ -112,6 +112,39 @@ class IsometricGridPainter extends CustomPainter {
             );
           }
         }
+
+        // --- 墙面网格坐标序号 ---
+        final wallTextStyle = TextStyle(
+          color: Colors.white.withOpacity(0.3),
+          fontSize: 6.0,
+          fontWeight: FontWeight.w300,
+        );
+
+        // 左墙 XZ 面 (i, z)
+        for (int i = 0; i < rows; i += 1) {
+          for (int z = 0; z < kWallGridHeight; z += 1) {
+            final center = converter.getScreenPoint(i + 0.5, 0, z + 0.5);
+            final tp = TextPainter(
+              text: TextSpan(text: '$i,$z', style: wallTextStyle),
+              textDirection: TextDirection.ltr,
+            );
+            tp.layout();
+            tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
+          }
+        }
+
+        // 右墙 YZ 面 (j, z)
+        for (int j = 0; j < cols; j += 1) {
+          for (int z = 0; z < kWallGridHeight; z += 1) {
+            final center = converter.getScreenPoint(0, j + 0.5, z + 0.5);
+            final tp = TextPainter(
+              text: TextSpan(text: '$j,$z', style: wallTextStyle),
+              textDirection: TextDirection.ltr,
+            );
+            tp.layout();
+            tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
+          }
+        }
       }
 
       // --- 2. 绘制墙面网格 (XZ 和 YZ 平面) ---
@@ -155,7 +188,7 @@ class IsometricGridPainter extends CustomPainter {
       if (pf == selectedFurniture) {
         _drawSelectionFootprint(canvas, pf, converter, tw, th);
       }
-      _drawFurniture(canvas, pf.item, pf.r, pf.c, converter, tw, th, 1.0, pf.rotation);
+      _drawFurniture(canvas, pf.item, pf.r, pf.c, pf.z, converter, tw, th, 1.0, pf.rotation);
     }
 
     // 2. 绘制其他物体层 (家具、墙壁、装饰) - 需要深度排序
@@ -184,7 +217,7 @@ class IsometricGridPainter extends CustomPainter {
       if (pf == selectedFurniture) {
         _drawSelectionFootprint(canvas, pf, converter, tw, th);
       }
-      _drawFurniture(canvas, pf.item, pf.r, pf.c, converter, tw, th, 1.0, pf.rotation);
+      _drawFurniture(canvas, pf.item, pf.r, pf.c, pf.z, converter, tw, th, 1.0, pf.rotation);
     }
 
     // --- 绘制拖拽预览 (Ghost) ---
@@ -194,6 +227,7 @@ class IsometricGridPainter extends CustomPainter {
         ghostItem!.$1,
         ghostItem!.$2!.$1,
         ghostItem!.$2!.$2,
+        ghostItem!.$5, // 假设我们将 ghostItem 扩展到 5 个参数
         converter,
         tw,
         th,
@@ -207,17 +241,37 @@ class IsometricGridPainter extends CustomPainter {
   }
 
   void _drawSelectionFootprint(Canvas canvas, PlacedFurniture pf, IsometricCoordinateConverter converter, double tw, double th) {
-    int gw = pf.item.gridW;
-    int gh = pf.item.gridH;
-    if (pf.rotation % 2 != 0) {
-      gw = pf.item.gridH;
-      gh = pf.item.gridW;
-    }
+    final Offset p0, p1, p2, p3;
 
-    final p0 = converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble());
-    final p1 = converter.getScreenPoint((pf.r + gw).toDouble(), pf.c.toDouble());
-    final p2 = converter.getScreenPoint((pf.r + gw).toDouble(), (pf.c + gh).toDouble());
-    final p3 = converter.getScreenPoint(pf.r.toDouble(), (pf.c + gh).toDouble());
+    if (pf.item.isWall) {
+      final double h = pf.item.gridH.toDouble();
+      final double l = pf.item.gridW.toDouble();
+      final double baseZ = pf.z; 
+      if (pf.rotation % 2 == 0) {
+        // XZ 平面 (左后墙)
+        p0 = converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), baseZ + h);
+        p1 = converter.getScreenPoint(pf.r + l, pf.c.toDouble(), baseZ + h);
+        p2 = converter.getScreenPoint(pf.r + l, pf.c.toDouble(), baseZ);
+        p3 = converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), baseZ);
+      } else {
+        // YZ 平面 (右后墙)
+        p0 = converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), baseZ + h);
+        p1 = converter.getScreenPoint(pf.r.toDouble(), pf.c + l, baseZ + h);
+        p2 = converter.getScreenPoint(pf.r.toDouble(), pf.c + l, baseZ);
+        p3 = converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), baseZ);
+      }
+    } else {
+      int gw = pf.item.gridW;
+      int gh = pf.item.gridH;
+      if (pf.rotation % 2 != 0) {
+        gw = pf.item.gridH;
+        gh = pf.item.gridW;
+      }
+      p0 = converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), pf.z);
+      p1 = converter.getScreenPoint((pf.r + gw).toDouble(), pf.c.toDouble(), pf.z);
+      p2 = converter.getScreenPoint((pf.r + gw).toDouble(), (pf.c + gh).toDouble(), pf.z);
+      p3 = converter.getScreenPoint(pf.r.toDouble(), (pf.c + gh).toDouble(), pf.z);
+    }
 
     final path = Path()
       ..moveTo(p0.dx, p0.dy)
@@ -248,6 +302,7 @@ class IsometricGridPainter extends CustomPainter {
     FurnitureItem item,
     int r,
     int c,
+    double z,
     IsometricCoordinateConverter converter,
     double tw,
     double th,
@@ -293,13 +348,15 @@ class IsometricGridPainter extends CustomPainter {
       ..color = (isValid ? Colors.black : Colors.red).withOpacity(0.6 * opacity)
       ..style = PaintingStyle.fill;
 
-    final path = Path();
-    path.moveTo(p0.dx, p0.dy);
-    path.lineTo(p1.dx, p1.dy);
-    path.lineTo(p2.dx, p2.dy);
-    path.lineTo(p3.dx, p3.dy);
-    path.close();
-    canvas.drawPath(path, paint);
+    if (!item.isWall) {
+      final path = Path();
+      path.moveTo(p0.dx, p0.dy);
+      path.lineTo(p1.dx, p1.dy);
+      path.lineTo(p2.dx, p2.dy);
+      path.lineTo(p3.dx, p3.dy);
+      path.close();
+      canvas.drawPath(path, paint);
+    }
 
     final image = SpritePainter.getImage(item.imagePath);
     if (image != null) {
@@ -354,22 +411,22 @@ class IsometricGridPainter extends CustomPainter {
         // --- 墙壁特化：映射到垂直平面 (XZ 或 YZ) ---
         final double h = item.gridH.toDouble(); // 墙壁高度
         final double l = item.gridW.toDouble(); // 墙壁长度
-        final double hFactor = tw / 2; // 垂直比例
+        final double baseZ = z; // 使用传入的 z 作为底部高度基准
 
         List<Offset> wallPoints;
         if (rotation % 2 == 0) {
           // XZ 平面 (左墙方向)
-          final wp0 = converter.getScreenPoint(r.toDouble(), c.toDouble(), h);
-          final wp1 = converter.getScreenPoint(r + l, c.toDouble(), h);
-          final wp2 = converter.getScreenPoint(r + l, c.toDouble(), 0);
-          final wp3 = converter.getScreenPoint(r.toDouble(), c.toDouble(), 0);
+          final wp0 = converter.getScreenPoint(r.toDouble(), c.toDouble(), baseZ + h);
+          final wp1 = converter.getScreenPoint(r + l, c.toDouble(), baseZ + h);
+          final wp2 = converter.getScreenPoint(r + l, c.toDouble(), baseZ);
+          final wp3 = converter.getScreenPoint(r.toDouble(), c.toDouble(), baseZ);
           wallPoints = [wp0, wp1, wp2, wp3];
         } else {
           // YZ 平面 (右墙方向)
-          final wp0 = converter.getScreenPoint(r.toDouble(), c.toDouble(), h);
-          final wp1 = converter.getScreenPoint(r.toDouble(), c + l, h);
-          final wp2 = converter.getScreenPoint(r.toDouble(), c + l, 0);
-          final wp3 = converter.getScreenPoint(r.toDouble(), c.toDouble(), 0);
+          final wp0 = converter.getScreenPoint(r.toDouble(), c.toDouble(), baseZ + h);
+          final wp1 = converter.getScreenPoint(r.toDouble(), c + l, baseZ + h);
+          final wp2 = converter.getScreenPoint(r.toDouble(), c + l, baseZ);
+          final wp3 = converter.getScreenPoint(r.toDouble(), c.toDouble(), baseZ);
           wallPoints = [wp0, wp1, wp2, wp3];
         }
 
@@ -407,7 +464,8 @@ class IsometricGridPainter extends CustomPainter {
             ui.TileMode.clamp,
             shaderMatrix.storage,
           )
-          ..color = Colors.white.withOpacity(opacity)
+          ..color = (isValid ? Colors.white : Colors.redAccent).withOpacity(opacity)
+          ..colorFilter = isValid ? null : const ColorFilter.mode(Colors.red, BlendMode.modulate)
           ..filterQuality = FilterQuality.medium;
 
         canvas.drawVertices(

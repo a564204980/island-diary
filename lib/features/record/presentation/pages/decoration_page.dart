@@ -27,6 +27,7 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
   (int, int)? _ghostCell;
   FurnitureItem? _draggingItem; // 显式记录正在拖动的物品，解决 DragTarget 延迟问题
   int _draggingRotation = 0;
+  double _ghostZ = 0.0; // 拖拽时的临时高度
   PlacedFurniture? _selectedFurniture;
   final List<PlacedFurniture> _placedFurniture = [];
   late List<FurnitureItem> _availableItems;
@@ -226,19 +227,20 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
                             showGrid: _showGrid,
                             isInteracting: _isInteracting,
                             currentScale: _currentScale,
-                            ghostItem: _draggingItem != null
+                            ghostItem: _draggingItem != null && _ghostCell != null
                                 ? (
                                     _draggingItem!,
                                     _ghostCell,
                                     _draggingRotation,
-                                    _ghostCell == null ||
-                                        _isAreaAvailable(
-                                          _draggingItem!,
-                                          _ghostCell!.$1,
-                                          _ghostCell!.$2,
-                                          _draggingRotation,
-                                          converter,
-                                        ),
+                                    _isAreaAvailable(
+                                      _draggingItem!,
+                                      _ghostCell!.$1,
+                                      _ghostCell!.$2,
+                                      _draggingRotation,
+                                      converter,
+                                      z: _ghostZ,
+                                    ),
+                                    _ghostZ,
                                   )
                                 : null,
                           ),
@@ -258,10 +260,59 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
                 final RenderBox? box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
                 if (box == null) return;
                 final localPos = box.globalToLocal(details.offset);
+
+                // 墙面物品：专用逻辑（不依赖 getGridCell 的距离阈值）
+                if (_draggingItem != null && _draggingItem!.isWall) {
+                  // 1. 水平位置：将光标 X 坐标投影到最近的墙面
+                  // 视觉左墙(r=0,沿c轴) 在屏幕左侧(x<center)，preferLeftWall=false
+                  // 视觉右墙(c=0,沿r轴) 在屏幕右侧(x>=center)，preferLeftWall=true
+                  final bool preferLeft = localPos.dx >= converter.centerX;
+                  final wallCell = converter.getWallCell(localPos, preferLeftWall: preferLeft);
+
+                  // 自动根据所在墙壁更新朝向（0=左墙，1=右墙）
+                  final int targetRotation = preferLeft ? 0 : 1;
+                  if (_draggingRotation != targetRotation) {
+                    _draggingRotation = targetRotation;
+                  }
+
+                  // 2. Z 轴：直接由光标绝对 Y 坐标映射，无增量累积
+                  final double baseR = preferLeft ? wallCell.$1.toDouble() : 0;
+                  final double baseC = preferLeft ? 0 : wallCell.$2.toDouble();
+                  final double maxAllowableZ = (kWallGridHeight - _draggingItem!.gridH).toDouble();
+
+                  _ghostZ = converter.getWallZ(
+                    localPos,
+                    r: baseR,
+                    c: baseC,
+                    maxZ: kWallGridHeight.toDouble(),
+                  ).clamp(0.0, maxAllowableZ).roundToDouble(); // 增加 roundToDouble() 实现网格吸附
+
+                  // 3. 以物品中心对齐格子，并限制边界
+                  final int gw = _draggingItem!.gridW;
+                  (int, int) centeredCell;
+                  if (preferLeft) {
+                    centeredCell = (
+                      (wallCell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
+                      0,
+                    );
+                  } else {
+                    centeredCell = (
+                      0,
+                      (wallCell.$2 - (gw / 2).floor()).clamp(0, kGridCols - gw),
+                    );
+                  }
+
+                  setState(() {
+                    _ghostCell = centeredCell;
+                    _isInteracting = true;
+                  });
+                  return; // 墙面物品跳过下方地面逻辑
+                }
+
+                // 地面物品：原有逻辑
                 var cell = converter.getGridCell(localPos);
                 if (cell != null) {
-                  bool isWallDragging = _draggingItem?.category == '墙壁';
-                  if ((isWallDragging && cell.$1 != 0 && cell.$2 != 0) || isCellExcluded(cell.$1, cell.$2)) {
+                  if (isCellExcluded(cell.$1, cell.$2)) {
                     cell = null;
                   }
                 }
@@ -291,13 +342,19 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
               onAccept: (item) {
                 setState(() => _isInteracting = false);
                 if (_ghostCell != null && item.quantity > 0) {
-                  if (!_isAreaAvailable(item, _ghostCell!.$1, _ghostCell!.$2, _draggingRotation, converter)) {
+                  if (!_isAreaAvailable(item, _ghostCell!.$1, _ghostCell!.$2, _draggingRotation, converter, z: _ghostZ)) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('该区域无法放置家具'), duration: Duration(seconds: 1)));
                     setState(() { _ghostCell = null; _draggingItem = null; });
                     return;
                   }
                   setState(() {
-                    _placedFurniture.add(PlacedFurniture(item: item, r: _ghostCell!.$1, c: _ghostCell!.$2, rotation: _draggingRotation));
+                    _placedFurniture.add(PlacedFurniture(
+                      item: item,
+                      r: _ghostCell!.$1,
+                      c: _ghostCell!.$2,
+                      z: _ghostZ,
+                      rotation: _draggingRotation,
+                    ));
                     item.quantity--;
                     _ghostCell = null;
                     _draggingItem = null;
@@ -365,12 +422,16 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
                               _draggingItem = item;
                               _draggingRotation = rot;
                               _ghostCell = cell;
+                              _ghostZ = _selectedFurniture?.z ?? 0.0;
                               item.quantity++;
                               _placedFurniture.remove(_selectedFurniture!);
                               _selectedFurniture = null;
                             });
                           },
-                          onDragCanceled: () => setState(() { _ghostCell = null; _draggingItem = null; }),
+                          onDragCanceled: () => setState(() { 
+                            _ghostCell = null; 
+                            _draggingItem = null; 
+                          }),
                         ),
                         DecorationToolbar(
                           pf: _selectedFurniture!,
@@ -393,6 +454,7 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
                             });
                             UserState().savePlacedFurniture(_placedFurniture);
                           },
+                          onFillAll: () => _handleFillAll(_selectedFurniture!.item),
                         ),
                       ],
                     ),
@@ -423,6 +485,7 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
                   onDragStarted: (item) => setState(() {
                     _draggingItem = item;
                     _draggingRotation = 0;
+                    _ghostZ = 0.0;
                   }),
                   onDragEnd: () => setState(() {
                     _draggingItem = null;
@@ -452,6 +515,11 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
                     IconButton(
                       icon: Icon(_showGrid ? Icons.grid_on : Icons.grid_off, color: Colors.white70),
                       onPressed: () => setState(() => _showGrid = !_showGrid),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_sweep, color: Colors.redAccent, size: 24),
+                      onPressed: _handleClearAll,
+                      tooltip: '一键清除',
                     ),
                   ],
                 ),
@@ -555,45 +623,58 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
       final localPos = box.globalToLocal(globalPos);
 
       final foregroundOrderItems = List<PlacedFurniture>.from(_placedFurniture)
-        ..sort((a, b) => (b.r + b.c).compareTo(a.r + a.c));
+        ..sort((a, b) {
+          int gwA = a.rotation % 2 == 0 ? a.item.gridW : a.item.gridH;
+          int ghA = a.rotation % 2 == 0 ? a.item.gridH : a.item.gridW;
+          
+          int gwB = b.rotation % 2 == 0 ? b.item.gridW : b.item.gridH;
+          int ghB = b.rotation % 2 == 0 ? b.item.gridH : b.item.gridW;
+
+          // B vs A to sort descending (front-most first)
+          if (b.r + gwB <= a.r || b.c + ghB <= a.c) return -1;
+          if (a.r + gwA <= b.r || a.c + ghA <= b.c) return 1;
+
+          final depthA = a.r + gwA / 2.0 + a.c + ghA / 2.0;
+          final depthB = b.r + gwB / 2.0 + b.c + ghB / 2.0;
+          
+          final cmp = depthB.compareTo(depthA);
+          if (cmp == 0) {
+            // Ensure higher Z items are checked before lower Z items
+            return b.z.compareTo(a.z);
+          }
+          return cmp;
+        });
 
       PlacedFurniture? visualHit;
       for (var pf in foregroundOrderItems) {
-        int gw = pf.item.gridW;
-        int gh = pf.item.gridH;
-        if (pf.rotation % 2 != 0) {
-          gw = pf.item.gridH;
-          gh = pf.item.gridW;
-        }
-
-        final bool isBack = (pf.rotation == 1 || pf.rotation == 2);
-        final double vScale = isBack ? (pf.item.backVisualScale ?? pf.item.visualScale) : pf.item.visualScale;
-        final Offset vOffset = isBack ? (pf.item.backVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset;
-
-        final rect = converter.getFurnitureRect(
-          r: pf.r,
-          c: pf.c,
-          gw: gw,
-          gh: gh,
-          visualScale: vScale,
-          visualOffset: vOffset,
-          intrinsicWidth: pf.item.intrinsicWidth,
-          intrinsicHeight: pf.item.intrinsicHeight,
-        );
-
-        final coreRect = Rect.fromCenter(
-          center: rect.center,
-          width: rect.width * 0.7, 
-          height: rect.height,
-        );
-        if (coreRect.contains(localPos)) {
-          visualHit = pf;
-          break;
-        }
-      }
-
-      if (visualHit == null) {
-        for (var pf in foregroundOrderItems) {
+        if (pf.item.isWall) {
+          final double h = pf.item.gridH.toDouble();
+          final double l = pf.item.gridW.toDouble();
+          final double baseZ = pf.z;
+          List<Offset> wallPoints;
+          if (pf.rotation % 2 == 0) {
+            // XZ 平面 (左墙方向)
+            wallPoints = [
+              converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), baseZ + h),
+              converter.getScreenPoint(pf.r + l, pf.c.toDouble(), baseZ + h),
+              converter.getScreenPoint(pf.r + l, pf.c.toDouble(), baseZ),
+              converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), baseZ),
+            ];
+          } else {
+            // YZ 平面 (右墙方向)
+            wallPoints = [
+              converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), baseZ + h),
+              converter.getScreenPoint(pf.r.toDouble(), pf.c + l, baseZ + h),
+              converter.getScreenPoint(pf.r.toDouble(), pf.c + l, baseZ),
+              converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), baseZ),
+            ];
+          }
+          final path = Path()..addPolygon(wallPoints, true);
+          if (path.contains(localPos)) {
+            visualHit = pf;
+            break;
+          }
+        } else {
           int gw = pf.item.gridW;
           int gh = pf.item.gridH;
           if (pf.rotation % 2 != 0) {
@@ -614,6 +695,49 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
             visualOffset: vOffset,
             intrinsicWidth: pf.item.intrinsicWidth,
             intrinsicHeight: pf.item.intrinsicHeight,
+            z: pf.z,
+          );
+
+          final coreRect = Rect.fromCenter(
+            center: rect.center,
+            width: rect.width * 0.7, 
+            height: rect.height,
+          );
+          if (coreRect.contains(localPos)) {
+            visualHit = pf;
+            break;
+          }
+        }
+      }
+
+      if (visualHit == null) {
+        for (var pf in foregroundOrderItems) {
+          if (pf.item.isWall) {
+            // Wall hits are fully resolved in the first pass
+            continue;
+          }
+
+          int gw = pf.item.gridW;
+          int gh = pf.item.gridH;
+          if (pf.rotation % 2 != 0) {
+            gw = pf.item.gridH;
+            gh = pf.item.gridW;
+          }
+
+          final bool isBack = (pf.rotation == 1 || pf.rotation == 2);
+          final double vScale = isBack ? (pf.item.backVisualScale ?? pf.item.visualScale) : pf.item.visualScale;
+          final Offset vOffset = isBack ? (pf.item.backVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset;
+
+          final rect = converter.getFurnitureRect(
+            r: pf.r,
+            c: pf.c,
+            gw: gw,
+            gh: gh,
+            visualScale: vScale,
+            visualOffset: vOffset,
+            intrinsicWidth: pf.item.intrinsicWidth,
+            intrinsicHeight: pf.item.intrinsicHeight,
+            z: pf.z,
           );
           if (rect.contains(localPos)) {
             visualHit = pf;
@@ -665,7 +789,73 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
     });
   }
 
+  void _handleFillAll(FurnitureItem item) {
+    setState(() {
+      // 1. 将所有现有的地板归还库存
+      for (var pf in _placedFurniture.where((pf) => pf.item.isFloor)) {
+        pf.item.quantity++;
+      }
+      // 2. 移除所有地板
+      _placedFurniture.removeWhere((pf) => pf.item.isFloor);
 
+      // 3. 计算铺满需要的行列数 (基于 24x24 网格和地板自身的 gridW/gridH)
+      final int rows = (kGridRows / item.gridW).ceil();
+      final int cols = (kGridCols / item.gridH).ceil();
+
+      // 4. 批量添加
+      for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+          if (item.quantity > 0) {
+            final int r = i * item.gridW;
+            final int c = j * item.gridH;
+            
+            _placedFurniture.add(PlacedFurniture(
+              item: item,
+              r: r,
+              c: c,
+              rotation: 0,
+            ));
+            item.quantity--;
+          }
+        }
+      }
+      _selectedFurniture = null;
+    });
+    UserState().savePlacedFurniture(_placedFurniture);
+  }
+
+  void _handleClearAll() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text('一键清除', style: TextStyle(color: Colors.white)),
+        content: const Text('确定要清除房间内所有已摆放的家具吗？此操作不可撤销。', style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消', style: TextStyle(color: Colors.white38)),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                // 归还库存
+                for (var pf in _placedFurniture) {
+                  pf.item.quantity++;
+                }
+                _placedFurniture.clear();
+                _selectedFurniture = null;
+                _selectedCell = null;
+              });
+              UserState().savePlacedFurniture(_placedFurniture);
+              Navigator.pop(ctx);
+            },
+            child: const Text('确定清除', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+  }
 
   bool _isAreaAvailable(
     FurnitureItem item,
@@ -674,6 +864,7 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
     int rotation,
     IsometricCoordinateConverter converter, {
     PlacedFurniture? exclude,
+    double z = 0.0,
   }) {
     bool isWall = item.isWall;
     int gw = item.gridW;
@@ -689,6 +880,12 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
 
     if (r < 0 || c < 0 || r + gw > kGridRows || c + gh > kGridCols)
       return false;
+
+    if (isWall) {
+      if (z + item.gridH > kWallGridHeight) {
+        return false; // 上端超出墙壁高度
+      }
+    }
 
     // 2. 检查屏蔽区域
     for (int i = r; i < r + gw; i++) {
@@ -719,7 +916,22 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
         }
       }
 
-      if (r < pf.r + pgw && r + gw > pf.r && c < pf.c + pgh && c + gh > pf.c) {
+      // 高度冲突判定 (判断两个在 Z 轴上的线段是否有重叠，而非仅仅起点接近)
+      // 物品1的范围：[z, z + item.gridH]
+      // 物品2的范围：[pf.z, pf.z + pf.item.gridH]
+      // 重叠条件：max(起始) < min(结束)
+      double z1End = z + item.gridH;
+      double z2End = pf.z + (otherIsWall ? pf.item.gridH : 1); 
+      // 对于地面物品，厚度假设为1
+      
+      bool heightConflict = false;
+      if (item.gridH > 0) { // 避免计算异常情况
+        heightConflict = (z < z2End) && (pf.z < z1End);
+      } else {
+        heightConflict = (z - pf.z).abs() < 1.0; 
+      }
+
+      if (r < pf.r + pgw && r + gw > pf.r && c < pf.c + pgh && c + gh > pf.c && heightConflict) {
         return false;
       }
     }
