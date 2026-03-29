@@ -342,7 +342,7 @@ final List<FurnitureItem> livingRoomItems = [
     intrinsicHeight: 392,
     quantity: 5,
     visualScale: 0.9,
-    visualOffset: const Offset(0, 2),
+    visualOffset: const Offset(0, -3),
     visualRotationX: 0,
     visualRotationY: 0,
     visualRotationZ: 0,

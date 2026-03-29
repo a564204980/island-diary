@@ -56,6 +56,7 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
   // 连贯拖拽相关状态
   bool _isLongPressDragging = false;
   PlacedFurniture? _originalFurnitureData;
+  PlacedFurniture? _draggingOriginalPF; // 当前正在拖拽的原始家具（用于渲染层动态隐藏）
 
   // ui.Image? _bgImage; // 移除未使用的背景图引用
 
@@ -243,19 +244,21 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
                                       _draggingRotation,
                                       converter,
                                       z: _ghostZ,
+                                      exclude: _draggingOriginalPF,
                                     ),
                                     _ghostZ,
                                   )
                                 : null,
+                            draggingOriginalPF: _draggingOriginalPF,
                           ),
                         ),
                       ),
                     ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
           // 2. 全屏拖拽感知层：不随场景变换，覆盖全屏以消除交互死角
           Positioned.fill(
@@ -268,22 +271,32 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
               onAccept: (item) {
                 setState(() => _isInteracting = false);
                 if (_ghostCell != null && item.quantity > 0) {
-                  if (!_isAreaAvailable(item, _ghostCell!.$1, _ghostCell!.$2, _draggingRotation, converter, z: _ghostZ)) {
+                  if (!_isAreaAvailable(item, _ghostCell!.$1, _ghostCell!.$2, _draggingRotation, converter, z: _ghostZ, exclude: _draggingOriginalPF)) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('该区域无法放置家具'), duration: Duration(seconds: 1)));
                     setState(() { _ghostCell = null; _draggingItem = null; });
                     return;
                   }
                   setState(() {
-                    _placedFurniture.add(PlacedFurniture(
+                    final newPf = PlacedFurniture(
                       item: item,
                       r: _ghostCell!.$1,
                       c: _ghostCell!.$2,
                       z: _ghostZ,
                       rotation: _draggingRotation,
-                    ));
-                    item.quantity--;
+                    );
+                    
+                    if (_draggingOriginalPF != null) {
+                      _placedFurniture.remove(_draggingOriginalPF);
+                    } else {
+                      // 只有从底部托盘新拖入的才减少库存
+                      item.quantity--;
+                    }
+                    
+                    _placedFurniture.add(newPf);
+                    _selectedFurniture = newPf;
                     _ghostCell = null;
                     _draggingItem = null;
+                    _draggingOriginalPF = null;
                   });
                   UserState().savePlacedFurniture(_placedFurniture);
                 }
@@ -314,11 +327,12 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
                   HapticFeedback.mediumImpact();
                   setState(() {
                     _originalFurnitureData = hit;
+                    _draggingOriginalPF = hit; // 记录原体，但不下架列表数据
                     _draggingItem = hit.item;
                     _draggingRotation = hit.rotation;
                     _ghostCell = (hit.r, hit.c);
                     _ghostZ = hit.z;
-                    _placedFurniture.remove(hit);
+                    // _placedFurniture.remove(hit); // 此处废弃移除
                     _selectedFurniture = null; // 拖拽开始，先隐藏工具栏
                     _isLongPressDragging = true;
                     _isInteracting = true;
@@ -338,7 +352,15 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
               },
               onLongPressEnd: (details) {
                 if (_isLongPressDragging) {
-                  if (_ghostCell != null && _isAreaAvailable(_draggingItem!, _ghostCell!.$1, _ghostCell!.$2, _draggingRotation, converter, z: _ghostZ)) {
+                  // 精准放置逻辑：检查是否发生了实际位移
+                  final bool hasMoved = _originalFurnitureData == null || 
+                    (_ghostCell?.$1 != _originalFurnitureData!.r || 
+                     _ghostCell?.$2 != _originalFurnitureData!.c || 
+                     _ghostZ != _originalFurnitureData!.z || 
+                     _draggingRotation != _originalFurnitureData!.rotation);
+
+                  if (_ghostCell != null && 
+                      (!hasMoved || _isAreaAvailable(_draggingItem!, _ghostCell!.$1, _ghostCell!.$2, _draggingRotation, converter, z: _ghostZ, exclude: _draggingOriginalPF))) {
                     // 放下并确认新位置
                     final newPf = PlacedFurniture(
                       item: _draggingItem!,
@@ -348,25 +370,22 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
                       rotation: _draggingRotation,
                     );
                     setState(() {
+                      if (_draggingOriginalPF != null) {
+                        _placedFurniture.remove(_draggingOriginalPF); // 成功才执行移除
+                      }
                       _placedFurniture.add(newPf);
                       _selectedFurniture = newPf; // 放下后保持选中态
+                      _isLongPressDragging = false;
+                      _draggingItem = null;
+                      _ghostCell = null;
+                      _draggingOriginalPF = null; // 重置原体标记
+                      _isInteracting = false;
                     });
                     UserState().savePlacedFurniture(_placedFurniture);
                   } else {
-                    // 位置非法，回滚到原始数据
-                    if (_originalFurnitureData != null) {
-                      setState(() {
-                        _placedFurniture.add(_originalFurnitureData!);
-                        _selectedFurniture = _originalFurnitureData;
-                      });
-                    }
+                    // 位置非法或检测失败，回滚
+                    _cancelDragging();
                   }
-                  setState(() {
-                    _isLongPressDragging = false;
-                    _draggingItem = null;
-                    _ghostCell = null;
-                    _isInteracting = false;
-                  });
                 }
               },
               onScaleStart: (details) {
@@ -417,29 +436,17 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
                               _draggingRotation = rot;
                               _ghostCell = cell;
                               _ghostZ = _selectedFurniture?.z ?? 0.0;
-                              item.quantity++;
-                              _placedFurniture.remove(_selectedFurniture!);
+                              _draggingOriginalPF = _selectedFurniture; // 同样记录但不下架
+                              // item.quantity++; // 搬运时不操作库存
                               _selectedFurniture = null;
                             });
                           },
-                          onDragCanceled: () => setState(() { 
-                            _ghostCell = null; 
-                            _draggingItem = null; 
-                          }),
+                          onDragCanceled: _cancelDragging,
                         ),
                         DecorationToolbar(
                           pf: _selectedFurniture!,
                           converter: converter,
-                          onRotate: () {
-                            final pf = _selectedFurniture!;
-                            final nextRotation = (pf.rotation + 1) % 4;
-                            if (_isAreaAvailable(pf.item, pf.r, pf.c, nextRotation, converter, exclude: pf)) {
-                              setState(() => pf.rotation = nextRotation);
-                              UserState().savePlacedFurniture(_placedFurniture);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('该方向位置冲突，无法旋转'), duration: Duration(seconds: 1)));
-                            }
-                          },
+                          onRotate: () => _handleRotation(converter),
                           onDelete: () {
                             setState(() {
                               _placedFurniture.remove(_selectedFurniture!);
@@ -707,6 +714,34 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
         ),
       ),
     );
+  }
+
+
+  void _handleRotation(IsometricCoordinateConverter converter) {
+    final pf = _selectedFurniture!;
+    final nextRotation = (pf.rotation + 1) % 4;
+    if (_isAreaAvailable(pf.item, pf.r, pf.c, nextRotation, converter, exclude: pf)) {
+      setState(() => pf.rotation = nextRotation);
+      UserState().savePlacedFurniture(_placedFurniture);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('该方向位置冲突，无法旋转'), duration: Duration(seconds: 1)));
+    }
+  }
+
+  /// 统一处理拖拽取消或回滚
+  void _cancelDragging() {
+    setState(() {
+      // 核心改动：由于原始数据从未离开 _placedFurniture，
+      // 我们在此处无需重新 add()，只需清理状态。
+      // 对于新拖入的家具（非房间原有），_draggingOriginalPF 为 null。
+      
+      _isLongPressDragging = false;
+      _draggingItem = null;
+      _ghostCell = null;
+      _originalFurnitureData = null;
+      _draggingOriginalPF = null; // 清理搬运标识
+      _isInteracting = false;
+    });
   }
 
 
