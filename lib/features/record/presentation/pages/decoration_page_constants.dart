@@ -4,6 +4,7 @@ const int kGridCols = 24;
 const double kGridCenterYFactorIPad = 0.55;
 const double kGridCenterYFactorPhone = 0.55; 
 const double kGridRotationDegree = -0.4; // 整体旋转角度
+const double kGridAspectRatio = 0.57735; // 30度角度: tan(30°) = 0.57735 (2:1 角度为 0.5)
 const double kGridTopTaper = 0.01; // 远端顶点 (0,0) 缩放
 const double kGridBottomTaper = 0.06; // 近端顶点 (24,24) 缩放
 const double kGridLeftTaper = 0; // 左端顶点 (0,24) 缩放 (调节左上角)

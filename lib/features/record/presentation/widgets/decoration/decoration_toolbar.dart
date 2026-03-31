@@ -9,6 +9,7 @@ class DecorationToolbar extends StatelessWidget {
   final VoidCallback onRotate;
   final VoidCallback onDelete;
   final VoidCallback onFillAll;
+  final Offset layoutOffset;
 
   const DecorationToolbar({
     super.key,
@@ -17,6 +18,7 @@ class DecorationToolbar extends StatelessWidget {
     required this.onRotate,
     required this.onDelete,
     required this.onFillAll,
+    this.layoutOffset = Offset.zero,
   });
 
   @override
@@ -50,22 +52,31 @@ class DecorationToolbar extends StatelessWidget {
 
     final pt = converter.getScreenPoint(centerR, centerC, wallZ);
 
-    // 3. 计算垂直偏移 (Vertical Offset)
+    // 3. 计算对齐与偏移 (垂直位置)
     final double finalTop;
+    final double s = converter.getTaperScale(centerR, centerC);
+    
     if (pf.item.isWall) {
-      // 墙壁工具栏直接浮动在顶端探测点上方
-      finalTop = pt.dy - 60 + pf.item.visualOffset.dy;
+      // 墙壁工具栏：基于贴图实际高度进行浮动，防止遮挡高挑家具
+      final double visualW = (pf.item.gridW * converter.tw / 2) * s * pf.item.visualScale;
+      final double spriteH = visualW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
+      
+      // 计算底边基准点
+      final basePt = converter.getScreenPoint(centerR, centerC, pf.z);
+      
+      // 向上大幅偏移 70 像素，确保在任何高挑家具（如落地窗、高挂帘）上方都有足够呼吸空间
+      finalTop = basePt.dy - spriteH - 70 + pf.item.visualOffset.dy;
     } else {
-      // 家具类沿用广告牌高度补偿算法
+      // 家具类：沿用高度补偿算法，并保持 30 像素间距
       final double visualW = converter.estimateVisualWidth(gw, gh, centerR, centerC, pf.item.visualScale);
       final double spriteH = visualW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
       final double verticalOffset = visualW / 4.0;
-      finalTop = pt.dy + verticalOffset - spriteH - 70 + pf.item.visualOffset.dy;
+      finalTop = pt.dy + verticalOffset - spriteH - 30 + pf.item.visualOffset.dy;
     }
 
     return Positioned(
-      left: pt.dx - 50 + pf.item.visualOffset.dx,
-      top: finalTop,
+      left: pt.dx - 50 + pf.item.visualOffset.dx + layoutOffset.dx,
+      top: finalTop + layoutOffset.dy,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(

@@ -32,7 +32,7 @@ class FurnitureItem {
     required this.id,
     required this.name,
     required this.imagePath,
-    required this.spriteRect,
+    this.spriteRect = const Rect.fromLTWH(0, 0, 1, 1),
     required this.category,
     required this.subCategory,
     this.gridW = 1,

@@ -17,4 +17,23 @@ final List<FurnitureItem> wallItems = [
     quantity: 99,
     visualScale: 1.0,
   ),
+
+  FurnitureItem(
+    id: 'wall_window_1',
+    name: '窗户 1',
+    imagePath: 'assets/images/decoration/furniture/window1.png',
+    category: '墙壁',
+    subCategory: '装饰',
+    gridW: 5,
+    gridH: 7,
+    intrinsicWidth: 365,
+    intrinsicHeight: 710,
+    quantity: 5,
+    visualScale: 1.0,
+    visualOffset: Offset.zero,
+    visualRotationX: 0,
+    visualRotationY: 0,
+    visualRotationZ: 0,
+    visualPivot: Offset.zero,
+  ),
 ];

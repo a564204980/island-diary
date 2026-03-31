@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:vector_math/vector_math_64.dart' hide Colors;
-import 'dart:ui' as ui;
 import '../../domain/models/furniture_item.dart';
 import '../../domain/models/placed_furniture.dart';
 import '../utils/isometric_coordinate_utils.dart';
@@ -14,10 +13,10 @@ class IsometricGridPainter extends CustomPainter {
   final double fullWidth;
   final double fullHeight;
   final List<PlacedFurniture> placedItems;
-  final (FurnitureItem, (int, int)?, int, bool, double)? ghostItem; 
-  final bool isInteracting; 
-  final double currentScale; 
-  final bool showGrid; 
+  final (FurnitureItem, (int, int)?, int, bool, double)? ghostItem;
+  final bool isInteracting;
+  final double currentScale;
+  final bool showGrid;
   final (int, int)? selectedCell;
   final PlacedFurniture? selectedFurniture;
   final PlacedFurniture? draggingOriginalPF;
@@ -57,9 +56,9 @@ class IsometricGridPainter extends CustomPainter {
     canvas.rotate(kGridRotationDegree * math.pi / 180);
     canvas.translate(-centerX, -centerY);
 
-    // 单个菱形格子的尺寸 (2:1 比例)
+    // 单个菱形格子的尺寸
     final double tw = fullWidth / 28;
-    final double th = tw / 2;
+    final double th = tw * kGridAspectRatio;
 
     // 初始化统一的坐标转换工具
     final converter = IsometricCoordinateConverter(
@@ -69,28 +68,34 @@ class IsometricGridPainter extends CustomPainter {
       th: th,
     );
 
-
     // 如果正在截图或用户手动关闭网格，跳过网格线和序号的绘制
     if (showGrid && !isCapturing) {
       // --- 1. 绘制地面网格 (XY 平面) ---
       for (int j = 0; j <= cols; j++) {
         for (int i = 0; i < rows; i++) {
           final start = converter.getScreenPoint(i.toDouble(), j.toDouble());
-          final end = converter.getScreenPoint((i + 1).toDouble(), j.toDouble());
+          final end = converter.getScreenPoint(
+            (i + 1).toDouble(),
+            j.toDouble(),
+          );
           canvas.drawLine(start, end, paint);
         }
       }
       for (int i = 0; i <= rows; i++) {
         for (int j = 0; j < cols; j++) {
           final start = converter.getScreenPoint(i.toDouble(), j.toDouble());
-          final end = converter.getScreenPoint(i.toDouble(), (j + 1).toDouble());
+          final end = converter.getScreenPoint(
+            i.toDouble(),
+            (j + 1).toDouble(),
+          );
           canvas.drawLine(start, end, paint);
         }
       }
 
       // --- 3. 绘制地面网格坐标序号 (性能大户：交互时或缩放过小时隐藏) ---
-      final bool shouldShowLabels = showGrid && !isCapturing && !isInteracting && currentScale >= 1.2;
-      
+      final bool shouldShowLabels =
+          showGrid && !isCapturing && !isInteracting && currentScale >= 1.2;
+
       if (shouldShowLabels) {
         final textStyle = TextStyle(
           color: Colors.white.withOpacity(0.35),
@@ -101,16 +106,16 @@ class IsometricGridPainter extends CustomPainter {
         for (int i = 0; i < rows; i++) {
           for (int j = 0; j < cols; j++) {
             final center = converter.getScreenPoint(i + 0.5, j + 0.5);
-            
+
             final textPainter = TextPainter(
               text: TextSpan(text: '$i,$j', style: textStyle),
               textDirection: TextDirection.ltr,
             );
             textPainter.layout();
-            
+
             textPainter.paint(
-              canvas, 
-              center - Offset(textPainter.width / 2, textPainter.height / 2)
+              canvas,
+              center - Offset(textPainter.width / 2, textPainter.height / 2),
             );
           }
         }
@@ -158,7 +163,11 @@ class IsometricGridPainter extends CustomPainter {
       // 左后墙 (XZ 面, 沿 j=0)
       for (int i = 0; i <= rows; i++) {
         final bottom = converter.getScreenPoint(i.toDouble(), 0);
-        final top = converter.getScreenPoint(i.toDouble(), 0, kWallGridHeight.toDouble());
+        final top = converter.getScreenPoint(
+          i.toDouble(),
+          0,
+          kWallGridHeight.toDouble(),
+        );
         canvas.drawLine(bottom, top, wallPaint);
       }
       for (int z = 1; z <= kWallGridHeight; z++) {
@@ -170,7 +179,11 @@ class IsometricGridPainter extends CustomPainter {
       // 右后墙 (YZ 面, 沿 i=0)
       for (int j = 0; j <= cols; j++) {
         final bottom = converter.getScreenPoint(0, j.toDouble());
-        final top = converter.getScreenPoint(0, j.toDouble(), kWallGridHeight.toDouble());
+        final top = converter.getScreenPoint(
+          0,
+          j.toDouble(),
+          kWallGridHeight.toDouble(),
+        );
         canvas.drawLine(bottom, top, wallPaint);
       }
       for (int z = 1; z <= kWallGridHeight; z++) {
@@ -178,16 +191,30 @@ class IsometricGridPainter extends CustomPainter {
         final end = converter.getScreenPoint(0, cols.toDouble(), z.toDouble());
         canvas.drawLine(start, end, wallPaint);
       }
-
     }
 
     // --- 分层渲染：将地板与其他物体分离，并过滤掉正在被搬动的“虚体” ---
-    final floors = placedItems.where((pf) => pf.item.isFloor && pf != draggingOriginalPF).toList();
-    final others = placedItems.where((pf) => !pf.item.isFloor && pf != draggingOriginalPF).toList();
+    final floors = placedItems
+        .where((pf) => pf.item.isFloor && pf != draggingOriginalPF)
+        .toList();
+    final others = placedItems
+        .where((pf) => !pf.item.isFloor && pf != draggingOriginalPF)
+        .toList();
 
     // 1. 绘制地板层
     for (final pf in floors) {
-      _drawFurniture(canvas, pf.item, pf.r, pf.c, pf.z, converter, tw, th, 1.0, pf.rotation);
+      _drawFurniture(
+        canvas,
+        pf.item,
+        pf.r,
+        pf.c,
+        pf.z,
+        converter,
+        tw,
+        th,
+        1.0,
+        pf.rotation,
+      );
     }
 
     if (selectedFurniture != null && selectedFurniture!.item.isFloor) {
@@ -212,14 +239,34 @@ class IsometricGridPainter extends CustomPainter {
       if (pf == selectedFurniture) {
         _drawSelectionFootprint(canvas, pf, converter, tw, th);
       }
-      _drawFurniture(canvas, pf.item, pf.r, pf.c, pf.z, converter, tw, th, 1.0, pf.rotation);
+      _drawFurniture(
+        canvas,
+        pf.item,
+        pf.r,
+        pf.c,
+        pf.z,
+        converter,
+        tw,
+        th,
+        1.0,
+        pf.rotation,
+      );
     }
 
     // --- 绘制拖拽预览 (Ghost) ---
     if (ghostItem != null && ghostItem!.$2 != null) {
       _drawFurniture(
-        canvas, ghostItem!.$1, ghostItem!.$2!.$1, ghostItem!.$2!.$2, ghostItem!.$5, 
-        converter, tw, th, 0.5, ghostItem!.$3, ghostItem!.$4,
+        canvas,
+        ghostItem!.$1,
+        ghostItem!.$2!.$1,
+        ghostItem!.$2!.$2,
+        ghostItem!.$5,
+        converter,
+        tw,
+        th,
+        0.5,
+        ghostItem!.$3,
+        ghostItem!.$4,
       );
     }
 
@@ -229,19 +276,33 @@ class IsometricGridPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _drawSelectionFootprint(Canvas canvas, PlacedFurniture pf, IsometricCoordinateConverter converter, double tw, double th) {
+  void _drawSelectionFootprint(
+    Canvas canvas,
+    PlacedFurniture pf,
+    IsometricCoordinateConverter converter,
+    double tw,
+    double th,
+  ) {
     final Offset p0, p1, p2, p3;
     if (pf.item.isWall) {
       final double h = pf.item.gridH.toDouble();
       final double l = pf.item.gridW.toDouble();
-      final double baseZ = pf.z; 
+      final double baseZ = pf.z;
       if (pf.rotation % 2 == 0) {
-        p0 = converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), baseZ + h);
+        p0 = converter.getScreenPoint(
+          pf.r.toDouble(),
+          pf.c.toDouble(),
+          baseZ + h,
+        );
         p1 = converter.getScreenPoint(pf.r + l, pf.c.toDouble(), baseZ + h);
         p2 = converter.getScreenPoint(pf.r + l, pf.c.toDouble(), baseZ);
         p3 = converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), baseZ);
       } else {
-        p0 = converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), baseZ + h);
+        p0 = converter.getScreenPoint(
+          pf.r.toDouble(),
+          pf.c.toDouble(),
+          baseZ + h,
+        );
         p1 = converter.getScreenPoint(pf.r.toDouble(), pf.c + l, baseZ + h);
         p2 = converter.getScreenPoint(pf.r.toDouble(), pf.c + l, baseZ);
         p3 = converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), baseZ);
@@ -249,50 +310,129 @@ class IsometricGridPainter extends CustomPainter {
     } else {
       int gw = pf.item.gridW;
       int gh = pf.item.gridH;
-      if (pf.rotation % 2 != 0) { gw = pf.item.gridH; gh = pf.item.gridW; }
+      if (pf.rotation % 2 != 0) {
+        gw = pf.item.gridH;
+        gh = pf.item.gridW;
+      }
       p0 = converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), pf.z);
-      p1 = converter.getScreenPoint((pf.r + gw).toDouble(), pf.c.toDouble(), pf.z);
-      p2 = converter.getScreenPoint((pf.r + gw).toDouble(), (pf.c + gh).toDouble(), pf.z);
-      p3 = converter.getScreenPoint(pf.r.toDouble(), (pf.c + gh).toDouble(), pf.z);
+      p1 = converter.getScreenPoint(
+        (pf.r + gw).toDouble(),
+        pf.c.toDouble(),
+        pf.z,
+      );
+      p2 = converter.getScreenPoint(
+        (pf.r + gw).toDouble(),
+        (pf.c + gh).toDouble(),
+        pf.z,
+      );
+      p3 = converter.getScreenPoint(
+        pf.r.toDouble(),
+        (pf.c + gh).toDouble(),
+        pf.z,
+      );
     }
-    final path = Path()..moveTo(p0.dx, p0.dy)..lineTo(p1.dx, p1.dy)..lineTo(p2.dx, p2.dy)..lineTo(p3.dx, p3.dy)..close();
-    canvas.drawPath(path, Paint()..color = Colors.yellow.withOpacity(0.2)..style = PaintingStyle.fill);
-    canvas.drawPath(path, Paint()..color = Colors.yellow..style = PaintingStyle.stroke..strokeWidth = 3.0);
+    final path = Path()
+      ..moveTo(p0.dx, p0.dy)
+      ..lineTo(p1.dx, p1.dy)
+      ..lineTo(p2.dx, p2.dy)
+      ..lineTo(p3.dx, p3.dy)
+      ..close();
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.yellow.withOpacity(0.2)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.yellow
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.0,
+    );
   }
 
-  void _drawFurniture(Canvas canvas, FurnitureItem item, int r, int c, double z, IsometricCoordinateConverter converter, double tw, double th, double opacity, [int rotation = 0, bool isValid = true]) {
-    int gw = item.gridW; int gh = item.gridH;
-    if (rotation % 2 != 0) { gw = item.gridH; gh = item.gridW; }
+  void _drawFurniture(
+    Canvas canvas,
+    FurnitureItem item,
+    int r,
+    int c,
+    double z,
+    IsometricCoordinateConverter converter,
+    double tw,
+    double th,
+    double opacity, [
+    int rotation = 0,
+    bool isValid = true,
+  ]) {
+    int gw = item.gridW;
+    int gh = item.gridH;
+    if (rotation % 2 != 0) {
+      gw = item.gridH;
+      gh = item.gridW;
+    }
     final bool isBack = (rotation == 1 || rotation == 2);
-    final double vScale = isBack ? (item.backVisualScale ?? item.visualScale) : item.visualScale;
-    final Offset vOffset = isBack ? (item.backVisualOffset ?? item.visualOffset) : item.visualOffset;
-    final double vRotX = isBack ? (item.backVisualRotationX ?? item.visualRotationX) : item.visualRotationX;
-    final double vRotY = isBack ? (item.backVisualRotationY ?? item.visualRotationY) : item.visualRotationY;
-    final double vRotZ = isBack ? (item.backVisualRotationZ ?? item.visualRotationZ) : item.visualRotationZ;
-    final Offset vPivot = isBack ? (item.backVisualPivot ?? item.visualPivot) : item.visualPivot;
-    int faceIndex = 0; bool isFlipped = false;
+    final double vScale = isBack
+        ? (item.backVisualScale ?? item.visualScale)
+        : item.visualScale;
+    final Offset vOffset = isBack
+        ? (item.backVisualOffset ?? item.visualOffset)
+        : item.visualOffset;
+    final double vRotX = isBack
+        ? (item.backVisualRotationX ?? item.visualRotationX)
+        : item.visualRotationX;
+    final double vRotY = isBack
+        ? (item.backVisualRotationY ?? item.visualRotationY)
+        : item.visualRotationY;
+    final double vRotZ = isBack
+        ? (item.backVisualRotationZ ?? item.visualRotationZ)
+        : item.visualRotationZ;
+    final Offset vPivot = isBack
+        ? (item.backVisualPivot ?? item.visualPivot)
+        : item.visualPivot;
+    int faceIndex = 0;
+    bool isFlipped = rotation == 1;
+    // 兼容原有多帧素材判断逻辑，如果宽度接近1则视为单面素材
     if (item.spriteRect.width < 0.9) {
-      switch (rotation) {
-        case 0: faceIndex = 0; isFlipped = false; break;
-        case 1: faceIndex = 1; isFlipped = false; break;
-        case 2: faceIndex = 1; isFlipped = true; break;
-        case 3: faceIndex = 0; isFlipped = true; break;
-      }
-    } else { isFlipped = (rotation == 1 || rotation == 3); }
+      // 这里的逻辑可以保留或者移除，由于我们要切换到单面，这里简化
+      faceIndex = 0;
+    }
+
     final p0 = converter.getScreenPoint(r.toDouble(), c.toDouble());
     final p1 = converter.getScreenPoint((r + gw).toDouble(), c.toDouble());
-    final p2 = converter.getScreenPoint((r + gw).toDouble(), (c + gh).toDouble());
+    final p2 = converter.getScreenPoint(
+      (r + gw).toDouble(),
+      (c + gh).toDouble(),
+    );
     final p3 = converter.getScreenPoint(r.toDouble(), (c + gh).toDouble());
-    final paint = Paint()..color = (isValid ? Colors.black : Colors.red).withOpacity(0.6 * opacity)..style = PaintingStyle.fill;
+    final paint = Paint()
+      ..color = (isValid ? Colors.black : Colors.red).withOpacity(0.6 * opacity)
+      ..style = PaintingStyle.fill;
     if (!item.isWall) {
-      final path = Path()..moveTo(p0.dx, p0.dy)..lineTo(p1.dx, p1.dy)..lineTo(p2.dx, p2.dy)..lineTo(p3.dx, p3.dy)..close();
+      final path = Path()
+        ..moveTo(p0.dx, p0.dy)
+        ..lineTo(p1.dx, p1.dy)
+        ..lineTo(p2.dx, p2.dy)
+        ..lineTo(p3.dx, p3.dy)
+        ..close();
       canvas.drawPath(path, paint);
     }
     final image = SpritePainter.getImage(item.imagePath);
     if (image != null) {
       if (item.isFloor) {
-        final src = Rect.fromLTWH((item.spriteRect.left + faceIndex * item.spriteRect.width) * image.width, item.spriteRect.top * image.height, item.spriteRect.width * image.width, item.spriteRect.height * image.height);
-        final clipPath = Path()..moveTo(p0.dx, p0.dy)..lineTo(p1.dx, p1.dy)..lineTo(p2.dx, p2.dy)..lineTo(p3.dx, p3.dy)..close();
+        final src = Rect.fromLTWH(
+          (item.spriteRect.left + faceIndex * item.spriteRect.width) *
+              image.width,
+          item.spriteRect.top * image.height,
+          item.spriteRect.width * image.width,
+          item.spriteRect.height * image.height,
+        );
+        final clipPath = Path()
+          ..moveTo(p0.dx, p0.dy)
+          ..lineTo(p1.dx, p1.dy)
+          ..lineTo(p2.dx, p2.dy)
+          ..lineTo(p3.dx, p3.dy)
+          ..close();
         final double minX = [p0.dx, p1.dx, p2.dx, p3.dx].reduce(math.min);
         final double maxX = [p0.dx, p1.dx, p2.dx, p3.dx].reduce(math.max);
         final double minY = [p0.dy, p1.dy, p2.dy, p3.dy].reduce(math.min);
@@ -306,59 +446,178 @@ class IsometricGridPainter extends CustomPainter {
           canvas.rotate(item.visualRotationZ * math.pi / 180);
           canvas.translate(-center.dx, -center.dy);
         }
-        canvas.drawImageRect(image, src, dst, Paint()..color = Colors.white.withOpacity(opacity)..filterQuality = FilterQuality.medium);
+        canvas.drawImageRect(
+          image,
+          src,
+          dst,
+          Paint()
+            ..color = Colors.white.withOpacity(opacity)
+            ..filterQuality = FilterQuality.medium,
+        );
         canvas.restore();
       } else if (item.isWall) {
-        final double h = item.gridH.toDouble(); final double l = item.gridW.toDouble();
-        List<Offset> wallPoints;
-        if (rotation % 2 == 0) {
-          wallPoints = [converter.getScreenPoint(r.toDouble(), c.toDouble(), z + h), converter.getScreenPoint(r + l, c.toDouble(), z + h), converter.getScreenPoint(r + l, c.toDouble(), z), converter.getScreenPoint(r.toDouble(), c.toDouble(), z)];
-        } else {
-          wallPoints = [converter.getScreenPoint(r.toDouble(), c.toDouble(), z + h), converter.getScreenPoint(r.toDouble(), c + l, z + h), converter.getScreenPoint(r.toDouble(), c + l, z), converter.getScreenPoint(r.toDouble(), c.toDouble(), z)];
+        // --- 墙面项专用：原图回归方案 (Treat as pre-rendered isometric) ---
+        final double s = converter.getTaperScale(r.toDouble(), c.toDouble());
+        final bool isLeftWall = rotation % 2 == 0;
+
+        // 计算在墙面上的参考尺寸 (以格点跨度为基准)
+        final double itemW = (item.gridW * tw / 2) * s * vScale;
+        final double itemH =
+            itemW * (item.intrinsicHeight / item.intrinsicWidth);
+
+        // 计算底边中点 (同步 _drawSelectionFootprint 的坐标系)
+        // 左墙底边中点坐标为 (r + gridW/2, c, z)
+        // 右墙底边中点坐标为 (r, c + gridW/2, z)
+        final double midR = isLeftWall ? r + item.gridW / 2.0 : r.toDouble();
+        final double midC = isLeftWall ? c.toDouble() : c + item.gridW / 2.0;
+        final Offset basePoint = converter.getScreenPoint(midR, midC, z);
+
+        canvas.save();
+        // 1. 移动到基准位置并应用 visualOffset
+        // 为墙面项增加约 10 像素的默认下沉量，以补偿素材视觉落差，使其紧贴黄色底线
+        const double wallBasePadding = 33.0;
+        canvas.translate(
+          basePoint.dx + vOffset.dx,
+          basePoint.dy + wallBasePadding + vOffset.dy,
+        );
+
+        // 2. 镜像翻转处理 (如果是右墙则进行水平镜像)
+        if (rotation == 1) {
+          canvas.scale(-1, 1);
         }
-        final src = Rect.fromLTWH((item.spriteRect.left + faceIndex * item.spriteRect.width) * image.width, item.spriteRect.top * image.height, item.spriteRect.width * image.width, item.spriteRect.height * image.height);
-        final vertices = ui.Vertices(VertexMode.triangleFan, wallPoints, textureCoordinates: [Offset(src.left, src.top), Offset(src.right, src.top), Offset(src.right, src.bottom), Offset(src.left, src.bottom)]);
-        final shaderMatrix = Matrix4.identity()..translate(converter.centerX, converter.centerY)..rotateZ(-kGridRotationDegree * math.pi / 180)..translate(-converter.centerX, -converter.centerY);
-        canvas.drawVertices(vertices, BlendMode.srcOver, Paint()..shader = ui.ImageShader(image, ui.TileMode.clamp, ui.TileMode.clamp, shaderMatrix.storage)..color = (isValid ? Colors.white : Colors.redAccent).withOpacity(opacity)..colorFilter = isValid ? null : const ColorFilter.mode(Colors.red, BlendMode.modulate)..filterQuality = FilterQuality.medium);
+
+        // 3. 处理镜像后可能需要的额外翻转或旋转
+        if (isFlipped) canvas.scale(-1, 1);
+        if (vRotZ != 0) canvas.rotate(vRotZ * math.pi / 180);
+
+        // 4. 绘制原图贴图 (锚点设在底部中心)
+        final dst = Rect.fromLTRB(-itemW / 2, -itemH, itemW / 2, 0);
+        final src = Rect.fromLTWH(
+          (item.spriteRect.left + faceIndex * item.spriteRect.width) *
+              image.width,
+          item.spriteRect.top * image.height,
+          item.spriteRect.width * image.width,
+          item.spriteRect.height * image.height,
+        );
+
+        canvas.drawImageRect(
+          image,
+          src,
+          dst,
+          Paint()
+            ..color = (isValid ? Colors.white : Colors.redAccent).withOpacity(
+              opacity,
+            )
+            ..filterQuality = FilterQuality.medium
+            ..colorFilter = isValid
+                ? null
+                : const ColorFilter.mode(Colors.red, BlendMode.modulate),
+        );
+        canvas.restore();
       } else {
-        final double baseS = converter.getTaperScale(r + gw / 2.0, c + gh / 2.0);
+        final double baseS = converter.getTaperScale(
+          r + gw / 2.0,
+          c + gh / 2.0,
+        );
         final double itemW = tw * (gw + gh) * baseS * 0.5 * vScale;
-        final double itemH = itemW * (item.intrinsicHeight / item.intrinsicWidth);
+        final double itemH =
+            itemW * (item.intrinsicHeight / item.intrinsicWidth);
         final basePoint = converter.getScreenPoint(r + gw / 2.0, c + gh / 2.0);
         canvas.save();
-        canvas.translate(basePoint.dx + vOffset.dx, basePoint.dy + (itemW / 4.0) - (itemH / 2.0) + vOffset.dy);
+        canvas.translate(
+          basePoint.dx + vOffset.dx,
+          basePoint.dy + (itemW / 4.0) - (itemH / 2.0) + vOffset.dy,
+        );
         if (isFlipped) canvas.scale(-1, 1);
-        final dst = Rect.fromCenter(center: Offset.zero, width: itemW, height: itemH);
+        final dst = Rect.fromCenter(
+          center: Offset.zero,
+          width: itemW,
+          height: itemH,
+        );
         if (vRotX != 0 || vRotY != 0 || vRotZ != 0) {
-          final matrix = Matrix4.identity()..translate(vPivot.dx, vPivot.dy)..rotateX(vRotX * math.pi / 180)..rotateY(vRotY * math.pi / 180)..rotateZ(vRotZ * math.pi / 180)..translate(-vPivot.dx, -vPivot.dy);
+          final matrix = Matrix4.identity()
+            ..translate(vPivot.dx, vPivot.dy)
+            ..rotateX(vRotX * math.pi / 180)
+            ..rotateY(vRotY * math.pi / 180)
+            ..rotateZ(vRotZ * math.pi / 180)
+            ..translate(-vPivot.dx, -vPivot.dy);
           canvas.transform(matrix.storage);
         }
-        final src = Rect.fromLTWH((item.spriteRect.left + faceIndex * item.spriteRect.width) * image.width, item.spriteRect.top * image.height, item.spriteRect.width * image.width, item.spriteRect.height * image.height);
-        canvas.drawImageRect(image, src, dst, Paint()..color = (isValid ? Colors.white : Colors.redAccent).withOpacity(opacity)..filterQuality = FilterQuality.low..colorFilter = isValid ? null : const ColorFilter.mode(Colors.red, BlendMode.modulate));
+        final src = Rect.fromLTWH(
+          (item.spriteRect.left + faceIndex * item.spriteRect.width) *
+              image.width,
+          item.spriteRect.top * image.height,
+          item.spriteRect.width * image.width,
+          item.spriteRect.height * image.height,
+        );
+        canvas.drawImageRect(
+          image,
+          src,
+          dst,
+          Paint()
+            ..color = (isValid ? Colors.white : Colors.redAccent).withOpacity(
+              opacity,
+            )
+            ..filterQuality = FilterQuality.low
+            ..colorFilter = isValid
+                ? null
+                : const ColorFilter.mode(Colors.red, BlendMode.modulate),
+        );
         canvas.restore();
       }
     }
   }
 
-  void _drawSelectionCell(Canvas canvas, (int, int) cell, IsometricCoordinateConverter converter, double tw, double th) {
+  void _drawSelectionCell(
+    Canvas canvas,
+    (int, int) cell,
+    IsometricCoordinateConverter converter,
+    double tw,
+    double th,
+  ) {
     final p0 = converter.getScreenPoint(cell.$1.toDouble(), cell.$2.toDouble());
-    final p1 = converter.getScreenPoint((cell.$1 + 1).toDouble(), cell.$2.toDouble());
-    final p2 = converter.getScreenPoint((cell.$1 + 1).toDouble(), (cell.$2 + 1).toDouble());
-    final p3 = converter.getScreenPoint(cell.$1.toDouble(), (cell.$2 + 1).toDouble());
-    final path = Path()..moveTo(p0.dx, p0.dy)..lineTo(p1.dx, p1.dy)..lineTo(p2.dx, p2.dy)..lineTo(p3.dx, p3.dy)..close();
-    canvas.drawPath(path, Paint()..color = Colors.blue.withOpacity(0.3)..style = PaintingStyle.fill);
-    canvas.drawPath(path, Paint()..color = Colors.blueAccent..style = PaintingStyle.stroke..strokeWidth = 2.0);
+    final p1 = converter.getScreenPoint(
+      (cell.$1 + 1).toDouble(),
+      cell.$2.toDouble(),
+    );
+    final p2 = converter.getScreenPoint(
+      (cell.$1 + 1).toDouble(),
+      (cell.$2 + 1).toDouble(),
+    );
+    final p3 = converter.getScreenPoint(
+      cell.$1.toDouble(),
+      (cell.$2 + 1).toDouble(),
+    );
+    final path = Path()
+      ..moveTo(p0.dx, p0.dy)
+      ..lineTo(p1.dx, p1.dy)
+      ..lineTo(p2.dx, p2.dy)
+      ..lineTo(p3.dx, p3.dy)
+      ..close();
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.blue.withOpacity(0.3)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.blueAccent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0,
+    );
   }
 
   @override
   bool shouldRepaint(covariant IsometricGridPainter oldDelegate) {
-     return oldDelegate.placedItems != placedItems || 
-           oldDelegate.ghostItem != ghostItem ||
-           oldDelegate.selectedFurniture != selectedFurniture ||
-           oldDelegate.selectedCell != selectedCell ||
-           oldDelegate.isInteracting != isInteracting ||
-           oldDelegate.currentScale != currentScale ||
-           oldDelegate.showGrid != showGrid ||
-           oldDelegate.draggingOriginalPF != draggingOriginalPF;
+    return oldDelegate.placedItems != placedItems ||
+        oldDelegate.ghostItem != ghostItem ||
+        oldDelegate.selectedFurniture != selectedFurniture ||
+        oldDelegate.selectedCell != selectedCell ||
+        oldDelegate.isInteracting != isInteracting ||
+        oldDelegate.currentScale != currentScale ||
+        oldDelegate.showGrid != showGrid ||
+        oldDelegate.draggingOriginalPF != draggingOriginalPF;
   }
 }

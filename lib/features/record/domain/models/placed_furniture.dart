@@ -2,8 +2,8 @@ import 'furniture_item.dart';
 
 class PlacedFurniture {
   final FurnitureItem item;
-  final int r;
-  final int c;
+  int r;
+  int c;
   double z; // 高度坐标 (默认 0)
   int rotation; // 0, 1, 2, 3 (0°, 90°, 180°, 270°)
 
