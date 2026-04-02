@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/slime_onboarding.dart';
@@ -162,11 +163,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildNavItem(0, 'assets/images/icons/ic_home.png', '首页'),
-                          _buildNavItem(1, 'assets/images/icons/ic_write.png', '记录'),
+                          _buildNavItem(0, CupertinoIcons.house, CupertinoIcons.house_fill, '首页'),
+                          _buildNavItem(1, CupertinoIcons.book, CupertinoIcons.book_fill, '记录'),
                           const SizedBox(width: 80),
-                          _buildNavItem(3, 'assets/images/icons/ic_journal.png', '相册'),
-                          _buildNavItem(4, 'assets/images/icons/ic_stting.png', '我'),
+                          _buildNavItem(3, CupertinoIcons.photo_on_rectangle, CupertinoIcons.photo_fill_on_rectangle_fill, '相册'),
+                          _buildNavItem(4, CupertinoIcons.person, CupertinoIcons.person_solid, '我'),
                         ],
                       ),
                     ),
@@ -365,10 +366,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
     );
   }
 
-  Widget _buildNavItem(int index, String assetPath, String label) {
+  Widget _buildNavItem(int index, IconData unselectedIcon, IconData selectedIcon, String label) {
     return Expanded(
       child: NavItem(
-        assetPath: assetPath,
+        defaultIcon: unselectedIcon,
+        activeIcon: selectedIcon,
         label: label,
         index: index,
         currentIndex: widget.currentIndex,

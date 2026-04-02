@@ -32,6 +32,12 @@ class DecorationController extends ChangeNotifier {
   PlacedFurniture? originalFurnitureData;
   PlacedFurniture? draggingOriginalPF; 
 
+  // 果冻弹跳动画相关
+  AnimationController? _bounceController;
+  Animation<double>? _bounceAnimation;
+  PlacedFurniture? bouncingFurniture;
+  double get bounceScale => _bounceAnimation?.value ?? 1.0;
+
   // --- 场景控制 ---
   double currentScale = 0.6;
   Offset sceneOffset = const Offset(-120, 0);
@@ -39,7 +45,23 @@ class DecorationController extends ChangeNotifier {
   bool showGrid = true;
   bool isCapturingSnapshot = false;
 
-  void init(BuildContext context) {
+  void init(BuildContext context, {TickerProvider? vsync}) {
+    if (vsync != null) {
+      _bounceController = AnimationController(
+        vsync: vsync,
+        duration: const Duration(milliseconds: 600),
+      )..addListener(() {
+          notifyListeners();
+        });
+
+      _bounceAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+        CurvedAnimation(
+          parent: _bounceController!,
+          curve: Curves.elasticOut,
+        ),
+      );
+    }
+
     _availableItems = defaultFurnitureItems.map((item) {
       return FurnitureItem(
         id: item.id,
@@ -95,6 +117,12 @@ class DecorationController extends ChangeNotifier {
         notifyListeners();
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _bounceController?.dispose();
+    super.dispose();
   }
 
   // --- 核心业务逻辑 ---
@@ -196,6 +224,11 @@ class DecorationController extends ChangeNotifier {
     _placedFurniture.add(newPf);
     selectedFurniture = newPf;
     _cleanupDragState();
+    
+    // 触发果冻弹跳吸附动画
+    bouncingFurniture = newPf;
+    _bounceController?.forward(from: 0.0);
+
     UserState().savePlacedFurniture(_placedFurniture);
     notifyListeners();
   }

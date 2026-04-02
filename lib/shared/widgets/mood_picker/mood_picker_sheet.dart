@@ -13,7 +13,9 @@ import '../island_button.dart';
 import '../island_alert.dart';
 
 class MoodPickerSheet extends StatefulWidget {
-  const MoodPickerSheet({super.key});
+  final bool isSolidBackground;
+
+  const MoodPickerSheet({super.key, this.isSolidBackground = false});
 
   @override
   State<MoodPickerSheet> createState() => _MoodPickerSheetState();
@@ -148,7 +150,7 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
             child: RepaintBoundary(
               child: CustomPaint(
                 size: const Size(320, 320),
-                painter: MoodPickerBackgroundPainter(),
+                painter: MoodPickerBackgroundPainter(isSolid: widget.isSolidBackground),
               ),
             ).animate().fade(duration: 400.ms).scale(
               duration: 500.ms,
@@ -388,7 +390,7 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
       child: IslandButton(
         text: '确认',
         width: 120,
-        backgroundColor: Colors.white.withValues(alpha: 0.7),
+        backgroundColor: widget.isSolidBackground ? Colors.white : Colors.white.withValues(alpha: 0.7),
         useHandDrawn: false,
         onTap: _submitResult,
       ).animate().fade(delay: 700.ms, duration: 500.ms).scale(

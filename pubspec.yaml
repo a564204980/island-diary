@@ -84,6 +84,7 @@ flutter:
     - assets/images/
     - assets/images/decoration/furniture/
     - assets/images/decoration/floors/
+    - assets/images/decoration/carpets/
     - assets/images/icons/
     - assets/images/emoji/
     - assets/images/emoji/wechat/face/

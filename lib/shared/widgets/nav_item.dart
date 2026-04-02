@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class NavItem extends StatefulWidget {
-  final String assetPath;
+  final IconData defaultIcon;
+  final IconData? activeIcon;
   final String label;
   final int index;
   final int currentIndex;
@@ -12,7 +13,8 @@ class NavItem extends StatefulWidget {
 
   const NavItem({
     super.key,
-    required this.assetPath,
+    required this.defaultIcon,
+    this.activeIcon,
     required this.label,
     required this.index,
     required this.currentIndex,
@@ -65,12 +67,17 @@ class _NavItemState extends State<NavItem> {
                       ],
                     ),
                   ).animate().fade(duration: 400.ms),
-                Image.asset(
-                      widget.assetPath,
-                      width: 40.0,
-                      height: 40.0,
-                      fit: BoxFit.contain,
-                    )
+                Icon(
+                  isSelected ? (widget.activeIcon ?? widget.defaultIcon) : widget.defaultIcon,
+                  size: 28.0,
+                  color: isSelected
+                    ? (widget.isNight
+                        ? const Color(0xFFFFEFA1)
+                        : const Color(0xFF7B5C2E))
+                    : (widget.isNight
+                        ? const Color(0xFFB5B5C9) // 28.0 size
+                        : const Color(0xFF8B7763)),
+                )
                     .animate(target: isSelected ? 1 : 0)
                     .scale(
                       begin: const Offset(0.8, 0.8),

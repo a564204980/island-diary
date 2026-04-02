@@ -11,6 +11,8 @@ import 'package:island_diary/features/record/presentation/widgets/diary_moments_
 import 'package:island_diary/features/record/presentation/widgets/diary_share_card_builder.dart';
 import 'package:island_diary/features/record/presentation/widgets/export_config_dialog.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
+import 'package:island_diary/shared/widgets/mood_picker/mood_picker_sheet.dart';
 import 'package:share_plus/share_plus.dart';
 
 enum DiaryLayoutMode {
@@ -213,26 +215,31 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
 
           Positioned(
             left: 0, right: 0, bottom: 30,
-            child: Center(
-              child: Container(
-                height: 54, padding: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(color: isNight ? const Color(0xFF2C2E30) : Colors.white, borderRadius: BorderRadius.circular(27), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 10, offset: const Offset(0, 4))]),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildToolBtn(Icons.search_rounded, () {
-                      showModalBottomSheet(
-                        context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
-                        builder: (context) => DiarySearchPanel(isNight: isNight, initialDate: _selectedDate, onSearch: (q, m, d) { setState(() { _searchQuery = q; _filterMoodIndex = m; if (d != null) _selectedDate = d; }); }, onClear: () { setState(() { _searchQuery = ""; _filterMoodIndex = null; _selectedDate = null; }); }),
-                      );
-                    }, isNight: isNight),
-                    const SizedBox(width: 40),
-                    GestureDetector(onTap: widget.onClose, child: Icon(Icons.close_rounded, size: 28, color: isNight ? Colors.white70 : Colors.black87)),
-                    const SizedBox(width: 40),
-                    _buildToolBtn(_getLayoutIcon(), _cycleLayoutMode, isNight: isNight, isActive: _layoutMode != DiaryLayoutMode.timeline),
-                  ],
-                ),
-              ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.9, 0.9)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  height: 54, padding: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(color: isNight ? const Color(0xFF2C2E30) : Colors.white, borderRadius: BorderRadius.circular(27), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 10, offset: const Offset(0, 4))]),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildToolBtn(Icons.search_rounded, () {
+                        showModalBottomSheet(
+                          context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
+                          builder: (context) => DiarySearchPanel(isNight: isNight, initialDate: _selectedDate, onSearch: (q, m, d) { setState(() { _searchQuery = q; _filterMoodIndex = m; if (d != null) _selectedDate = d; }); }, onClear: () { setState(() { _searchQuery = ""; _filterMoodIndex = null; _selectedDate = null; }); }),
+                        );
+                      }, isNight: isNight),
+                      const SizedBox(width: 40),
+                      GestureDetector(onTap: widget.onClose, child: Icon(Icons.close_rounded, size: 28, color: isNight ? Colors.white70 : Colors.black87)),
+                      const SizedBox(width: 40),
+                      _buildToolBtn(_getLayoutIcon(), _cycleLayoutMode, isNight: isNight, isActive: _layoutMode != DiaryLayoutMode.timeline),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.9, 0.9)),
+                const SizedBox(width: 16),
+                _buildAddButton(isNight),
+              ],
             ),
           ),
 
@@ -288,6 +295,82 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
 
   Widget _buildToolBtn(IconData icon, VoidCallback onTap, {bool isNight = false, bool isActive = false}) {
     return GestureDetector(onTap: onTap, child: Icon(icon, size: 24, color: isActive ? const Color(0xFFD4A373) : (isNight ? Colors.white54 : Colors.black.withOpacity(0.4))));
+  }
+
+  Widget _buildAddButton(bool isNight) {
+    return GestureDetector(
+      onTap: _openNewDiary,
+      child: Container(
+        width: 54, height: 54,
+        decoration: BoxDecoration(
+          color: const Color(0xFFD4A373),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFD4A373).withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: const Icon(
+          Icons.add_rounded,
+          size: 32,
+          color: Colors.white,
+        ),
+      ).animate().fadeIn(delay: 250.ms).scale(begin: const Offset(0.9, 0.9)),
+    );
+  }
+
+  Future<void> _openNewDiary() async {
+    final draft = UserState().diaryDraft.value;
+    if (draft != null) {
+      UserState().isDiarySheetOpen.value = true;
+      await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DiaryEditorPage(
+            moodIndex: draft.moodIndex,
+            intensity: draft.intensity,
+            tag: draft.tag,
+          ),
+        ),
+      );
+      UserState().isDiarySheetOpen.value = false;
+      return;
+    }
+
+    final result = await showGeneralDialog<Map<String, dynamic>>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'MoodPicker',
+      barrierColor: Colors.black.withOpacity(0.6),
+      transitionDuration: const Duration(milliseconds: 500),
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curvedAnimation = CurvedAnimation(parent: animation, curve: Curves.easeOutBack);
+        return Transform.scale(
+          scale: curvedAnimation.value,
+          alignment: const Alignment(0.0, 0.8),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+      pageBuilder: (context, anim1, anim2) => const MoodPickerSheet(isSolidBackground: true),
+    );
+
+    if (result != null && mounted) {
+      UserState().isDiarySheetOpen.value = true;
+      await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DiaryEditorPage(
+            moodIndex: result['index'],
+            intensity: result['intensity'],
+            tag: result['tag'],
+          ),
+        ),
+      );
+      UserState().isDiarySheetOpen.value = false;
+    }
   }
 }
 

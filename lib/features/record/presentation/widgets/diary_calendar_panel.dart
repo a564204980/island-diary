@@ -63,7 +63,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
       valueListenable: UserState().savedDiaries,
       builder: (context, allDiaries, _) {
         // 计算最早记录月份距离当前的总月数，以限制日历无限往回滚
-        int maxMonths = 36;
+        int maxMonths = 1;
         if (allDiaries.isNotEmpty) {
           DateTime earliest = allDiaries.first.dateTime;
           for (var d in allDiaries) {
@@ -72,6 +72,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
             }
           }
           final monthDiff = (_now.year - earliest.year) * 12 + (_now.month - earliest.month) + 1;
+          // 最多展示到最早记录的那个月（且至少展示当月）
           maxMonths = monthDiff > 0 ? monthDiff : 1;
         }
 
@@ -87,32 +88,48 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
             final bool isWide = constraints.maxWidth > 700;
             final int crossAxisCount = isWide ? 2 : 1;
 
+            final int calculatedItemCount = _loadedMonths < maxMonths ? _loadedMonths : maxMonths;
+
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: GridView.builder(
+              child: ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.only(top: 16, bottom: 80),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: isWide ? 0.74 : 0.72,
-                  mainAxisExtent: isWide ? 520 : null,
-                ),
-                itemCount: _loadedMonths < maxMonths ? _loadedMonths : maxMonths, // 只渲染已上线加载且不超过最早记录的月份
-                itemBuilder: (context, index) {
-                  final month = _getMonthForIndex(index);
-                  final k = "${month.year}-${month.month}";
-                  final monthDiaries = monthMap[k] ?? [];
+                itemCount: (calculatedItemCount / crossAxisCount).ceil(),
+                itemBuilder: (context, rowIndex) {
+                  final List<Widget> rowChildren = [];
+                  for (int i = 0; i < crossAxisCount; i++) {
+                    final index = rowIndex * crossAxisCount + i;
+                    if (index < calculatedItemCount) {
+                      final month = _getMonthForIndex(index);
+                      final k = "${month.year}-${month.month}";
+                      final monthDiaries = monthMap[k] ?? [];
 
-                  return _MonthSection(
-                    index: index,
-                    month: month,
-                    isNight: widget.isNight,
-                    onDateSelected: widget.onDateSelected,
-                    onShareMonth: widget.onShareMonth,
-                    showWeekdayHeader: true,
-                    monthDiaries: monthDiaries,
+                      rowChildren.add(
+                        Expanded(
+                          child: _MonthSection(
+                            index: index,
+                            month: month,
+                            isNight: widget.isNight,
+                            onDateSelected: widget.onDateSelected,
+                            onShareMonth: widget.onShareMonth,
+                            showWeekdayHeader: true,
+                            monthDiaries: monthDiaries,
+                          ),
+                        ),
+                      );
+                    } else {
+                      rowChildren.add(const Expanded(child: SizedBox.shrink()));
+                    }
+
+                    if (i < crossAxisCount - 1) {
+                      rowChildren.add(const SizedBox(width: 8));
+                    }
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: rowChildren,
                   );
                 },
               ),

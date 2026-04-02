@@ -3,13 +3,17 @@ import 'package:flutter/material.dart';
 
 /// 自定义绘制带突起的背景
 class MoodPickerBackgroundPainter extends CustomPainter {
+  final bool isSolid;
+
+  MoodPickerBackgroundPainter({this.isSolid = false});
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
 
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.6)
+      ..color = isSolid ? Colors.white : Colors.white.withValues(alpha: 0.6)
       ..style = PaintingStyle.fill;
 
     // ======= 连续路径重塑：确保背景完整且无缝 =======
@@ -81,5 +85,7 @@ class MoodPickerBackgroundPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant MoodPickerBackgroundPainter oldDelegate) {
+    return oldDelegate.isSolid != isSolid;
+  }
 }

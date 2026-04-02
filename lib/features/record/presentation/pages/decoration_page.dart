@@ -15,7 +15,7 @@ class DecorationPage extends StatefulWidget {
   State<DecorationPage> createState() => _DecorationPageState();
 }
 
-class _DecorationPageState extends State<DecorationPage> with SingleTickerProviderStateMixin {
+class _DecorationPageState extends State<DecorationPage> with TickerProviderStateMixin {
   late DecorationController _controller;
   final GlobalKey _gridKey = GlobalKey();
   final GlobalKey _repaintKey = GlobalKey();
@@ -29,7 +29,7 @@ class _DecorationPageState extends State<DecorationPage> with SingleTickerProvid
   void initState() {
     super.initState();
     _controller = DecorationController();
-    _controller.init(context);
+    _controller.init(context, vsync: this);
     
     _controller.addListener(_onControllerUpdate);
 

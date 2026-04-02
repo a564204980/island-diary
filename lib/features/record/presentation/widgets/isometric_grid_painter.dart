@@ -22,6 +22,8 @@ class IsometricGridPainter extends CustomPainter {
   final PlacedFurniture? draggingOriginalPF;
   final double centerYFactor;
   final bool isCapturing;
+  final PlacedFurniture? bouncingItem;
+  final double bounceScale;
 
   IsometricGridPainter({
     required this.rows,
@@ -38,6 +40,8 @@ class IsometricGridPainter extends CustomPainter {
     this.isInteracting = false,
     this.currentScale = 1.0,
     this.draggingOriginalPF,
+    this.bouncingItem,
+    this.bounceScale = 1.0,
   });
 
   @override
@@ -203,6 +207,7 @@ class IsometricGridPainter extends CustomPainter {
 
     // 1. 绘制地板层
     for (final pf in floors) {
+      final double bScale = (pf == bouncingItem) ? bounceScale : 1.0;
       _drawFurniture(
         canvas,
         pf.item,
@@ -214,6 +219,8 @@ class IsometricGridPainter extends CustomPainter {
         th,
         1.0,
         pf.rotation,
+        true,
+        bScale,
       );
     }
 
@@ -239,6 +246,7 @@ class IsometricGridPainter extends CustomPainter {
       if (pf == selectedFurniture) {
         _drawSelectionFootprint(canvas, pf, converter, tw, th);
       }
+      final double bScale = (pf == bouncingItem) ? bounceScale : 1.0;
       _drawFurniture(
         canvas,
         pf.item,
@@ -250,6 +258,8 @@ class IsometricGridPainter extends CustomPainter {
         th,
         1.0,
         pf.rotation,
+        true,
+        bScale,
       );
     }
 
@@ -364,6 +374,7 @@ class IsometricGridPainter extends CustomPainter {
     double opacity, [
     int rotation = 0,
     bool isValid = true,
+    double currentBounceScale = 1.0,
   ]) {
     int gw = item.gridW;
     int gh = item.gridH;
@@ -440,10 +451,11 @@ class IsometricGridPainter extends CustomPainter {
         final dst = Rect.fromLTRB(minX, minY, maxX, maxY);
         canvas.save();
         canvas.clipPath(clipPath);
-        if (item.visualRotationZ != 0) {
+        if (item.visualRotationZ != 0 || currentBounceScale != 1.0) {
           final center = dst.center;
           canvas.translate(center.dx, center.dy);
-          canvas.rotate(item.visualRotationZ * math.pi / 180);
+          if (item.visualRotationZ != 0) canvas.rotate(item.visualRotationZ * math.pi / 180);
+          if (currentBounceScale != 1.0) canvas.scale(currentBounceScale, currentBounceScale);
           canvas.translate(-center.dx, -center.dy);
         }
         canvas.drawImageRect(
@@ -489,6 +501,10 @@ class IsometricGridPainter extends CustomPainter {
         // 3. 处理镜像后可能需要的额外翻转或旋转
         if (isFlipped) canvas.scale(-1, 1);
         if (vRotZ != 0) canvas.rotate(vRotZ * math.pi / 180);
+        if (currentBounceScale != 1.0) {
+          // Bottom center is the pivot (0,0) in current translation for walls
+          canvas.scale(currentBounceScale, currentBounceScale);
+        }
 
         // 4. 绘制原图贴图 (锚点设在底部中心)
         final dst = Rect.fromLTRB(-itemW / 2, -itemH, itemW / 2, 0);
@@ -524,9 +540,17 @@ class IsometricGridPainter extends CustomPainter {
             itemW * (item.intrinsicHeight / item.intrinsicWidth);
         final basePoint = converter.getScreenPoint(r + gw / 2.0, c + gh / 2.0);
         canvas.save();
+        
+        // 软装和地毯属于平铺类的特殊装饰，其图像中心应该直接对齐网格菱形的中心，而不是由于 3D 模型假定那样底部对齐。
+        double ty = basePoint.dy + (itemW / 4.0) - (itemH / 2.0);
+        if (item.subCategory == '软装' || item.subCategory == '地毯') {
+          // 消除底部对齐产生的垂直偏移，使图片中心严格对应着菱形网格中心
+          ty = basePoint.dy;
+        }
+        
         canvas.translate(
           basePoint.dx + vOffset.dx,
-          basePoint.dy + (itemW / 4.0) - (itemH / 2.0) + vOffset.dy,
+          ty + vOffset.dy,
         );
         if (isFlipped) canvas.scale(-1, 1);
         final dst = Rect.fromCenter(
@@ -534,10 +558,17 @@ class IsometricGridPainter extends CustomPainter {
           width: itemW,
           height: itemH,
         );
-        if (vRotX != 0 || vRotY != 0 || vRotZ != 0) {
+        if (vRotX != 0 || vRotY != 0 || vRotZ != 0 || currentBounceScale != 1.0) {
           final matrix = Matrix4.identity()
-            ..translate(vPivot.dx, vPivot.dy)
-            ..rotateX(vRotX * math.pi / 180)
+            ..translate(vPivot.dx, vPivot.dy);
+          
+          if (currentBounceScale != 1.0) {
+            matrix.translate(0.0, itemH / 2.0);
+            matrix.scale(currentBounceScale, currentBounceScale, 1.0);
+            matrix.translate(0.0, -itemH / 2.0);
+          }
+          
+          matrix..rotateX(vRotX * math.pi / 180)
             ..rotateY(vRotY * math.pi / 180)
             ..rotateZ(vRotZ * math.pi / 180)
             ..translate(-vPivot.dx, -vPivot.dy);
@@ -618,6 +649,8 @@ class IsometricGridPainter extends CustomPainter {
         oldDelegate.isInteracting != isInteracting ||
         oldDelegate.currentScale != currentScale ||
         oldDelegate.showGrid != showGrid ||
-        oldDelegate.draggingOriginalPF != draggingOriginalPF;
+        oldDelegate.draggingOriginalPF != draggingOriginalPF ||
+        oldDelegate.bouncingItem != bouncingItem ||
+        oldDelegate.bounceScale != bounceScale;
   }
 }
