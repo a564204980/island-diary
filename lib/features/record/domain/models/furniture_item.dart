@@ -18,13 +18,13 @@ class FurnitureItem {
   final double visualRotationZ;
   final Offset visualPivot;
 
-  // 背面（旋转 index 为 1, 2 时）的独立微调参数
-  final double? backVisualScale;
-  final Offset? backVisualOffset;
-  final double? backVisualRotationX;
-  final double? backVisualRotationY;
-  final double? backVisualRotationZ;
-  final Offset? backVisualPivot;
+  // 镜像（旋转 index 为 1 时）的独立微调参数
+  final double? flippedVisualScale;
+  final Offset? flippedVisualOffset;
+  final double? flippedVisualRotationX;
+  final double? flippedVisualRotationY;
+  final double? flippedVisualRotationZ;
+  final Offset? flippedVisualPivot;
 
   int quantity;
 
@@ -46,12 +46,12 @@ class FurnitureItem {
     this.visualRotationY = 0,
     this.visualRotationZ = 0,
     this.visualPivot = Offset.zero,
-    this.backVisualScale,
-    this.backVisualOffset,
-    this.backVisualRotationX,
-    this.backVisualRotationY,
-    this.backVisualRotationZ,
-    this.backVisualPivot,
+    this.flippedVisualScale,
+    this.flippedVisualOffset,
+    this.flippedVisualRotationX,
+    this.flippedVisualRotationY,
+    this.flippedVisualRotationZ,
+    this.flippedVisualPivot,
   });
 
   Map<String, dynamic> toMap() {
@@ -78,12 +78,12 @@ class FurnitureItem {
       'vRotationY': visualRotationY,
       'vRotationZ': visualRotationZ,
       'vPivot': {'x': visualPivot.dx, 'y': visualPivot.dy},
-      'bvScale': backVisualScale,
-      'bvOffset': backVisualOffset != null ? {'x': backVisualOffset!.dx, 'y': backVisualOffset!.dy} : null,
-      'bvRotationX': backVisualRotationX,
-      'bvRotationY': backVisualRotationY,
-      'bvRotationZ': backVisualRotationZ,
-      'bvPivot': backVisualPivot != null ? {'x': backVisualPivot!.dx, 'y': backVisualPivot!.dy} : null,
+      'fvScale': flippedVisualScale,
+      'fvOffset': flippedVisualOffset != null ? {'x': flippedVisualOffset!.dx, 'y': flippedVisualOffset!.dy} : null,
+      'fvRotationX': flippedVisualRotationX,
+      'fvRotationY': flippedVisualRotationY,
+      'fvRotationZ': flippedVisualRotationZ,
+      'fvPivot': flippedVisualPivot != null ? {'x': flippedVisualPivot!.dx, 'y': flippedVisualPivot!.dy} : null,
     };
   }
 
@@ -122,20 +122,20 @@ class FurnitureItem {
               (map['vPivot']['y'] as num).toDouble(),
             )
           : Offset.zero,
-      backVisualScale: (map['bvScale'] as num?)?.toDouble(),
-      backVisualOffset: map['bvOffset'] != null
+      flippedVisualScale: (map['fvScale'] as num?)?.toDouble(),
+      flippedVisualOffset: map['fvOffset'] != null
           ? Offset(
-              (map['bvOffset']['x'] as num).toDouble(),
-              (map['bvOffset']['y'] as num).toDouble(),
+              (map['fvOffset']['x'] as num).toDouble(),
+              (map['fvOffset']['y'] as num).toDouble(),
             )
           : null,
-      backVisualRotationX: (map['bvRotationX'] as num?)?.toDouble(),
-      backVisualRotationY: (map['bvRotationY'] as num?)?.toDouble(),
-      backVisualRotationZ: (map['bvRotationZ'] as num?)?.toDouble(),
-      backVisualPivot: map['bvPivot'] != null
+      flippedVisualRotationX: (map['fvRotationX'] as num?)?.toDouble(),
+      flippedVisualRotationY: (map['fvRotationY'] as num?)?.toDouble(),
+      flippedVisualRotationZ: (map['fvRotationZ'] as num?)?.toDouble(),
+      flippedVisualPivot: map['fvPivot'] != null
           ? Offset(
-              (map['bvPivot']['x'] as num).toDouble(),
-              (map['bvPivot']['y'] as num).toDouble(),
+              (map['fvPivot']['x'] as num).toDouble(),
+              (map['fvPivot']['y'] as num).toDouble(),
             )
           : null,
     );

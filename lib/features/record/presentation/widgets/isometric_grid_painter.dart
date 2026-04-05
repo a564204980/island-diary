@@ -382,32 +382,28 @@ class IsometricGridPainter extends CustomPainter {
       gw = item.gridH;
       gh = item.gridW;
     }
-    final bool isBack = (rotation == 1 || rotation == 2);
-    final double vScale = isBack
-        ? (item.backVisualScale ?? item.visualScale)
+    final bool isFlipped = rotation == 1;
+    final double vScale = isFlipped
+        ? (item.flippedVisualScale ?? item.visualScale)
         : item.visualScale;
-    final Offset vOffset = isBack
-        ? (item.backVisualOffset ?? item.visualOffset)
+    final Offset vOffset = isFlipped
+        ? (item.flippedVisualOffset ?? item.visualOffset)
         : item.visualOffset;
-    final double vRotX = isBack
-        ? (item.backVisualRotationX ?? item.visualRotationX)
+    final double vRotX = isFlipped
+        ? (item.flippedVisualRotationX ?? item.visualRotationX)
         : item.visualRotationX;
-    final double vRotY = isBack
-        ? (item.backVisualRotationY ?? item.visualRotationY)
+    final double vRotY = isFlipped
+        ? (item.flippedVisualRotationY ?? item.visualRotationY)
         : item.visualRotationY;
-    final double vRotZ = isBack
-        ? (item.backVisualRotationZ ?? item.visualRotationZ)
+    final double vRotZ = isFlipped
+        ? (item.flippedVisualRotationZ ?? item.visualRotationZ)
         : item.visualRotationZ;
-    final Offset vPivot = isBack
-        ? (item.backVisualPivot ?? item.visualPivot)
+    final Offset vPivot = isFlipped
+        ? (item.flippedVisualPivot ?? item.visualPivot)
         : item.visualPivot;
-    int faceIndex = 0;
-    bool isFlipped = rotation == 1;
-    // 兼容原有多帧素材判断逻辑，如果宽度接近1则视为单面素材
-    if (item.spriteRect.width < 0.9) {
-      // 这里的逻辑可以保留或者移除，由于我们要切换到单面，这里简化
-      faceIndex = 0;
-    }
+    
+    // 统一为单面素材，faceIndex 固定为 0
+    const int faceIndex = 0;
 
     final p0 = converter.getScreenPoint(r.toDouble(), c.toDouble());
     final p1 = converter.getScreenPoint((r + gw).toDouble(), c.toDouble());
@@ -494,11 +490,6 @@ class IsometricGridPainter extends CustomPainter {
         );
 
         // 2. 镜像翻转处理 (如果是右墙则进行水平镜像)
-        if (rotation == 1) {
-          canvas.scale(-1, 1);
-        }
-
-        // 3. 处理镜像后可能需要的额外翻转或旋转
         if (isFlipped) canvas.scale(-1, 1);
         if (vRotZ != 0) canvas.rotate(vRotZ * math.pi / 180);
         if (currentBounceScale != 1.0) {

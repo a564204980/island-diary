@@ -1,48 +1,4 @@
 import 'package:flutter/material.dart';
 import '../../domain/models/furniture_item.dart';
 
-final List<FurnitureItem> kitchenItems = [
-  FurnitureItem(
-    id: 'fridge_1',
-    name: '复古冰箱',
-    imagePath: 'assets/images/decoration/furniture/fridges2.png',
-    category: '厨房',
-    subCategory: '电器',
-    gridW: 3,
-    gridH: 3,
-    intrinsicWidth: 605,
-    intrinsicHeight: 1072,
-    quantity: 3,
-    visualScale: 0.78,
-    visualOffset: const Offset(1, -1),
-    visualRotationX: 0,
-    visualRotationY: 0,
-    visualRotationZ: 0,
-    visualPivot: Offset.zero,
-    backVisualScale: null,
-    backVisualOffset: null,
-    backVisualRotationX: 0,
-    backVisualRotationY: 0,
-    backVisualRotationZ: 0,
-    backVisualPivot: null,
-  ),
-
-  FurnitureItem(
-    id: 'kitchen_cabinet_1',
-    name: '灶台柜',
-    imagePath: 'assets/images/decoration/furniture/kitchenCabinet1.png',
-    category: '厨房',
-    subCategory: '家具',
-    gridW: 6,
-    gridH: 3,
-    intrinsicWidth: 316,
-    intrinsicHeight: 574,
-    quantity: 5,
-    visualScale: 1.0,
-    visualOffset: const Offset(2, 2),
-    visualRotationX: 0,
-    visualRotationY: 0,
-    visualRotationZ: 0,
-    visualPivot: Offset.zero,
-  ),
-];
+final List<FurnitureItem> kitchenItems = [];

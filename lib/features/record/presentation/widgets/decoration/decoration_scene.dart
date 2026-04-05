@@ -34,12 +34,16 @@ class DecorationScene extends StatelessWidget {
     final double w = imgW * baseScale * kSceneScaleFactor * controller.currentScale;
     final double h = imgH * baseScale * kSceneScaleFactor * controller.currentScale;
 
-    // 获取坐标转换工具实例
+    // 使用统一的坐标转换工具，确保点击检测与绘制逻辑一致
+    final double tw = w / 28;
+    final double th = tw * kGridAspectRatio; // 替换硬编码的 w / 56
+    final double centerYFactor = _getGridCenterYFactor(context);
+
     final converter = IsometricCoordinateConverter(
       centerX: w / 2,
-      centerY: h * _getGridCenterYFactor(context),
-      tw: w / 28,
-      th: w / 56,
+      centerY: h * centerYFactor,
+      tw: tw,
+      th: th,
     );
 
     return Container(
@@ -143,7 +147,7 @@ class DecorationScene extends StatelessWidget {
                         cols: kGridCols,
                         fullWidth: w,
                         fullHeight: h,
-                        centerYFactor: _getGridCenterYFactor(context),
+                        centerYFactor: centerYFactor,
                         selectedCell: controller.selectedCell,
                         placedItems: controller.placedFurniture,
                         selectedFurniture: controller.selectedFurniture,

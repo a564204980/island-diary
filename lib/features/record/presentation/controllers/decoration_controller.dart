@@ -44,6 +44,8 @@ class DecorationController extends ChangeNotifier {
   bool isInteracting = false; 
   bool showGrid = true;
   bool isCapturingSnapshot = false;
+  bool isInitializing = true;
+  double loadingProgress = 0.0;
 
   void init(BuildContext context, {TickerProvider? vsync}) {
     if (vsync != null) {
@@ -81,12 +83,12 @@ class DecorationController extends ChangeNotifier {
         visualRotationY: item.visualRotationY,
         visualRotationZ: item.visualRotationZ,
         visualPivot: item.visualPivot,
-        backVisualScale: item.backVisualScale,
-        backVisualOffset: item.backVisualOffset,
-        backVisualRotationX: item.backVisualRotationX,
-        backVisualRotationY: item.backVisualRotationY,
-        backVisualRotationZ: item.backVisualRotationZ,
-        backVisualPivot: item.backVisualPivot,
+        flippedVisualScale: item.flippedVisualScale,
+        flippedVisualOffset: item.flippedVisualOffset,
+        flippedVisualRotationX: item.flippedVisualRotationX,
+        flippedVisualRotationY: item.flippedVisualRotationY,
+        flippedVisualRotationZ: item.flippedVisualRotationZ,
+        flippedVisualPivot: item.flippedVisualPivot,
       );
     }).toList();
 
@@ -111,12 +113,56 @@ class DecorationController extends ChangeNotifier {
       }
     }
 
-    // 预加载所有家具素材
-    for (final item in _availableItems) {
-      FurnitureSprite.precacheItem(item, context).then((_) {
-        notifyListeners();
-      });
+    // 预加载必需资源
+    _preloadAssets(context);
+  }
+
+  Future<void> _preloadAssets(BuildContext context) async {
+    isInitializing = true;
+    loadingProgress = 0.0;
+    notifyListeners();
+
+    // 1. 确定需要优先加载的资源（已摆放的家具 + 当前分类的前几个）
+    final Set<String> itemsToPreload = {};
+    for (var pf in _placedFurniture) {
+      itemsToPreload.add(pf.item.id);
     }
+    
+    final currentCategoryItems = _availableItems.where((it) => it.category == selectedCategory).take(10);
+    for (var it in currentCategoryItems) {
+      itemsToPreload.add(it.id);
+    }
+
+    if (itemsToPreload.isEmpty) {
+      isInitializing = false;
+      loadingProgress = 1.0;
+      notifyListeners();
+      return;
+    }
+
+    int loadedCount = 0;
+    final totalToLoad = itemsToPreload.length;
+
+    // 按顺序逐个加载资源，减少内存峰值并让进度更新更平滑
+    for (final id in itemsToPreload) {
+      final item = _availableItems.firstWhere((it) => it.id == id);
+      try {
+        await FurnitureSprite.precacheItem(item, context);
+      } catch (e) {
+        debugPrint('Preloading error for $id: $e');
+      }
+      loadedCount++;
+      loadingProgress = loadedCount / totalToLoad;
+      notifyListeners();
+      
+      // 给 UI 线程喘息的机会，确保进度条文字能渲染出来
+      await Future.delayed(Duration.zero);
+    }
+
+    // 额外的小延迟确保 UI 平滑过渡
+    await Future.delayed(const Duration(milliseconds: 300));
+    isInitializing = false;
+    notifyListeners();
   }
 
   @override
@@ -433,11 +479,11 @@ class DecorationController extends ChangeNotifier {
       } else {
         int gw = pf.rotation % 2 == 0 ? pf.item.gridW : pf.item.gridH;
         int gh = pf.rotation % 2 == 0 ? pf.item.gridH : pf.item.gridW;
-        final bool isBack = pf.rotation == 1 || pf.rotation == 2;
+        final bool isFlipped = pf.rotation == 1;
         final rect = converter.getFurnitureRect(
           r: pf.r, c: pf.c, gw: gw, gh: gh,
-          visualScale: isBack ? (pf.item.backVisualScale ?? pf.item.visualScale) : pf.item.visualScale,
-          visualOffset: isBack ? (pf.item.backVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset,
+          visualScale: isFlipped ? (pf.item.flippedVisualScale ?? pf.item.visualScale) : pf.item.visualScale,
+          visualOffset: isFlipped ? (pf.item.flippedVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset,
           intrinsicWidth: pf.item.intrinsicWidth, intrinsicHeight: pf.item.intrinsicHeight, z: pf.z
         );
         if (rect.contains(localPos)) return pf;

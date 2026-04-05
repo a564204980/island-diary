@@ -67,7 +67,7 @@ class _DecorationPageState extends State<DecorationPage> with TickerProviderStat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF606054),
       body: Stack(
         children: [
           // 核心场景层
@@ -86,7 +86,54 @@ class _DecorationPageState extends State<DecorationPage> with TickerProviderStat
             onClearAll: _handleClearAll,
             onBack: _handleBack,
           ),
+
+          // 资源加载遮罩
+          if (_controller.isInitializing)
+            _buildLoadingOverlay(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingOverlay() {
+    return Container(
+      color: const Color(0xFF606054),
+      width: double.infinity,
+      height: double.infinity,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // 自定义进度条容器
+            Container(
+              width: 300,
+              height: 12,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.white10, width: 1),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: _controller.loadingProgress,
+                  backgroundColor: Colors.transparent,
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white70),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '正在搬运家具元件... ${( (_controller.loadingProgress * 100).toInt() )}%',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w300,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
