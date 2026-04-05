@@ -20,17 +20,17 @@ class _DecorationPageState extends State<DecorationPage> with TickerProviderStat
   final GlobalKey _gridKey = GlobalKey();
   final GlobalKey _repaintKey = GlobalKey();
 
+  bool _isTrayExpanded = true;
+  bool _isInitialized = false;
+
   AnimationController? _zoomAnimationController;
   double _zoomStartScale = 0.6;
   double _zoomEndScale = 0.6;
-  bool _isTrayExpanded = true;
 
   @override
   void initState() {
     super.initState();
     _controller = DecorationController();
-    _controller.init(context, vsync: this);
-    
     _controller.addListener(_onControllerUpdate);
 
     // 强制横屏并进入沉浸模式
@@ -51,6 +51,15 @@ class _DecorationPageState extends State<DecorationPage> with TickerProviderStat
         if (mounted) _controller.updateInteracting(false);
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInitialized) {
+      _isInitialized = true;
+      _controller.init(context, vsync: this);
+    }
   }
 
   void _onControllerUpdate() => setState(() {});

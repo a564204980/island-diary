@@ -479,14 +479,54 @@ class DecorationController extends ChangeNotifier {
       } else {
         int gw = pf.rotation % 2 == 0 ? pf.item.gridW : pf.item.gridH;
         int gh = pf.rotation % 2 == 0 ? pf.item.gridH : pf.item.gridW;
-        final bool isFlipped = pf.rotation == 1;
+        final bool isFlipped = pf.rotation == 1; // 旋转 1 次代表 180 度翻转
+        final double visualScale = isFlipped ? (pf.item.flippedVisualScale ?? pf.item.visualScale) : pf.item.visualScale;
+        final Offset visualOffset = isFlipped ? (pf.item.flippedVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset;
+
         final rect = converter.getFurnitureRect(
           r: pf.r, c: pf.c, gw: gw, gh: gh,
-          visualScale: isFlipped ? (pf.item.flippedVisualScale ?? pf.item.visualScale) : pf.item.visualScale,
-          visualOffset: isFlipped ? (pf.item.flippedVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset,
-          intrinsicWidth: pf.item.intrinsicWidth, intrinsicHeight: pf.item.intrinsicHeight, z: pf.z
+          visualScale: visualScale,
+          visualOffset: visualOffset,
+          intrinsicWidth: pf.item.intrinsicWidth, 
+          intrinsicHeight: pf.item.intrinsicHeight, 
+          z: pf.z,
         );
-        if (rect.contains(localPos)) return pf;
+
+        if (rect.contains(localPos)) {
+          // 矩形区域内，进一步检测像素透明度
+          final double dx = localPos.dx - rect.left;
+          final double dy = localPos.dy - rect.top;
+
+          // 1. 用矩形实际尺寸与 intrinsic 尺寸的比例来映射，
+          //    不能用 visualScale 除，因为 rect 的实际宽高由 estimateVisualWidth
+          //    推导（受 tw、gridW、gridH、taper 影响），与 intrinsicWidth * visualScale 不等。
+          double ix = dx * pf.item.intrinsicWidth / rect.width;
+          double iy = dy * pf.item.intrinsicHeight / rect.height;
+
+          // 2. 处理镜像反转（rotation==1 时图像水平翻转）
+          if (isFlipped) {
+            ix = pf.item.intrinsicWidth - ix;
+          }
+
+          // 3. 映射到图片真实分辨率
+          final img = SpritePainter.getImage(pf.item.imagePath);
+          if (img != null) {
+            final double sx = pf.item.spriteRect.left * img.width;
+            final double sy = pf.item.spriteRect.top * img.height;
+            final double sw = pf.item.spriteRect.width * img.width;
+            final double sh = pf.item.spriteRect.height * img.height;
+
+            final int px = (sx + ix / pf.item.intrinsicWidth * sw).round().clamp(0, img.width - 1);
+            final int py = (sy + iy / pf.item.intrinsicHeight * sh).round().clamp(0, img.height - 1);
+
+            if (SpritePainter.getAlphaAt(pf.item.imagePath, px, py) > 20) {
+              return pf;
+            }
+          } else {
+            // 如果图片还没加载完，回退到矩形检测
+            return pf;
+          }
+        }
       }
     }
     return null;
