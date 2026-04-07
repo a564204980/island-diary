@@ -10,6 +10,7 @@ class DecorationOverlayUI extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onClearAll;
   final Function(double) onZoom;
+  final VoidCallback onShowPaint;
 
   const DecorationOverlayUI({
     super.key,
@@ -19,6 +20,7 @@ class DecorationOverlayUI extends StatelessWidget {
     required this.onBack,
     required this.onClearAll,
     required this.onZoom,
+    required this.onShowPaint,
   });
 
   @override
@@ -105,6 +107,12 @@ class DecorationOverlayUI extends StatelessWidget {
                       icon: Icon(Icons.remove, color: controller.selectedFurniture != null ? Colors.white24 : Colors.white70), 
                       onPressed: controller.selectedFurniture != null ? null : () => onZoom(-0.2), 
                       tooltip: '缩小',
+                    ),
+                    const Divider(color: Colors.white10, height: 1, indent: 8, endIndent: 8),
+                    IconButton(
+                      icon: Icon(Icons.brush_rounded, color: controller.selectedFurniture != null ? Colors.white24 : Colors.white70),
+                      onPressed: controller.selectedFurniture != null ? null : onShowPaint,
+                      tooltip: '粉刷墙面',
                     ),
                   ],
                 ),

@@ -87,6 +87,18 @@ flutter:
     - assets/images/decoration/carpets/
     - assets/images/decoration/music/
     - assets/images/decoration/kitchen/
+    - assets/images/decoration/livingRoom/
+    - assets/images/decoration/sofa/
+    - assets/images/decoration/table/
+    - assets/images/decoration/houseplant/
+    - assets/images/decoration/homeDecor/
+    - assets/images/decoration/shelving/
+    - assets/images/decoration/wardrobe/
+    - assets/images/decoration/window/
+    - assets/images/decoration/bed/
+    - assets/images/decoration/animal/
+    - assets/images/decoration/door/
+    - assets/images/decoration/refrigerators/
     - assets/images/icons/
     - assets/images/emoji/
     - assets/images/emoji/wechat/face/

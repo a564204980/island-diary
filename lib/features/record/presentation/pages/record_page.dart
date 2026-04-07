@@ -103,18 +103,9 @@ class _RecordPageState extends State<RecordPage>
             }),
           );
     } else {
-      const path = 'assets/images/decoration/furniture/house.png';
-      final stream = const AssetImage(path).resolve(ImageConfiguration.empty);
-      stream.addListener(
-        ImageStreamListener((ImageInfo info, bool _) {
-          if (mounted) {
-            setState(() {
-              _aspectRatio = info.image.width / info.image.height;
-            });
-            _centerBackground();
-          }
-        }),
-      );
+      // 移除对已删除 house.png 的回退逻辑
+      _aspectRatio = 16 / 9; // 默认比例
+      _centerBackground();
     }
   }
 
@@ -153,7 +144,7 @@ class _RecordPageState extends State<RecordPage>
       valueListenable: UserState().themeMode,
       builder: (context, themeMode, _) {
         final bool isNight = UserState().isNight;
-        const String bgPath = 'assets/images/decoration/furniture/house.png';
+        const String? bgPath = null;
 
         final Color bgColor = isNight
             ? const Color(0xFF13131F)
@@ -234,6 +225,7 @@ class _RecordPageState extends State<RecordPage>
                                       snapshot,
                                       h,
                                       fullWidth,
+                                      bgColor,
                                     ),
                                     if (_isJumpStarted)
                                       _buildSlimeJumpAnimation(
@@ -268,10 +260,11 @@ class _RecordPageState extends State<RecordPage>
   }
 
   Widget _buildBackground(
-    String bgPath,
+    String? bgPath,
     Uint8List? snapshot,
     double h,
     double w,
+    Color bgColor,
   ) {
     return Positioned.fill(
       child: _ParallaxBackground(
@@ -279,6 +272,7 @@ class _RecordPageState extends State<RecordPage>
         snapshot: snapshot,
         h: h,
         w: w,
+        bgColor: bgColor,
       ),
     );
   }
@@ -496,16 +490,18 @@ class _RecordPageState extends State<RecordPage>
 }
 
 class _ParallaxBackground extends StatelessWidget {
-  final String bgPath;
+  final String? bgPath;
   final Uint8List? snapshot;
   final double h;
   final double w;
+  final Color bgColor;
 
   const _ParallaxBackground({
-    required this.bgPath,
+    this.bgPath,
     this.snapshot,
     required this.h,
     required this.w,
+    required this.bgColor,
   });
 
   @override
@@ -513,6 +509,9 @@ class _ParallaxBackground extends StatelessWidget {
     if (snapshot != null) {
       return Image.memory(snapshot!, height: h, width: w, fit: BoxFit.cover);
     }
-    return Image.asset(bgPath, height: h, width: w, fit: BoxFit.cover);
+    if (bgPath != null) {
+      return Image.asset(bgPath!, height: h, width: w, fit: BoxFit.cover);
+    }
+    return Container(color: bgColor, width: w, height: h);
   }
 }

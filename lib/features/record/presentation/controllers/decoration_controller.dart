@@ -46,6 +46,10 @@ class DecorationController extends ChangeNotifier {
   bool isCapturingSnapshot = false;
   bool isInitializing = true;
   double loadingProgress = 0.0;
+  
+  // --- 墙面颜色控制 ---
+  Color wallColorLeft = const Color(0xFFDEDCCE);
+  Color wallColorRight = const Color(0xFFDEDCCE);
 
   void init(BuildContext context, {TickerProvider? vsync}) {
     if (vsync != null) {
@@ -161,7 +165,21 @@ class DecorationController extends ChangeNotifier {
 
     // 额外的小延迟确保 UI 平滑过渡
     await Future.delayed(const Duration(milliseconds: 300));
+    // 加载墙面颜色
+    wallColorLeft = UserState().wallColorLeft.value;
+    wallColorRight = UserState().wallColorRight.value;
+
     isInitializing = false;
+    notifyListeners();
+  }
+
+  void setWallColor(bool isLeft, Color color) {
+    if (isLeft) {
+      wallColorLeft = color;
+    } else {
+      wallColorRight = color;
+    }
+    UserState().saveWallColors(wallColorLeft, wallColorRight);
     notifyListeners();
   }
 
@@ -202,15 +220,25 @@ class DecorationController extends ChangeNotifier {
     if (draggingItem == null) return;
 
     if (draggingItem!.isWall) {
-      final bool preferLeft = localPos.dx >= converter.centerX;
-      final wallCell = converter.getWallCell(localPos, preferLeftWall: preferLeft);
-      final int targetRotation = preferLeft ? 0 : 1;
+      // 纠正逻辑：屏幕左侧 (< centerX) 为 preferLeft
+      final bool preferLeft = localPos.dx < converter.centerX;
+      
+      // 判定是否禁用自动旋转（针对窗户、门等具有固定朝向逻辑的素材）
+      final bool disableAutoWallRotation = draggingItem!.id.contains('window') || draggingItem!.id.contains('door');
+      
+      // 如果禁用了自动旋转，则其“所在墙面”应根据当前的 draggingRotation 来决定，而不是鼠标位置
+      // 0 代表左墙，1 代表右墙
+      final bool useLeftWall = disableAutoWallRotation ? (draggingRotation == 0) : preferLeft;
+      
+      final int targetRotation = disableAutoWallRotation ? draggingRotation : (useLeftWall ? 0 : 1);
+      
+      final wallCell = converter.getWallCell(localPos, preferLeftWall: useLeftWall);
       
       // 计算当前手势点对应的 Z 高度 (0~max)
       final double touchZ = converter.getWallZ(
         localPos,
-        r: preferLeft ? wallCell.$1.toDouble() : 0,
-        c: preferLeft ? 0 : wallCell.$2.toDouble(),
+        r: useLeftWall ? wallCell.$1.toDouble() : 0,
+        c: useLeftWall ? 0 : wallCell.$2.toDouble(),
         maxZ: kWallGridHeight.toDouble(),
       );
 
@@ -223,7 +251,7 @@ class DecorationController extends ChangeNotifier {
       ghostZ = (touchZ + dragZOffset).clamp(0.0, maxAllowedZ).roundToDouble();
 
       final int gw = draggingItem!.gridW;
-      (int, int) centeredCell = preferLeft 
+      (int, int) centeredCell = useLeftWall 
           ? ((wallCell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw), 0)
           : (0, (wallCell.$2 - (gw / 2).floor()).clamp(0, kGridCols - gw));
 
@@ -444,6 +472,23 @@ class DecorationController extends ChangeNotifier {
       }
 
       if (r < pf.r + pgw && r + gw > pf.r && c < pf.c + pgh && c + gh > pf.c) {
+        // 如果正在放置的是地毯，而对方是普通家具（非地板、非地毯），则跳过碰撞
+        if (item.subCategory == '地毯' && !pf.item.isFloor && pf.item.subCategory != '地毯') {
+          continue;
+        }
+        // 如果对方是地毯，而我们正要放置的是普通家具，也跳过检测，让地毯一直可以被压着
+        if (pf.item.subCategory == '地毯' && !item.isFloor && item.subCategory != '地毯') {
+          continue;
+        }
+        
+        // [修正] 如果放的是“饰品/装饰”或“软装”，则允许与除地板外的任何家具（包括其他饰品）重叠
+        bool isDecorator = item.category == '装饰' || item.subCategory == '软装';
+        bool isExistingDecorator = pf.item.category == '装饰' || pf.item.subCategory == '软装';
+        
+        if ((isDecorator && !pf.item.isFloor) || (isExistingDecorator && !item.isFloor)) {
+          continue;
+        }
+
         if (z < pf.z + pf.item.gridH && z + item.gridH > pf.z) return false;
       }
     }
@@ -452,13 +497,32 @@ class DecorationController extends ChangeNotifier {
 
   PlacedFurniture? findVisualHit(Offset localPos, IsometricCoordinateConverter converter) {
     final sorted = List<PlacedFurniture>.from(_placedFurniture)..sort((a, b) {
-      if (a.item.category == '地板' || b.item.category == '地板') return a.item.category == '地板' ? 1 : -1;
+      // 1. 基础分类优先级：墙面 > 地面 (家具/装饰) > 地板
+      if (a.item.isWall != b.item.isWall) return a.item.isWall ? -1 : 1;
+      if (a.item.isFloor != b.item.isFloor) return a.item.isFloor ? 1 : -1;
+
+      // 2. 软装/饰品（通常在上方）具有更高点击优先级
+      bool aIsSoft = a.item.subCategory == '软装' || a.item.category == '装饰';
+      bool bIsSoft = b.item.subCategory == '软装' || b.item.category == '装饰';
+      if (aIsSoft != bIsSoft) return aIsSoft ? -1 : 1;
+
+      // 3. 核心排序：由近及远 (Front-to-Back)
+      // 在等轴侧投影中，r+c 较大代表物体更靠近观察者，应优先检测
       int gwA = a.rotation % 2 == 0 ? a.item.gridW : a.item.gridH;
       int ghA = a.rotation % 2 == 0 ? a.item.gridH : a.item.gridW;
       int gwB = b.rotation % 2 == 0 ? b.item.gridW : b.item.gridH;
       int ghB = b.rotation % 2 == 0 ? b.item.gridH : b.item.gridW;
-      if (b.r + gwB <= a.r || b.c + ghB <= a.c) return -1;
-      if (a.r + gwA <= b.r || a.c + ghA <= b.c) return 1;
+
+      // 如果 a 严格在 b 的前方，则 a 优先
+      if (a.r >= b.r + gwB || a.c >= b.c + ghB) return -1;
+      // 如果 b 严格在 a 的前方，则 b 优先
+      if (b.r >= a.r + gwA || b.c >= a.c + ghA) return 1;
+
+      // 4. 重叠情况下的细节判定 (高度、位置)
+      // 如果在同一格或重叠，Z 轴（高度）大的优先
+      if (a.z != b.z) return b.z.compareTo(a.z);
+      
+      // 最后根据网格中心深度降序排列
       return (b.r + b.c).compareTo(a.r + a.c);
     });
 

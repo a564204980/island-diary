@@ -39,7 +39,7 @@ class IsometricCoordinateConverter {
     final double y = (r + c - (kGridRows + kGridCols) / 2) * (th / 2) * s;
     
     // 垂直高度补偿 (Z 轴)
-    final double hFactor = tw / 2;
+    final double hFactor = th; // 使用单元格高度作为 Z 轴步长基准，适配 30 度视角
     final double verticalY = -z * hFactor * s;
 
     // 应用网格整体旋转 (kGridRotationDegree)

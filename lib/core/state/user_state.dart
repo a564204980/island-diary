@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -34,6 +35,8 @@ class UserState {
   static const _keyPlacedFurniture = 'placed_furniture'; // 家具布局
   static const _keyMomentsCover = 'moments_cover_path'; // 朋友圈背景封面
   static const _keyDiaryLayoutMode = 'diary_layout_mode'; // 日记布局模式
+  static const _keyWallColorLeft = 'wall_color_left'; // 左墙颜色
+  static const _keyWallColorRight = 'wall_color_right'; // 右墙颜色
 
   /// 朋友圈背景封面 (本地图片路径或 null 使用默认)
   final ValueNotifier<String?> momentsCoverPath = ValueNotifier<String?>(null);
@@ -48,6 +51,10 @@ class UserState {
   /// 日记布局模式 (由 DiaryHistoryOverlay 使用，需持久化)
   /// 0: timeline, 1: moments, 2: calendar
   final ValueNotifier<int> diaryLayoutMode = ValueNotifier<int>(0);
+
+  /// 墙面颜色 (左、右)
+  final ValueNotifier<Color> wallColorLeft = ValueNotifier<Color>(const Color(0xFFDEDCCE));
+  final ValueNotifier<Color> wallColorRight = ValueNotifier<Color>(const Color(0xFFDEDCCE));
 
   /// 统一的日夜判断逻辑
   bool get isNight {
@@ -347,6 +354,15 @@ class UserState {
     await prefs.setString(_keyPlacedFurniture, jsonEncode(jsonList));
   }
 
+  /// 保存墙面颜色
+  Future<void> saveWallColors(Color left, Color right) async {
+    wallColorLeft.value = left;
+    wallColorRight.value = right;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyWallColorLeft, left.value);
+    await prefs.setInt(_keyWallColorRight, right.value);
+  }
+
   /// 设置朋友圈背景封面
   Future<void> setMomentsCoverPath(String? path) async {
     momentsCoverPath.value = path;
@@ -454,6 +470,12 @@ class UserState {
         debugPrint('Error decoding decoration snapshot: $e');
       }
     }
+
+    // 加载墙面颜色
+    final leftVal = prefs.getInt(_keyWallColorLeft);
+    if (leftVal != null) wallColorLeft.value = Color(leftVal);
+    final rightVal = prefs.getInt(_keyWallColorRight);
+    if (rightVal != null) wallColorRight.value = Color(rightVal);
   }
 
   void dispose() {

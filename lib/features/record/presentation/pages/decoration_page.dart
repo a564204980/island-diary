@@ -7,6 +7,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import '../controllers/decoration_controller.dart';
 import '../widgets/decoration/decoration_scene.dart';
 import '../widgets/decoration/decoration_overlay_ui.dart';
+import '../widgets/decoration/wall_color_picker_overlay.dart';
 
 class DecorationPage extends StatefulWidget {
   const DecorationPage({super.key});
@@ -22,6 +23,7 @@ class _DecorationPageState extends State<DecorationPage> with TickerProviderStat
 
   bool _isTrayExpanded = true;
   bool _isInitialized = false;
+  bool _showColorPicker = false;
 
   AnimationController? _zoomAnimationController;
   double _zoomStartScale = 0.6;
@@ -94,7 +96,15 @@ class _DecorationPageState extends State<DecorationPage> with TickerProviderStat
             onZoom: _handleZoom,
             onClearAll: _handleClearAll,
             onBack: _handleBack,
+            onShowPaint: () => setState(() => _showColorPicker = true),
           ),
+
+          // 3. 墙面颜色选择器覆盖层
+          if (_showColorPicker)
+            WallColorPickerOverlay(
+              controller: _controller,
+              onClose: () => setState(() => _showColorPicker = false),
+            ),
 
           // 资源加载遮罩
           if (_controller.isInitializing)

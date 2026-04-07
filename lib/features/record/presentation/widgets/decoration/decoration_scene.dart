@@ -175,6 +175,8 @@ class DecorationScene extends StatelessWidget {
                         draggingOriginalPF: controller.draggingOriginalPF,
                         bouncingItem: controller.bouncingFurniture,
                         bounceScale: controller.bounceScale,
+                        wallColorLeft: controller.wallColorLeft,
+                        wallColorRight: controller.wallColorRight,
                       ),
                     ),
                   ),
