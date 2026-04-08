@@ -220,17 +220,12 @@ class DecorationController extends ChangeNotifier {
     if (draggingItem == null) return;
 
     if (draggingItem!.isWall) {
-      // 纠正逻辑：屏幕左侧 (< centerX) 为 preferLeft
-      final bool preferLeft = localPos.dx < converter.centerX;
+      // 等轴测坐标系中，左墙(XZ面/r轴)在视觉上位于屏幕右侧，右墙(YZ面/c轴)在视觉上位于屏幕左侧
+      // 因此手指在屏幕右侧(> centerX)时才是 preferLeft
+      final bool preferLeft = localPos.dx > converter.centerX;
       
-      // 判定是否禁用自动旋转（针对窗户、门等具有固定朝向逻辑的素材）
-      final bool disableAutoWallRotation = draggingItem!.id.contains('window') || draggingItem!.id.contains('door');
-      
-      // 如果禁用了自动旋转，则其“所在墙面”应根据当前的 draggingRotation 来决定，而不是鼠标位置
-      // 0 代表左墙，1 代表右墙
-      final bool useLeftWall = disableAutoWallRotation ? (draggingRotation == 0) : preferLeft;
-      
-      final int targetRotation = disableAutoWallRotation ? draggingRotation : (useLeftWall ? 0 : 1);
+      final bool useLeftWall = preferLeft;
+      final int targetRotation = useLeftWall ? 0 : 1;
       
       final wallCell = converter.getWallCell(localPos, preferLeftWall: useLeftWall);
       
