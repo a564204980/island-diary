@@ -12,6 +12,8 @@ import 'package:island_diary/features/profile/presentation/pages/profile_page.da
 import 'package:island_diary/shared/widgets/barrage/mood_barrage_wall.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
+import 'package:island_diary/features/statistics/presentation/pages/statistics_page.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -268,10 +270,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             children: [
               Positioned.fill(
                 child: IndexedStack(
-                  index: _currentNavIndex == 4 ? 2 : (_currentNavIndex == 1 ? 1 : 0),
+                  index: _currentNavIndex == 4 
+                      ? 3 
+                      : (_currentNavIndex == 3 
+                          ? 2 
+                          : (_currentNavIndex == 1 ? 1 : 0)),
                   children: [
                     _buildHomeContent(isNight, isWide),
                     const RecordPage(key: ValueKey('RecordPage')),
+                    StatisticsPage(key: const ValueKey('StatisticsPage'), isActive: _currentNavIndex == 3),
                     const ProfilePage(key: ValueKey('ProfilePage')),
                   ],
                 ),
@@ -341,7 +348,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   forceHideDialogue: _isLandscape,
                   onSaveSuccess: _showSuccessEffect,
                   onTap: (index) {
-                    if (index == 0 || index == 1 || index == 4) {
+                    if (index == 0 || index == 1 || index == 3 || index == 4) {
                       setState(() {
                         _currentNavIndex = index;
                       });

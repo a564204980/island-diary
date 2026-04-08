@@ -166,7 +166,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                           _buildNavItem(0, CupertinoIcons.house, CupertinoIcons.house_fill, '首页'),
                           _buildNavItem(1, CupertinoIcons.book, CupertinoIcons.book_fill, '记录'),
                           const SizedBox(width: 80),
-                          _buildNavItem(3, CupertinoIcons.photo_on_rectangle, CupertinoIcons.photo_fill_on_rectangle_fill, '相册'),
+                          _buildNavItem(3, CupertinoIcons.chart_bar, CupertinoIcons.chart_bar_fill, '数据'),
                           _buildNavItem(4, CupertinoIcons.person, CupertinoIcons.person_solid, '我'),
                         ],
                       ),

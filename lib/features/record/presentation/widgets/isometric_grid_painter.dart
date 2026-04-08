@@ -338,7 +338,8 @@ class IsometricGridPainter extends CustomPainter {
         wallItems.add(pf);
       } else if (sub == '地毯') {
         carpets.add(pf);
-      } else if (sub == '软装') {
+      } else if (sub == '软装' || sub == '饰品' || sub == '饰物' || sub == '盆栽') {
+        // 软件装饰直接放入一层，确保它们在主体家具（others）之后绘制
         softDecorations.add(pf);
       } else {
         others.add(pf);
@@ -437,8 +438,8 @@ class IsometricGridPainter extends CustomPainter {
         int ghB = b.rotation % 2 == 0 ? b.item.gridH : b.item.gridW;
         if (a.r + gwA <= b.r || a.c + ghA <= b.c) return -1;
         if (b.r + gwB <= a.r || b.c + ghB <= a.c) return 1;
-        final depthA = a.r + gwA / 2.0 + a.c + ghA / 2.0;
-        final depthB = b.r + gwB / 2.0 + b.c + ghB / 2.0;
+        final depthA = a.r + gwA / 2.0 + a.c + ghA / 2.0 + a.z;
+        final depthB = b.r + gwB / 2.0 + b.c + ghB / 2.0 + b.z;
         return depthA.compareTo(depthB);
       });
 
@@ -472,8 +473,8 @@ class IsometricGridPainter extends CustomPainter {
         int ghB = b.rotation % 2 == 0 ? b.item.gridH : b.item.gridW;
         if (a.r + gwA <= b.r || a.c + ghA <= b.c) return -1;
         if (b.r + gwB <= a.r || b.c + ghB <= a.c) return 1;
-        final depthA = a.r + gwA / 2.0 + a.c + ghA / 2.0;
-        final depthB = b.r + gwB / 2.0 + b.c + ghB / 2.0;
+        final depthA = a.r + gwA / 2.0 + a.c + ghA / 2.0 + a.z;
+        final depthB = b.r + gwB / 2.0 + b.c + ghB / 2.0 + b.z;
         return depthA.compareTo(depthB);
       });
 
@@ -551,6 +552,7 @@ class IsometricGridPainter extends CustomPainter {
         gw = pf.item.gridH;
         gh = pf.item.gridW;
       }
+      // 允许 footprint 应用 Z 轴高度偏移
       p0 = converter.getScreenPoint(pf.r.toDouble(), pf.c.toDouble(), pf.z);
       p1 = converter.getScreenPoint((pf.r + gw).toDouble(), pf.c.toDouble(), pf.z);
       p2 = converter.getScreenPoint((pf.r + gw).toDouble(), (pf.c + gh).toDouble(), pf.z);
@@ -676,7 +678,7 @@ class IsometricGridPainter extends CustomPainter {
       final double baseS = converter.getTaperScale(r + gw / 2.0, c + gh / 2.0);
       final double itemW = tw * (gw + gh) * baseS * 0.5 * vScale;
       final double itemH = itemW * (item.intrinsicHeight / item.intrinsicWidth);
-      final basePoint = converter.getScreenPoint(r + gw / 2.0, c + gh / 2.0);
+      final basePoint = converter.getScreenPoint(r + gw / 2.0, c + gh / 2.0, z);
       canvas.save();
       
       double ty = basePoint.dy + (itemW / 4.0) - (itemH / 2.0);
