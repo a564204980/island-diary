@@ -11,20 +11,48 @@ import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_core
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_media_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_format_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_insert_mixin.dart';
+import 'package:island_diary/shared/widgets/mood_picker/mood_popup_picker.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 
+class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final Color backgroundColor;
+
+  _StickyTabBarDelegate({required this.child, required this.backgroundColor});
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: backgroundColor,
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: child,
+    );
+  }
+
+  @override
+  double get maxExtent => 54;
+  @override
+  double get minExtent => 54;
+
+  @override
+  bool shouldRebuild(covariant _StickyTabBarDelegate oldDelegate) => true;
+}
+
 class DiaryEditorPage extends StatefulWidget {
-  final int moodIndex;
+  final int? moodIndex;
   final double intensity;
   final String? tag;
   final DiaryEntry? entry;
+  final DateTime? initialDate;
 
   const DiaryEditorPage({
     super.key,
-    required this.moodIndex,
+    this.moodIndex,
     required this.intensity,
     this.tag,
     this.entry,
+    this.initialDate,
   });
 
   @override
@@ -40,17 +68,24 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
   @override
   void initState() {
     super.initState();
-    initializeEditor(entry: widget.entry);
+    initializeEditor(entry: widget.entry, initialDate: widget.initialDate);
   }
 
   @override
   Widget build(BuildContext context) {
-    final mood = kMoods[widget.moodIndex];
+    final mood = (currentMoodIndex != null && currentMoodIndex! >= 0) ? kMoods[currentMoodIndex!] : null;
     final bool isNight = UserState().isNight;
     final bgColor = isNight ? const Color(0xFF13131F) : const Color(0xFFF7F2E9);
-    final accentColor = isNight 
-        ? (mood.glowColor ?? const Color(0xFFE0C097)) 
-        : Color.lerp(mood.glowColor ?? const Color(0xFF8B5E3C), Colors.black, 0.45)!;
+    
+    // 如果没有选择心情，则使用默认的强调色（米棕色调）
+    final defaultAccentColor = isNight ? const Color(0xFFE0C097) : const Color(0xFF8B5E3C);
+    final moodGlowColor = mood?.glowColor;
+    
+    final accentColor = mood == null 
+        ? defaultAccentColor
+        : isNight 
+          ? (moodGlowColor ?? defaultAccentColor) 
+          : Color.lerp(moodGlowColor ?? defaultAccentColor, Colors.black, 0.45)!;
 
     final double viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
     // 实时捕获并记忆最大键盘高度，移至主 build 以供内容区域 padding 使用
@@ -99,231 +134,242 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                 width: double.infinity,
                 height: double.infinity,
                 color: Colors.transparent,
-                child: SingleChildScrollView(
-                  controller: scrollController, // 确保关联控制器
+                child: CustomScrollView(
+                  controller: scrollController,
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(
-                    24, 
-                    32, 
-                    24, 
-                    math.max(160, currentBottomHeight + 100) // 动态 Padding：根据键盘/面板高度留白
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header：大字号时间 + 日期
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            DiaryUtils.getFormattedTime(),
-                            style: TextStyle(
-                              fontSize: 60,
-                              fontWeight: FontWeight.bold,
-                              color: isNight ? accentColor : const Color(0xFF8B5E3C),
-                              fontFamily: 'LXGWWenKai',
-                              letterSpacing: -1,
-                            ),
-                          ),
-                          Text(
-                            DiaryUtils.getFormattedDate(),
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w500,
-                              color: isNight ? Colors.white38 : const Color(0xFFAFA296),
-                              fontFamily: 'LXGWWenKai',
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      // 治愈语录
-                      Text(
-                        fixedQuote,
-                        style: TextStyle(
-                          fontFamily: 'LXGWWenKai',
-                          fontSize: 16,
-                          fontStyle: FontStyle.italic,
-                          color: (isNight ? Colors.white38 : const Color(0xFFAFA296)).withOpacity(0.7),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // 手绘分割线
-                      CustomPaint(
-                        size: const Size(double.infinity, 2),
-                        painter: HandDrawnLinePainter(
-                          color: isNight ? Colors.white10 : const Color(0xFF8B5E3C).withOpacity(0.5),
-                          strokeWidth: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // 标签行
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          // 心情标签
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: accentColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                  slivers: [
+                    // TOP AREA: Header + Quote
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
                               children: [
-                                Image.asset(
-                                  mood.iconPath ?? 'assets/images/icons/sun.png',
-                                  width: 14,
-                                  height: 14,
-                                ),
-                                const SizedBox(width: 4),
                                 Text(
-                                  mood.label,
+                                  DiaryUtils.getFormattedTime(),
+                                  style: TextStyle(
+                                    fontSize: 60,
+                                    fontWeight: FontWeight.bold,
+                                    color: isNight ? accentColor : const Color(0xFF8B5E3C),
+                                    fontFamily: 'LXGWWenKai',
+                                    letterSpacing: -1,
+                                  ),
+                                ),
+                                Text(
+                                  DiaryUtils.getFormattedDate(),
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w500,
+                                    color: isNight ? Colors.white38 : const Color(0xFFAFA296),
+                                    fontFamily: 'LXGWWenKai',
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              fixedQuote,
+                              style: TextStyle(
+                                fontFamily: 'LXGWWenKai',
+                                fontSize: 16,
+                                fontStyle: FontStyle.italic,
+                                color: (isNight ? Colors.white38 : const Color(0xFFAFA296)).withOpacity(0.7),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            CustomPaint(
+                              size: const Size(double.infinity, 2),
+                              painter: HandDrawnLinePainter(
+                                color: isNight ? Colors.white10 : const Color(0xFF8B5E3C).withOpacity(0.5),
+                                strokeWidth: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // STICKY BAR: All Tags
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _StickyTabBarDelegate(
+                        backgroundColor: bgColor.withOpacity(0.9),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            // 心情标签
+                            GestureDetector(
+                              onTap: _showMoodPicker,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: accentColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: accentColor.withOpacity(0.2), width: 0.5),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (mood == null && (currentTag == null || currentTag!.isEmpty))
+                                      Icon(Icons.add_circle_outline, size: 14, color: accentColor)
+                                    else
+                                      Image.asset(
+                                        (currentTag != null && currentTag!.isNotEmpty) 
+                                            ? 'assets/images/icons/custom.png' 
+                                            : (mood!.iconPath!),
+                                        width: 14,
+                                        height: 14,
+                                        color: mood == null ? accentColor : null,
+                                      ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      mood == null && (currentTag == null || currentTag!.isEmpty)
+                                          ? '选择心情'
+                                          : (currentTag != null && currentTag!.isNotEmpty)
+                                              ? '心情：$currentTag'
+                                              : '心情：${mood!.label}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: accentColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // 天气
+                            if (weather != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: accentColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  "$weather ${temp ?? ''}",
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: accentColor,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          // 强度标签
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: accentColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              DiaryUtils.getMoodIntensityPrefix(mood.label, widget.intensity),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: accentColor,
                               ),
-                            ),
-                          ),
-                          // 天气标签
-                          if (weather != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: accentColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                "$weather ${temp ?? ''}",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: accentColor,
+                            // 地点
+                            if (location != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: accentColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.location_on_outlined, size: 12, color: accentColor),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      location!,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: accentColor,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
-                          // 地点标签
-                          if (location != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: accentColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.location_on_outlined, size: 12, color: accentColor),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    location!,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: accentColor,
+                            // 自定义日期
+                            if (customDate != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: accentColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.calendar_today_outlined, size: 12, color: accentColor),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      customDate!,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: accentColor,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          // 自定义日期标签
-                          if (customDate != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: accentColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.calendar_today_outlined, size: 12, color: accentColor),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    customDate!,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: accentColor,
+                            // 自定义时间
+                            if (customTime != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: accentColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.access_time_outlined, size: 12, color: accentColor),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      customTime!,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: accentColor,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          // 自定义时间标签
-                          if (customTime != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: accentColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.access_time_outlined, size: 12, color: accentColor),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    customTime!,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: accentColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 24),
-                      
-                      // 编辑块列表
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        padding: EdgeInsets.zero,
-                        itemCount: blocks.length,
-                        itemBuilder: (context, index) {
-                          final block = blocks[index];
-                          final key = blockKeys[block.id];
-                          return DiaryBlockItem(
-                            key: ValueKey(block.id),
-                            block: block,
-                            index: index,
-                            isEmojiOpen: (isEmojiOpen || isColorPickerOpen || isImagePickerOpen),
-                            blockKey: key,
-                            onRemoveImage: () => removeImage(index),
-                            onShowPreview: showImagePreview,
-                          );
-                        },
+                    ),
+
+                    // LIST AREA: Blocks
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        24, 
+                        12, 
+                        24, 
+                        math.max(160, currentBottomHeight + 100)
                       ),
-                      
-                      const SizedBox(height: 48),
-                    ],
-                  ),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final block = blocks[index];
+                            final key = blockKeys[block.id];
+                            return DiaryBlockItem(
+                              key: ValueKey(block.id),
+                              block: block,
+                              index: index,
+                              isEmojiOpen: (isEmojiOpen || isColorPickerOpen || isImagePickerOpen),
+                              blockKey: key,
+                              onRemoveImage: () => removeImage(index),
+                              onShowPreview: showImagePreview,
+                            );
+                          },
+                          childCount: blocks.length,
+                        ),
+                      ),
+                    ),
+
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: 48),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -397,5 +443,28 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         ),
       ),
     );
+  }
+
+  Future<void> _showMoodPicker() async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => MoodPopupPicker(
+        initialIndex: currentMoodIndex,
+        initialIntensity: currentIntensity,
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        currentMoodIndex = result['index'];
+        currentIntensity = result['intensity'];
+        if (result['tag'] != null) {
+          currentTag = result['tag'];
+        }
+        updateMoodQuote();
+      });
+    }
   }
 }

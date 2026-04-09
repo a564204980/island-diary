@@ -156,7 +156,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
               ClipPath(
                 clipper: const NavBarClipper(notchRadius: notchRadius, barRadius: barRadius),
                 child: _buildBlurBody(
-                  // 插入导航内容
                   child: Center(
                     child: Container(
                       width: barMaxWidth * 0.88,
@@ -305,10 +304,10 @@ class _BottomNavBarState extends State<BottomNavBar> {
   }
 
   Widget _buildSlimeAndNav(double barMaxWidth) {
-    return _buildSlimeInteractiveLayer();
+    return _buildSlimeInteractiveLayer(barMaxWidth);
   }
 
-  Widget _buildSlimeInteractiveLayer() {
+  Widget _buildSlimeInteractiveLayer(double barMaxWidth) {
     return MultiValueListenableBuilder(
       listenables: [_isIdleNotifier, _showDialogueNotifier, _isMoodPickerOpenNotifier, _dialogueTextNotifier],
       builder: (context, values, _) {
@@ -382,12 +381,21 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   Future<void> _openMoodPicker() async {
     final draft = UserState().diaryDraft.value;
+    // 如果有草稿，直接进入编辑器
     if (draft != null) {
       _openDiaryEntry(draft.moodIndex, draft.intensity, tag: draft.tag);
       return;
     }
 
     final wasOnboarding = !UserState().hasFinishedOnboarding.value;
+    
+    // 如果不是在进行新手引导，则直接进入编辑器（初始：不选心情）
+    if (!wasOnboarding) {
+      _openDiaryEntry(null, 6.0);
+      return;
+    }
+
+    // 只有在新手引导时才强制先选心情（或者用户明确想选心情的情况，但目前主要需求是快）
     _isMoodPickerOpenNotifier.value = true;
     _showDialogueNotifier.value = false;
     _isIdleNotifier.value = false;
@@ -404,7 +412,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
         barrierColor: Colors.black.withOpacity(0.6),
         transitionDuration: const Duration(milliseconds: 500),
         transitionBuilder: (context, animation, secondaryAnimation, child) {
-          final curvedAnimation = CurvedAnimation(parent: animation, curve: Curves.easeOutBack);
+          final curvedAnimation =
+              CurvedAnimation(parent: animation, curve: Curves.easeOutBack);
           return Transform.scale(
             scale: curvedAnimation.value,
             alignment: const Alignment(0.0, 0.8),
@@ -427,11 +436,13 @@ class _BottomNavBarState extends State<BottomNavBar> {
         UserState().completeOnboarding();
       }
       _startIdleTimer();
-      if (result != null) _openDiaryEntry(result['index'], result['intensity'], tag: result['tag']);
+      if (result != null) {
+        _openDiaryEntry(result['index'], result['intensity'], tag: result['tag']);
+      }
     }
   }
 
-  void _openDiaryEntry(int moodIndex, double intensity, {String? tag}) {
+  void _openDiaryEntry(int? moodIndex, double intensity, {String? tag}) {
     UserState().isDiarySheetOpen.value = true;
     Navigator.push<bool>(
       context,

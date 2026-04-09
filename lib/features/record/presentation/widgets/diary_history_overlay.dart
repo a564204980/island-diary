@@ -12,7 +12,6 @@ import 'package:island_diary/features/record/presentation/widgets/diary_share_ca
 import 'package:island_diary/features/record/presentation/widgets/export_config_dialog.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
-import 'package:island_diary/shared/widgets/mood_picker/mood_picker_sheet.dart';
 import 'package:share_plus/share_plus.dart';
 
 enum DiaryLayoutMode {
@@ -340,37 +339,18 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
       return;
     }
 
-    final result = await showGeneralDialog<Map<String, dynamic>>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'MoodPicker',
-      barrierColor: Colors.black.withOpacity(0.6),
-      transitionDuration: const Duration(milliseconds: 500),
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curvedAnimation = CurvedAnimation(parent: animation, curve: Curves.easeOutBack);
-        return Transform.scale(
-          scale: curvedAnimation.value,
-          alignment: const Alignment(0.0, 0.8),
-          child: FadeTransition(opacity: animation, child: child),
-        );
-      },
-      pageBuilder: (context, anim1, anim2) => const MoodPickerSheet(isSolidBackground: true),
-    );
-
-    if (result != null && mounted) {
-      UserState().isDiarySheetOpen.value = true;
-      await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DiaryEditorPage(
-            moodIndex: result['index'],
-            intensity: result['intensity'],
-            tag: result['tag'],
-          ),
+    // 直接进入编辑器 (默认：平静心情)
+    UserState().isDiarySheetOpen.value = true;
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const DiaryEditorPage(
+          moodIndex: 4, 
+          intensity: 6,
         ),
-      );
-      UserState().isDiarySheetOpen.value = false;
-    }
+      ),
+    );
+    UserState().isDiarySheetOpen.value = false;
   }
 }
 

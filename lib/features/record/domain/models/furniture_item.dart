@@ -17,6 +17,7 @@ class FurnitureItem {
   final double visualRotationY;
   final double visualRotationZ;
   final Offset visualPivot;
+  final Offset toolbarOffset;
 
   // 镜像（旋转 index 为 1 时）的独立微调参数
   final double? flippedVisualScale;
@@ -52,6 +53,7 @@ class FurnitureItem {
     this.flippedVisualRotationY,
     this.flippedVisualRotationZ,
     this.flippedVisualPivot,
+    this.toolbarOffset = Offset.zero,
   });
 
   Map<String, dynamic> toMap() {
@@ -84,6 +86,7 @@ class FurnitureItem {
       'fvRotationY': flippedVisualRotationY,
       'fvRotationZ': flippedVisualRotationZ,
       'fvPivot': flippedVisualPivot != null ? {'x': flippedVisualPivot!.dx, 'y': flippedVisualPivot!.dy} : null,
+      'toolbarOffset': {'x': toolbarOffset.dx, 'y': toolbarOffset.dy},
     };
   }
 
@@ -138,6 +141,12 @@ class FurnitureItem {
               (map['fvPivot']['y'] as num).toDouble(),
             )
           : null,
+      toolbarOffset: map['toolbarOffset'] != null
+          ? Offset(
+              (map['toolbarOffset']['x'] as num).toDouble(),
+              (map['toolbarOffset']['y'] as num).toDouble(),
+            )
+          : Offset.zero,
     );
   }
 

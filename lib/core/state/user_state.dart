@@ -28,6 +28,7 @@ class UserState {
   static const _keyDraftLocation = 'diary_draft_location';
   static const _keyDraftCustomDate = 'diary_draft_custom_date';
   static const _keyDraftCustomTime = 'diary_draft_custom_time';
+  static const _keyDraftDateTime = 'diary_draft_date_time'; // 新增：草稿特定的时间锚点
   static const _keySavedDiaries = 'saved_diaries';
   static const _keyThemeMode = 'theme_mode'; // 新增主题模式键
   static const _keyRecordGuidance = 'has_seen_record_guidance'; // 记录页引导
@@ -37,6 +38,7 @@ class UserState {
   static const _keyDiaryLayoutMode = 'diary_layout_mode'; // 日记布局模式
   static const _keyWallColorLeft = 'wall_color_left'; // 左墙颜色
   static const _keyWallColorRight = 'wall_color_right'; // 右墙颜色
+  static const _keyMoodTagHistory = 'mood_tag_history'; // 心情标签历史
 
   /// 朋友圈背景封面 (本地图片路径或 null 使用默认)
   final ValueNotifier<String?> momentsCoverPath = ValueNotifier<String?>(null);
@@ -89,6 +91,9 @@ class UserState {
   /// 记录小软是否在底部菜单中（记录页面小软跳出时设为 false）
   final ValueNotifier<bool> isSlimeInBottomMenu = ValueNotifier<bool>(true);
 
+  /// 自定义心情标签历史
+  final ValueNotifier<List<String>> moodTagHistory = ValueNotifier<List<String>>([]);
+
   /// 装修场景快照数据 (Uint8List)
   final ValueNotifier<Uint8List?> decorationSnapshot = ValueNotifier<Uint8List?>(null);
 
@@ -103,7 +108,7 @@ class UserState {
 
   /// 保存草稿
   Future<void> saveDraft({
-    required int moodIndex,
+    int? moodIndex,
     required double intensity,
     required String content,
     String? tag,
@@ -112,6 +117,7 @@ class UserState {
     String? location,
     String? customDate,
     String? customTime,
+    DateTime? dateTime,
     List<Map<String, dynamic>>? blocks,
   }) async {
     final draft = DiaryDraft(
@@ -124,13 +130,14 @@ class UserState {
       location: location,
       customDate: customDate,
       customTime: customTime,
+      dateTime: dateTime,
       blocks: blocks,
     );
     diaryDraft.value = draft;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyDraftContent, content);
-    await prefs.setInt(_keyDraftMood, moodIndex);
+    await prefs.setInt(_keyDraftMood, moodIndex ?? -1);
     await prefs.setDouble(_keyDraftIntensity, intensity);
     if (tag != null) {
       await prefs.setString(_keyDraftTag, tag);
@@ -150,6 +157,8 @@ class UserState {
     else await prefs.remove(_keyDraftCustomDate);
     if (customTime != null) await prefs.setString(_keyDraftCustomTime, customTime);
     else await prefs.remove(_keyDraftCustomTime);
+    if (dateTime != null) await prefs.setString(_keyDraftDateTime, dateTime.toIso8601String());
+    else await prefs.remove(_keyDraftDateTime);
   }
 
   /// 清空草稿
@@ -166,6 +175,7 @@ class UserState {
     await prefs.remove(_keyDraftLocation);
     await prefs.remove(_keyDraftCustomDate);
     await prefs.remove(_keyDraftCustomTime);
+    await prefs.remove(_keyDraftDateTime);
   }
 
   /// 将当前草稿保存为正式日记并持久化
@@ -173,7 +183,7 @@ class UserState {
     final draft = diaryDraft.value;
     if (draft == null) return;
 
-    final now = DateTime.now();
+    final entryDate = draft.dateTime ?? DateTime.now();
     final List<Map<String, dynamic>> blocks = draft.blocks != null
         ? List<Map<String, dynamic>>.from(draft.blocks!)
         : [];
@@ -181,9 +191,9 @@ class UserState {
     // 检查今日是否已记录过（用于发放奖励）
     final bool isFirstToday = !savedDiaries.value.any(
       (e) =>
-          e.dateTime.year == now.year &&
-          e.dateTime.month == now.month &&
-          e.dateTime.day == now.day,
+          e.dateTime.year == entryDate.year &&
+          e.dateTime.month == entryDate.month &&
+          e.dateTime.day == entryDate.day,
     );
 
     if (isFirstToday) {
@@ -195,7 +205,7 @@ class UserState {
 
       // 插入奖励块到首位
       blocks.insert(0, {
-        'id': 'reward_${now.millisecondsSinceEpoch}',
+        'id': 'reward_${entryDate.millisecondsSinceEpoch}',
         'type': 'reward',
         'rewardId': randomKey,
         'path': config['path'],
@@ -204,8 +214,8 @@ class UserState {
     }
 
     final newEntry = DiaryEntry(
-      dateTime: now,
-      moodIndex: draft.moodIndex,
+      dateTime: entryDate,
+      moodIndex: draft.moodIndex!,
       intensity: draft.intensity,
       content: draft.content,
       tag: draft.tag,
@@ -381,6 +391,25 @@ class UserState {
     await prefs.setInt(_keyDiaryLayoutMode, mode);
   }
 
+  /// 添加并保存心情标签到历史
+  Future<void> addMoodTag(String tag) async {
+    final trimmed = tag.trim();
+    if (trimmed.isEmpty) return;
+    
+    final currentList = List<String>.from(moodTagHistory.value);
+    currentList.remove(trimmed); // 先移除旧的（如果是重复话），从而让它排到第一个
+    currentList.insert(0, trimmed);
+    
+    // 最多保留 20 个
+    if (currentList.length > 20) {
+      currentList.removeLast();
+    }
+    
+    moodTagHistory.value = currentList;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_keyMoodTagHistory, currentList);
+  }
+
   /// 从本地存储中读取状态
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -423,7 +452,7 @@ class UserState {
 
       diaryDraft.value = DiaryDraft(
         content: draftContent,
-        moodIndex: prefs.getInt(_keyDraftMood) ?? 0,
+        moodIndex: (prefs.getInt(_keyDraftMood) ?? -1) == -1 ? null : prefs.getInt(_keyDraftMood),
         intensity: prefs.getDouble(_keyDraftIntensity) ?? 5.0,
         tag: prefs.getString(_keyDraftTag),
         weather: prefs.getString(_keyDraftWeather),
@@ -431,6 +460,7 @@ class UserState {
         location: prefs.getString(_keyDraftLocation),
         customDate: prefs.getString(_keyDraftCustomDate),
         customTime: prefs.getString(_keyDraftCustomTime),
+        dateTime: prefs.getString(_keyDraftDateTime) != null ? DateTime.parse(prefs.getString(_keyDraftDateTime)!) : null,
         blocks: blocks,
       );
     }
@@ -476,6 +506,9 @@ class UserState {
     if (leftVal != null) wallColorLeft.value = Color(leftVal);
     final rightVal = prefs.getInt(_keyWallColorRight);
     if (rightVal != null) wallColorRight.value = Color(rightVal);
+
+    // 加载心情标签历史
+    moodTagHistory.value = prefs.getStringList(_keyMoodTagHistory) ?? [];
   }
 
   void dispose() {
@@ -489,7 +522,7 @@ class UserState {
 
 /// 日记草稿模型
 class DiaryDraft {
-  final int moodIndex;
+  final int? moodIndex;
   final double intensity;
   final String content;
   final String? tag;
@@ -498,6 +531,7 @@ class DiaryDraft {
   final String? location;
   final String? customDate;
   final String? customTime;
+  final DateTime? dateTime;
   final List<Map<String, dynamic>>? blocks; // 结构化分块数据
 
   DiaryDraft({
@@ -510,6 +544,7 @@ class DiaryDraft {
     this.location,
     this.customDate,
     this.customTime,
+    this.dateTime,
     this.blocks,
   });
 }

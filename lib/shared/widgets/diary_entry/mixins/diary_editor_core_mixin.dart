@@ -33,10 +33,16 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   String currentFontFamily = 'LXGWWenKai';
   String? lastFocusedBlockId;
   String? _fixedQuote;
+  DateTime? _entryDateTime;
+  
+  int? currentMoodIndex;
+  late double currentIntensity;
+  String? currentTag;
 
   String get fixedQuote => _fixedQuote ?? '';
 
-  void initializeEditor({DiaryEntry? entry}) {
+  void initializeEditor({DiaryEntry? entry, DateTime? initialDate}) {
+    _entryDateTime = entry?.dateTime ?? initialDate;
     if (blocks.isEmpty) {
       currentTextColor = UserState().isNight
           ? const Color(0xFFE0C097)
@@ -49,8 +55,12 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       loadDraft();
     }
 
-    final mood = kMoods[widget.moodIndex];
-    _fixedQuote = DiaryUtils.getMoodQuote(mood.label);
+    // 初始化心情相关状态
+    currentMoodIndex = entry?.moodIndex ?? widget.moodIndex;
+    currentIntensity = entry?.intensity ?? widget.intensity;
+    currentTag = entry?.tag ?? widget.tag;
+
+    updateMoodQuote();
 
     final firstTextBlock = blocks.whereType<TextBlock>().firstOrNull;
     if (firstTextBlock != null &&
@@ -62,6 +72,15 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
         currentTextColor = tc.baseColor;
       }
     }
+  }
+
+  void updateMoodQuote() {
+    if (currentMoodIndex == null || currentMoodIndex! < 0) {
+      _fixedQuote = '从心出发，记录此刻的点滴...';
+      return;
+    }
+    final mood = kMoods[currentMoodIndex!];
+    _fixedQuote = DiaryUtils.getMoodQuote(mood.label);
   }
 
   void _loadFromEntry(DiaryEntry entry) {
@@ -147,15 +166,16 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
         .join('\n');
 
     await UserState().saveDraft(
-      moodIndex: widget.moodIndex,
-      intensity: widget.intensity,
+      moodIndex: currentMoodIndex ?? 4,
+      intensity: currentIntensity,
       content: content,
-      tag: widget.tag,
+      tag: currentTag,
       weather: weather,
       temp: temp,
       location: location,
       customDate: customDate,
       customTime: customTime,
+      dateTime: _entryDateTime,
       blocks: blocks.map((b) => b.toMap()).toList(),
     );
   }
@@ -190,6 +210,11 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       return false;
     }
 
+    if (currentMoodIndex == null || currentMoodIndex! < 0) {
+      IslandAlert.show(context, message: '先选个心情再出发吧~', icon: '✨');
+      return false;
+    }
+
     try {
       final content = blocks
           .whereType<TextBlock>()
@@ -201,10 +226,10 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
         final updatedEntry = DiaryEntry(
           id: widget.entry!.id,
           dateTime: widget.entry!.dateTime,
-          moodIndex: widget.moodIndex,
-          intensity: widget.intensity,
+          moodIndex: currentMoodIndex!,
+          intensity: currentIntensity,
           content: content,
-          tag: widget.tag,
+          tag: currentTag,
           weather: weather,
           temp: temp,
           location: location,

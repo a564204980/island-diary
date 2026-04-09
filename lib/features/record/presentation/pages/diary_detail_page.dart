@@ -483,7 +483,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   Hero(
                     tag: 'mood_${_currentEntry.id}',
                     child: Image.asset(
-                      mood.iconPath ?? 'assets/images/icons/sun.png',
+                      (_currentEntry.tag != null && _currentEntry.tag!.isNotEmpty)
+                          ? 'assets/images/icons/custom.png'
+                          : (mood.iconPath ?? 'assets/images/icons/sun.png'),
                       width: 14,
                       height: 14,
                     ),
@@ -559,12 +561,19 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       color: accentColor,
                     ),
                     const SizedBox(width: 2),
-                    Text(
-                      _currentEntry.location!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: accentColor,
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width - 120,
+                      ),
+                      child: Text(
+                        _currentEntry.location!,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: accentColor,
+                        ),
                       ),
                     ),
                   ],

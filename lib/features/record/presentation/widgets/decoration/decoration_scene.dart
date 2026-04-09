@@ -59,8 +59,8 @@ class DecorationScene extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onPanStart: (_) => controller.updateInteracting(true),
         onPanUpdate: (details) {
-          // 仅在非搬动且非选中家具时允许场景平移
-          if (controller.draggingItem == null && controller.selectedFurniture == null) {
+          // 只要不是正在长按搬运家具，就允许平移场景
+          if (!controller.isLongPressDragging) {
             controller.updateSceneOffset(details.delta);
           }
         },
@@ -232,8 +232,8 @@ class DecorationScene extends StatelessWidget {
               pf: controller.selectedFurniture!,
               converter: converter,
               layoutOffset: Offset(
-                (screenW - w) / 2 + controller.sceneOffset.dx,
-                (screenH - h) / 2 + controller.sceneOffset.dy,
+                screenW / 2 - (w / 2) + controller.sceneOffset.dx,
+                screenH / 2 - (h / 2) + controller.sceneOffset.dy,
               ),
               onRotate: () => controller.rotateFurniture(converter),
               onDelete: () => controller.deleteFurniture(controller.selectedFurniture!),

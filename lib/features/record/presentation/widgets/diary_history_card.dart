@@ -461,7 +461,9 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
               Hero(
                 tag: 'mood_${widget.entry.id}',
                 child: Image.asset(
-                  mood.iconPath ?? 'assets/images/icons/sun.png',
+                  (tag != null && tag.isNotEmpty) 
+                      ? 'assets/images/icons/custom.png' 
+                      : (mood.iconPath ?? 'assets/images/icons/sun.png'),
                   width: 14,
                   height: 14,
                 ),
@@ -542,13 +544,18 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
               children: [
                 Icon(Icons.location_on_outlined, size: 10, color: badgeColor.withOpacity(isNight ? 0.6 : 1.0)),
                 const SizedBox(width: 2),
-                Text(
-                  widget.entry.location!,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
-                    fontFamily: 'LXGWWenKai',
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 160),
+                  child: Text(
+                    widget.entry.location!,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
+                      fontFamily: 'LXGWWenKai',
+                    ),
                   ),
                 ),
               ],

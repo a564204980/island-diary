@@ -14,8 +14,15 @@ import '../island_alert.dart';
 
 class MoodPickerSheet extends StatefulWidget {
   final bool isSolidBackground;
+  final int? initialIndex;
+  final double? initialIntensity;
 
-  const MoodPickerSheet({super.key, this.isSolidBackground = false});
+  const MoodPickerSheet({
+    super.key,
+    this.isSolidBackground = false,
+    this.initialIndex,
+    this.initialIntensity,
+  });
 
   @override
   State<MoodPickerSheet> createState() => _MoodPickerSheetState();
@@ -35,6 +42,9 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex;
+    _intensity = widget.initialIntensity ?? 6.0;
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() => _isReady = true);
