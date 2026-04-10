@@ -8,7 +8,7 @@ extension BentoWaveChart on _StatisticsPageState {
         padding: const EdgeInsets.all(16),
         child: const SizedBox(
           height: 160,
-          child: Center(child: Text('开启日记旅程，解锁情绪波浪 🌊', style: TextStyle(fontSize: 13, color: Colors.grey))),
+          child: Center(child: Text('开启日记旅程，看情感之河缓缓流淌 🌊', style: TextStyle(fontSize: 13, color: Colors.grey))),
         )
       );
     }
@@ -54,14 +54,19 @@ extension BentoWaveChart on _StatisticsPageState {
     }).toList();
 
     // 提前构建 BarData 以便引用
-    final mainLineColor = isNight ? const Color(0xFF80D8FF) : const Color(0xFF64B5F6);
+    final mainLineColor = isNight ? const Color(0xFF00E5FF) : const Color(0xFF00B8D4);
     final barData = LineChartBarData(
       spots: spots,
       isCurved: true,
-      curveSmoothness: 0.35,
+      curveSmoothness: 0.4,
       color: mainLineColor,
-      barWidth: 3.5,
+      barWidth: 4,
       isStrokeCapRound: true,
+      shadow: Shadow(
+        color: mainLineColor.withOpacity(0.5),
+        blurRadius: 10,
+        offset: const Offset(0, 4),
+      ),
       dotData: FlDotData(
         show: true,
         getDotPainter: (spot, percent, barData, index) {
@@ -70,10 +75,10 @@ extension BentoWaveChart on _StatisticsPageState {
           final mood = kMoods[entry.moodIndex % kMoods.length];
           final isSelected = _touchedWaveSpotIndex == index;
           return FlDotCirclePainter(
-            radius: isSelected ? 6 : 4, 
-            color: mood.glowColor ?? Colors.yellow, 
-            strokeWidth: isSelected ? 3 : 1.5, 
-            strokeColor: Colors.white
+            radius: isSelected ? 8 : 4.5, 
+            color: Colors.white, 
+            strokeWidth: isSelected ? 4 : 2, 
+            strokeColor: mood.glowColor ?? mainLineColor,
           );
         }
       ),
@@ -83,8 +88,9 @@ extension BentoWaveChart on _StatisticsPageState {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            mainLineColor.withAlpha(90),
-            mainLineColor.withAlpha(0),
+            mainLineColor.withOpacity(isNight ? 0.3 : 0.4),
+            mainLineColor.withOpacity(0.05),
+            Colors.transparent,
           ],
         ),
       ),
@@ -96,11 +102,25 @@ extension BentoWaveChart on _StatisticsPageState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('情绪波动', style: _bentoTitleStyle(isNight)),
-              Icon(CupertinoIcons.waveform_path, size: 18, color: isNight ? Colors.white54 : Colors.black38),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('情感之河', style: _bentoTitleStyle(isNight)),
+                  Icon(CupertinoIcons.waveform_path, size: 18, color: isNight ? Colors.white54 : Colors.black38),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '感知情感的涨落，看内心能量缓缓流淌',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isNight ? Colors.white38 : Colors.black38,
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -138,12 +158,22 @@ extension BentoWaveChart on _StatisticsPageState {
                           final data = displayPoints[spot.x.toInt()];
                           final entry = data['entry'] as DiaryEntry;
                           final mood = kMoods[entry.moodIndex % kMoods.length];
+                          String intensityDesc = '心境宁静平和';
+                          double y = spot.y;
+                          if (y >= 8) {
+                            intensityDesc = '内心能量澎湃';
+                          } else if (y >= 5) {
+                            intensityDesc = '情感起伏有力';
+                          } else if (y < 2) {
+                            intensityDesc = '万籁俱寂静谧';
+                          }
+
                           return LineTooltipItem(
-                            '${mood.label}\n',
-                            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                            '${mood.label} · $intensityDesc\n',
+                            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12, fontFamily: 'LXGWWenKai'),
                             children: [
                               TextSpan(
-                                text: '${spot.y.toStringAsFixed(1)} 强度 · ${DateFormat('MM/dd').format(data['date'])}', 
+                                text: '当日平均能量强度: ${spot.y.toStringAsFixed(1)} · ${DateFormat('MM/dd').format(data['date'])}', 
                                 style: const TextStyle(fontWeight: FontWeight.normal, fontSize: 10, color: Colors.white70)
                               )
                             ],

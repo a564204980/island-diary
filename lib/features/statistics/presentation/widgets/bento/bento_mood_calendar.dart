@@ -26,8 +26,8 @@ extension BentoMoodCalendar on _StatisticsPageState {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('${now.month}月心情墙', style: _bentoTitleStyle(isNight)),
-              Icon(CupertinoIcons.calendar, size: 18, color: isNight ? Colors.white54 : Colors.black38),
+               Text('${now.month}月的时光印记', style: _bentoTitleStyle(isNight)),
+               Icon(CupertinoIcons.calendar, size: 18, color: isNight ? Colors.white54 : Colors.black38),
             ],
           ),
           const SizedBox(height: 12),

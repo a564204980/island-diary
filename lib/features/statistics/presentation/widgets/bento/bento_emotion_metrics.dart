@@ -120,7 +120,14 @@ extension BentoEmotionMetrics on _StatisticsPageState {
               children: [
                 Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: data.color)),
                 const SizedBox(width: 6),
-                Text('${data.label} ${(data.count / total * 100).toStringAsFixed(0)}%', style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black87)),
+                Expanded(
+                  child: Text(
+                    '${data.label} ${(data.count / total * 100).toStringAsFixed(0)}%', 
+                    style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black87),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
               ],
             ),
           ));

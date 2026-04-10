@@ -4,12 +4,16 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 class SoulSeasonResult {
   final String seasonName;
   final String description;
+  final String healingMessage; // 新增：更深层的治愈建议
+  final String particleType; // 新增：对应的视角粒子类型 (flower, firefly, leaf, frost)
   final Color accentColor;
   final String icon;
 
   SoulSeasonResult({
     required this.seasonName,
     required this.description,
+    required this.healingMessage,
+    required this.particleType,
     required this.accentColor,
     required this.icon,
   });
@@ -21,6 +25,8 @@ class SoulSeasonLogic {
       return SoulSeasonResult(
         seasonName: '沉寂之初',
         description: '岛屿还在等待你的第一笔记录，每一刻的感受都值得被铭记。',
+        healingMessage: '哪怕只是一句简单的问候，也是与自己对话的开始。',
+        particleType: 'none',
         accentColor: Colors.grey,
         icon: '🌬️',
       );
@@ -50,6 +56,8 @@ class SoulSeasonLogic {
         return SoulSeasonResult(
           seasonName: '烈阳盛夏',
           description: '你的内心如仲夏般热烈，对生活充满了迸发的期待与喜悦。',
+          healingMessage: '灿烂的阳光正照进心房，享受这份额外的生命热度吧。',
+          particleType: 'firefly',
           accentColor: const Color(0xFFFFB347),
           icon: '☀️',
         );
@@ -57,6 +65,8 @@ class SoulSeasonLogic {
         return SoulSeasonResult(
           seasonName: '萌动初春',
           description: '万物正在你的灵魂中萌生，平和中带着对未知的温柔期待。',
+          healingMessage: '在微风中伸个懒腰，那些小小的愿望正在静静破土。',
+          particleType: 'flower',
           accentColor: const Color(0xFFA8E6CF),
           icon: '🌱',
         );
@@ -65,6 +75,8 @@ class SoulSeasonLogic {
       return SoulSeasonResult(
         seasonName: '恬淡之秋',
         description: '灵魂正处于静谧的深秋，虽偶有风落，心境却已果实累累。',
+        healingMessage: '听一听叶子落地的声音，这一刻的回响是给努力后的馈赠。',
+        particleType: 'leaf',
         accentColor: const Color(0xFFD4A373),
         icon: '🍂',
       );
@@ -73,6 +85,8 @@ class SoulSeasonLogic {
         return SoulSeasonResult(
           seasonName: '骤雨时节',
           description: '情绪中有着无法忽视的雷雨，去接纳那些不安，它们也是生命的一部分。',
+          healingMessage: '雨后总有泥土的芬芳，不完美也是一种特别的生命张力。',
+          particleType: 'rain',
           accentColor: const Color(0xFFFF6B6B),
           icon: '⛈️',
         );
@@ -80,6 +94,8 @@ class SoulSeasonLogic {
         return SoulSeasonResult(
           seasonName: '冷冽深冬',
           description: '灵魂在深冬蛰伏。偶尔的瑟缩是为了更好地积蓄力量，春天不远了。',
+          healingMessage: '在寒冷中给自己一个拥抱，温暖其实一直都在手心里。',
+          particleType: 'frost',
           accentColor: const Color(0xFF74EBD5),
           icon: '❄️',
         );

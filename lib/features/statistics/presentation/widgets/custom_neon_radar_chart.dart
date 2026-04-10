@@ -26,8 +26,7 @@ class NeonRadarChart extends StatelessWidget {
         final double width = constraints.maxWidth;
         final double height = constraints.maxHeight;
         final double size = min(width, height);
-        // Leave padding for the labels around the chart
-        final double padding = 36.0; 
+        final double padding = 42.0; 
         final double radius = (size / 2) - padding;
         final Offset center = Offset(width / 2, height / 2);
 
@@ -36,34 +35,34 @@ class NeonRadarChart extends StatelessWidget {
 
         for (int i = 0; i < n; i++) {
           double angle = -pi / 2 + (2 * pi / n) * i;
-          // Place label slightly outside the max radius
-          // Label container needs to be centered based on text size, so we offset carefully.
-          double labelR = radius + 22.0; 
+          double labelR = radius + 28.0; 
           double lx = center.dx + labelR * cos(angle);
           double ly = center.dy + labelR * sin(angle);
 
-          // Construct the label block
           Widget labelBlock = Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (iconPaths != null && iconPaths![i].isNotEmpty)
-                Image.asset(iconPaths![i], width: 18, height: 18),
-              const SizedBox(height: 2),
+              if (iconPaths != null && i < iconPaths!.length && iconPaths![i].isNotEmpty)
+                Image.asset(iconPaths![i], width: 20, height: 20),
+              const SizedBox(height: 4),
               Text(
                 labels[i],
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color: isNight ? Colors.white70 : Colors.black87,
+                  fontFamily: 'LXGWWenKai',
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           );
 
           labelWidgets.add(
             Positioned(
-              left: lx - 30, // assuming max width of label block is ~60
-              top: ly - 20,  // assuming height is ~40
+              left: lx - 30,
+              top: ly - 22,
               width: 60,
               child: Center(child: labelBlock),
             ),
@@ -78,7 +77,7 @@ class NeonRadarChart extends StatelessWidget {
             children: [
               CustomPaint(
                 size: Size(width, height),
-                painter: _NeonRadarPainter(
+                painter: _BloomRadarPainter(
                   values: values,
                   maxValue: maxValue,
                   isNight: isNight,
@@ -96,7 +95,7 @@ class NeonRadarChart extends StatelessWidget {
   }
 }
 
-class _NeonRadarPainter extends CustomPainter {
+class _BloomRadarPainter extends CustomPainter {
   final List<double> values;
   final double maxValue;
   final bool isNight;
@@ -104,7 +103,7 @@ class _NeonRadarPainter extends CustomPainter {
   final double radius;
   final Offset center;
 
-  _NeonRadarPainter({
+  _BloomRadarPainter({
     required this.values,
     required this.maxValue,
     required this.isNight,
@@ -118,20 +117,19 @@ class _NeonRadarPainter extends CustomPainter {
     int n = values.length;
     if (n < 3) return;
 
-    // 1. Draw Web Grids (Concentric Circles or Polygons)
     final gridPaint = Paint()
-      ..color = isNight ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.1)
+      ..color = isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.06)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
-    int gridLevels = 3;
+    // 1. 绘制背景网格（柔动的同心圆）
+    int gridLevels = 4;
     for (int level = 1; level <= gridLevels; level++) {
       double r = radius * (level / gridLevels);
-      // Let's use concentric circles to make it feel futuristic, instead of sharp polygons.
       canvas.drawCircle(center, r, gridPaint);
     }
 
-    // 2. Draw Spokes (from center to edges)
+    // 2. 绘制轴线（带微弱光晕）
     for (int i = 0; i < n; i++) {
       double angle = -pi / 2 + (2 * pi / n) * i;
       double px = center.dx + radius * cos(angle);
@@ -139,74 +137,84 @@ class _NeonRadarPainter extends CustomPainter {
       canvas.drawLine(center, Offset(px, py), gridPaint);
     }
 
-    // 3. Calculate data points path
-    Path dataPath = Path();
+    // 3. 计算“花瓣”路径 - 使用平滑的贝塞尔曲线代替直线
+    Path bloomPath = Path();
     List<Offset> points = [];
-
     double effectiveMax = maxValue <= 0 ? 1 : maxValue;
 
     for (int i = 0; i < n; i++) {
       double angle = -pi / 2 + (2 * pi / n) * i;
-      double valueRatio = (values[i] / effectiveMax).clamp(0.0, 1.0);
+      double valueRatio = (values[i] / effectiveMax).clamp(0.1, 1.0);
       double r = radius * valueRatio;
-      
-      // Ensure there's a tiny minimal visible radius even for 0 values to show the shape loosely
-      if (r < 5.0) r = 5.0;
-
       double px = center.dx + r * cos(angle);
       double py = center.dy + r * sin(angle);
       points.add(Offset(px, py));
-
-      if (i == 0) {
-        dataPath.moveTo(px, py);
-      } else {
-        dataPath.lineTo(px, py);
-      }
     }
-    dataPath.close();
 
-    // 4. Fill Polygon with Neon Gradient
+    // 使用 Catmull-Rom 插值或简单的贝塞尔曲线实现“花瓣”绽放效果
+    bloomPath.moveTo(points[0].dx, points[0].dy);
+    for (int i = 0; i < n; i++) {
+      final p1 = points[i];
+      final p2 = points[(i + 1) % n];
+      
+      // 控制点设在两个顶点的中点，但向外稍微偏移以产生弧度
+      final midX = (p1.dx + p2.dx) / 2;
+      final midY = (p1.dy + p2.dy) / 2;
+      
+      // 向外偏移，数据越大，弧度越圆润
+      final offsetFactor = 1.15; 
+      final petalX = center.dx + (midX - center.dx) * offsetFactor;
+      final petalY = center.dy + (midY - center.dy) * offsetFactor;
+      
+      bloomPath.quadraticBezierTo(petalX, petalY, p2.dx, p2.dy);
+    }
+    bloomPath.close();
+
+    // 4. 填充渐变色（花瓣质感）
     final fillPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+      ..shader = RadialGradient(
         colors: [
-          isNight ? const Color(0xFFB39DDB).withOpacity(0.6) : const Color(0xFF9575CD).withOpacity(0.5),
-          isNight ? const Color(0xFF80D8FF).withOpacity(0.4) : const Color(0xFF40C4FF).withOpacity(0.3),
+          (glowColors != null && glowColors!.isNotEmpty ? glowColors![0] : const Color(0xFF91EAE4)).withOpacity(0.6),
+          (glowColors != null && glowColors!.length > 1 ? glowColors![1] : const Color(0xFF7F7FD5)).withOpacity(0.2),
+          Colors.transparent,
         ],
-      ).createShader(Rect.fromCircle(center: center, radius: radius))
+      ).createShader(Rect.fromCircle(center: center, radius: radius * 1.2))
       ..style = PaintingStyle.fill;
       
-    // 5. Add Core Shadow / Glow under the polygon
-    canvas.drawShadow(dataPath, const Color(0xFF673AB7).withOpacity(isNight ? 0.3 : 0.45), 8.0, false);
-    canvas.drawPath(dataPath, fillPaint);
+    canvas.drawPath(bloomPath, fillPaint);
 
-    // 6. Draw Polygon Border
+    // 5. 绘制平滑边缘
     final borderPaint = Paint()
-      ..color = isNight ? const Color(0xFFD1C4E9) : const Color(0xFF673AB7)
+      ..shader = SweepGradient(
+        colors: glowColors ?? [const Color(0xFFD1C4E9), const Color(0xFFB39DDB)],
+        center: Alignment.center,
+      ).createShader(Rect.fromCircle(center: center, radius: radius))
       ..style = PaintingStyle.stroke
-      ..strokeWidth = isNight ? 2.5 : 3.2
-      ..strokeJoin = StrokeJoin.round;
-    canvas.drawPath(dataPath, borderPaint);
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+    
+    // 柔化阴影
+    canvas.drawShadow(bloomPath, (glowColors != null ? glowColors![0] : Colors.purple).withOpacity(0.3), 10, true);
+    canvas.drawPath(bloomPath, borderPaint);
 
-    // 7. Draw Vertex Dots
+    // 6. 绘制顶点（发光的露珠）
     for (int i = 0; i < n; i++) {
-      Color dotColor = glowColors != null ? glowColors![i] : borderPaint.color;
-      final dotPaint = Paint()
-        ..color = dotColor
-        ..style = PaintingStyle.fill;
-      final dotBorderPaint = Paint()
-        ..color = isNight ? const Color(0xFF2C2C2C) : Colors.white
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5;
-
-      canvas.drawCircle(points[i], 4.5, dotPaint);
-      canvas.drawCircle(points[i], 4.5, dotBorderPaint);
+      Color dotColor = (glowColors != null && i < glowColors!.length) ? glowColors![i] : Colors.white;
+      
+      // 顶点光晕
+      final glowPaint = Paint()
+        ..color = dotColor.withOpacity(0.4)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      canvas.drawCircle(points[i], 8, glowPaint);
+      
+      // 核心
+      final dotPaint = Paint()..color = Colors.white;
+      canvas.drawCircle(points[i], 3, dotPaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _NeonRadarPainter oldDelegate) {
+  bool shouldRepaint(covariant _BloomRadarPainter oldDelegate) {
     return oldDelegate.values != values || 
            oldDelegate.maxValue != maxValue ||
            oldDelegate.isNight != isNight;

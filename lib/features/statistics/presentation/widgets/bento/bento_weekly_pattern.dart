@@ -26,8 +26,8 @@ extension BentoWeeklyPattern on _StatisticsPageState {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('周际节律', style: _bentoTitleStyle(isNight)),
-              Text('揭示一周内的心情惯性', style: TextStyle(fontSize: 10, color: isNight ? Colors.white38 : Colors.black38)),
+              Text('岛屿脉动', style: _bentoTitleStyle(isNight)),
+              Text('揭示一周的心情节律', style: TextStyle(fontSize: 10, color: isNight ? Colors.white38 : Colors.black38)),
             ],
           ),
           const SizedBox(height: 16),

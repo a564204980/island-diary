@@ -22,7 +22,7 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('情绪结构域', style: _bentoTitleStyle(isNight)),
+              Text('情感多棱镜', style: _bentoTitleStyle(isNight)),
               Icon(CupertinoIcons.circle_grid_hex_fill, size: 18, color: isNight ? Colors.white54 : Colors.black38),
             ],
           ),
@@ -66,11 +66,11 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                 Text('心流变异指数', style: _bentoTitleStyle(isNight)),
+                 Text('潮汐节律', style: _bentoTitleStyle(isNight)),
                  Icon(CupertinoIcons.heart_circle, size: 18, color: volatility > 0.4 ? Colors.redAccent : (isNight ? Colors.white54 : Colors.black38)),
               ]
             ),
-            Text('衡量情绪的波动稳定性', style: TextStyle(fontSize: 10, color: isNight ? Colors.white38 : Colors.black38)),
+            Text('情绪起伏的潮汐位', style: TextStyle(fontSize: 10, color: isNight ? Colors.white38 : Colors.black38)),
             const SizedBox(height: 12),
             Text('${(volatility * 10).toStringAsFixed(1)}', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: isNight ? Colors.white : Colors.black87)),
             const SizedBox(height: 4),
@@ -102,7 +102,7 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                 Text('里程碑聚焦', style: _bentoTitleStyle(isNight)),
+                 Text('时光刻痕', style: _bentoTitleStyle(isNight)),
                  Icon(CupertinoIcons.bookmark_fill, size: 18, color: isNight ? Colors.white54 : Colors.black38),
               ]
             ),
@@ -162,7 +162,7 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
            Column(
              crossAxisAlignment: CrossAxisAlignment.start,
              children: [
-                Text('半场趋势', style: _bentoTitleStyle(isNight)),
+                Text('近期水位', style: _bentoTitleStyle(isNight)),
                 const SizedBox(height: 8),
                 Text(isUp ? '状态正在回暖' : '近期略显疲惫', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isNight ? Colors.white : Colors.black87)),
              ]
@@ -208,7 +208,7 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
              children: [
                Icon(CupertinoIcons.sparkles, size: 16, color: isNight ? Colors.white : Colors.black87),
                const SizedBox(width: 6),
-               Text('人格底色', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isNight ? Colors.white : Colors.black54)),
+               Text('灵魂本色', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isNight ? Colors.white : Colors.black54)),
              ]
            ),
            const SizedBox(height: 16),
@@ -249,8 +249,8 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-           Text('季候涨落', style: _bentoTitleStyle(isNight)),
-           Text('透视长期的生命节奏', style: TextStyle(fontSize: 10, color: isNight ? Colors.white38 : Colors.black38)),
+           Text('四季脉动', style: _bentoTitleStyle(isNight)),
+           Text('生命长周期的波动', style: TextStyle(fontSize: 10, color: isNight ? Colors.white38 : Colors.black38)),
            const SizedBox(height: 16),
            Row(
              mainAxisAlignment: MainAxisAlignment.spaceAround,

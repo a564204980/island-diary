@@ -592,13 +592,18 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                   ),
                 ),
                 const SizedBox(width: 2),
-                Text(
-                  tag,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: isNight ? Colors.white70 : const Color(0xFF8B7763),
-                    fontFamily: 'LXGWWenKai',
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 160),
+                  child: Text(
+                    tag,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isNight ? Colors.white70 : const Color(0xFF8B7763),
+                      fontFamily: 'LXGWWenKai',
+                    ),
                   ),
                 ),
               ],

@@ -14,6 +14,8 @@ import 'package:island_diary/features/statistics/domain/utils/soul_season_logic.
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/mood_poster_widget.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/glass_bento.dart';
+import 'package:island_diary/features/statistics/presentation/widgets/seasonal_atmosphere_painter.dart';
+import 'package:island_diary/features/statistics/presentation/widgets/mental_island_card.dart';
 part '../widgets/bento/bento_mood_calendar.dart';
 part '../widgets/bento/bento_emotion_metrics.dart';
 part '../widgets/bento/bento_wave_chart.dart';
@@ -246,90 +248,114 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
         
         return Scaffold(
           backgroundColor: Colors.transparent,
-          body: SafeArea(
-            bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(isNight, filteredDiaries),
-                Expanded(
-                  child: filteredDiaries.isEmpty && _currentRange != StatTimeRange.month
-                    ? _buildEmptyState(isNight)
-                    : ListView(
-                        key: _animKey,
-                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-                        physics: const BouncingScrollPhysics(),
-                        children: [
-                          if (_currentRange == StatTimeRange.week) ...[
-                            _buildEmotionRadarBento(isNight, filteredDiaries),
-                            const SizedBox(height: 16),
-                            IntrinsicHeight(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(flex: 5, child: _buildStatsBentoList(isNight, filteredDiaries)),
-                                  const SizedBox(width: 16),
-                                  Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filteredDiaries)),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildVolatilityIndexBento(isNight, filteredDiaries),
-                            const SizedBox(height: 16),
-                            _buildWaveChartBento(isNight, filteredDiaries),
-                            const SizedBox(height: 16),
-                            _buildWeeklyPatternBento(isNight, filteredDiaries),
-                            const SizedBox(height: 16),
-                            _buildTimePatternBento(isNight, filteredDiaries),
-                          ]
-                          else if (_currentRange == StatTimeRange.month) ...[
-                            _buildMoodCalendarBento(isNight, filteredDiaries),
-                            const SizedBox(height: 16),
-                            IntrinsicHeight(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(flex: 5, child: _buildStatsBentoList(isNight, filteredDiaries)),
-                                  const SizedBox(width: 16),
-                                  Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filteredDiaries)),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildMonthlyHighlightsBento(isNight, filteredDiaries),
-                            const SizedBox(height: 16),
-                            _buildTimePatternBento(isNight, filteredDiaries),
-                          ]
-                          else if (_currentRange == StatTimeRange.all) ...[
-                            _buildSoulColorBento(isNight, _allDiaries),
-                            const SizedBox(height: 16),
-
-                            _buildSeasonalityTrendBento(isNight, _allDiaries),
-                            const SizedBox(height: 16),
-                            IntrinsicHeight(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(flex: 5, child: _buildStatsBentoList(isNight, _allDiaries)),
-                                  const SizedBox(width: 16),
-                                  Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filteredDiaries)),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildTimePatternBento(isNight, filteredDiaries),
-                            const SizedBox(height: 16),
-                            if (_hasWeatherData(filteredDiaries)) ...[
-                              _buildWeatherMoodBento(isNight, filteredDiaries),
-                              const SizedBox(height: 16),
-                            ],
-
-                          ]
-                        ].animate(interval: 80.ms).fadeIn(duration: 500.ms, curve: Curves.easeOut).slideY(begin: 0.1, end: 0, curve: Curves.easeOutQuart),
-                      ),
+          body: Stack(
+            children: [
+              // 1. 动态治愈背景
+              if (filteredDiaries.isNotEmpty)
+                SeasonalAtmosphere(
+                  particleType: SoulSeasonLogic.getSeason(filteredDiaries).particleType,
+                  isNight: isNight,
                 ),
-              ],
-            ),
+              
+              SafeArea(
+                bottom: false,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(isNight, filteredDiaries),
+                    Expanded(
+                      child: filteredDiaries.isEmpty && _currentRange != StatTimeRange.month
+                        ? _buildEmptyState(isNight)
+                        : ListView(
+                            key: _animKey,
+                            padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                            physics: const BouncingScrollPhysics(),
+                            children: [
+                              // 2. 心灵岛屿卡片
+                              if (filteredDiaries.isNotEmpty) ...[
+                                MentalIslandCard(
+                                  season: SoulSeasonLogic.getSeason(filteredDiaries),
+                                  isNight: isNight,
+                                  totalEntries: _allDiaries.length,
+                                  rangeText: _currentRange == StatTimeRange.week 
+                                      ? "本周" 
+                                      : (_currentRange == StatTimeRange.month ? "本月" : "目前"),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                              
+                              if (_currentRange == StatTimeRange.week) ...[
+                                _buildEmotionRadarBento(isNight, filteredDiaries),
+                                const SizedBox(height: 16),
+                                IntrinsicHeight(
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Expanded(flex: 5, child: _buildStatsBentoList(isNight, filteredDiaries)),
+                                      const SizedBox(width: 16),
+                                      Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filteredDiaries)),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                _buildVolatilityIndexBento(isNight, filteredDiaries),
+                                const SizedBox(height: 16),
+                                _buildWaveChartBento(isNight, filteredDiaries),
+                                const SizedBox(height: 16),
+                                _buildWeeklyPatternBento(isNight, filteredDiaries),
+                                const SizedBox(height: 16),
+                                _buildTimePatternBento(isNight, filteredDiaries),
+                              ]
+                              else if (_currentRange == StatTimeRange.month) ...[
+                                _buildMoodCalendarBento(isNight, filteredDiaries),
+                                const SizedBox(height: 16),
+                                IntrinsicHeight(
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Expanded(flex: 5, child: _buildStatsBentoList(isNight, filteredDiaries)),
+                                      const SizedBox(width: 16),
+                                      Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filteredDiaries)),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                _buildMonthlyHighlightsBento(isNight, filteredDiaries),
+                                const SizedBox(height: 16),
+                                _buildTimePatternBento(isNight, filteredDiaries),
+                              ]
+                              else if (_currentRange == StatTimeRange.all) ...[
+                                _buildSoulColorBento(isNight, _allDiaries),
+                                const SizedBox(height: 16),
+    
+                                _buildSeasonalityTrendBento(isNight, _allDiaries),
+                                const SizedBox(height: 16),
+                                IntrinsicHeight(
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Expanded(flex: 5, child: _buildStatsBentoList(isNight, _allDiaries)),
+                                      const SizedBox(width: 16),
+                                      Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filteredDiaries)),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                _buildTimePatternBento(isNight, filteredDiaries),
+                                const SizedBox(height: 16),
+                                if (_hasWeatherData(filteredDiaries)) ...[
+                                  _buildWeatherMoodBento(isNight, filteredDiaries),
+                                  const SizedBox(height: 16),
+                                ],
+    
+                              ]
+                            ].animate(interval: 80.ms).fadeIn(duration: 500.ms, curve: Curves.easeOut).slideY(begin: 0.1, end: 0, curve: Curves.easeOutQuart),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -337,20 +363,6 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   }
 
   Widget _buildHeader(bool isNight, List<DiaryEntry> filtered) {
-    String greeting = "静静地记录，也是一种力量";
-    String seasonNote = "";
-    Color seasonColor = isNight ? Colors.white : const Color(0xFF5A3E28);
-
-    if (filtered.isNotEmpty) {
-      final season = SoulSeasonLogic.getSeason(filtered);
-      String rangeText = _currentRange == StatTimeRange.week 
-          ? "本周" 
-          : (_currentRange == StatTimeRange.month ? "本月" : "目前");
-      greeting = "${rangeText}灵魂处于【${season.seasonName}】${season.icon}";
-      seasonNote = season.description;
-      seasonColor = season.accentColor;
-    }
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
       child: Column(
@@ -364,35 +376,24 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '数据洞察',
+                      '心灵气象站',
                       style: TextStyle(
                         color: isNight ? Colors.white : const Color(0xFF5A3E28),
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.0,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      greeting,
-                      style: TextStyle(
-                        color: seasonColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
                         fontFamily: 'LXGWWenKai',
                       ),
                     ),
-                    if (seasonNote.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        seasonNote,
-                        style: TextStyle(
-                          color: isNight ? Colors.white70 : Colors.black54,
-                          fontSize: 13,
-                          fontStyle: FontStyle.italic,
-                        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '记录情绪起伏，感知心灵季候',
+                      style: TextStyle(
+                        color: isNight ? Colors.white38 : Colors.black38,
+                        fontSize: 12,
+                        fontFamily: 'LXGWWenKai',
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),

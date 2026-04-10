@@ -92,7 +92,7 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('多维洞察', style: _bentoTitleStyle(isNight)),
+              Text('心灵折射', style: _bentoTitleStyle(isNight)),
               Icon(CupertinoIcons.sparkles, size: 18, color: isNight ? Colors.white54 : Colors.amber),
             ],
           ),
@@ -166,9 +166,9 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('心理相关性', style: _bentoTitleStyle(isNight)),
+          Text('共鸣频率', style: _bentoTitleStyle(isNight)),
           const SizedBox(height: 12),
-          Text('目前数据量较少，仅为您呈现最强关联活动：', style: TextStyle(fontSize: 11, color: isNight?Colors.white38:Colors.black45)),
+          Text('揭示特定活动下的情绪共振：', style: TextStyle(fontSize: 11, color: isNight?Colors.white38:Colors.black45)),
           const SizedBox(height: 8),
           _buildImpactRow(isNight: isNight, title: '情绪上扬器', tag: best['tag'], score: best['avg'], isPositive: true),
         ],
@@ -227,7 +227,7 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('气候反差', style: _bentoTitleStyle(isNight)),
+              Text('气象共鸣', style: _bentoTitleStyle(isNight)),
               Icon(CupertinoIcons.cloud_sun, size: 18, color: isNight ? Colors.white54 : Colors.black38),
             ],
           ),
@@ -281,10 +281,10 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
     int maxIndex = counts.indexOf(maxCount);
 
     final timeLabels = [
-      {'label': '凌晨', 'icon': CupertinoIcons.moon_stars_fill, 'color': Colors.indigo},
-      {'label': '上午', 'icon': CupertinoIcons.sun_min_fill, 'color': Colors.orangeAccent},
+      {'label': '凌晨', 'icon': CupertinoIcons.sparkles, 'color': Colors.indigoAccent},
+      {'label': '上午', 'icon': CupertinoIcons.sunrise_fill, 'color': Colors.orangeAccent},
       {'label': '下午', 'icon': CupertinoIcons.sun_max_fill, 'color': Colors.orange},
-      {'label': '晚上', 'icon': CupertinoIcons.moon_fill, 'color': Colors.blueGrey},
+      {'label': '晚上', 'icon': CupertinoIcons.moon_stars_fill, 'color': Colors.blueGrey},
     ];
 
     return _buildGlassCard(
@@ -296,50 +296,58 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('时段出没', style: _bentoTitleStyle(isNight)),
-              Icon(CupertinoIcons.clock_fill, size: 18, color: isNight ? Colors.white54 : Colors.black38),
+              Text('独处时刻', style: _bentoTitleStyle(isNight)),
+              Icon(CupertinoIcons.star_lefthalf_fill, size: 18, color: isNight ? Colors.white54 : Colors.black38),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            maxIndex != -1 ? '原来您是一个偏向于在【${timeLabels[maxIndex]['label']}】有强烈情感共鸣的人。' : '',
-            style: TextStyle(fontSize: 12, color: isNight ? Colors.white70 : Colors.black54),
+            maxIndex != -1 ? '于【${timeLabels[maxIndex]['label']}】时分，您的灵魂星图最为璀璨。' : '',
+            style: TextStyle(fontSize: 12, color: isNight ? Colors.white70 : Colors.black54, fontFamily: 'LXGWWenKai'),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: List.generate(4, (index) {
                double heightFactor = maxCount > 0 ? (counts[index] / maxCount) : 0;
                bool isDominant = index == maxIndex;
+               Color baseColor = timeLabels[index]['color'] as Color;
                return Column(
                  mainAxisSize: MainAxisSize.min,
                  children: [
                    AnimatedContainer(
-                     duration: const Duration(milliseconds: 600),
-                     width: 30,
-                     height: 30 + (heightFactor * 40),
+                     duration: const Duration(milliseconds: 800),
+                     width: 32,
+                     height: 32 + (heightFactor * 50),
                      decoration: BoxDecoration(
                        gradient: LinearGradient(
                          begin: Alignment.bottomCenter, end: Alignment.topCenter,
                          colors: [
-                           (timeLabels[index]['color'] as Color).withOpacity(isDominant ? 1.0 : 0.4),
-                           (timeLabels[index]['color'] as Color).withOpacity(isDominant ? 0.6 : 0.1),
+                           baseColor.withOpacity(isDominant ? 0.9 : 0.3),
+                           baseColor.withOpacity(isDominant ? 0.3 : 0.05),
                          ]
                        ),
-                       borderRadius: BorderRadius.circular(15),
+                       borderRadius: BorderRadius.circular(16),
+                       boxShadow: isDominant ? [
+                         BoxShadow(color: baseColor.withOpacity(0.4), blurRadius: 12, spreadRadius: 2)
+                       ] : null,
                      ),
                      child: Padding(
                        padding: const EdgeInsets.all(6.0),
                        child: Align(
                          alignment: Alignment.topCenter,
-                         child: Icon(timeLabels[index]['icon'] as IconData, size: 18, color: Colors.white),
+                         child: Icon(
+                           timeLabels[index]['icon'] as IconData, 
+                           size: 18, 
+                           color: isDominant ? Colors.white : Colors.white24
+                         ),
                        ),
                      ),
-                   ),
-                   const SizedBox(height: 8),
+                   ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: (1500 + index * 200).ms, color: Colors.white12),
+                   const SizedBox(height: 10),
                    Text(timeLabels[index]['label'] as String, style: TextStyle(fontSize: 11, fontWeight: isDominant ? FontWeight.bold : FontWeight.normal, color: isNight ? Colors.white54 : Colors.black54)),
-                   Text('${counts[index]}篇', style: TextStyle(fontSize: 9, color: isNight ? Colors.white38 : Colors.black38)),
+                   Text('${counts[index]}次', style: TextStyle(fontSize: 9, color: isNight ? Colors.white38 : Colors.black38)),
                  ],
                );
             }),
