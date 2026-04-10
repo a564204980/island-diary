@@ -174,8 +174,8 @@ class _BloomRadarPainter extends CustomPainter {
     final fillPaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          (glowColors != null && glowColors!.isNotEmpty ? glowColors![0] : const Color(0xFF91EAE4)).withOpacity(0.6),
-          (glowColors != null && glowColors!.length > 1 ? glowColors![1] : const Color(0xFF7F7FD5)).withOpacity(0.2),
+          (glowColors != null && glowColors!.isNotEmpty ? glowColors![0] : const Color(0xFF91EAE4)).withOpacity(0.3),
+          (glowColors != null && glowColors!.length > 1 ? glowColors![1] : const Color(0xFF7F7FD5)).withOpacity(0.1),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: center, radius: radius * 1.2))
@@ -194,7 +194,8 @@ class _BloomRadarPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     
     // 柔化阴影
-    canvas.drawShadow(bloomPath, (glowColors != null ? glowColors![0] : Colors.purple).withOpacity(0.3), 10, true);
+    // 移除原有阴影，避免在透明背景上产生“第二层背景”的感官
+    // canvas.drawShadow(bloomPath, (glowColors != null ? glowColors![0] : Colors.purple).withOpacity(0.3), 10, true);
     canvas.drawPath(bloomPath, borderPaint);
 
     // 6. 绘制顶点（发光的露珠）

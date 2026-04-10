@@ -419,7 +419,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             curve: Curves.easeOutCubic,
                             height: totalBottomHeight,
                             color: (isEmojiOpen || viewInsetsBottom > 0) 
-                              ? const Color(0xFFF9EED8).withOpacity(0.95)
+                              ? (isNight ? const Color(0xFF2A2A3E) : const Color(0xFFF9EED8)).withOpacity(0.95)
                               : Colors.transparent,
                             child: Visibility(
                               visible: isEmojiOpen,

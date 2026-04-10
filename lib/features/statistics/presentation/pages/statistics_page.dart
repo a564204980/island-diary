@@ -55,7 +55,6 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   List<DiaryEntry> _allDiaries = [];
   StatTimeRange _currentRange = StatTimeRange.month;
   late AnimationController _waveAnimController;
-  Key _animKey = UniqueKey();
 
   // 新增：波浪图交互状态
   int? _touchedWaveSpotIndex;
@@ -142,9 +141,6 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.isActive && widget.isActive) {
       _waveAnimController.forward(from: 0);
-      setState(() {
-        _animKey = UniqueKey();
-      });
     }
   }
 
@@ -180,6 +176,102 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     );
   }
 
+  // ============== 模块化排序逻辑 ==============
+
+  List<String> _getModuleOrder() {
+    final state = UserState();
+    List<String> saved;
+    List<String> defaults;
+
+    switch (_currentRange) {
+      case StatTimeRange.week:
+        saved = state.statsOrderWeek.value;
+        defaults = ['island', 'radar', 'stats_row', 'volatility', 'wave', 'weekly_pattern', 'time_pattern'];
+        break;
+      case StatTimeRange.month:
+        saved = state.statsOrderMonth.value;
+        defaults = ['island', 'calendar', 'stats_row', 'highlights', 'time_pattern'];
+        break;
+      case StatTimeRange.all:
+        saved = state.statsOrderAll.value;
+        defaults = ['island', 'seasonality', 'stats_row', 'time_pattern', 'weather'];
+        break;
+    }
+    
+    // 如果保存的列表为空或长度不匹配（可能有新功能加入），使用默认
+    if (saved.isEmpty) return defaults;
+    
+    // 确保保存的列表包含所有必需的模块（去重且补全）
+    final Set<String> currentModules = Set.from(saved);
+    final List<String> finalOrder = saved.where((m) => defaults.contains(m)).toList();
+    for (var d in defaults) {
+      if (!currentModules.contains(d)) finalOrder.add(d);
+    }
+    return finalOrder;
+  }
+
+  Widget _buildModuleById(String id, bool isNight, List<DiaryEntry> filtered) {
+    switch (id) {
+      case 'island':
+        if (filtered.isEmpty) return const SizedBox.shrink();
+        return MentalIslandCard(
+          season: SoulSeasonLogic.getSeason(filtered),
+          isNight: isNight,
+          totalEntries: _allDiaries.length,
+          rangeText: _currentRange == StatTimeRange.week 
+              ? "本周" 
+              : (_currentRange == StatTimeRange.month ? "本月" : "目前"),
+        );
+      case 'radar':
+        return _buildEmotionRadarBento(isNight, filtered);
+      case 'stats_row':
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(flex: 5, child: _buildStatsBentoList(isNight, _currentRange == StatTimeRange.all ? _allDiaries : filtered)),
+              const SizedBox(width: 16),
+              Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filtered)),
+            ],
+          ),
+        );
+      case 'volatility':
+        return _buildVolatilityIndexBento(isNight, filtered);
+      case 'wave':
+        return _buildWaveChartBento(isNight, filtered);
+      case 'weekly_pattern':
+        return _buildWeeklyPatternBento(isNight, filtered);
+      case 'time_pattern':
+        return _buildTimePatternBento(isNight, filtered);
+      case 'calendar':
+        return _buildMoodCalendarBento(isNight, filtered);
+      case 'highlights':
+        return _buildMonthlyHighlightsBento(isNight, filtered);
+      case 'seasonality':
+        return _buildSeasonalityTrendBento(isNight, _allDiaries);
+      case 'weather':
+        if (_hasWeatherData(filtered)) {
+          return _buildWeatherMoodBento(isNight, filtered);
+        }
+        return const SizedBox.shrink();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  void _onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex -= 1;
+      final order = _getModuleOrder();
+      final String item = order.removeAt(oldIndex);
+      order.insert(newIndex, item);
+      
+      final rangeStr = _currentRange == StatTimeRange.week ? 'week' 
+                     : (_currentRange == StatTimeRange.month ? 'month' : 'all');
+      UserState().saveStatsOrder(rangeStr, order);
+    });
+  }
+
   Widget _buildEmptyState(bool isNight) {
     return Center(
       child: Column(
@@ -204,39 +296,6 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     );
   }
 
-  Widget _buildGlassCard({required bool isNight, required Widget child, EdgeInsetsGeometry? padding}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isNight
-                ? Colors.white.withOpacity(0.08)
-                : Colors.white.withOpacity(0.65),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: isNight
-                  ? Colors.white.withOpacity(0.15)
-                  : Colors.white.withOpacity(0.8),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isNight
-                    ? Colors.black.withOpacity(0.2)
-                    : const Color(0xFF1B3B5F).withOpacity(0.05),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          padding: padding ?? const EdgeInsets.all(20),
-          child: child,
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -266,90 +325,51 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                     Expanded(
                       child: filteredDiaries.isEmpty && _currentRange != StatTimeRange.month
                         ? _buildEmptyState(isNight)
-                        : ListView(
-                            key: _animKey,
-                            padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-                            physics: const BouncingScrollPhysics(),
-                            children: [
-                              // 2. 心灵岛屿卡片
-                              if (filteredDiaries.isNotEmpty) ...[
-                                MentalIslandCard(
-                                  season: SoulSeasonLogic.getSeason(filteredDiaries),
-                                  isNight: isNight,
-                                  totalEntries: _allDiaries.length,
-                                  rangeText: _currentRange == StatTimeRange.week 
-                                      ? "本周" 
-                                      : (_currentRange == StatTimeRange.month ? "本月" : "目前"),
-                                ),
-                                const SizedBox(height: 16),
-                              ],
-                              
-                              if (_currentRange == StatTimeRange.week) ...[
-                                _buildEmotionRadarBento(isNight, filteredDiaries),
-                                const SizedBox(height: 16),
-                                IntrinsicHeight(
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      Expanded(flex: 5, child: _buildStatsBentoList(isNight, filteredDiaries)),
-                                      const SizedBox(width: 16),
-                                      Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filteredDiaries)),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                _buildVolatilityIndexBento(isNight, filteredDiaries),
-                                const SizedBox(height: 16),
-                                _buildWaveChartBento(isNight, filteredDiaries),
-                                const SizedBox(height: 16),
-                                _buildWeeklyPatternBento(isNight, filteredDiaries),
-                                const SizedBox(height: 16),
-                                _buildTimePatternBento(isNight, filteredDiaries),
-                              ]
-                              else if (_currentRange == StatTimeRange.month) ...[
-                                _buildMoodCalendarBento(isNight, filteredDiaries),
-                                const SizedBox(height: 16),
-                                IntrinsicHeight(
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      Expanded(flex: 5, child: _buildStatsBentoList(isNight, filteredDiaries)),
-                                      const SizedBox(width: 16),
-                                      Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filteredDiaries)),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                _buildMonthlyHighlightsBento(isNight, filteredDiaries),
-                                const SizedBox(height: 16),
-                                _buildTimePatternBento(isNight, filteredDiaries),
-                              ]
-                              else if (_currentRange == StatTimeRange.all) ...[
-                                _buildSoulColorBento(isNight, _allDiaries),
-                                const SizedBox(height: 16),
-    
-                                _buildSeasonalityTrendBento(isNight, _allDiaries),
-                                const SizedBox(height: 16),
-                                IntrinsicHeight(
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      Expanded(flex: 5, child: _buildStatsBentoList(isNight, _allDiaries)),
-                                      const SizedBox(width: 16),
-                                      Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filteredDiaries)),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                _buildTimePatternBento(isNight, filteredDiaries),
-                                const SizedBox(height: 16),
-                                if (_hasWeatherData(filteredDiaries)) ...[
-                                  _buildWeatherMoodBento(isNight, filteredDiaries),
-                                  const SizedBox(height: 16),
-                                ],
-    
-                              ]
-                            ].animate(interval: 80.ms).fadeIn(duration: 500.ms, curve: Curves.easeOut).slideY(begin: 0.1, end: 0, curve: Curves.easeOutQuart),
+                        : Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 800),
+                              child: ReorderableListView.builder(
+                                key: ValueKey('$_currentRange'), // 切换维度时重置
+                                padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: _getModuleOrder().length,
+                                onReorder: _onReorder,
+                                proxyDecorator: (child, index, animation) {
+                                  return AnimatedBuilder(
+                                    animation: animation,
+                                    builder: (context, child) {
+                                      final double animValue = Curves.easeInOut.transform(animation.value);
+                                      final double scale = lerpDouble(1, 1.02, animValue)!;
+                                      return Transform.scale(
+                                        scale: scale,
+                                        child: Material(
+                                          color: Colors.transparent,
+                                          elevation: animValue * 8,
+                                          shadowColor: Colors.black26,
+                                          child: child,
+                                        ),
+                                      );
+                                    },
+                                    child: child,
+                                  );
+                                },
+                                itemBuilder: (context, index) {
+                                  final order = _getModuleOrder();
+                                  final id = order[index];
+                                  final module = _buildModuleById(id, isNight, filteredDiaries);
+                                  
+                                  if (module is SizedBox && module.child == null) {
+                                     return SizedBox(key: ValueKey('empty_$id'));
+                                  }
+
+                                  return Padding(
+                                    key: ValueKey(id),
+                                    padding: const EdgeInsets.only(bottom: 16),
+                                    child: module,
+                                  );
+                                },
+                              ),
+                            ),
                           ),
                     ),
                   ],
@@ -402,22 +422,49 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                 children: [
                   _buildSegmentControl(isNight),
                   const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: () => _showPosterPreview(context, isNight),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isNight ? Colors.white24 : Colors.black.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(16),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () async {
+                           final rangeStr = _currentRange == StatTimeRange.week ? 'week' 
+                                          : (_currentRange == StatTimeRange.month ? 'month' : 'all');
+                           await UserState().resetStatsOrder(rangeStr);
+                           setState(() {});
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isNight ? Colors.white24 : Colors.black.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(CupertinoIcons.refresh, size: 14, color: isNight ? Colors.white70 : Colors.black54),
+                              const SizedBox(width: 4),
+                              Text('重置布局', style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black54)),
+                            ],
+                          ),
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(CupertinoIcons.camera_viewfinder, size: 14, color: isNight ? Colors.white70 : Colors.black54),
-                          const SizedBox(width: 4),
-                          Text('总结海报', style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black54)),
-                        ],
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _showPosterPreview(context, isNight),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isNight ? Colors.white24 : Colors.black.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(CupertinoIcons.camera_viewfinder, size: 14, color: isNight ? Colors.white70 : Colors.black54),
+                              const SizedBox(width: 4),
+                              Text('总结海报', style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black54)),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   )
                 ],
               )

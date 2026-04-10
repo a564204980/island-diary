@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
+import 'package:island_diary/core/state/user_state.dart';
 import 'diary_painters.dart';
 
 /// 随键盘起伏的动态吸附工具栏（双行版）
@@ -44,6 +45,17 @@ class DiaryToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isNight = UserState().isNight;
+    final Color toolbarBg = isNight 
+        ? const Color(0xFF2A2A3E).withOpacity(0.9) 
+        : const Color(0xFFF9EED8).withOpacity(0.85);
+    final Color toolbarBorder = isNight
+        ? const Color(0xFFE0C097).withOpacity(0.3)
+        : const Color(0xFF8B5E3C);
+    final Color primaryColor = isNight
+        ? const Color(0xFFE0C097)
+        : (accentColor ?? const Color(0xFF8B5E3C));
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final double rowWidth = constraints.maxWidth - 16;
@@ -60,8 +72,8 @@ class DiaryToolbar extends StatelessWidget {
                     filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                     child: CustomPaint(
                       painter: HandDrawnToolbarPainter(
-                        color: const Color(0xFFF9EED8).withOpacity(0.85),
-                        borderColor: const Color(0xFF8B5E3C),
+                        color: toolbarBg,
+                        borderColor: toolbarBorder,
                       ),
                     ),
                   ),
@@ -72,7 +84,7 @@ class DiaryToolbar extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: _buildDualRowToolbarIcons(rowWidth),
+                  children: _buildDualRowToolbarIcons(rowWidth, isNight, primaryColor),
                 ),
               ),
             ],
@@ -83,8 +95,7 @@ class DiaryToolbar extends StatelessWidget {
   }
 
   /// 构建双行工具栏图标组
-  List<Widget> _buildDualRowToolbarIcons(double rowWidth) {
-    // 扩展为 7x2 布局 (目前总共 12 个图标)
+  List<Widget> _buildDualRowToolbarIcons(double rowWidth, bool isNight, Color primaryColor) {
     final List<Map<String, dynamic>> icons = [
       // 第一行
       {
@@ -114,12 +125,11 @@ class DiaryToolbar extends StatelessWidget {
       {
         'icon': Icons.check_rounded,
         'onTap': onSave,
-        'color': accentColor ?? const Color(0xFF8B5E3C),
+        'color': primaryColor,
       },
     ];
 
     final double itemWidth = rowWidth / 7;
-    // 第一行放前面 7 个，剩下的放第二行
     final row1Icons = icons.sublist(0, 7);
     final row2Icons = icons.sublist(7);
 
@@ -133,6 +143,8 @@ class DiaryToolbar extends StatelessWidget {
             icon: icon['icon'],
             iconColor: icon['color'],
             onTap: icon['onTap'],
+            isNight: isNight,
+            primaryColor: primaryColor,
           );
         }).toList(),
       ),
@@ -145,14 +157,13 @@ class DiaryToolbar extends StatelessWidget {
             icon: icon['icon'],
             iconColor: icon['color'],
             onTap: icon['onTap'],
+            isNight: isNight,
+            primaryColor: primaryColor,
           );
         }).toList(),
       ),
     ];
   }
-
-
-
 
   Widget _buildToolbarItem(
     double width, {
@@ -161,44 +172,41 @@ class DiaryToolbar extends StatelessWidget {
     Color? iconColor,
     VoidCallback? onTap,
     bool isSelected = false,
+    required bool isNight,
+    required Color primaryColor,
   }) {
     return SizedBox(
       width: width,
       child: Center(
         child: InkWell(
-          onTap:
-              onTap ??
-              () {
-                // TODO: 具体功能逻辑
-              },
-          child:
-              Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFF8B5E3C).withOpacity(0.2)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: assetPath != null
-                        ? Image.asset(
-                            assetPath,
-                            width: 34,
-                            height: 34,
-                            fit: BoxFit.contain,
-                          )
-                        : Icon(
-                            icon,
-                            size: 30,
-                            color: iconColor,
-                          ),
+          onTap: onTap ?? () {},
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? primaryColor.withOpacity(0.2)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: assetPath != null
+                ? Image.asset(
+                    assetPath,
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.contain,
                   )
-                  .animate(target: isSelected ? 1 : 0)
-                  .scale(
-                    begin: const Offset(1, 1),
-                    end: const Offset(1.2, 1.2),
-                    duration: 200.ms,
+                : Icon(
+                    icon,
+                    size: 28,
+                    color: iconColor,
                   ),
+          )
+          .animate(target: isSelected ? 1 : 0)
+          .scale(
+            begin: const Offset(1, 1),
+            end: const Offset(1.2, 1.2),
+            duration: 200.ms,
+          ),
         ),
       ),
     );

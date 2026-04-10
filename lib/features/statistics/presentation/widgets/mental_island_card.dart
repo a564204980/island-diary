@@ -35,111 +35,126 @@ class MentalIslandCard extends StatelessWidget {
             season.accentColor.withOpacity(0.05),
           ],
         ),
-        border: Border.all(color: season.accentColor.withOpacity(0.2)),
-      ),
-      child: Stack(
-        children: [
-          // 装饰：背景光晕
-          Positioned(
-            right: -20,
-            top: -20,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: season.accentColor.withOpacity(0.15),
-              ),
-            ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(duration: 3.seconds, begin: const Offset(1,1), end: const Offset(1.5,1.5)),
+        border: Border.all(
+          color: season.accentColor.withOpacity(isNight ? 0.4 : 0.5), 
+          width: 1.2
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isNight 
+                ? Colors.black.withOpacity(0.3) 
+                : Colors.black.withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-          
-          // 岛屿主体与文案
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    // 岛屿图标动画
-                    Transform.scale(
-                      scale: scaling,
-                      child: _buildIslandVisual(season.icon),
-                    ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: -5, end: 5, duration: 2.seconds, curve: Curves.easeInOut),
-                    const SizedBox(width: 20),
-                    // 右侧标题与统计
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '$rangeText灵魂处于：${season.seasonName}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: isNight ? Colors.white : const Color(0xFF5A3E28),
-                              fontFamily: 'LXGWWenKai',
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '已在岛屿留下 $totalEntries 处时光印记',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isNight ? Colors.white54 : Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            // 装饰：背景光晕
+            Positioned(
+              right: -20,
+              top: -20,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: season.accentColor.withOpacity(0.15),
                 ),
-                const SizedBox(height: 20),
-                // 治愈寄语融入卡片底部
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(isNight ? 0.05 : 0.3),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
+              ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(duration: 3.seconds, begin: const Offset(1,1), end: const Offset(1.5,1.5)),
+            ),
+            
+            // 岛屿主体与文案
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
                     children: [
-                      Icon(CupertinoIcons.sparkles, size: 14, color: season.accentColor),
-                      const SizedBox(width: 8),
+                      // 岛屿图标动画
+                      Transform.scale(
+                        scale: scaling,
+                        child: _buildIslandVisual(season.icon),
+                      ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: -5, end: 5, duration: 2.seconds, curve: Curves.easeInOut),
+                      const SizedBox(width: 20),
+                      // 右侧标题与统计
                       Expanded(
-                        child: Text(
-                          season.healingMessage,
-                          style: TextStyle(
-                            color: isNight ? Colors.white70 : Colors.black87,
-                            fontSize: 12,
-                            fontStyle: FontStyle.italic,
-                            fontFamily: 'LXGWWenKai',
-                            height: 1.4,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$rangeText灵魂处于：${season.seasonName}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isNight ? Colors.white : const Color(0xFF5A3E28),
+                                fontFamily: 'LXGWWenKai',
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '已在岛屿留下 $totalEntries 处时光印记',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isNight ? Colors.white54 : Colors.black54,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          ),
-          
-          // 季节性图标修饰 (角落)
-          Positioned(
-            right: 12,
-            bottom: 12,
-            child: Opacity(
-              opacity: 0.15,
-              child: Icon(
-                _getSeasonIcon(season.particleType),
-                size: 32,
-                color: season.accentColor,
+                  const SizedBox(height: 20),
+                  // 治愈寄语融入卡片底部
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(isNight ? 0.05 : 0.3),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(CupertinoIcons.sparkles, size: 14, color: season.accentColor),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            season.healingMessage,
+                            style: TextStyle(
+                              color: isNight ? Colors.white70 : Colors.black87,
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              fontFamily: 'LXGWWenKai',
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            
+            // 季节性图标修饰 (角落)
+            Positioned(
+              right: 12,
+              bottom: 12,
+              child: Opacity(
+                opacity: 0.15,
+                child: Icon(
+                  _getSeasonIcon(season.particleType),
+                  size: 32,
+                  color: season.accentColor,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

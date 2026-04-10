@@ -39,44 +39,51 @@ extension BentoMoodCalendar on _StatisticsPageState {
             }).toList(),
           ),
           const SizedBox(height: 8),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7, 
-              childAspectRatio: 1,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: daysInMonth + firstWeekday - 1,
-            itemBuilder: (context, index) {
-              if (index < firstWeekday - 1) return const SizedBox.shrink(); // 空白占位
-              final day = index - (firstWeekday - 1) + 1;
-              final entry = daysMap[day];
-
-              return GestureDetector(
-                onTap: () {
-                  if (entry != null) {
-                    // 已有日记
-                  } else {
-                    final targetDate = DateTime(now.year, now.month, day);
-                    if (targetDate.isBefore(DateTime.now())) {
-                       _handleBackfill(context, targetDate, isNight);
-                    }
-                  }
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isNight ? Colors.white10 : Colors.black.withOpacity(0.04),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: entry != null && !isNight ? [
-                       BoxShadow(color: (kMoods[entry.moodIndex % kMoods.length].glowColor ?? Colors.yellow).withOpacity(0.4), blurRadius: 4, offset: const Offset(0, 2))
-                    ] : null,
-                  ),
-                  child: entry != null 
-                      ? Image.asset(kMoods[entry.moodIndex % kMoods.length].iconPath!)
-                      : Center(child: Text('$day', style: TextStyle(fontSize: 11, color: isNight ? Colors.white24 : Colors.black26))),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final double screenWidth = MediaQuery.of(context).size.width;
+              final double aspectRatio = screenWidth > 600 ? 1.3 : 1.0;
+              
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7, 
+                  childAspectRatio: aspectRatio,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
                 ),
+                itemCount: daysInMonth + firstWeekday - 1,
+                itemBuilder: (context, index) {
+                  if (index < firstWeekday - 1) return const SizedBox.shrink();
+                  final day = index - (firstWeekday - 1) + 1;
+                  final entry = daysMap[day];
+
+                  return GestureDetector(
+                    onTap: () {
+                      if (entry != null) {
+                        // 已有日记
+                      } else {
+                        final targetDate = DateTime(now.year, now.month, day);
+                        if (targetDate.isBefore(DateTime.now())) {
+                           _handleBackfill(context, targetDate, isNight);
+                        }
+                      }
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isNight ? Colors.white10 : Colors.black.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: entry != null && !isNight ? [
+                           BoxShadow(color: (kMoods[entry.moodIndex % kMoods.length].glowColor ?? Colors.yellow).withOpacity(0.4), blurRadius: 4, offset: const Offset(0, 2))
+                        ] : null,
+                      ),
+                      child: entry != null 
+                          ? Image.asset(kMoods[entry.moodIndex % kMoods.length].iconPath!)
+                          : Center(child: Text('$day', style: TextStyle(fontSize: 11, color: isNight ? Colors.white24 : Colors.black26))),
+                    ),
+                  );
+                },
               );
             },
           ),

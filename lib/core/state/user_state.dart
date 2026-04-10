@@ -39,6 +39,9 @@ class UserState {
   static const _keyWallColorLeft = 'wall_color_left'; // 左墙颜色
   static const _keyWallColorRight = 'wall_color_right'; // 右墙颜色
   static const _keyMoodTagHistory = 'mood_tag_history'; // 心情标签历史
+  static const _keyStatsOrderWeek = 'stats_order_week'; // 统计模块顺序-周
+  static const _keyStatsOrderMonth = 'stats_order_month'; // 统计模块顺序-月
+  static const _keyStatsOrderAll = 'stats_order_all'; // 统计模块顺序-全
 
   /// 朋友圈背景封面 (本地图片路径或 null 使用默认)
   final ValueNotifier<String?> momentsCoverPath = ValueNotifier<String?>(null);
@@ -93,6 +96,11 @@ class UserState {
 
   /// 自定义心情标签历史
   final ValueNotifier<List<String>> moodTagHistory = ValueNotifier<List<String>>([]);
+
+  /// 统计模块排序状态
+  final ValueNotifier<List<String>> statsOrderWeek = ValueNotifier<List<String>>([]);
+  final ValueNotifier<List<String>> statsOrderMonth = ValueNotifier<List<String>>([]);
+  final ValueNotifier<List<String>> statsOrderAll = ValueNotifier<List<String>>([]);
 
   /// 装修场景快照数据 (Uint8List)
   final ValueNotifier<Uint8List?> decorationSnapshot = ValueNotifier<Uint8List?>(null);
@@ -509,6 +517,59 @@ class UserState {
 
     // 加载心情标签历史
     moodTagHistory.value = prefs.getStringList(_keyMoodTagHistory) ?? [];
+
+    // 加载统计页面模块排序
+    statsOrderWeek.value = prefs.getStringList(_keyStatsOrderWeek) ?? [];
+    statsOrderMonth.value = prefs.getStringList(_keyStatsOrderMonth) ?? [];
+    statsOrderAll.value = prefs.getStringList(_keyStatsOrderAll) ?? [];
+  }
+
+  /// 保存统计页面模块顺序
+  Future<void> saveStatsOrder(String rangeType, List<String> newOrder) async {
+    // 立即同步更新内存状态，防止 UI 渲染出现由于 await 导致的竞态回弹
+    switch (rangeType) {
+      case 'week':
+        statsOrderWeek.value = newOrder;
+        break;
+      case 'month':
+        statsOrderMonth.value = newOrder;
+        break;
+      case 'all':
+        statsOrderAll.value = newOrder;
+        break;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    switch (rangeType) {
+      case 'week':
+        await prefs.setStringList(_keyStatsOrderWeek, newOrder);
+        break;
+      case 'month':
+        await prefs.setStringList(_keyStatsOrderMonth, newOrder);
+        break;
+      case 'all':
+        await prefs.setStringList(_keyStatsOrderAll, newOrder);
+        break;
+    }
+  }
+
+  /// 重置统计页面排序
+  Future<void> resetStatsOrder(String rangeType) async {
+    final prefs = await SharedPreferences.getInstance();
+    switch (rangeType) {
+      case 'week':
+        statsOrderWeek.value = [];
+        await prefs.remove(_keyStatsOrderWeek);
+        break;
+      case 'month':
+        statsOrderMonth.value = [];
+        await prefs.remove(_keyStatsOrderMonth);
+        break;
+      case 'all':
+        statsOrderAll.value = [];
+        await prefs.remove(_keyStatsOrderAll);
+        break;
+    }
   }
 
   void dispose() {

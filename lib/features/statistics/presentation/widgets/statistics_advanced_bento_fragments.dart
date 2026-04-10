@@ -179,46 +179,6 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
 
   // ===================== ALL 专属特异 =====================
 
-  Widget _buildSoulColorBento(bool isNight, List<DiaryEntry> allEntries) {
-     if (allEntries.isEmpty) return const SizedBox.shrink();
-
-     // 强制使用全部历史数据进行底色统计，不受周/月切换限制
-     final unified = _getUnifiedEmotionData(allEntries);
-     if (unified.isEmpty) return const SizedBox.shrink();
-
-     final top = unified.first;
-     final color = top.color;
-
-     return Container(
-       width: double.infinity,
-       decoration: BoxDecoration(
-         borderRadius: BorderRadius.circular(24),
-         gradient: LinearGradient(
-           colors: [color.withOpacity(isNight ? 0.4 : 0.6), color.withOpacity(0.1)],
-           begin: Alignment.topLeft,
-           end: Alignment.bottomRight,
-         ),
-         border: Border.all(color: Colors.white24),
-       ),
-       padding: const EdgeInsets.all(24),
-       child: Column(
-         crossAxisAlignment: CrossAxisAlignment.start,
-         children: [
-           Row(
-             children: [
-               Icon(CupertinoIcons.sparkles, size: 16, color: isNight ? Colors.white : Colors.black87),
-               const SizedBox(width: 6),
-               Text('灵魂本色', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isNight ? Colors.white : Colors.black54)),
-             ]
-           ),
-           const SizedBox(height: 16),
-           Text(top.label, style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: color)),
-           const SizedBox(height: 12),
-           Text('纵观所有日记，您最常感受到的是[${top.label}]。\n这构成了您精神世界的底色。', style: TextStyle(fontSize: 13, height: 1.5, color: isNight ? Colors.white70 : Colors.black87)),
-         ]
-       )
-     );
-  }
 
   Widget _buildSeasonalityTrendBento(bool isNight, List<DiaryEntry> allEntries) {
     if (allEntries.length < 5) return const SizedBox.shrink();
