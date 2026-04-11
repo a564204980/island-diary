@@ -337,7 +337,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         ),
                       ),
                     ),
-
                     // LIST AREA: Blocks
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(

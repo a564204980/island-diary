@@ -1,7 +1,7 @@
 part of '../../pages/statistics_page.dart';
 
 extension BentoWaveChart on _StatisticsPageState {
-  Widget _buildWaveChartBento(bool isNight, List<DiaryEntry> filtered) {
+  Widget _buildWaveChartBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
     if (filtered.isEmpty) {
       return _buildGlassCard(
         isNight: isNight,
@@ -53,17 +53,18 @@ extension BentoWaveChart on _StatisticsPageState {
       return FlSpot(e.key.toDouble(), e.value['intensity'] as double);
     }).toList();
 
-    // 提前构建 BarData 以便引用
-    final mainLineColor = isNight ? const Color(0xFF00E5FF) : const Color(0xFF00B8D4);
+    // 提高主题色亮度以适应折线
+    final barColor = themeColor.withOpacity(isNight ? 0.9 : 0.85);
+
     final barData = LineChartBarData(
       spots: spots,
       isCurved: true,
       curveSmoothness: 0.4,
-      color: mainLineColor,
+      color: barColor,
       barWidth: 4,
       isStrokeCapRound: true,
       shadow: Shadow(
-        color: mainLineColor.withOpacity(0.5),
+        color: barColor.withOpacity(0.4),
         blurRadius: 10,
         offset: const Offset(0, 4),
       ),
@@ -78,7 +79,7 @@ extension BentoWaveChart on _StatisticsPageState {
             radius: isSelected ? 8 : 4.5, 
             color: Colors.white, 
             strokeWidth: isSelected ? 4 : 2, 
-            strokeColor: mood.glowColor ?? mainLineColor,
+            strokeColor: mood.glowColor ?? barColor,
           );
         }
       ),
@@ -88,8 +89,8 @@ extension BentoWaveChart on _StatisticsPageState {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            mainLineColor.withOpacity(isNight ? 0.3 : 0.4),
-            mainLineColor.withOpacity(0.05),
+            barColor.withOpacity(isNight ? 0.3 : 0.4),
+            barColor.withOpacity(0.05),
             Colors.transparent,
           ],
         ),
@@ -102,26 +103,12 @@ extension BentoWaveChart on _StatisticsPageState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('情感之河', style: _bentoTitleStyle(isNight)),
-                  Icon(CupertinoIcons.waveform_path, size: 18, color: isNight ? Colors.white54 : Colors.black38),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '感知情感的涨落，看内心能量缓缓流淌',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isNight ? Colors.white38 : Colors.black38,
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-            ],
+          _buildBentoHeader(
+            context: context,
+            title: '情感律动',
+            helpContent: '波纹的起伏展现了当日情感的[[能量张力]]与[[平均心境]]。平稳或剧烈的涟漪，都是生命力的真实表达。',
+            isNight: isNight,
+            rightAction: Icon(CupertinoIcons.waveform_path, size: 18, color: barColor),
           ),
           const SizedBox(height: 24),
           Padding(

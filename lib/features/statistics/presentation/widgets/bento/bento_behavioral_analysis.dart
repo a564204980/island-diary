@@ -89,12 +89,12 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('心灵折射', style: _bentoTitleStyle(isNight)),
-              Icon(CupertinoIcons.sparkles, size: 18, color: isNight ? Colors.white54 : Colors.amber),
-            ],
+          _buildBentoHeader(
+            context: context,
+            title: '心灵折射',
+            helpContent: '分析您的表达欲、时间偏好与天气适应度，洞察[[特定生活情境]]下的[[情感共振]]。',
+            isNight: isNight,
+            rightAction: Icon(CupertinoIcons.sparkles, size: 18, color: isNight ? Colors.white54 : Colors.amber),
           ),
           const SizedBox(height: 16),
           ...insights,
@@ -224,12 +224,12 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('气象共鸣', style: _bentoTitleStyle(isNight)),
-              Icon(CupertinoIcons.cloud_sun, size: 18, color: isNight ? Colors.white54 : Colors.black38),
-            ],
+          _buildBentoHeader(
+            context: context,
+            title: '气象共鸣',
+            helpContent: '分析不同天气对您心境的影响，看清[[自然律动]]如何拂过您的心房。',
+            isNight: isNight,
+            rightAction: Icon(CupertinoIcons.cloud_sun, size: 18, color: isNight ? Colors.white54 : Colors.black38),
           ),
           const SizedBox(height: 12),
           ...displayWeather.map((e) {
@@ -293,12 +293,12 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('独处时刻', style: _bentoTitleStyle(isNight)),
-              Icon(CupertinoIcons.star_lefthalf_fill, size: 18, color: isNight ? Colors.white54 : Colors.black38),
-            ],
+          _buildBentoHeader(
+            context: context,
+            title: '独处时刻',
+            helpContent: '分析并捕捉您最倾向于记录日记的时间段，那是您[[灵魂星图]]最为[[璀璨]]、思绪最为流淌的时刻。',
+            isNight: isNight,
+            rightAction: Icon(CupertinoIcons.star_lefthalf_fill, size: 18, color: isNight ? Colors.white54 : Colors.black38),
           ),
           const SizedBox(height: 12),
           Text(

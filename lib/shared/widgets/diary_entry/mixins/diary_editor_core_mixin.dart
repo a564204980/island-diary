@@ -210,7 +210,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       return false;
     }
 
-    if (currentMoodIndex == null || currentMoodIndex! < 0) {
+    final hasMood = (currentMoodIndex != null && currentMoodIndex! >= 0) || (currentTag != null && currentTag!.isNotEmpty);
+    if (!hasMood) {
       IslandAlert.show(context, message: '先选个心情再出发吧~', icon: '✨');
       return false;
     }
@@ -226,7 +227,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
         final updatedEntry = DiaryEntry(
           id: widget.entry!.id,
           dateTime: widget.entry!.dateTime,
-          moodIndex: currentMoodIndex!,
+          moodIndex: currentMoodIndex ?? 0, // 如果是纯自定义标签，默认给 0
           intensity: currentIntensity,
           content: content,
           tag: currentTag,
@@ -241,7 +242,20 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
         await UserState().updateDiary(updatedEntry);
       } else {
         // 新建模式
-        await onBlocksChanged();
+        // 在保存草稿/正式保存时也要确保 moodIndex 有值
+        await UserState().saveDraft(
+          moodIndex: currentMoodIndex ?? 0,
+          intensity: currentIntensity,
+          content: content,
+          tag: currentTag,
+          weather: weather,
+          temp: temp,
+          location: location,
+          customDate: customDate,
+          customTime: customTime,
+          dateTime: _entryDateTime,
+          blocks: blocks.map((b) => b.toMap()).toList(),
+        );
         await UserState().saveDiary();
       }
 

@@ -9,20 +9,24 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 
-import 'package:island_diary/features/statistics/presentation/widgets/custom_neon_radar_chart.dart';
 import 'package:island_diary/features/statistics/domain/utils/soul_season_logic.dart';
-import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
+import 'package:island_diary/features/statistics/presentation/widgets/bento/recovery_dialog.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/mood_poster_widget.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/glass_bento.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/seasonal_atmosphere_painter.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/mental_island_card.dart';
+part '../widgets/bento/bento_radar_chart.dart';
 part '../widgets/bento/bento_mood_calendar.dart';
 part '../widgets/bento/bento_emotion_metrics.dart';
 part '../widgets/bento/bento_wave_chart.dart';
 part '../widgets/bento/bento_weekly_pattern.dart';
 part '../widgets/bento/bento_behavioral_analysis.dart';
+part '../widgets/bento/bento_heatmap.dart';
 part '../widgets/bento/bento_utils.dart';
 part '../widgets/statistics_advanced_bento_fragments.dart';
+part '../widgets/bento/bento_mood_trend.dart';
+part '../widgets/bento/bento_mood_flow.dart';
+part '../widgets/bento/bento_resilience.dart';
 
 enum StatTimeRange { week, month, all }
 
@@ -32,6 +36,7 @@ class UnifiedEmotionData {
   final Color color;
   final String? iconPath;
   final int? originalMoodIndex;
+  final Color orbColor1 = const Color(0xFFBC8A5F).withOpacity(0.3);
 
   UnifiedEmotionData({
     required this.label,
@@ -186,15 +191,15 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     switch (_currentRange) {
       case StatTimeRange.week:
         saved = state.statsOrderWeek.value;
-        defaults = ['island', 'radar', 'stats_row', 'volatility', 'wave', 'weekly_pattern', 'time_pattern'];
+        defaults = ['island', 'mood_trend', 'mood_flow', 'resilience', 'intensity_radar', 'stats_row', 'volatility', 'wave', 'weekly_pattern', 'heatmap', 'time_pattern'];
         break;
       case StatTimeRange.month:
         saved = state.statsOrderMonth.value;
-        defaults = ['island', 'calendar', 'stats_row', 'highlights', 'time_pattern'];
+        defaults = ['island', 'mood_trend', 'mood_flow', 'resilience', 'calendar', 'intensity_radar', 'stats_row', 'highlights', 'time_pattern'];
         break;
       case StatTimeRange.all:
         saved = state.statsOrderAll.value;
-        defaults = ['island', 'seasonality', 'stats_row', 'time_pattern', 'weather'];
+        defaults = ['island', 'mood_trend', 'mood_flow', 'resilience', 'intensity_radar', 'seasonality', 'heatmap', 'stats_row', 'time_pattern', 'weather'];
         break;
     }
     
@@ -211,49 +216,61 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   }
 
   Widget _buildModuleById(String id, bool isNight, List<DiaryEntry> filtered) {
+    // 统一计算当前时节主题色
+    final currentSeason = SoulSeasonLogic.getSeason(filtered);
+    final themeColor = currentSeason.accentColor;
+
     switch (id) {
       case 'island':
         if (filtered.isEmpty) return const SizedBox.shrink();
         return MentalIslandCard(
-          season: SoulSeasonLogic.getSeason(filtered),
+          season: currentSeason,
           isNight: isNight,
           totalEntries: _allDiaries.length,
           rangeText: _currentRange == StatTimeRange.week 
               ? "本周" 
               : (_currentRange == StatTimeRange.month ? "本月" : "目前"),
         );
-      case 'radar':
-        return _buildEmotionRadarBento(isNight, filtered);
+      case 'intensity_radar':
+        return _buildRadarBento(isNight, filtered, themeColor);
       case 'stats_row':
         return IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(flex: 5, child: _buildStatsBentoList(isNight, _currentRange == StatTimeRange.all ? _allDiaries : filtered)),
+              Expanded(flex: 5, child: _buildStatsBentoList(isNight, _currentRange == StatTimeRange.all ? _allDiaries : filtered, themeColor)),
               const SizedBox(width: 16),
-              Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filtered)),
+              Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filtered, themeColor)),
             ],
           ),
         );
       case 'volatility':
-        return _buildVolatilityIndexBento(isNight, filtered);
+        return _buildVolatilityIndexBento(isNight, filtered, themeColor);
       case 'wave':
-        return _buildWaveChartBento(isNight, filtered);
+        return _buildWaveChartBento(isNight, filtered, themeColor);
       case 'weekly_pattern':
-        return _buildWeeklyPatternBento(isNight, filtered);
+        return _buildWeeklyPatternBento(isNight, filtered, themeColor);
       case 'time_pattern':
-        return _buildTimePatternBento(isNight, filtered);
+        return _buildTimePatternBento(isNight, filtered); // 时间模式暂不强制换色，保持其中性
       case 'calendar':
-        return _buildMoodCalendarBento(isNight, filtered);
+        return _buildMoodCalendarBento(isNight, filtered); // 日历保持多色
       case 'highlights':
-        return _buildMonthlyHighlightsBento(isNight, filtered);
+        return _buildMonthlyHighlightsBento(isNight, filtered, themeColor);
       case 'seasonality':
-        return _buildSeasonalityTrendBento(isNight, _allDiaries);
+        return _buildSeasonalityTrendBento(isNight, _allDiaries, themeColor);
+      case 'heatmap':
+        return _buildHeatmapBento(isNight, filtered, _currentRange, themeColor);
       case 'weather':
         if (_hasWeatherData(filtered)) {
           return _buildWeatherMoodBento(isNight, filtered);
         }
         return const SizedBox.shrink();
+      case 'mood_trend':
+        return _buildMoodTrendBento(isNight, filtered, themeColor);
+      case 'mood_flow':
+        return _buildMoodFlowBento(isNight, filtered, themeColor);
+      case 'resilience':
+        return _buildResilienceBento(isNight, _currentRange == StatTimeRange.all ? _allDiaries : filtered, themeColor);
       default:
         return const SizedBox.shrink();
     }

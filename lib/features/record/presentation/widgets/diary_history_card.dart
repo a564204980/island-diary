@@ -439,6 +439,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     bool isNight = false,
     String? tag,
   }) {
+    final hasCustomMood = tag != null && tag.trim().isNotEmpty;
     final moodIdx = moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
     final Color badgeColor = mood.glowColor ?? const Color(0xFFC4B69E);
@@ -461,7 +462,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
               Hero(
                 tag: 'mood_${widget.entry.id}',
                 child: Image.asset(
-                  (tag != null && tag.isNotEmpty) 
+                  hasCustomMood 
                       ? 'assets/images/icons/custom.png' 
                       : (mood.iconPath ?? 'assets/images/icons/sun.png'),
                   width: 14,
@@ -470,7 +471,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
               ),
               const SizedBox(width: 4),
               Text(
-                mood.label,
+                hasCustomMood ? tag.trim() : mood.label,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -483,26 +484,28 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
         ),
 
         // 2. 强度标签 (文字描述)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: badgeColor.withOpacity(isNight ? 0.08 : 0.12),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: badgeColor.withOpacity(isNight ? 0.2 : 0.25),
-              width: 0.5,
+        // 如果是自定义心情，不再显示基于系统心情名称生成的强度修饰词，避免冲突（如“满心向往”）
+        if (!hasCustomMood)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: badgeColor.withOpacity(isNight ? 0.08 : 0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: badgeColor.withOpacity(isNight ? 0.2 : 0.25),
+                width: 0.5,
+              ),
+            ),
+            child: Text(
+              DiaryUtils.getMoodIntensityPrefix(mood.label, intensity),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
+                fontFamily: 'LXGWWenKai',
+              ),
             ),
           ),
-          child: Text(
-            DiaryUtils.getMoodIntensityPrefix(mood.label, intensity),
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
-              fontFamily: 'LXGWWenKai',
-            ),
-          ),
-        ),
 
         // 3. 天气标签 (如果有)
         if (widget.entry.weather != null)
@@ -563,7 +566,8 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           ),
 
         // 5. 话题标签 (如果有)
-        if (tag != null && tag.isNotEmpty)
+        // 如果已经作为自定义心情展示在了第一个位置，则此处不再重复展示
+        if (!hasCustomMood && tag != null && tag.isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
@@ -612,5 +616,6 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
       ],
     );
   }
+
 
 }

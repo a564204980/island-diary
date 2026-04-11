@@ -23,12 +23,12 @@ extension BentoMoodCalendar on _StatisticsPageState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-               Text('${now.month}月的时光印记', style: _bentoTitleStyle(isNight)),
-               Icon(CupertinoIcons.calendar, size: 18, color: isNight ? Colors.white54 : Colors.black38),
-            ],
+          _buildBentoHeader(
+            context: context,
+            title: '${now.month}月的时光印记',
+            helpContent: '以月为单位，将每日主色调映射至日历，拼凑成完整的[[心灵色彩拼图]]。点击具体日期，可回溯当下的珍贵思绪。',
+            isNight: isNight,
+            rightAction: Icon(CupertinoIcons.calendar, size: 18, color: isNight ? Colors.white54 : Colors.black38),
           ),
           const SizedBox(height: 12),
           // 星期表头
@@ -93,74 +93,25 @@ extension BentoMoodCalendar on _StatisticsPageState {
   }
 
   void _handleBackfill(BuildContext context, DateTime date, bool isNight) {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.7),
-      builder: (context) => Center(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 40),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: isNight ? const Color(0xFF2D2A26) : const Color(0xFFFDF7E9),
-            borderRadius: BorderRadius.circular(24),
+      barrierDismissible: true,
+      barrierLabel: "Dismiss",
+      barrierColor: Colors.black.withOpacity(0.4), // 调暗背景增强沉浸感
+      transitionDuration: const Duration(milliseconds: 600),
+      pageBuilder: (context, anim1, anim2) {
+        return RecoverDiaryDialog(date: date, isNight: isNight);
+      },
+      transitionBuilder: (context, anim1, anim2, child) {
+        final curve = Curves.easeOutBack.transform(anim1.value);
+        return Transform.scale(
+          scale: 0.8 + (curve * 0.2),
+          child: Opacity(
+            opacity: anim1.value,
+            child: child,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("💧", style: TextStyle(fontSize: 32)),
-              const SizedBox(height: 16),
-              Text(
-                "这一天好像掉在了岁月的迷雾里...",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: isNight ? Colors.white70 : const Color(0xFF5D4037),
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "要把 ${date.month}月${date.day}日 找回来吗？",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: isNight ? Colors.white54 : Colors.black54,
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("先不找了"),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DiaryEditorPage(
-                            moodIndex: 4, // 默认平静
-                            intensity: 6.0,
-                            initialDate: date,
-                          ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4A373),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text("找回来", style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

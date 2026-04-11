@@ -95,7 +95,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                 crossAxisCount: 8,
                 mainAxisSpacing: 4,
                 crossAxisSpacing: 4,
-                childAspectRatio: 1.0, // 完美的正方形
+                childAspectRatio: 0.85, // 稍微高一点，防止在窄屏下图标+文字高度溢出
               ),
               itemCount: kMoods.length,
               itemBuilder: (context, index) {
@@ -174,6 +174,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
               ),
               child: TextField(
                 controller: _tagController,
+                maxLength: 10,
                 onChanged: (val) {
                   if (val.trim().isNotEmpty && _selectedIndex != null) {
                     setState(() => _selectedIndex = null);
@@ -195,6 +196,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                     vertical: 12,
                   ),
                   border: InputBorder.none,
+                  counterText: "", // 隐藏计数器，保持极简
                 ),
               ),
             ),

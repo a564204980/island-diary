@@ -4,46 +4,8 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
   
   // ===================== WEEK 专属特异 =====================
 
-  Widget _buildEmotionRadarBento(bool isNight, List<DiaryEntry> filtered) {
-    if (filtered.isEmpty) return const SizedBox.shrink();
 
-    final unifiedData = _getUnifiedEmotionData(filtered);
-    final topData = unifiedData.take(8).toList();
-    if (topData.length < 3) return const SizedBox.shrink(); // 雷达图至少需要三个角
-    
-    double maxCount = topData.first.count.toDouble();
-
-    return _buildGlassCard(
-      isNight: isNight,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('情感多棱镜', style: _bentoTitleStyle(isNight)),
-              Icon(CupertinoIcons.circle_grid_hex_fill, size: 18, color: isNight ? Colors.white54 : Colors.black38),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 220,
-            child: NeonRadarChart(
-              values: topData.map((e) => e.count.toDouble()).toList(),
-              labels: topData.map((e) => e.label).toList(),
-              iconPaths: topData.map((e) => e.iconPath ?? "").toList(),
-              glowColors: topData.map((e) => e.color).toList(),
-              maxValue: maxCount,
-              isNight: isNight,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVolatilityIndexBento(bool isNight, List<DiaryEntry> filtered) {
+  Widget _buildVolatilityIndexBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
     if (filtered.length < 2) return const SizedBox.shrink();
 
     List<DiaryEntry> sorted = List.from(filtered)..sort((a,b)=>a.dateTime.compareTo(b.dateTime));
@@ -67,7 +29,7 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                  Text('潮汐节律', style: _bentoTitleStyle(isNight)),
-                 Icon(CupertinoIcons.heart_circle, size: 18, color: volatility > 0.4 ? Colors.redAccent : (isNight ? Colors.white54 : Colors.black38)),
+                 Icon(CupertinoIcons.heart_circle, size: 18, color: volatility > 0.4 ? Colors.redAccent : themeColor.withOpacity(isNight ? 0.7 : 0.5)),
               ]
             ),
             Text('情绪起伏的潮汐位', style: TextStyle(fontSize: 10, color: isNight ? Colors.white38 : Colors.black38)),
@@ -82,7 +44,7 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
 
   // ===================== MONTH 专属特异 =====================
 
-  Widget _buildMonthlyHighlightsBento(bool isNight, List<DiaryEntry> filtered) {
+  Widget _buildMonthlyHighlightsBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
     if (filtered.length < 2) return const SizedBox.shrink();
 
     DiaryEntry maxEntry = filtered.first;
@@ -103,13 +65,13 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                  Text('时光刻痕', style: _bentoTitleStyle(isNight)),
-                 Icon(CupertinoIcons.bookmark_fill, size: 18, color: isNight ? Colors.white54 : Colors.black38),
+                 Icon(CupertinoIcons.bookmark_fill, size: 18, color: themeColor.withOpacity(isNight ? 0.6 : 0.4)),
               ]
             ),
             const SizedBox(height: 16),
             _buildHighlightQuote(isNight, maxEntry, '极度高昂', Colors.orange),
             const SizedBox(height: 12),
-            _buildHighlightQuote(isNight, minEntry, '情绪至暗', Colors.blueAccent),
+            _buildHighlightQuote(isNight, minEntry, '情绪至暗', themeColor),
          ]
        )
     );
@@ -142,7 +104,7 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
     );
   }
 
-  Widget _buildTrendExtrapolationBento(bool isNight, List<DiaryEntry> filtered) {
+  Widget _buildTrendExtrapolationBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
      if (filtered.length < 4) return const SizedBox.shrink();
      
      final sorted = List.from(filtered)..sort((a,b)=>a.dateTime.compareTo(b.dateTime));
@@ -169,8 +131,8 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
            ),
            Container(
              padding: const EdgeInsets.all(12),
-             decoration: BoxDecoration(shape: BoxShape.circle, color: isUp ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2)),
-             child: Icon(isUp ? CupertinoIcons.arrow_up_right : CupertinoIcons.arrow_down_right, color: isUp ? Colors.green : Colors.grey),
+             decoration: BoxDecoration(shape: BoxShape.circle, color: isUp ? Colors.green.withOpacity(0.2) : themeColor.withOpacity(0.2)),
+             child: Icon(isUp ? CupertinoIcons.arrow_up_right : CupertinoIcons.arrow_down_right, color: isUp ? Colors.green : themeColor),
            )
          ]
        )
@@ -180,7 +142,7 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
   // ===================== ALL 专属特异 =====================
 
 
-  Widget _buildSeasonalityTrendBento(bool isNight, List<DiaryEntry> allEntries) {
+  Widget _buildSeasonalityTrendBento(bool isNight, List<DiaryEntry> allEntries, Color themeColor) {
     if (allEntries.length < 5) return const SizedBox.shrink();
 
     List<double> quarters = [0,0,0,0];
@@ -227,7 +189,10 @@ extension StatisticsAdvancedBentoFragments on _StatisticsPageState {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                            begin: Alignment.bottomCenter, end: Alignment.topCenter,
-                           colors: [isNight ? Colors.white24 : Colors.blue.withOpacity(0.5), isNight ? Colors.white10 : Colors.blue.withOpacity(0.1)]
+                           colors: [
+                             isNight ? themeColor.withOpacity(0.3) : themeColor.withOpacity(0.5), 
+                             isNight ? themeColor.withOpacity(0.1) : themeColor.withOpacity(0.1)
+                           ]
                         ), 
                         borderRadius: BorderRadius.circular(6)
                       )

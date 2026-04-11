@@ -105,4 +105,270 @@ extension BentoUtils on _StatisticsPageState {
       letterSpacing: 0.5,
     );
   }
+
+  void _showBentoInfoDialog({
+    required BuildContext context,
+    required String title,
+    required String content,
+    required bool isNight,
+  }) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "BentoInfo",
+      barrierColor: Colors.black.withOpacity(isNight ? 0.7 : 0.4),
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, anim1, anim2) => const SizedBox(),
+      transitionBuilder: (context, anim1, anim2, child) {
+        final curve = Curves.easeOutBack.transform(anim1.value);
+        return Transform.scale(
+          scale: 0.85 + (curve * 0.15),
+          child: Opacity(
+            opacity: anim1.value,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Material(
+                  color: Colors.transparent,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: isNight 
+                              ? const Color(0xFF1A1A1A).withOpacity(0.8) 
+                              : Colors.white.withOpacity(0.85),
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: isNight ? Colors.white10 : Colors.black.withOpacity(0.05),
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(title, style: TextStyle(
+                                  fontSize: 18, 
+                                  fontWeight: FontWeight.bold, 
+                                  color: isNight ? Colors.white : const Color(0xFF5A3E28),
+                                )),
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Icon(
+                                    CupertinoIcons.clear_circled_solid, 
+                                    color: isNight ? Colors.white24 : Colors.black12,
+                                    size: 22,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                            _buildHighlightedText(
+                              context,
+                              content,
+                              isNight,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHighlightedText(BuildContext context, String content, bool isNight) {
+    // 使用正则拆分文字，识别 [[...]] 语法
+    final regex = RegExp(r'\[\[(.*?)\]\]');
+    final matches = regex.allMatches(content);
+    
+    if (matches.isEmpty) {
+      return Text(
+        content,
+        style: TextStyle(
+          fontSize: 14,
+          height: 1.6,
+          color: isNight ? Colors.white70 : Colors.black87,
+          fontFamily: 'LXGWWenKai',
+        ),
+      );
+    }
+
+    final List<InlineSpan> spans = [];
+    int lastIndex = 0;
+
+    // 获取当前的主题色用于下划线
+    final themeColor = isNight ? const Color(0xFFFFD54F) : const Color(0xFFD4A373);
+
+    for (var match in matches) {
+      // 添加普通文本
+      if (match.start > lastIndex) {
+        spans.add(TextSpan(
+          text: content.substring(lastIndex, match.start),
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.6,
+            color: isNight ? Colors.white70 : Colors.black87,
+            fontFamily: 'LXGWWenKai',
+          ),
+        ));
+      }
+
+      // 添加高亮文本
+      final highlightText = match.group(1)!;
+      spans.add(WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        child: _HandDrawnHighlight(
+          text: highlightText,
+          color: themeColor.withOpacity(0.5),
+          isNight: isNight,
+        ),
+      ));
+
+      lastIndex = match.end;
+    }
+
+    // 最后的剩余文本
+    if (lastIndex < content.length) {
+      spans.add(TextSpan(
+        text: content.substring(lastIndex),
+        style: TextStyle(
+          fontSize: 14,
+          height: 1.6,
+          color: isNight ? Colors.white70 : Colors.black87,
+          fontFamily: 'LXGWWenKai',
+        ),
+      ));
+    }
+
+    return RichText(
+      text: TextSpan(children: spans),
+    );
+  }
+
+  Widget _buildBentoHeader({
+    required BuildContext context,
+    required String title,
+    required String helpContent,
+    required bool isNight,
+    Widget? rightAction,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(title, style: _bentoTitleStyle(isNight)),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: () => _showBentoInfoDialog(
+                context: context, 
+                title: title, 
+                content: helpContent, 
+                isNight: isNight
+              ),
+              child: Icon(
+                CupertinoIcons.info_circle, 
+                size: 14, 
+                color: isNight ? Colors.white24 : Colors.black.withOpacity(0.2)
+              ),
+            ),
+          ],
+        ),
+        if (rightAction != null) rightAction,
+      ],
+    );
+  }
+}
+
+/// 手绘风格高亮 Widget
+class _HandDrawnHighlight extends StatelessWidget {
+  final String text;
+  final Color color;
+  final bool isNight;
+
+  const _HandDrawnHighlight({
+    required this.text,
+    required this.color,
+    required this.isNight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // 背景下划线
+        Positioned(
+          left: -2,
+          right: -2,
+          bottom: 2,
+          child: CustomPaint(
+            size: const Size(double.infinity, 8),
+            painter: _HandDrawnUnderlinePainter(color),
+          ),
+        ),
+        // 文字
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: isNight ? Colors.white : Colors.black87,
+            fontFamily: 'LXGWWenKai',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 手绘波纹下划线绘制器
+class _HandDrawnUnderlinePainter extends CustomPainter {
+  final Color color;
+  _HandDrawnUnderlinePainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path();
+    final double w = size.width;
+    final double h = size.height;
+
+    // 手绘感算法：随机波动的三次贝塞尔曲线
+    path.moveTo(0, h * 0.8);
+    
+    // 第一段：略微下弧
+    path.quadraticBezierTo(
+      w * 0.25, h * 1.1, 
+      w * 0.5, h * 0.9,
+    );
+    
+    // 第二段：略微上扬
+    path.quadraticBezierTo(
+      w * 0.75, h * 0.7, 
+      w, h * 0.85,
+    );
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

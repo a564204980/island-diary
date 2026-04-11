@@ -62,7 +62,7 @@ class MentalIslandCard extends StatelessWidget {
                 height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: season.accentColor.withOpacity(0.15),
+                  color: season.accentColor.withOpacity(isNight ? 0.15 : 0.2),
                 ),
               ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(duration: 3.seconds, begin: const Offset(1,1), end: const Offset(1.5,1.5)),
             ),
@@ -91,7 +91,7 @@ class MentalIslandCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: isNight ? Colors.white : const Color(0xFF5A3E28),
+                                color: isNight ? Colors.white : const Color(0xFF5A3E28).withOpacity(0.9),
                                 fontFamily: 'LXGWWenKai',
                               ),
                             ),
@@ -114,8 +114,9 @@ class MentalIslandCard extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(isNight ? 0.05 : 0.3),
+                      color: season.accentColor.withOpacity(isNight ? 0.05 : 0.08),
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: season.accentColor.withOpacity(isNight ? 0.1 : 0.15)),
                     ),
                     child: Row(
                       children: [
@@ -145,7 +146,7 @@ class MentalIslandCard extends StatelessWidget {
               right: 12,
               bottom: 12,
               child: Opacity(
-                opacity: 0.15,
+                opacity: 0.12,
                 child: Icon(
                   _getSeasonIcon(season.particleType),
                   size: 32,
@@ -164,10 +165,16 @@ class MentalIslandCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.15),
+        color: season.accentColor.withOpacity(0.1),
         boxShadow: [
-          BoxShadow(color: season.accentColor.withOpacity(0.2), blurRadius: 15, spreadRadius: 2)
+          BoxShadow(
+            color: season.accentColor.withOpacity(0.2), 
+            blurRadius: 20, 
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          )
         ],
+        border: Border.all(color: season.accentColor.withOpacity(0.2), width: 1.5),
       ),
       child: Text(
         icon,

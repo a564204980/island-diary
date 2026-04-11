@@ -1,7 +1,7 @@
 part of '../../pages/statistics_page.dart';
 
 extension BentoEmotionMetrics on _StatisticsPageState {
-  Widget _buildStatsBentoList(bool isNight, List<DiaryEntry> allEntries) {
+  Widget _buildStatsBentoList(bool isNight, List<DiaryEntry> allEntries, Color themeColor) {
     int streak = 0;
     int totalWords = 0;
 
@@ -28,14 +28,14 @@ extension BentoEmotionMetrics on _StatisticsPageState {
 
     return Column(
       children: [
-        Expanded(child: _buildSmallBentoCore(isNight, '🔥 连记', '$streak', '天')),
+        Expanded(child: _buildSmallBentoCore(isNight, '🔥 连记', '$streak', '天', themeColor)),
         const SizedBox(height: 16),
-        Expanded(child: _buildSmallBentoCore(isNight, '📝 字数', '${totalWords > 999 ? '${(totalWords/1000).toStringAsFixed(1)}k' : totalWords}', '字')),
+        Expanded(child: _buildSmallBentoCore(isNight, '📝 字数', '${totalWords > 999 ? '${(totalWords/1000).toStringAsFixed(1)}k' : totalWords}', '字', themeColor)),
       ],
     );
   }
 
-  Widget _buildSmallBentoCore(bool isNight, String title, String value, String unit) {
+  Widget _buildSmallBentoCore(bool isNight, String title, String value, String unit, Color themeColor) {
     return _buildGlassCard(
       isNight: isNight,
       padding: const EdgeInsets.all(16),
@@ -45,7 +45,11 @@ extension BentoEmotionMetrics on _StatisticsPageState {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isNight ? Colors.white70 : Colors.black54)),
+            Text(title, style: TextStyle(
+              fontSize: 12, 
+              fontWeight: FontWeight.bold, 
+              color: themeColor.withOpacity(isNight ? 0.7 : 0.6)
+            )),
             const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -62,7 +66,7 @@ extension BentoEmotionMetrics on _StatisticsPageState {
     );
   }
 
-  Widget _buildMoodProgressBarBento(bool isNight, List<DiaryEntry> filtered) {
+  Widget _buildMoodProgressBarBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
     if (filtered.isEmpty) {
        return _buildGlassCard(
         isNight: isNight,
@@ -70,9 +74,18 @@ extension BentoEmotionMetrics on _StatisticsPageState {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('情绪成分', style: _bentoTitleStyle(isNight)),
+            _buildBentoHeader(
+              context: context,
+              title: '情绪成分',
+              helpContent: '量化展示各项情绪在您心灵中的占比，帮助您清晰识别当前的情感季节，看清内心底色的演变。',
+              isNight: isNight,
+            ),
             const SizedBox(height: 16),
-            Container(height: 24, decoration: BoxDecoration(color: isNight ? Colors.white10 : Colors.black12, borderRadius: BorderRadius.circular(12))),
+            Container(height: 24, decoration: BoxDecoration(
+              color: themeColor.withOpacity(0.1), 
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: themeColor.withOpacity(0.05))
+            )),
             const SizedBox(height: 16),
             Text('暂无数据', style: TextStyle(color: isNight ? Colors.white38 : Colors.black38, fontSize: 12)),
           ],
@@ -113,25 +126,27 @@ extension BentoEmotionMetrics on _StatisticsPageState {
         ));
         
         // Legend
-        if (i < 5) { // 展示前五个
-          legendItems.add(Padding(
-            padding: const EdgeInsets.only(bottom: 6.0),
-            child: Row(
-              children: [
-                Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: data.color)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    '${data.label} ${(data.count / total * 100).toStringAsFixed(0)}%', 
-                    style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black87),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+        legendItems.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Row(
+            children: [
+              Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: data.color)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${data.label} ${(data.count / total * 100).toStringAsFixed(0)}%', 
+                  style: TextStyle(
+                    fontSize: 12, 
+                    color: isNight ? Colors.white70 : Colors.black87,
+                    fontFamily: 'LXGWWenKai',
                   ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
-              ],
-            ),
-          ));
-        }
+              ),
+            ],
+          ),
+        ));
     }
 
     return _buildGlassCard(
@@ -140,12 +155,26 @@ extension BentoEmotionMetrics on _StatisticsPageState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('情绪成分', style: _bentoTitleStyle(isNight)),
+          _buildBentoHeader(
+            context: context,
+            title: '情绪成分',
+            helpContent: '量化展示各项情绪在您心灵中的占比，帮助您清晰识别当前的情感季节，看清[[内心底色]]的演变。',
+            isNight: isNight,
+          ),
           const SizedBox(height: 16),
           ClipRRect(borderRadius: BorderRadius.circular(12), child: Row(children: barSegments)),
           const SizedBox(height: 16),
           if (legendItems.isNotEmpty)
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: legendItems)
+            SizedBox(
+              height: 110,
+              child: CupertinoScrollbar(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  physics: const BouncingScrollPhysics(),
+                  children: legendItems,
+                ),
+              ),
+            )
           else 
             Text('暂无数据', style: TextStyle(color: isNight ? Colors.white38 : Colors.black38, fontSize: 12)),
         ],

@@ -87,7 +87,7 @@ class SoulSeasonLogic {
           description: '情绪中有着无法忽视的雷雨，去接纳那些不安，它们也是生命的一部分。',
           healingMessage: '雨后总有泥土的芬芳，不完美也是一种特别的生命张力。',
           particleType: 'rain',
-          accentColor: const Color(0xFFFF6B6B),
+          accentColor: const Color(0xFF5A92B5),
           icon: '⛈️',
         );
       } else {
@@ -96,7 +96,7 @@ class SoulSeasonLogic {
           description: '灵魂在深冬蛰伏。偶尔的瑟缩是为了更好地积蓄力量，春天不远了。',
           healingMessage: '在寒冷中给自己一个拥抱，温暖其实一直都在手心里。',
           particleType: 'frost',
-          accentColor: const Color(0xFF74EBD5),
+          accentColor: const Color(0xFFA5D8FF),
           icon: '❄️',
         );
       }

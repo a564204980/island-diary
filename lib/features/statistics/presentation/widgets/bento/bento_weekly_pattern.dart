@@ -1,7 +1,7 @@
 part of '../../pages/statistics_page.dart';
 
 extension BentoWeeklyPattern on _StatisticsPageState {
-  Widget _buildWeeklyPatternBento(bool isNight, List<DiaryEntry> filtered) {
+  Widget _buildWeeklyPatternBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
     if (filtered.isEmpty) return const SizedBox.shrink();
 
     // 统计每一天的大数据
@@ -23,12 +23,12 @@ extension BentoWeeklyPattern on _StatisticsPageState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('岛屿脉动', style: _bentoTitleStyle(isNight)),
-              Text('揭示一周的心情节律', style: TextStyle(fontSize: 10, color: isNight ? Colors.white38 : Colors.black38)),
-            ],
+          _buildBentoHeader(
+            context: context,
+            title: '岛屿脉动',
+            helpContent: '分析您在一周内的[[时间分配]]与[[心情走势]]，揭秘工作日与休息日之间的[[切换规律]]。',
+            isNight: isNight,
+            rightAction: Text('揭示一周心情', style: TextStyle(fontSize: 10, color: isNight ? Colors.white38 : Colors.black38)),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -86,9 +86,10 @@ extension BentoWeeklyPattern on _StatisticsPageState {
                             ? LinearGradient(
                                 begin: Alignment.bottomCenter,
                                 end: Alignment.topCenter,
-                                colors: isNight 
-                                  ? const [Color(0xFFB39DDB), Color(0xFF80D8FF)] // 极光幻紫
-                                  : const [Color(0xFFFF9472), Color(0xFFF2709C)] // 柚子落日
+                                colors: [
+                                  themeColor.withOpacity(0.6),
+                                  themeColor,
+                                ]
                               )
                             : null,
                           color: dayCounts[index] == 0 
@@ -97,7 +98,7 @@ extension BentoWeeklyPattern on _StatisticsPageState {
                           boxShadow: dayCounts[index] > 0 
                             ? [
                                 BoxShadow(
-                                  color: (isNight ? const Color(0xFF80D8FF) : const Color(0xFFF2709C)).withOpacity(0.4),
+                                  color: themeColor.withOpacity(0.4),
                                   blurRadius: 8,
                                   spreadRadius: -2,
                                   offset: const Offset(0, 4)
