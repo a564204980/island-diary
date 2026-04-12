@@ -73,6 +73,9 @@ extension BentoMoodFlow on _StatisticsPageState {
 
     for (int i = 0; i < targetLabels.length; i++) {
       final label = targetLabels[i];
+      // 筛选：如果选中了某个标签，只处理该标签的数据
+      if (_selectedMoodFlowLabel != null && _selectedMoodFlowLabel != label) continue;
+
       final baseMoodIdx = labelToMoodIndex[label]!;
       
       Color color;
@@ -198,98 +201,122 @@ extension BentoMoodFlow on _StatisticsPageState {
                         physics: const BouncingScrollPhysics(),
                         child: SizedBox(
                           width: finalWidth,
-                          child: LineChart(
-                            LineChartData(
-                              minX: -0.5,
-                              maxX: daysCount.toDouble() - 0.5,
-                              minY: 0,
-                              maxY: displayMaxY,
-                              clipData: const FlClipData.none(),
-                              gridData: FlGridData(
-                                show: true,
-                                drawVerticalLine: false,
-                                getDrawingHorizontalLine: (value) {
-                                  return FlLine(
-                                    color: isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                                    strokeWidth: 1,
-                                  );
-                                },
-                              ),
-                              titlesData: FlTitlesData(
-                                show: true,
-                                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 32,
-                                    interval: 1,
-                                    getTitlesWidget: (value, meta) {
-                                      if (value % 1 != 0) return const SizedBox.shrink();
-                                      final int index = value.round();
-                                      if (index < 0 || index >= daysCount) return const SizedBox.shrink();
-                                      
-                                      final date = startDate.add(Duration(days: index));
-                                      bool isEdge = index == 0 || index == daysCount - 1;
-                                      
-                                      String label;
-                                      if (_currentRange == StatTimeRange.week) {
-                                        label = _getChineseWeekDay(date.weekday);
-                                      } else {
-                                        label = (date.day == 1 || index == 0) 
-                                            ? '${date.month}/${date.day}' 
-                                            : '${date.day}';
-                                      }
-
-                                      return Padding(
-                                        padding: const EdgeInsets.only(top: 8.0),
-                                        child: Text(
-                                          label,
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: (date.day == 1 || isEdge) ? FontWeight.bold : FontWeight.normal,
-                                            color: isNight ? Colors.white38 : Colors.black38,
-                                            fontFamily: 'LXGWWenKai',
-                                          ),
-                                        ),
+                          child: Stack(
+                            children: [
+                              LineChart(
+                                LineChartData(
+                                  minX: -0.5,
+                                  maxX: daysCount.toDouble() - 0.5,
+                                  minY: 0,
+                                  maxY: displayMaxY,
+                                  clipData: const FlClipData.none(),
+                                  gridData: FlGridData(
+                                    show: true,
+                                    drawVerticalLine: false,
+                                    getDrawingHorizontalLine: (value) {
+                                      return FlLine(
+                                        color: isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                                        strokeWidth: 1,
                                       );
                                     },
                                   ),
-                                ),
-                              ),
-                              borderData: FlBorderData(show: false),
-                              lineBarsData: lineBarsData,
-                              lineTouchData: LineTouchData(
-                                touchTooltipData: LineTouchTooltipData(
-                                  getTooltipColor: (_) => isNight ? const Color(0xFF2C2C2C) : const Color(0xFFFBFBFB),
-                                  fitInsideHorizontally: true,
-                                  fitInsideVertically: true,
-                                  getTooltipItems: (touchedSpots) {
-                                    return touchedSpots.map((spot) {
-                                      final label = targetLabels[spot.barIndex];
-                                      final baseMoodIdx = labelToMoodIndex[label]!;
-                                      Color color;
-                                      if (label == kMoods[baseMoodIdx].label) {
-                                        color = kMoods[baseMoodIdx].glowColor ?? (isNight ? Colors.white : Colors.black87);
-                                      } else {
-                                        final h = (label.hashCode % 360).toDouble();
-                                        color = HSVColor.fromAHSV(1.0, h, 0.5, 0.8).toColor();
-                                      }
+                                  titlesData: FlTitlesData(
+                                    show: true,
+                                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        reservedSize: 32,
+                                        interval: 1,
+                                        getTitlesWidget: (value, meta) {
+                                          if (value % 1 != 0) return const SizedBox.shrink();
+                                          final int index = value.round();
+                                          if (index < 0 || index >= daysCount) return const SizedBox.shrink();
+                                          
+                                          final date = startDate.add(Duration(days: index));
+                                          bool isEdge = index == 0 || index == daysCount - 1;
+                                          
+                                          String label;
+                                          if (_currentRange == StatTimeRange.week) {
+                                            label = _getChineseWeekDay(date.weekday);
+                                          } else {
+                                            label = (date.day == 1 || index == 0) 
+                                                ? '${date.month}/${date.day}' 
+                                                : '${date.day}';
+                                          }
 
-                                      return LineTooltipItem(
-                                        '$label: ${spot.y.toStringAsFixed(1)}',
-                                        TextStyle(
-                                          color: color,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      );
-                                    }).toList();
-                                  },
+                                          return Padding(
+                                            padding: const EdgeInsets.only(top: 8.0),
+                                            child: Text(
+                                              label,
+                                              style: TextStyle(
+                                                fontSize: 9,
+                                                fontWeight: (date.day == 1 || isEdge) ? FontWeight.bold : FontWeight.normal,
+                                                color: isNight ? Colors.white38 : Colors.black38,
+                                                fontFamily: 'LXGWWenKai',
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  borderData: FlBorderData(show: false),
+                                  lineBarsData: lineBarsData,
+                                  lineTouchData: LineTouchData(
+                                    handleBuiltInTouches: true,
+                                    touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
+                                      if (event is FlTapUpEvent) {
+                                        if (response == null || response.lineBarSpots == null || response.lineBarSpots!.isEmpty) {
+                                          updateMoodFlowX(null);
+                                        } else {
+                                          final spot = response.lineBarSpots!.first;
+                                          updateMoodFlowX(spot.x.toInt());
+                                        }
+                                      }
+                                    },
+                                    touchTooltipData: LineTouchTooltipData(
+                                      getTooltipColor: (_) => Colors.transparent,
+                                      getTooltipItems: (touchedSpots) => [],
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
+                              // 自定义提示框叠加层
+                              if (_selectedMoodFlowX != null)
+                                ...[
+                                  // 辅助垂线
+                                  Positioned(
+                                    left: (_selectedMoodFlowX! + 0.5) / daysCount * finalWidth,
+                                    top: 0,
+                                    bottom: 32,
+                                    child: Container(
+                                      width: 1,
+                                      color: isNight ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.1),
+                                    ),
+                                  ),
+                                  _buildBentoTooltip(
+                                    title: '${startDate.add(Duration(days: _selectedMoodFlowX!)).month}月${startDate.add(Duration(days: _selectedMoodFlowX!)).day}日',
+                                    items: [
+                                      for (var label in targetLabels)
+                                        if (_selectedMoodFlowLabel == null || _selectedMoodFlowLabel == label)
+                                          if (dataMap[label]![_selectedMoodFlowX!] > 0)
+                                            _BentoTooltipItem(
+                                              label: label,
+                                              value: dataMap[label]![_selectedMoodFlowX!].toStringAsFixed(1),
+                                              color: label == kMoods[labelToMoodIndex[label]!].label
+                                                ? kMoods[labelToMoodIndex[label]!].glowColor ?? (isNight ? Colors.white : Colors.black87)
+                                                : HSLColor.fromAHSL(1.0, (label.hashCode % 360).toDouble(), 0.5, 0.6).toColor()
+                                            )
+                                    ]..sort((a, b) => double.parse(b.value).compareTo(double.parse(a.value))),
+                                    relativeX: (_selectedMoodFlowX! + 0.5) / daysCount,
+                                    chartWidth: finalWidth,
+                                    isNight: isNight,
+                                  ),
+                                ]
+                            ],
                           ),
                         ),
                       );
@@ -304,7 +331,11 @@ extension BentoMoodFlow on _StatisticsPageState {
     );
   }
 
+
+
   Widget _buildMoodTag(String label, int baseMoodIndex, bool isNight) {
+    final bool isSelected = _selectedMoodFlowLabel == label;
+
     Color color;
     if (label == kMoods[baseMoodIndex].label) {
       color = kMoods[baseMoodIndex].glowColor ?? Colors.blueAccent;
@@ -313,34 +344,49 @@ extension BentoMoodFlow on _StatisticsPageState {
       color = HSLColor.fromAHSL(1.0, h, 0.6, 0.7).toColor();
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+    return GestureDetector(
+      onTap: () => updateMoodFlowLabel(isSelected ? null : label),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.25) : color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? color.withOpacity(0.5) : Colors.transparent,
+            width: 1.5,
           ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: color.withOpacity(0.9),
-              fontWeight: FontWeight.bold,
-              fontFamily: 'LXGWWenKai',
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: color.withOpacity(0.2),
+              blurRadius: 8,
+              spreadRadius: 1,
+            )
+          ] : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isSelected ? color : color.withOpacity(0.9),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                fontFamily: 'LXGWWenKai',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

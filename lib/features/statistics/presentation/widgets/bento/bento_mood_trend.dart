@@ -205,68 +205,100 @@ extension BentoMoodTrend on _StatisticsPageState {
                         physics: isMonth ? const BouncingScrollPhysics() : const NeverScrollableScrollPhysics(),
                         child: SizedBox(
                           width: finalWidth,
-                          child: LineChart(
-                            LineChartData(
-                              minX: -0.15,
-                              maxX: aggregatedPoints.length - 0.85,
-                              minY: -yLimit,
-                              maxY: yLimit,
-                              gridData: FlGridData(
-                                show: true,
-                                drawVerticalLine: false,
-                                getDrawingHorizontalLine: (value) {
-                                  if (value == 0) return FlLine(color: isNight ? Colors.white12 : Colors.black.withOpacity(0.05), strokeWidth: 1.5);
-                                  return FlLine(color: isNight ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.01), strokeWidth: 1);
-                                },
-                              ),
-                              titlesData: FlTitlesData(
-                                show: true,
-                                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 40,
-                                    interval: 1,
-                                    getTitlesWidget: (value, meta) {
-                                      // 确保只在整数点显示标签，避免 minX 偏移导致的重复渲染
-                                      if (value % 1 != 0) return const SizedBox.shrink();
-                                      int index = value.round();
-                                      if (index < 0 || index >= aggregatedPoints.length) return const SizedBox.shrink();
-                                      final p = aggregatedPoints[index];
-                                      return Padding(
-                                        padding: const EdgeInsets.only(top: 10),
-                                        child: Column(
-                                          children: [
-                                            Text(p['label'], style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black87, fontWeight: FontWeight.bold)),
-                                            Text(p['subLabel'], style: TextStyle(fontSize: 9, color: isNight ? Colors.white38 : Colors.black38)),
-                                          ],
-                                        ),
-                                      );
-                                    }
-                                  )
+                          child: Stack(
+                            children: [
+                              LineChart(
+                                LineChartData(
+                                  minX: -0.15,
+                                  maxX: aggregatedPoints.length - 0.85,
+                                  minY: -yLimit,
+                                  maxY: yLimit,
+                                  gridData: FlGridData(
+                                    show: true,
+                                    drawVerticalLine: false,
+                                    getDrawingHorizontalLine: (value) {
+                                      if (value == 0) return FlLine(color: isNight ? Colors.white12 : Colors.black.withOpacity(0.05), strokeWidth: 1.5);
+                                      return FlLine(color: isNight ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.01), strokeWidth: 1);
+                                    },
+                                  ),
+                                  titlesData: FlTitlesData(
+                                    show: true,
+                                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        reservedSize: 40,
+                                        interval: 1,
+                                        getTitlesWidget: (value, meta) {
+                                          // 确保只在整数点显示标签，避免 minX 偏移导致的重复渲染
+                                          if (value % 1 != 0) return const SizedBox.shrink();
+                                          int index = value.round();
+                                          if (index < 0 || index >= aggregatedPoints.length) return const SizedBox.shrink();
+                                          final p = aggregatedPoints[index];
+                                          return Padding(
+                                            padding: const EdgeInsets.only(top: 10),
+                                            child: Column(
+                                              children: [
+                                                Text(p['label'], style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black87, fontWeight: FontWeight.bold)),
+                                                Text(p['subLabel'], style: TextStyle(fontSize: 9, color: isNight ? Colors.white38 : Colors.black38)),
+                                              ],
+                                            ),
+                                          );
+                                        }
+                                      )
+                                    ),
+                                  ),
+                                  borderData: FlBorderData(show: false),
+                                  lineBarsData: [barData],
+                                  lineTouchData: LineTouchData(
+                                    touchCallback: (event, response) {
+                                      if (event is FlTapUpEvent) {
+                                        if (response == null || response.lineBarSpots == null || response.lineBarSpots!.isEmpty) {
+                                          updateMoodTrendX(null);
+                                        } else {
+                                          final spot = response.lineBarSpots!.first;
+                                          updateMoodTrendX(spot.x.toInt());
+                                        }
+                                      }
+                                    },
+                                    touchTooltipData: LineTouchTooltipData(
+                                      getTooltipColor: (_) => Colors.transparent,
+                                      getTooltipItems: (touchedSpots) => [],
+                                    ),
+                                  ),
                                 ),
                               ),
-                              borderData: FlBorderData(show: false),
-                              lineBarsData: [barData],
-                              lineTouchData: LineTouchData(
-                                  touchTooltipData: LineTouchTooltipData(
-                                    getTooltipColor: (_) => isNight ? const Color(0xFF2C2C2C) : const Color(0xFFFBFBFB),
-                                    fitInsideHorizontally: true,
-                                    fitInsideVertically: true,
-                                    getTooltipItems: (touchedSpots) {
-                                    return touchedSpots.map((spot) {
-                                      final p = aggregatedPoints[spot.x.toInt()];
-                                      return LineTooltipItem(
-                                        '${p['label']}号 指数: ${spot.y.toStringAsFixed(1)}',
-                                        TextStyle(color: isNight ? Colors.white : Colors.black87, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'LXGWWenKai'),
-                                      );
-                                    }).toList();
-                                  }
-                                )
-                              ),
-                            ),
+                              // 自定义提示框
+                              if (_selectedMoodTrendX != null) ...[
+                                // 辅助垂线
+                                Positioned(
+                                  left: (_selectedMoodTrendX! + 0.15) / (aggregatedPoints.length - 0.7) * finalWidth,
+                                  top: 0,
+                                  bottom: 40,
+                                  child: Container(
+                                    width: 1,
+                                    color: isNight ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.1),
+                                  ),
+                                ),
+                                _buildBentoTooltip(
+                                  title: '${aggregatedPoints[_selectedMoodTrendX!]['label']}日 ${aggregatedPoints[_selectedMoodTrendX!]['subLabel']}',
+                                  items: [
+                                    _BentoTooltipItem(
+                                      label: '情绪指数',
+                                      value: spots[_selectedMoodTrendX!].y.toStringAsFixed(1),
+                                      color: spots[_selectedMoodTrendX!].y >= 0 
+                                          ? themeColor 
+                                          : (isNight ? const Color(0xFF448AFF) : const Color(0xFF2196F3))
+                                    )
+                                  ],
+                                  relativeX: (_selectedMoodTrendX! + 0.15) / (aggregatedPoints.length - 0.7),
+                                  chartWidth: finalWidth,
+                                  isNight: isNight,
+                                ),
+                              ]
+                            ],
                           ),
                         ),
                       );
@@ -281,13 +313,13 @@ extension BentoMoodTrend on _StatisticsPageState {
     );
   }
 
-  Widget _buildYLabel(String text, bool isNight) {
-    return Text(text, style: TextStyle(color: isNight ? Colors.white24 : Colors.black26, fontSize: 10));
-  }
+}
 
+Widget _buildYLabel(String text, bool isNight) {
+  return Text(text, style: TextStyle(color: isNight ? Colors.white24 : Colors.black26, fontSize: 10));
+}
 
-  String _getChineseWeekDay(int weekday) {
-    const list = ['一', '二', '三', '四', '五', '六', '日'];
-    return list[weekday - 1];
-  }
+String _getChineseWeekDay(int weekday) {
+  const list = ['一', '二', '三', '四', '五', '六', '日'];
+  return list[weekday - 1];
 }

@@ -115,95 +115,106 @@ extension BentoWaveChart on _StatisticsPageState {
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: SizedBox(
               height: 130,
-              child: LineChart(
-                LineChartData(
-                  minY: 0,
-                  maxY: 10,
-                  showingTooltipIndicators: (_touchedWaveSpotIndex != null && _touchedWaveSpotIndex! < spots.length)
-                    ? [ShowingTooltipIndicators([LineBarSpot(
-                        barData, 
-                        0, 
-                        spots[_touchedWaveSpotIndex!]
-                      )])]
-                    : [],
-                  lineTouchData: LineTouchData(
-                    handleBuiltInTouches: true,
-                    touchCallback: (event, response) {
-                      if (response != null && response.lineBarSpots != null && response.lineBarSpots!.isNotEmpty) {
-                        final index = response.lineBarSpots!.first.spotIndex;
-                        updateWaveSpotIndex((_touchedWaveSpotIndex == index) ? null : index);
-                      }
-                    },
-                    touchTooltipData: LineTouchTooltipData(
-                      getTooltipColor: (_) => isNight ? const Color(0xFF3D3D3D) : const Color(0xFF5A3E28),
-                      tooltipBorderRadius: BorderRadius.circular(12),
-                      fitInsideHorizontally: true,
-                      fitInsideVertically: true,
-                      getTooltipItems: (touchedSpots) {
-                        return touchedSpots.map((spot) {
-                          if (spot.x.toInt() >= displayPoints.length) return null;
-                          final data = displayPoints[spot.x.toInt()];
-                          final entry = data['entry'] as DiaryEntry;
-                          final mood = kMoods[entry.moodIndex % kMoods.length];
-                          String intensityDesc = '心境宁静平和';
-                          double y = spot.y;
-                          if (y >= 8) {
-                            intensityDesc = '内心能量澎湃';
-                          } else if (y >= 5) {
-                            intensityDesc = '情感起伏有力';
-                          } else if (y < 2) {
-                            intensityDesc = '万籁俱寂静谧';
-                          }
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Stack(
+                    children: [
+                      LineChart(
+                        LineChartData(
+                          minY: 0,
+                          maxY: 10,
+                          lineTouchData: LineTouchData(
+                            handleBuiltInTouches: true,
+                            touchCallback: (event, response) {
+                              if (event is FlTapUpEvent) {
+                                if (response == null || response.lineBarSpots == null || response.lineBarSpots!.isEmpty) {
+                                  updateWaveSpotIndex(null);
+                                } else {
+                                  final index = response.lineBarSpots!.first.spotIndex;
+                                  updateWaveSpotIndex(index);
+                                }
+                              }
+                            },
+                            touchTooltipData: LineTouchTooltipData(
+                              getTooltipColor: (_) => Colors.transparent,
+                              getTooltipItems: (touchedSpots) => [],
+                            ),
+                          ),
+                          gridData: const FlGridData(show: false),
+                          titlesData: FlTitlesData(
+                            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 22,
+                                interval: 1,
+                                getTitlesWidget: (double value, TitleMeta meta) {
+                                   final int index = value.toInt();
+                                   if (index >= 0 && index < displayPoints.length) {
+                                      final bool shouldShow = displayPoints.length <= 7 || index % 2 == 0;
+                                      if (!shouldShow) return const SizedBox.shrink();
 
-                          return LineTooltipItem(
-                            '${mood.label} · $intensityDesc\n',
-                            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12, fontFamily: 'LXGWWenKai'),
-                            children: [
-                              TextSpan(
-                                text: '当日平均能量强度: ${spot.y.toStringAsFixed(1)} · ${DateFormat('MM/dd').format(data['date'])}', 
-                                style: const TextStyle(fontWeight: FontWeight.normal, fontSize: 10, color: Colors.white70)
+                                      final date = displayPoints[index]['date'] as DateTime;
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 6.0),
+                                        child: Text(
+                                          DateFormat('MM/dd').format(date), 
+                                          style: TextStyle(fontSize: 9, color: isNight ? Colors.white38 : Colors.black38)
+                                        ),
+                                      );
+                                   }
+                                   return const SizedBox.shrink();
+                                }
                               )
-                            ],
-                          );
-                        }).toList();
-                      },
-                    ),
-                  ),
-                  gridData: const FlGridData(show: false),
-                  titlesData: FlTitlesData(
-                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 22,
-                        interval: 1,
-                        getTitlesWidget: (double value, TitleMeta meta) {
-                           final int index = value.toInt();
-                           if (index >= 0 && index < displayPoints.length) {
-                              final bool shouldShow = displayPoints.length <= 7 || index % 2 == 0;
-                              if (!shouldShow) return const SizedBox.shrink();
-
-                              final date = displayPoints[index]['date'] as DateTime;
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 6.0),
-                                child: Text(
-                                  DateFormat('MM/dd').format(date), 
-                                  style: TextStyle(fontSize: 9, color: isNight ? Colors.white38 : Colors.black38)
-                                ),
+                            )
+                          ),
+                          borderData: FlBorderData(show: false),
+                          lineBarsData: [barData],
+                        ),
+                        duration: const Duration(milliseconds: 800),
+                        curve: Curves.easeOutQuart,
+                      ),
+                      // 自定义提示框
+                      if (_touchedWaveSpotIndex != null && _touchedWaveSpotIndex! < displayPoints.length) ...[
+                        Positioned(
+                          left: (spots.length > 1) ? _touchedWaveSpotIndex! / (spots.length - 1) * constraints.maxWidth : constraints.maxWidth / 2,
+                          top: 0,
+                          bottom: 22,
+                          child: Container(
+                            width: 1,
+                            color: isNight ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.1),
+                          ),
+                        ),
+                        _buildBentoTooltip(
+                          title: DateFormat('MM月dd日').format(displayPoints[_touchedWaveSpotIndex!]['date']),
+                          items: [
+                            (){
+                              final data = displayPoints[_touchedWaveSpotIndex!];
+                              final entry = data['entry'] as DiaryEntry;
+                              final mood = kMoods[entry.moodIndex % kMoods.length];
+                              double y = spots[_touchedWaveSpotIndex!].y;
+                              String desc = y >= 8 ? '内心能量澎湃' : (y >= 5 ? '情感起伏有力' : (y < 2 ? '万籁俱寂静谧' : '心境宁静平和'));
+                              return _BentoTooltipItem(
+                                label: mood.label,
+                                value: desc,
+                                color: mood.glowColor ?? barColor
                               );
-                           }
-                           return const SizedBox.shrink();
-                        }
-                      )
-                    )
-                  ),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [barData],
-                ),
-                duration: const Duration(milliseconds: 800),
-                curve: Curves.easeOutQuart,
+                            }(),
+                            _BentoTooltipItem(
+                              label: '能量强度',
+                              value: spots[_touchedWaveSpotIndex!].y.toStringAsFixed(1),
+                            )
+                          ],
+                          relativeX: (spots.length > 1) ? _touchedWaveSpotIndex! / (spots.length - 1) : 0.5,
+                          chartWidth: constraints.maxWidth,
+                          isNight: isNight,
+                        ),
+                      ]
+                    ],
+                  );
+                }
               ),
             ),
           ),

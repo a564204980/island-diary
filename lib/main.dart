@@ -4,6 +4,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/home/presentation/pages/home_page.dart';
 import 'package:island_diary/features/onboarding/presentation/pages/onboarding_page.dart';
+import 'package:island_diary/shared/widgets/security/security_guard.dart';
+
 
 void main() async {
   // 确保 Flutter 底层绑定初始化完毕
@@ -49,7 +51,9 @@ class IslandDiaryApp extends StatelessWidget {
         Locale('zh', 'CN'),
       ],
       locale: const Locale('zh', 'CN'),
+      builder: (context, child) => SecurityGuard(child: child!),
       home: startWithHome ? const HomePage() : const OnboardingPage(),
     );
+
   }
 }

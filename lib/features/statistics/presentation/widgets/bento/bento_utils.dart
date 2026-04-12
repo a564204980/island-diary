@@ -290,6 +290,135 @@ extension BentoUtils on _StatisticsPageState {
       ],
     );
   }
+
+  /// 通用 Bento 图表提示框
+  Widget _buildBentoTooltip({
+    required String title,
+    required List<_BentoTooltipItem> items,
+    required double relativeX, // 0.0 - 1.0 用于决定左右位置
+    required double chartWidth,
+    required bool isNight,
+    double? top,
+    double? bottom,
+    double width = 150,
+    double maxHeight = 140,
+  }) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    // 计算水平位置
+    bool isLeft = relativeX > 0.5;
+    double left = relativeX * chartWidth;
+    if (isLeft) {
+      left -= (width + 12);
+    } else {
+      left += 12;
+    }
+
+    return Positioned(
+      left: left,
+      top: top ?? 10,
+      bottom: bottom,
+      child: Container(
+        width: width,
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        decoration: BoxDecoration(
+          color: isNight ? const Color(0xE6262626) : const Color(0xE6FFFFFF),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isNight ? Colors.white10 : Colors.black12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isNight ? 0.3 : 0.1),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isNight ? Colors.white38 : Colors.black38,
+                      fontFamily: 'LXGWWenKai',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        children: items.map((item) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                if (item.color != null)
+                                  Container(
+                                    width: 4,
+                                    height: 4,
+                                    decoration: BoxDecoration(color: item.color, shape: BoxShape.circle),
+                                  ),
+                                if (item.color != null) const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    item.label,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: item.color?.withOpacity(0.9) ?? (isNight ? Colors.white70 : Colors.black87),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: 'LXGWWenKai',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  item.value,
+                                  style: TextStyle(
+                                    color: (isNight ? Colors.white38 : Colors.black38),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ).animate().fadeIn(duration: 200.ms).slideX(begin: isLeft ? 0.05 : -0.05, end: 0, curve: Curves.easeOutCubic),
+    );
+  }
+}
+
+/// Bento 提示框数据项
+class _BentoTooltipItem {
+  final String label;
+  final String value;
+  final Color? color;
+
+  _BentoTooltipItem({
+    required this.label,
+    required this.value,
+    this.color,
+  });
 }
 
 /// 手绘风格高亮 Widget

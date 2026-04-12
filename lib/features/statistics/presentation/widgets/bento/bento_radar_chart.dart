@@ -142,29 +142,41 @@ extension BentoRadarChart on _StatisticsPageState {
                           height: 36,
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              String scoreStr = (item.isNegative ? '-' : '') + score.toStringAsFixed(1);
-                              
-                              String flavorText;
-                              if (item.isNegative) {
-                                flavorText = '心境雷达观测到，[[${item.label}]] 的能量强度目前为 [[$scoreStr]]。这种低回的频率也是生命的一部分，请允许自己在这一刻静静停靠，温柔地拥抱内心的阴雨天。';
-                              } else if (score > 8) {
-                                flavorText = '哇！您的 [[${item.label}]] 能量正处于 [[$scoreStr]] 的高频震动中。这份灿烂的力量正如同岛屿的暖阳，持续滋养着您的心底，请尽情享受这份闪光的瞬间。';
-                              } else {
-                                flavorText = '捕捉到 [[${item.label}]] 的情感脉动，强度为 [[$scoreStr]]。这份平稳的能量正交织在您的生活频率中，是内心情感季节中一抹独特的底色。';
-                              }
-
-                              _showBentoInfoDialog(
-                                context: context, 
-                                title: '心情脉动：${item.label}', 
-                                content: flavorText, 
-                                isNight: isNight
-                              );
-                            },
+                            onTap: () => updateRadarPointIndex(i),
                             child: Container(color: Colors.transparent),
                           ),
                         );
                       }),
+                      // 自定义提示框
+                      if (_selectedRadarPointIndex != null && _selectedRadarPointIndex! < chartData.length) ...[
+                        (){
+                           final item = chartData[_selectedRadarPointIndex!];
+                           final double angle = (2 * pi / n) * _selectedRadarPointIndex! - pi / 2;
+                           final double val = (item.avgIntensity / 10.0).clamp(0.001, 1.0);
+                           final double r = radius * val;
+                           final double px = chartCenter.dx + r * cos(angle);
+                           final double py = chartCenter.dy + r * sin(angle);
+                           
+                           return _buildBentoTooltip(
+                             title: '心境雷达 · ${item.label}',
+                             items: [
+                               _BentoTooltipItem(
+                                 label: '强度',
+                                 value: (item.isNegative ? '-' : '') + item.avgIntensity.toStringAsFixed(1),
+                                 color: item.glowColor
+                               ),
+                               _BentoTooltipItem(
+                                 label: '特质',
+                                 value: item.isNegative ? '低能阴雨' : (item.avgIntensity > 8 ? '高频滋养' : '平稳过渡'),
+                               )
+                             ],
+                             relativeX: px / size,
+                             chartWidth: size,
+                             isNight: isNight,
+                             top: py > graphHeight / 2 ? py - 120 : py + 20, // 根据位置动态上下偏移
+                           );
+                        }()
+                      ],
                       // 3. 悬浮标签与图标 (原有布局)
                       ...List.generate(n, (i) {
                         double angle = (2 * pi / n) * i - pi / 2;

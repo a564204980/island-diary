@@ -61,12 +61,108 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   StatTimeRange _currentRange = StatTimeRange.month;
   late AnimationController _waveAnimController;
 
-  // 新增：波浪图交互状态
-  int? _touchedWaveSpotIndex;
+  // 新增：波浪图交互状态 (将在下方统一定义)
+
+
+  // 新增：心境流转图交互状态
+  int? _selectedMoodFlowX;
+
+  void _clearAllBentoSelections() {
+    _selectedMoodFlowX = null;
+    _selectedMoodTrendX = null;
+    _touchedWaveSpotIndex = null; // WaveChart mapping
+    _selectedWeeklyPatternIndex = null;
+    _selectedRadarPointIndex = null;
+    _selectedHeatmapCoord = null;
+  }
+
+  void updateMoodFlowX(int? x) {
+    setState(() {
+      if (x != null) {
+        final prev = _selectedMoodFlowX;
+        _clearAllBentoSelections();
+        _selectedMoodFlowX = (prev == x) ? null : x;
+      } else {
+        _selectedMoodFlowX = null;
+      }
+    });
+  }
+
+  // 新增：各子模块的选择状态
+  int? _selectedMoodTrendX;
+  int? _touchedWaveSpotIndex; // 新增这一行
+  int? _selectedWeeklyPatternIndex;
+  int? _selectedRadarPointIndex;
+
+  void updateMoodTrendX(int? x) {
+    setState(() {
+       if (x != null) {
+        final prev = _selectedMoodTrendX;
+        _clearAllBentoSelections();
+        _selectedMoodTrendX = (prev == x) ? null : x;
+      } else {
+        _selectedMoodTrendX = null;
+      }
+    });
+  }
 
   void updateWaveSpotIndex(int? index) {
     setState(() {
-      _touchedWaveSpotIndex = index;
+      if (index != null) {
+        final prev = _touchedWaveSpotIndex;
+        _clearAllBentoSelections();
+        _touchedWaveSpotIndex = (prev == index) ? null : index;
+      } else {
+        _touchedWaveSpotIndex = null;
+      }
+    });
+  }
+
+  void updateWeeklyPatternIndex(int? index) {
+    setState(() {
+      if (index != null) {
+        final prev = _selectedWeeklyPatternIndex;
+        _clearAllBentoSelections();
+        _selectedWeeklyPatternIndex = (prev == index) ? null : index;
+      } else {
+        _selectedWeeklyPatternIndex = null;
+      }
+    });
+  }
+
+  void updateRadarPointIndex(int? index) {
+    setState(() {
+      if (index != null) {
+        final prev = _selectedRadarPointIndex;
+        _clearAllBentoSelections();
+        _selectedRadarPointIndex = (prev == index) ? null : index;
+      } else {
+        _selectedRadarPointIndex = null;
+      }
+    });
+  }
+
+  // 新增：热力图交互状态 (x: hour/day, y: day/month)
+  Offset? _selectedHeatmapCoord;
+
+  void updateHeatmapCoord(Offset? coord) {
+    setState(() {
+      if (coord != null) {
+        final prev = _selectedHeatmapCoord;
+        _clearAllBentoSelections();
+        _selectedHeatmapCoord = (prev == coord) ? null : coord;
+      } else {
+        _selectedHeatmapCoord = null;
+      }
+    });
+  }
+
+  // 新增：心境流转标签筛选状态
+  String? _selectedMoodFlowLabel;
+
+  void updateMoodFlowLabel(String? label) {
+    setState(() {
+      _selectedMoodFlowLabel = label;
     });
   }
 

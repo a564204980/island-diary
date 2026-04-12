@@ -42,6 +42,14 @@ class UserState {
   static const _keyStatsOrderWeek = 'stats_order_week'; // 统计模块顺序-周
   static const _keyStatsOrderMonth = 'stats_order_month'; // 统计模块顺序-月
   static const _keyStatsOrderAll = 'stats_order_all'; // 统计模块顺序-全
+  static const _keyIsVip = 'is_vip'; // 新增：是否为 VIP
+  static const _keyIsAppLockEnabled = 'is_app_lock_enabled'; // 应用锁
+  static const _keyAppLockPin = 'app_lock_pin'; // PIN 码
+  static const _keyIsBiometricEnabled = 'is_biometric_enabled'; // 生物识别
+  static const _keyIsMistModeEnabled = 'is_mist_mode_enabled'; // 迷雾模式
+  static const _keyDestructionCode = 'destruction_code'; // 自毁码
+
+
 
   /// 朋友圈背景封面 (本地图片路径或 null 使用默认)
   final ValueNotifier<String?> momentsCoverPath = ValueNotifier<String?>(null);
@@ -101,6 +109,18 @@ class UserState {
   final ValueNotifier<List<String>> statsOrderWeek = ValueNotifier<List<String>>([]);
   final ValueNotifier<List<String>> statsOrderMonth = ValueNotifier<List<String>>([]);
   final ValueNotifier<List<String>> statsOrderAll = ValueNotifier<List<String>>([]);
+
+  /// 是否为 VIP 永久居民
+  final ValueNotifier<bool> isVip = ValueNotifier<bool>(false);
+
+  // --- 安全设置 ---
+  final ValueNotifier<bool> isAppLockEnabled = ValueNotifier<bool>(false);
+  final ValueNotifier<String> appLockPin = ValueNotifier<String>('');
+  final ValueNotifier<bool> isBiometricEnabled = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> isMistModeEnabled = ValueNotifier<bool>(false);
+  final ValueNotifier<String> destructionCode = ValueNotifier<String>('');
+
+
 
   /// 装修场景快照数据 (Uint8List)
   final ValueNotifier<Uint8List?> decorationSnapshot = ValueNotifier<Uint8List?>(null);
@@ -418,6 +438,66 @@ class UserState {
     await prefs.setStringList(_keyMoodTagHistory, currentList);
   }
 
+  /// 设置 VIP 状态并持久化
+  Future<void> setIsVip(bool value) async {
+    isVip.value = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyIsVip, value);
+  }
+
+  /// 批量更新安全设置
+  Future<void> updateSecuritySettings({
+    bool? appLock,
+    String? pin,
+    bool? biometric,
+    bool? mistMode,
+    String? destCode,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (appLock != null) {
+      isAppLockEnabled.value = appLock;
+      await prefs.setBool(_keyIsAppLockEnabled, appLock);
+    }
+    if (pin != null) {
+      appLockPin.value = pin;
+      await prefs.setString(_keyAppLockPin, pin);
+    }
+    if (biometric != null) {
+      isBiometricEnabled.value = biometric;
+      await prefs.setBool(_keyIsBiometricEnabled, biometric);
+    }
+    if (mistMode != null) {
+      isMistModeEnabled.value = mistMode;
+      await prefs.setBool(_keyIsMistModeEnabled, mistMode);
+    }
+    if (destCode != null) {
+      destructionCode.value = destCode;
+      await prefs.setString(_keyDestructionCode, destCode);
+    }
+  }
+
+  /// 紧急自毁：清空所有本地数据
+  Future<void> factoryReset() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    
+    // 重置内存状态（除了 onboarding 以外可能需要根据逻辑调整）
+    userName.value = '';
+    isVip.value = false;
+    isAppLockEnabled.value = false;
+    appLockPin.value = '';
+    isBiometricEnabled.value = false;
+    isMistModeEnabled.value = false;
+    destructionCode.value = '';
+    savedDiaries.value = [];
+    placedFurniture.value = [];
+    diaryDraft.value = null;
+    
+    // 通常自毁后建议重启应用或引导回 Onboarding
+  }
+
+
+
   /// 从本地存储中读取状态
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -522,7 +602,19 @@ class UserState {
     statsOrderWeek.value = prefs.getStringList(_keyStatsOrderWeek) ?? [];
     statsOrderMonth.value = prefs.getStringList(_keyStatsOrderMonth) ?? [];
     statsOrderAll.value = prefs.getStringList(_keyStatsOrderAll) ?? [];
+
+    // 加载 VIP 状态
+    isVip.value = prefs.getBool(_keyIsVip) ?? false;
+
+    // 加载安全设置
+    isAppLockEnabled.value = prefs.getBool(_keyIsAppLockEnabled) ?? false;
+    appLockPin.value = prefs.getString(_keyAppLockPin) ?? '';
+    isBiometricEnabled.value = prefs.getBool(_keyIsBiometricEnabled) ?? false;
+    isMistModeEnabled.value = prefs.getBool(_keyIsMistModeEnabled) ?? false;
+    destructionCode.value = prefs.getString(_keyDestructionCode) ?? '';
   }
+
+
 
   /// 保存统计页面模块顺序
   Future<void> saveStatsOrder(String rangeType, List<String> newOrder) async {

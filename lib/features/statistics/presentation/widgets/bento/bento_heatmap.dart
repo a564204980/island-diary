@@ -107,15 +107,53 @@ extension BentoHeatmap on _StatisticsPageState {
                 Expanded(
                   child: SizedBox(
                     height: gridHeight,
-                    child: CustomPaint(
-                      size: Size(double.infinity, gridHeight),
-                      painter: _HeatmapPainter(
-                        data: data,
-                        isNight: isNight,
-                        mode: HeatmapMode.weekly,
-                        isMoodMode: true,
-                        themeColor: themeColor,
-                      ),
+                    child: Stack(
+                      children: [
+                        GestureDetector(
+                          onTapUp: (details) {
+                            final x = details.localPosition.dx;
+                            final y = details.localPosition.dy;
+                            final h = (x / (cellSize + spacing)).floor().clamp(0, 23);
+                            final d = (y / (cellSize + spacing)).floor().clamp(0, 6);
+                            updateHeatmapCoord(Offset(h.toDouble(), d.toDouble()));
+                          },
+                          child: CustomPaint(
+                            size: Size(double.infinity, gridHeight),
+                            painter: _HeatmapPainter(
+                              data: data,
+                              isNight: isNight,
+                              mode: HeatmapMode.weekly,
+                              isMoodMode: true,
+                              themeColor: themeColor,
+                            ),
+                          ),
+                        ),
+                        if (_selectedHeatmapCoord != null && _currentRange == StatTimeRange.week) ...[
+                           (){
+                              final int h = _selectedHeatmapCoord!.dx.toInt();
+                              final int d = _selectedHeatmapCoord!.dy.toInt();
+                              final int moodIdx = data[d][h];
+                              
+                              return _buildBentoTooltip(
+                                title: '${weekLabels[d]}曜 · ${h}时',
+                                items: [
+                                  if (moodIdx != -1)
+                                    _BentoTooltipItem(
+                                      label: kMoods[moodIdx % kMoods.length].label,
+                                      value: '心情记录',
+                                      color: kMoods[moodIdx % kMoods.length].glowColor,
+                                    )
+                                  else
+                                    _BentoTooltipItem(label: '静谧时光', value: '暂无记录'),
+                                ],
+                                relativeX: (h * (cellSize + spacing) + cellSize / 2) / availableWidth,
+                                chartWidth: availableWidth,
+                                isNight: isNight,
+                                top: d * (cellSize + spacing) > gridHeight / 2 ? d * (cellSize + spacing) - 80 : d * (cellSize + spacing) + 15,
+                              );
+                           }()
+                        ]
+                      ],
                     ),
                   ),
                 ),
@@ -203,15 +241,50 @@ extension BentoHeatmap on _StatisticsPageState {
                             Expanded(
                               child: SizedBox(
                                 height: cellSize,
-                                child: CustomPaint(
-                                  size: Size(double.infinity, cellSize),
-                                  painter: _HeatmapPainter(
-                                    data: [data[index]],
-                                    isNight: isNight,
-                                    mode: HeatmapMode.weekly,
-                                    isMoodMode: true,
-                                    themeColor: themeColor,
-                                  ),
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    GestureDetector(
+                                      onTapUp: (details) {
+                                        final x = details.localPosition.dx;
+                                        final h = (x / (cellSize + spacing)).floor().clamp(0, 23);
+                                        updateHeatmapCoord(Offset(h.toDouble(), day.toDouble()));
+                                      },
+                                      child: CustomPaint(
+                                        size: Size(double.infinity, cellSize),
+                                        painter: _HeatmapPainter(
+                                          data: [data[index]],
+                                          isNight: isNight,
+                                          mode: HeatmapMode.weekly,
+                                          isMoodMode: true,
+                                          themeColor: themeColor,
+                                        ),
+                                      ),
+                                    ),
+                                    if (_selectedHeatmapCoord != null && _selectedHeatmapCoord!.dy == day && _currentRange == StatTimeRange.month) ...[
+                                      (){
+                                         final int h = _selectedHeatmapCoord!.dx.toInt();
+                                         final int moodIdx = data[index][h];
+                                         return _buildBentoTooltip(
+                                           title: '${now.month}月${day}日 · ${h}时',
+                                           items: [
+                                              if (moodIdx != -1)
+                                                _BentoTooltipItem(
+                                                  label: kMoods[moodIdx % kMoods.length].label,
+                                                  value: '心情记录',
+                                                  color: kMoods[moodIdx % kMoods.length].glowColor,
+                                                )
+                                              else
+                                                _BentoTooltipItem(label: '静谧时刻', value: '记录空白'),
+                                           ],
+                                           relativeX: (h * (cellSize + spacing) + cellSize / 2) / availableWidth,
+                                           chartWidth: availableWidth,
+                                           isNight: isNight,
+                                           top: -60,
+                                         );
+                                      }()
+                                    ]
+                                  ],
                                 ),
                               ),
                             ),
@@ -319,16 +392,54 @@ extension BentoHeatmap on _StatisticsPageState {
                 SizedBox(
                   width: availableWidth,
                   height: gridHeight,
-                  child: CustomPaint(
-                    size: Size(availableWidth, gridHeight),
-                    painter: _HeatmapPainter(
-                      data: matrix,
-                      isNight: isNight,
-                      mode: HeatmapMode.all,
-                      isMoodMode: false,
-                      cellSizeOverride: cellSize,
-                      themeColor: themeColor,
-                    ),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      GestureDetector(
+                        onTapUp: (details) {
+                          final x = details.localPosition.dx;
+                          final y = details.localPosition.dy;
+                          final d = (x / (cellSize + spacing)).floor().clamp(0, 30);
+                          final m = (y / (cellSize + spacing)).floor().clamp(0, 11);
+                          updateHeatmapCoord(Offset(d.toDouble(), (year * 100 + m + 1).toDouble())); // 编码年份和月份
+                        },
+                        child: CustomPaint(
+                          size: Size(availableWidth, gridHeight),
+                          painter: _HeatmapPainter(
+                            data: matrix,
+                            isNight: isNight,
+                            mode: HeatmapMode.all,
+                            isMoodMode: false,
+                            cellSizeOverride: cellSize,
+                            themeColor: themeColor,
+                          ),
+                        ),
+                      ),
+                      if (_selectedHeatmapCoord != null && _selectedHeatmapCoord!.dy >= (year * 100) && _selectedHeatmapCoord!.dy < ((year + 1) * 100) && _currentRange == StatTimeRange.all) ...[
+                        (){
+                          final int dIdx = _selectedHeatmapCoord!.dx.toInt();
+                          final int mIdx = (_selectedHeatmapCoord!.dy % 100).toInt() - 1;
+                          if (mIdx < 0 || mIdx >= 12 || dIdx >= matrix[mIdx].length) return const SizedBox.shrink();
+                          final int count = matrix[mIdx][dIdx];
+                          if (count == -2) return const SizedBox.shrink();
+
+                          return _buildBentoTooltip(
+                            title: '${year}年${mIdx + 1}月${dIdx + 1}日',
+                            items: [
+                              _BentoTooltipItem(
+                                label: '记录篇数',
+                                value: '$count篇',
+                                color: count > 0 ? themeColor : null,
+                              )
+                            ],
+                            relativeX: (dIdx * (cellSize + spacing) + cellSize / 2) / availableWidth,
+                            chartWidth: availableWidth,
+                            isNight: isNight,
+                            top: mIdx * (cellSize + spacing) > gridHeight / 2 ? mIdx * (cellSize + spacing) - 70 : mIdx * (cellSize + spacing) + 15,
+                          );
+                        }()
+                      ]
+                    ],
                   ),
                 ),
               ],
