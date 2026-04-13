@@ -29,8 +29,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   Color currentTextColor = UserState().isNight
       ? const Color(0xFFE0C097)
       : const Color(0xFF5D4037);
-  double currentFontSize = 20.0;
-  String currentFontFamily = 'LXGWWenKai';
+  double currentFontSize = UserState().preferredFontSize.value;
+  String currentFontFamily = UserState().preferredFontFamily.value;
   String? lastFocusedBlockId;
   String? _fixedQuote;
   DateTime? _entryDateTime;
@@ -377,15 +377,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   /// 集中处理所有文本块的颜色同步，避免在 build 阶段触发状态更新
   void syncBlockColors() {
     final bool isNight = UserState().isNight;
-    // 选取对应信纸样式的固定墨水色
-    final Color standardDefaultColor = const Color(0xFF8B5E3C);
-    final Color noteDefaultColor = currentPaperStyle == 'note1' 
-        ? const Color(0xFF5A7285) 
-        : const Color(0xFF7D6B5D);
-        
-    final Color targetColor = isNight && !currentPaperStyle.startsWith('note')
-        ? const Color(0xFFE0C097)
-        : (currentPaperStyle.startsWith('note') ? noteDefaultColor : standardDefaultColor);
+    final Color targetColor = DiaryUtils.getInkColor(currentPaperStyle, isNight);
 
     for (var block in blocks) {
       if (block is TextBlock && block.controller is DiaryTextEditingController) {

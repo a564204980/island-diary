@@ -6,6 +6,7 @@ import '../components/font_size_picker_sheet.dart';
 import '../components/color_picker_sheet.dart';
 import '../components/font_picker_sheet.dart';
 import '../utils/emoji_mapping.dart';
+import 'package:island_diary/core/state/user_state.dart';
 import './diary_editor_core_mixin.dart';
 
 mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
@@ -145,7 +146,9 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
         }
       }
     });
+    UserState().setPreferredFontSize(size);
     onBlocksChanged();
+    scrollToActiveBlock();
   }
 
   void showFontPicker() {
@@ -172,6 +175,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
         }
       }
     });
+    UserState().setPreferredFontFamily(family);
     onBlocksChanged();
     Navigator.pop(context);
   }

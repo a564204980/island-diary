@@ -123,7 +123,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: isNight 
+                    colors: effectiveIsNight 
                       ? [bgColor, bgColor.withValues(alpha: 0.8)]
                       : [bgColor, bgColor.withValues(alpha: 0.9)],
                   ),
@@ -138,10 +138,14 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   if (currentPaperStyle.startsWith('note'))
                     Positioned.fill(
                       child: Image.asset(
-                        'assets/images/note/${currentPaperStyle.replaceFirst('note', 'note_bg')}${currentPaperStyle == 'note1' ? '.png' : '.jpg'}',
+                        'assets/images/note/${currentPaperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4'].contains(currentPaperStyle) ? '.png' : '.jpg'}',
                         fit: BoxFit.cover,
-                        color: isNight ? Colors.black.withValues(alpha: 0.3) : null,
-                        colorBlendMode: isNight ? BlendMode.darken : null,
+                        color: (isNight && !currentPaperStyle.startsWith('note')) 
+                            ? Colors.black.withValues(alpha: 0.3) 
+                            : null,
+                        colorBlendMode: (isNight && !currentPaperStyle.startsWith('note')) 
+                            ? BlendMode.darken 
+                            : null,
                       ),
                     ),
                   Positioned.fill(
@@ -188,7 +192,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                   style: TextStyle(
                                     fontSize: 60,
                                     fontWeight: FontWeight.bold,
-                                    color: accentColor,
+                                    color: DiaryUtils.getInkColor(currentPaperStyle, effectiveIsNight),
                                     fontFamily: 'LXGWWenKai',
                                     letterSpacing: -1,
                                   ),
@@ -198,7 +202,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w500,
-                                    color: effectiveIsNight ? Colors.white38 : accentColor.withValues(alpha: 0.7),
+                                    color: DiaryUtils.getInkColor(currentPaperStyle, effectiveIsNight).withValues(alpha: 0.7),
                                     fontFamily: 'LXGWWenKai',
                                   ),
                                 ),
@@ -211,7 +215,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                 fontFamily: 'LXGWWenKai',
                                 fontSize: 16,
                                 fontStyle: FontStyle.italic,
-                                color: (effectiveIsNight ? Colors.white38 : accentColor.withValues(alpha: 0.6)),
+                                color: DiaryUtils.getInkColor(currentPaperStyle, effectiveIsNight).withValues(alpha: 0.6),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -219,8 +223,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               size: const Size(double.infinity, 2),
                               painter: HandDrawnLinePainter(
                                 color: effectiveIsNight 
-                                  ? Colors.white10 
-                                  : accentColor.withValues(alpha: 0.2),
+                                  ? DiaryUtils.getInkColor(currentPaperStyle, effectiveIsNight).withValues(alpha: 0.1) 
+                                  : DiaryUtils.getInkColor(currentPaperStyle, effectiveIsNight).withValues(alpha: 0.3),
                                 strokeWidth: 1.5,
                               ),
                             ),
@@ -228,12 +232,10 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         ),
                       ),
                     ),
-
-                    // STICKY BAR: All Tags
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: _StickyTabBarDelegate(
-                        backgroundColor: Colors.transparent,
+                    // TAG BAR: All Tags (Dynamic height)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                         child: Wrap(
                           spacing: 8,
                           runSpacing: 8,
@@ -401,11 +403,12 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         ),
                       ),
                     ),
+
                     // LIST AREA: Blocks
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(
                         24, 
-                        36, 
+                        12, 
                         24, 
                         math.max(160, currentBottomHeight + 100)
                       ),
@@ -424,6 +427,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               onShowPreview: showImagePreview,
                               isNightOverride: effectiveIsNight,
                               isNoteBackground: currentPaperStyle.startsWith('note'),
+                              paperStyle: currentPaperStyle,
                               accentColor: accentColor,
                             );
                           },

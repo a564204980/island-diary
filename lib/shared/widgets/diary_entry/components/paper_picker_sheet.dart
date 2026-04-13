@@ -16,6 +16,9 @@ class PaperPickerSheet extends StatelessWidget {
 
   static const Map<String, String> styles = {
     'note1': '岛屿',
+    'note2': '复古',
+    'note3': '极简',
+    'note4': '淡雅',
   };
 
   @override
@@ -107,7 +110,7 @@ class PaperPickerSheet extends StatelessWidget {
                                 if (key.startsWith('note'))
                                   Positioned.fill(
                                     child: Image.asset(
-                                      'assets/images/note/${key.replaceFirst('note', 'note_bg')}${key == 'note1' ? '.png' : '.jpg'}',
+                                      'assets/images/note/${key.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4'].contains(key) ? '.png' : '.jpg'}',
                                       fit: BoxFit.cover,
                                     ),
                                   ),

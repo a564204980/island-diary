@@ -18,6 +18,7 @@ class DiaryBlockItem extends StatelessWidget {
   final bool? isNightOverride;
   final bool isNoteBackground;
   final Color? accentColor;
+  final String? paperStyle;
 
   const DiaryBlockItem({
     super.key,
@@ -30,6 +31,7 @@ class DiaryBlockItem extends StatelessWidget {
     this.isNightOverride,
     this.isNoteBackground = false,
     this.accentColor,
+    this.paperStyle,
   });
 
   @override
@@ -42,7 +44,7 @@ class DiaryBlockItem extends StatelessWidget {
 
   Widget _buildContent(BuildContext context) {
     if (block is TextBlock) {
-      return _buildTextBlock(block as TextBlock);
+      return _buildTextBlock(block as TextBlock, context);
     } else if (block is ImageBlock) {
       return _buildImageBlock(block as ImageBlock);
     } else if (block is AudioBlock) {
@@ -85,26 +87,34 @@ class DiaryBlockItem extends StatelessWidget {
     );
   }
 
-  Widget _buildTextBlock(TextBlock block) {
+  Widget _buildTextBlock(TextBlock block, BuildContext context) {
     final isNight = isNightOverride ?? UserState().isNight;
     
-    return TextField(
-      controller: block.controller,
-      focusNode: block.focusNode,
-      maxLines: null,
-      readOnly: false,
-      showCursor: true,
-      cursorColor: isNoteBackground
-          ? (accentColor ?? (isNight ? const Color(0xFFE0C097) : const Color(0xFF5D4037)))
-          : (isNight ? const Color(0xFFE0C097) : const Color(0xFF8B5E3C)),
-      style: TextStyle(
-        fontSize: 20, 
-        height: 1.6,
-        color: isNoteBackground 
-            ? (accentColor ?? (isNight ? const Color(0xFFE0C097) : const Color(0xFF5D4037))) 
-            : (isNight ? const Color(0xFFE0C097) : const Color(0xFF5D4037)),
-        fontFamilyFallback: const ['LXGWWenKai'],
+    final inkColor = paperStyle != null 
+        ? DiaryUtils.getInkColor(paperStyle!, isNight)
+        : (isNight ? const Color(0xFFE0C097) : const Color(0xFF5D4037));
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: inkColor,
+          selectionColor: inkColor.withValues(alpha: 0.2),
+          selectionHandleColor: inkColor,
+        ),
       ),
+      child: TextField(
+        controller: block.controller,
+        focusNode: block.focusNode,
+        maxLines: null,
+        readOnly: false,
+        showCursor: true,
+        cursorColor: inkColor,
+        style: TextStyle(
+          fontSize: 20, 
+          height: 1.6,
+          color: inkColor,
+          fontFamilyFallback: const ['LXGWWenKai'],
+        ),
       decoration: InputDecoration(
         hintText: index == 0 ? '记录下这一刻的想法吧...' : '',
         hintStyle: TextStyle(
@@ -118,7 +128,7 @@ class DiaryBlockItem extends StatelessWidget {
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 4),
       ),
-    );
+    ),);
   }
 
   Widget _buildImageBlock(ImageBlock block) {

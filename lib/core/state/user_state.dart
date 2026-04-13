@@ -55,6 +55,8 @@ class UserState {
   static const _keyAppIconType = 'app_icon_type'; // 图标伪装类型
   static const _keyIntruderLogs = 'intruder_logs'; // 入侵记录
   static const _keyPreferredPaperStyle = 'preferred_paper_style'; // 全局信纸偏好
+  static const _keyPreferredFontSize = 'preferred_font_size'; // 全局字号偏好
+  static const _keyPreferredFontFamily = 'preferred_font_family'; // 全局字体偏好
 
 
 
@@ -134,6 +136,12 @@ class UserState {
   
   /// 全局信纸样式偏好 (新建日记时默认应用)
   final ValueNotifier<String> preferredPaperStyle = ValueNotifier<String>('note1');
+  
+  /// 全局字号偏好
+  final ValueNotifier<double> preferredFontSize = ValueNotifier<double>(20.0);
+  
+  /// 全局字体偏好
+  final ValueNotifier<String> preferredFontFamily = ValueNotifier<String>('LXGWWenKai');
 
 
 
@@ -541,6 +549,20 @@ class UserState {
     await prefs.setString(_keyPreferredPaperStyle, style);
   }
 
+  /// 设置全局字号偏好并持久化
+  Future<void> setPreferredFontSize(double size) async {
+    preferredFontSize.value = size;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_keyPreferredFontSize, size);
+  }
+
+  /// 设置全局字体偏好并持久化
+  Future<void> setPreferredFontFamily(String family) async {
+    preferredFontFamily.value = family;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyPreferredFontFamily, family);
+  }
+
   /// 紧急自毁：清空所有本地数据
   Future<void> factoryReset() async {
     final prefs = await SharedPreferences.getInstance();
@@ -693,8 +715,10 @@ class UserState {
       }
     }
 
-    // 加载信纸偏好
+    // 加载视觉偏好
     preferredPaperStyle.value = prefs.getString(_keyPreferredPaperStyle) ?? 'note1';
+    preferredFontSize.value = prefs.getDouble(_keyPreferredFontSize) ?? 20.0;
+    preferredFontFamily.value = prefs.getString(_keyPreferredFontFamily) ?? 'LXGWWenKai';
   }
 
 

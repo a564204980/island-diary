@@ -145,11 +145,13 @@ class DiaryToolbar extends StatelessWidget {
         'icon': Icons.close_rounded,
         'onTap': onClose,
         'color': isNight ? const Color(0xFFFF8A80) : const Color(0xFFD32F2F),
+        'bgColor': (isNight ? Colors.redAccent : const Color(0xFFD32F2F)).withValues(alpha: 0.1),
       },
       {
         'icon': Icons.check_rounded,
         'onTap': onSave,
         'color': isNight ? const Color(0xFFA5D6A7) : primaryColor,
+        'bgColor': (isNight ? Colors.greenAccent : primaryColor).withValues(alpha: 0.12),
       },
     ];
 
@@ -207,18 +209,27 @@ class DiaryToolbar extends StatelessWidget {
       child: Center(
         child: InkWell(
           onTap: onTap ?? () {},
-          child: assetPath != null
-              ? Image.asset(
-                  assetPath,
-                  width: 32,
-                  height: 32,
-                  fit: BoxFit.contain,
-                )
-              : Icon(
-                  icon,
-                  size: 28,
-                  color: iconColor,
-                ),
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? primaryColor.withValues(alpha: 0.15)
+                  : (bgColor ?? Colors.transparent),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: assetPath != null
+                ? Image.asset(
+                    assetPath,
+                    width: 28,
+                    height: 28,
+                    fit: BoxFit.contain,
+                  )
+                : Icon(
+                    icon,
+                    size: 24,
+                    color: iconColor,
+                  ),
+          ),
         )
         .animate(target: isSelected ? 1 : 0)
         .scale(

@@ -263,4 +263,26 @@ class DiaryUtils {
     }
     return filtered.trim();
   }
+
+  /// 获取信纸对应的墨水颜色 (文字颜色)
+  static Color getInkColor(String paperStyle, bool isNight) {
+    if (isNight && !paperStyle.startsWith('note')) {
+      return const Color(0xFFE0C097); // 温暖的夜间文字色
+    }
+
+    if (paperStyle == 'note1') {
+      return const Color(0xFF5A7285); // 沉稳蓝灰
+    } else if (paperStyle == 'note2') {
+      return const Color(0xFF6B5345); // 复古深咖 (更适配复古背景)
+    } else if (paperStyle == 'note3') {
+      return const Color(0xFF4A4A4A); // 极简配色：深炭灰
+    } else if (paperStyle == 'note4') {
+      return const Color(0xFF435B66); // 淡雅配色：深青灰
+    } else if (paperStyle.startsWith('note')) {
+      return const Color(0xFF7D6B5D); // 其他信纸默认棕色
+    }
+
+    // 经典模式
+    return const Color(0xFF8B5E3C);
+  }
 }

@@ -139,15 +139,14 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     });
   }
 
+  bool get _effectiveIsNight => widget.isNight && !_currentEntry.paperStyle.startsWith('note');
+
   @override
   Widget build(BuildContext context) {
-    final bool isNight = widget.isNight;
-    // 如果使用自定义信纸背景（note系列），即便在晚上也不使用夜间模式样式
-    final bool effectiveIsNight = isNight && !_currentEntry.paperStyle.startsWith('note');
-    final bgColor = effectiveIsNight ? const Color(0xFF13131F) : const Color(0xFFF7F2E9);
+    final bgColor = _effectiveIsNight ? const Color(0xFF13131F) : const Color(0xFFF7F2E9);
     final mood = kMoods[_currentEntry.moodIndex.clamp(0, kMoods.length - 1)];
     final baseGlowColor = mood.glowColor ?? const Color(0xFFD4A373);
-    final accentColor = effectiveIsNight
+    final accentColor = _effectiveIsNight
         ? baseGlowColor
         : Color.lerp(baseGlowColor, Colors.black, 0.45)!;
 
@@ -163,17 +162,17 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 if (_currentEntry.paperStyle.startsWith('note'))
                   Positioned.fill(
                     child: Image.asset(
-                      'assets/images/note/${_currentEntry.paperStyle.replaceFirst('note', 'note_bg')}${_currentEntry.paperStyle == 'note1' ? '.png' : '.jpg'}',
+                      'assets/images/note/${_currentEntry.paperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4'].contains(_currentEntry.paperStyle) ? '.png' : '.jpg'}',
                       fit: BoxFit.cover,
-                      color: effectiveIsNight ? Colors.black.withOpacity(0.3) : null,
-                      colorBlendMode: effectiveIsNight ? BlendMode.darken : null,
+                      color: _effectiveIsNight ? Colors.black.withOpacity(0.3) : null,
+                      colorBlendMode: _effectiveIsNight ? BlendMode.darken : null,
                     ),
                   ),
                 Positioned.fill(
                   child: CustomPaint(
                     painter: PaperBackgroundPainter(
                       style: _currentEntry.paperStyle,
-                      isNight: effectiveIsNight,
+                      isNight: _effectiveIsNight,
                       accentColor: accentColor,
                     ),
                   ),
@@ -195,26 +194,26 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(effectiveIsNight),
+                    _buildHeader(),
                     const SizedBox(height: 32),
-                    _buildRichTextView(effectiveIsNight),
+                    _buildRichTextView(),
                     const SizedBox(height: 48),
-                    _buildImages(effectiveIsNight),
+                    _buildImages(),
                     const SizedBox(height: 48),
                     DiaryTimeline(
                       replies: _currentEntry.replies,
-                      isNight: effectiveIsNight,
+                      isNight: _effectiveIsNight,
                     ),
                     DiaryReplies(
                       replies: _currentEntry.replies,
-                      isNight: effectiveIsNight,
+                      isNight: _effectiveIsNight,
                     ),
                   ],
                 ),
               ),
             ),
           ),
-          _buildFloatingActions(isNight),
+          _buildFloatingActions(_effectiveIsNight),
         ],
       ),
     );
@@ -286,7 +285,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
   }
 
   void _showReplySheet() {
-    final isNight = widget.isNight;
+    final isNight = _effectiveIsNight;
     final controller = TextEditingController();
 
     showModalBottomSheet(
@@ -431,7 +430,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     );
   }
 
-  Widget _buildHeader(bool isNight) {
+  Widget _buildHeader() {
     final dt = _currentEntry.dateTime;
     final mood = kMoods[_currentEntry.moodIndex.clamp(0, kMoods.length - 1)];
     final dateStr = "${dt.year}年${dt.month}月${dt.day}日";
@@ -440,7 +439,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     final quote = DiaryUtils.getMoodQuote(mood.label);
 
     final baseGlowColor = mood.glowColor ?? const Color(0xFFD4A373);
-    final accentColor = isNight
+    final accentColor = _effectiveIsNight
         ? baseGlowColor
         : Color.lerp(baseGlowColor, Colors.black, 0.45)!;
 
@@ -458,7 +457,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               style: TextStyle(
                 fontSize: 60,
                 fontWeight: FontWeight.bold,
-                color: isNight ? accentColor : (_currentEntry.paperStyle.startsWith('note') ? Colors.black : const Color(0xFF634732)),
+                color: DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight),
                 fontFamily: 'LXGWWenKai',
                 letterSpacing: -1,
               ),
@@ -468,7 +467,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w500,
-                color: isNight ? Colors.white38 : (_currentEntry.paperStyle.startsWith('note') ? Colors.black.withOpacity(0.7) : const Color(0xFF8B5E3C).withOpacity(0.7)),
+                color: DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withOpacity(0.7),
                 fontFamily: 'LXGWWenKai',
               ),
             ),
@@ -481,7 +480,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           style: TextStyle(
             fontSize: 16,
             fontStyle: FontStyle.italic,
-            color: isNight ? Colors.white38 : (_currentEntry.paperStyle.startsWith('note') ? Colors.black.withOpacity(0.6) : const Color(0xFF8B5E3C).withOpacity(0.6)),
+            color: DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withOpacity(0.6),
             fontFamily: 'LXGWWenKai',
           ),
         ),
@@ -490,9 +489,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         CustomPaint(
           size: const Size(double.infinity, 2),
           painter: HandDrawnLinePainter(
-            color: isNight
-                ? Colors.white10
-                : const Color(0xFF8B5E3C).withOpacity(0.5),
+            color: _effectiveIsNight
+                ? DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withOpacity(0.1)
+                : DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withOpacity(0.3),
             strokeWidth: 1.5,
           ),
         ),
@@ -680,7 +679,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     ).animate().fadeIn(duration: 600.ms).moveY(begin: 10, end: 0);
   }
 
-  Widget _buildRichTextView(bool isNight) {
+  Widget _buildRichTextView() {
     final filteredContent = DiaryUtils.getFilteredContent(
       _currentEntry.content,
     );
@@ -688,7 +687,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     final textStyle = TextStyle(
       fontSize: 18,
       height: 1.8,
-      color: isNight ? Colors.white.withOpacity(0.85) : (_currentEntry.paperStyle.startsWith('note') ? Colors.black : const Color(0xFF4A342E)),
+      color: DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight),
       fontFamily: 'LXGWWenKai',
     );
 
@@ -710,7 +709,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     ).animate().fadeIn(delay: 300.ms, duration: 800.ms);
   }
 
-  Widget _buildImages(bool isNight) {
+  Widget _buildImages() {
     final images = _currentEntry.blocks
         .where((b) => b['type'] == 'image')
         .toList();

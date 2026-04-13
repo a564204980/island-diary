@@ -148,7 +148,20 @@ class ExportService {
       ];
       final randomQuote = quotes[DateTime.now().millisecond % quotes.length];
 
-      // 5. 生成 MultiPage 内容
+      // 5. 生成扉页（封面）
+      print("PDF CORE: Generating cover page...");
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          theme: pw.ThemeData.withFont(
+            base: ttf,
+            fontFallback: [emojiFont],
+          ),
+          build: (context) => _buildCoverPage(entries, title, userName, ttf, colors, emojiFont: emojiFont),
+        ),
+      );
+
+      // 6. 生成 MultiPage 内容 (正文)
       print("PDF CORE: Generating MultiPage layout...");
       pdf.addPage(
         pw.MultiPage(
@@ -160,11 +173,7 @@ class ExportService {
           header: (context) => _buildHeader(title, ttf, userName, colors, emojiFont: emojiFont, pageNumber: context.pageNumber),
           footer: (context) => _buildFooter(context.pageNumber, context.pagesCount, ttf, randomQuote, colors),
           build: (context) => [
-             _buildStats(entries, ttf, randomQuote, colors),
-             pw.Padding(
-               padding: const pw.EdgeInsets.symmetric(vertical: 20),
-               child: pw.Divider(height: 1, color: colors.divider, thickness: 0.5),
-             ),
+             // 正文直接开始，不再显示统计（已移至封面）
              for (var e in sortedEntries) ..._buildEntryWidgets(e, moodIcons, emojiImages, ttf, colors, theme),
           ],
         ),
@@ -218,6 +227,8 @@ class ExportService {
   }
 
   static pw.Widget _buildFooter(int pageNumber, int totalPages, pw.Font font, String quote, _PdfThemeColors colors) {
+    if (pageNumber == 1) return pw.SizedBox(); // 扉页不显示页脚 (pw.Page 不会自动带此页脚，但为保险起见)
+    
     return pw.Container(
       alignment: pw.Alignment.centerRight,
       margin: const pw.EdgeInsets.only(top: 20),
@@ -234,6 +245,93 @@ class ExportService {
             style: pw.TextStyle(font: font, fontSize: 10, color: colors.tertiaryText),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 渲染独立扉页（封面）
+  static pw.Widget _buildCoverPage(List<DiaryEntry> entries, String title, String userName, pw.Font font, _PdfThemeColors colors, {pw.Font? emojiFont}) {
+    final days = _countUniqueDays(entries);
+    final count = entries.length;
+    final finalUserName = _cleanString(userName, fallback: "岛屿居民");
+
+    return pw.FullPage(
+      ignoreMargins: false,
+      child: pw.Container(
+        padding: const pw.EdgeInsets.all(60),
+        child: pw.Column(
+          mainAxisAlignment: pw.MainAxisAlignment.center,
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            pw.Spacer(flex: 2),
+            // 标题
+            pw.Text(
+              title,
+              style: pw.TextStyle(
+                font: font,
+                fontSize: 32,
+                fontWeight: pw.FontWeight.bold,
+                color: colors.primaryText,
+                letterSpacing: 2,
+              ),
+            ),
+            pw.SizedBox(height: 12),
+            // 副标题
+            pw.Text(
+              "心灵栖息的岛屿，时光记录的港湾",
+              style: pw.TextStyle(
+                font: font,
+                fontSize: 14,
+                color: colors.secondaryText,
+                fontStyle: pw.FontStyle.italic,
+              ),
+            ),
+            pw.SizedBox(height: 40),
+            // 装饰线
+            pw.Container(
+              width: 100,
+              height: 1,
+              color: colors.divider,
+            ),
+            pw.SizedBox(height: 40),
+            // 统计区域
+            pw.Text(
+              "于此静谧之岛，已同行 $days 昼夜",
+              style: pw.TextStyle(font: font, fontSize: 13, color: colors.secondaryText),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Text(
+              "共镌刻了 $count 篇灵魂的回响",
+              style: pw.TextStyle(font: font, fontSize: 13, color: colors.secondaryText),
+            ),
+            pw.Spacer(flex: 3),
+            // 底部作者与寄语
+            pw.Column(
+              children: [
+                pw.Text(
+                  "笔名：$finalUserName",
+                  style: pw.TextStyle(
+                    font: font,
+                    fontFallback: emojiFont != null ? [emojiFont] : [],
+                    fontSize: 12,
+                    color: colors.tertiaryText,
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text(
+                  "“愿这些文字，像岛屿上的微光，照亮未来的每一个清晨。”",
+                  style: pw.TextStyle(
+                    font: font,
+                    fontSize: 11,
+                    color: colors.secondaryText,
+                    fontStyle: pw.FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
