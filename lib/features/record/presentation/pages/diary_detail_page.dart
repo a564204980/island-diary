@@ -36,7 +36,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
   void _handleDelete() {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.6),
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (context) => Center(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 40),
@@ -162,9 +162,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 if (_currentEntry.paperStyle.startsWith('note'))
                   Positioned.fill(
                     child: Image.asset(
-                      'assets/images/note/${_currentEntry.paperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4'].contains(_currentEntry.paperStyle) ? '.png' : '.jpg'}',
+                      'assets/images/note/${_currentEntry.paperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5'].contains(_currentEntry.paperStyle) ? '.png' : '.jpg'}',
                       fit: BoxFit.cover,
-                      color: _effectiveIsNight ? Colors.black.withOpacity(0.3) : null,
+                      color: _effectiveIsNight ? Colors.black.withValues(alpha: 0.3) : null,
                       colorBlendMode: _effectiveIsNight ? BlendMode.darken : null,
                     ),
                   ),
@@ -235,7 +235,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             borderRadius: BorderRadius.circular(27),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.12),
+                color: Colors.black.withValues(alpha: 0.12),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -272,7 +272,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               const SizedBox(width: 30),
               _buildActionButton(
                 icon: Icons.delete_outline_rounded,
-                color: Colors.redAccent.withOpacity(0.8),
+                color: Colors.redAccent.withValues(alpha: 0.8),
                 onTap: _handleDelete,
                 label: "删除",
                 width: 40,
@@ -467,7 +467,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w500,
-                color: DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withOpacity(0.7),
+                color: DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withValues(alpha: 0.7),
                 fontFamily: 'LXGWWenKai',
               ),
             ),
@@ -480,7 +480,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           style: TextStyle(
             fontSize: 16,
             fontStyle: FontStyle.italic,
-            color: DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withOpacity(0.6),
+            color: DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withValues(alpha: 0.6),
             fontFamily: 'LXGWWenKai',
           ),
         ),
@@ -490,8 +490,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           size: const Size(double.infinity, 2),
           painter: HandDrawnLinePainter(
             color: _effectiveIsNight
-                ? DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withOpacity(0.1)
-                : DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withOpacity(0.3),
+                ? DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withValues(alpha: 0.1)
+                : DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withValues(alpha: 0.3),
             strokeWidth: 1.5,
           ),
         ),
@@ -506,7 +506,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.1),
+                color: accentColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -538,7 +538,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.1),
+                color: accentColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -561,7 +561,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.1),
+                  color: accentColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -581,7 +581,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.1),
+                  color: accentColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -619,7 +619,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.1),
+                  color: accentColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -650,7 +650,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.1),
+                  color: accentColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -715,23 +715,29 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         .toList();
     if (images.isEmpty) return const SizedBox.shrink();
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 1.0,
-      ),
-      itemCount: images.length,
-      itemBuilder: (context, index) {
-        final path = images[index]['path'];
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: DiaryUtils.buildImage(path, fit: BoxFit.cover),
+    return Column(
+      children: images.map((image) {
+        final path = image['path'];
+        final videoPath = image['videoPath'];
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: DiaryUtils.buildImage(path, fit: BoxFit.cover),
+          ),
         );
-      },
+      }).toList(),
     ).animate().fadeIn(delay: 500.ms, duration: 800.ms);
   }
 }

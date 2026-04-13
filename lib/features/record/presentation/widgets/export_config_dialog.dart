@@ -24,6 +24,7 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
   int _selectedFilterIdx = 0; // 0:全部, 1:最近30天, 2:本月, 3:今年
   int? _selectedMoodIdx; // null:全部心情, 其他代表具体的 moodIndex
   PdfThemeType _selectedTheme = PdfThemeType.classic;
+  bool _includeBackground = false;
   late List<DiaryEntry> _filteredDiaries;
   bool _isGenerating = false;
   int _previewRevision = 0;
@@ -76,12 +77,12 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
     final userName = UserState().userName.value.isNotEmpty ? UserState().userName.value : "旅人";
     
     try {
-      await ExportService.exportToPdf(_filteredDiaries, "岛屿日记 · 岁月成书", userName, theme: _selectedTheme);
+      await ExportService.exportToPdf(_filteredDiaries, "岛屿日记 · 岁月成书", userName, theme: _selectedTheme, includeBackground: _includeBackground);
     } catch (e) {
       if (mounted) {
         if (e == 'PRINT_SERVICE_NOT_FOUND') {
           try {
-            final bytes = await ExportService.generatePdfBytes(_filteredDiaries, "岛屿日记 · 岁月成书", userName, theme: _selectedTheme);
+            final bytes = await ExportService.generatePdfBytes(_filteredDiaries, "岛屿日记 · 岁月成书", userName, theme: _selectedTheme, includeBackground: _includeBackground);
             if (bytes != null) {
               final fileName = 'isle_diary_book_${DateTime.now().millisecondsSinceEpoch}.pdf';
               final path = await DiaryUtils.saveDataToTempFile(bytes, fileName: fileName);
@@ -247,6 +248,8 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
                 children: [
                   _buildThemeChip(PdfThemeType.classic, "经典手账", Icons.menu_book_rounded, textColor),
                   _buildThemeChip(PdfThemeType.minimalist, "极简纯白", Icons.article_rounded, textColor),
+                  const SizedBox(width: 8),
+                  _buildBackgroundToggle(textColor),
                 ],
               ),
             ),
@@ -297,7 +300,7 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
                         await Future.delayed(const Duration(milliseconds: 100));
                         
                         final userName = UserState().userName.value.isNotEmpty ? UserState().userName.value : "旅人";
-                        final bytes = await ExportService.generatePdfBytes(_filteredDiaries, "岛屿日记 · 岁月成书", userName, theme: _selectedTheme);
+                        final bytes = await ExportService.generatePdfBytes(_filteredDiaries, "岛屿日记 · 岁月成书", userName, theme: _selectedTheme, includeBackground: _includeBackground);
                         return bytes ?? Uint8List(0);
                       },
                       canChangePageFormat: false,
@@ -461,6 +464,52 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontFamily: 'LXGWWenKai',
                 color: isSelected ? Colors.white : textColor.withOpacity(0.8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackgroundToggle(Color textColor) {
+    final isNight = UserState().isNight;
+    
+    return GestureDetector(
+      onTap: () => setState(() {
+        _includeBackground = !_includeBackground;
+        _previewRevision++;
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: _includeBackground 
+              ? const Color(0xFFD4A373) 
+              : (isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: _includeBackground 
+                ? const Color(0xFFD4A373) 
+                : (isNight ? Colors.white10 : Colors.black.withOpacity(0.05)),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _includeBackground ? Icons.image_rounded : Icons.image_outlined,
+              size: 16,
+              color: _includeBackground ? Colors.white : textColor.withOpacity(0.5),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              "包含背景",
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: _includeBackground ? FontWeight.bold : FontWeight.normal,
+                fontFamily: 'LXGWWenKai',
+                color: _includeBackground ? Colors.white : textColor.withOpacity(0.8),
               ),
             ),
           ],

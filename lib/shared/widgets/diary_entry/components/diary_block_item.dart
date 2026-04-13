@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -14,6 +15,7 @@ class DiaryBlockItem extends StatelessWidget {
   final bool isEmojiOpen;
   final GlobalKey? blockKey;
   final VoidCallback? onRemoveImage;
+  final VoidCallback? onDeleteAtStart; // 新增：在行首按下回退键的回调
   final Function(ImageBlock)? onShowPreview;
   final bool? isNightOverride;
   final bool isNoteBackground;
@@ -27,6 +29,7 @@ class DiaryBlockItem extends StatelessWidget {
     this.isEmojiOpen = false,
     this.blockKey,
     this.onRemoveImage,
+    this.onDeleteAtStart,
     this.onShowPreview,
     this.isNightOverride,
     this.isNoteBackground = false,
@@ -102,33 +105,46 @@ class DiaryBlockItem extends StatelessWidget {
           selectionHandleColor: inkColor,
         ),
       ),
-      child: TextField(
-        controller: block.controller,
-        focusNode: block.focusNode,
-        maxLines: null,
-        readOnly: false,
-        showCursor: true,
-        cursorColor: inkColor,
-        style: TextStyle(
-          fontSize: 20, 
-          height: 1.6,
-          color: inkColor,
-          fontFamilyFallback: const ['LXGWWenKai'],
+      child: Focus(
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
+            final selection = block.controller.selection;
+            if (selection.isCollapsed && selection.baseOffset == 0) {
+              onDeleteAtStart?.call();
+              return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: TextField(
+          controller: block.controller,
+          focusNode: block.focusNode,
+          maxLines: null,
+          readOnly: false,
+          showCursor: true,
+          cursorColor: inkColor,
+          style: TextStyle(
+            fontSize: 20, 
+            height: 1.6,
+            color: inkColor,
+            fontFamilyFallback: const ['LXGWWenKai'],
+          ),
+          decoration: InputDecoration(
+            hintText: index == 0 ? '记录下这一刻的想法吧...' : '',
+            hintStyle: TextStyle(
+              color: isNoteBackground 
+                  ? (accentColor?.withValues(alpha: 0.5) ?? (isNight ? Colors.white38 : Colors.black38))
+                  : (isNight 
+                      ? const Color(0xFFBDB2A7).withValues(alpha: 0.6) 
+                      : const Color(0xFF8B5E3C).withValues(alpha: 0.6)),
+            ),
+            border: InputBorder.none,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 4),
+          ),
         ),
-      decoration: InputDecoration(
-        hintText: index == 0 ? '记录下这一刻的想法吧...' : '',
-        hintStyle: TextStyle(
-          color: isNoteBackground 
-              ? (accentColor?.withValues(alpha: 0.5) ?? (isNight ? Colors.white38 : Colors.black38))
-              : (isNight 
-                  ? const Color(0xFFBDB2A7).withValues(alpha: 0.6) 
-                  : const Color(0xFF8B5E3C).withValues(alpha: 0.6)),
-        ),
-        border: InputBorder.none,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 4),
       ),
-    ),);
+    );
   }
 
   Widget _buildImageBlock(ImageBlock block) {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/diary_block.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
-import '../utils/diary_utils.dart';
 import '../components/font_size_picker_sheet.dart';
 import '../components/color_picker_sheet.dart';
 import '../components/font_picker_sheet.dart';
@@ -10,7 +9,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import './diary_editor_core_mixin.dart';
 
 mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
-  void showColorPicker() {
+  void showUnifiedColorPicker() {
     FocusScope.of(context).unfocus();
     setState(() => isColorPickerOpen = true);
     showModalBottomSheet(
@@ -18,22 +17,29 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => DiaryColorPickerSheet(
-        title: '选择文字颜色',
         currentTextColor: currentTextColor,
-        colors: DiaryUtils.presetTextColors,
-        onApplyColor: (color) {
+        currentBgColor: currentHighlightColor,
+        onApplyColor: (color, isBackground) {
           final activeBlock = activeTextBlock;
           final selection = activeBlock?.controller.selection;
 
           setState(() {
-            currentTextColor = color;
-            if (activeBlock != null && selection != null && !selection.isCollapsed) {
-              (activeBlock.controller as DiaryTextEditingController)
-                  .applyAttributeToSelection(selection, color: color);
+            if (isBackground) {
+              currentHighlightColor = color;
+              if (activeBlock != null && selection != null && !selection.isCollapsed) {
+                (activeBlock.controller as DiaryTextEditingController)
+                    .applyAttributeToSelection(selection, bgColor: color);
+              }
             } else {
-              for (var block in blocks) {
-                if (block is TextBlock) {
-                  (block.controller as DiaryTextEditingController).updateBaseColor(color);
+              currentTextColor = color;
+              if (activeBlock != null && selection != null && !selection.isCollapsed) {
+                (activeBlock.controller as DiaryTextEditingController)
+                    .applyAttributeToSelection(selection, color: color);
+              } else {
+                for (var block in blocks) {
+                  if (block is TextBlock) {
+                    (block.controller as DiaryTextEditingController).updateBaseColor(color);
+                  }
                 }
               }
             }
@@ -41,54 +47,18 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
           onBlocksChanged();
           Navigator.pop(context);
         },
-        onClear: () {
+        onClear: (isBackground) {
           final activeBlock = activeTextBlock;
           final selection = activeBlock?.controller.selection;
           if (activeBlock != null && selection != null && !selection.isCollapsed) {
             setState(() {
-              (activeBlock.controller as DiaryTextEditingController)
-                  .applyAttributeToSelection(selection, clearColor: true);
-            });
-            onBlocksChanged();
-          }
-          Navigator.pop(context);
-        },
-      ),
-    ).then((_) {
-      if (mounted) setState(() => isColorPickerOpen = false);
-    });
-  }
-
-  void showBackgroundColorPicker() {
-    FocusScope.of(context).unfocus();
-    setState(() => isColorPickerOpen = true);
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => DiaryColorPickerSheet(
-        title: '选择文字背景色',
-        currentTextColor: Colors.transparent,
-        colors: DiaryUtils.presetBgColors,
-        onApplyColor: (color) {
-          final activeBlock = activeTextBlock;
-          final selection = activeBlock?.controller.selection;
-          setState(() {
-            if (activeBlock != null && selection != null && !selection.isCollapsed) {
-              (activeBlock.controller as DiaryTextEditingController)
-                  .applyAttributeToSelection(selection, bgColor: color);
-            }
-          });
-          onBlocksChanged();
-          Navigator.pop(context);
-        },
-        onClear: () {
-          final activeBlock = activeTextBlock;
-          final selection = activeBlock?.controller.selection;
-          if (activeBlock != null && selection != null && !selection.isCollapsed) {
-            setState(() {
-              (activeBlock.controller as DiaryTextEditingController)
-                  .applyAttributeToSelection(selection, clearBgColor: true);
+              if (isBackground) {
+                (activeBlock.controller as DiaryTextEditingController)
+                    .applyAttributeToSelection(selection, clearBgColor: true);
+              } else {
+                (activeBlock.controller as DiaryTextEditingController)
+                    .applyAttributeToSelection(selection, clearColor: true);
+              }
             });
             onBlocksChanged();
           }

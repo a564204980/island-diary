@@ -14,6 +14,7 @@ import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_inse
 import 'package:island_diary/shared/widgets/mood_picker/mood_popup_picker.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
+import 'package:island_diary/shared/widgets/island_vip_guard_dialog.dart';
 
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
@@ -138,7 +139,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   if (currentPaperStyle.startsWith('note'))
                     Positioned.fill(
                       child: Image.asset(
-                        'assets/images/note/${currentPaperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4'].contains(currentPaperStyle) ? '.png' : '.jpg'}',
+                        'assets/images/note/${currentPaperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5'].contains(currentPaperStyle) ? '.png' : '.jpg'}',
                         fit: BoxFit.cover,
                         color: (isNight && !currentPaperStyle.startsWith('note')) 
                             ? Colors.black.withValues(alpha: 0.3) 
@@ -165,7 +166,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
             GestureDetector(
               onTap: () {
                 FocusScope.of(context).unfocus();
-                if (isEmojiOpen) toggleEmoji();
+                if (isEmojiOpen) {
+                  toggleEmoji();
+                }
               },
               child: Container(
                 width: double.infinity,
@@ -424,6 +427,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               isEmojiOpen: (isEmojiOpen || isColorPickerOpen || isImagePickerOpen),
                               blockKey: key,
                               onRemoveImage: () => removeImage(index),
+                              onDeleteAtStart: () => handleBackspaceAtStart(index),
                               onShowPreview: showImagePreview,
                               isNightOverride: effectiveIsNight,
                               isNoteBackground: currentPaperStyle.startsWith('note'),
@@ -470,8 +474,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             isEmojiOpen: isEmojiOpen,
                             onEmojiToggle: toggleEmoji,
                             onImagePick: onImageButtonPressed,
-                            onColorClick: showColorPicker,
-                            onBgColorClick: showBackgroundColorPicker,
+                            onColorClick: showUnifiedColorPicker,
+                            onBgColorClick: showPaperPicker,
                             onLocationClick: onLocationClick,
                             onFontSizeClick: showFontSizePicker,
                             onFontClick: showFontPicker,
@@ -538,5 +542,172 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         updateMoodQuote();
       });
     }
+  }
+
+  void onMoreClick() {
+    _showMoreBottomSheet();
+  }
+
+  void _showMoreBottomSheet() {
+    final bool isNight = UserState().isNight;
+    // 使用与主 build 一致的逻辑
+    final bool effectiveIsNight = isNight && !currentPaperStyle.startsWith('note');
+    
+    // 计算纸张相关的默认色
+    final Color noteDefaultColor = currentPaperStyle == 'note1' 
+        ? const Color(0xFF5A7285) 
+        : const Color(0xFF7D6B5D);
+    
+    final Color accentColor = effectiveIsNight 
+        ? const Color(0xFFE0C097) 
+        : (currentPaperStyle.startsWith('note') ? noteDefaultColor : const Color(0xFF8B5E3C));
+
+    // 根据纸张主色调给背景上色
+    final Color paperInkColor = DiaryUtils.getInkColor(currentPaperStyle, effectiveIsNight);
+    final Color baseBgColor = effectiveIsNight ? const Color(0xFF1E1E2C) : const Color(0xFFFDF7E9);
+    final Color bgColor = Color.lerp(baseBgColor, accentColor, 0.05)!; 
+    final Color textColor = paperInkColor.withValues(alpha: 0.9);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+            decoration: BoxDecoration(
+              color: bgColor.withValues(alpha: 0.98),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+              border: Border.all(
+                color: accentColor.withValues(alpha: 0.15),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "更多工具",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // 图文混排开关
+                _buildMoreMenuItem(
+                  icon: Icons.layers_rounded,
+                  title: "开启图文混排",
+                  subtitle: "允许图片随文字光标位置插入",
+                  trailing: Switch(
+                    value: isMixedLayout,
+                    activeColor: accentColor,
+                    onChanged: (value) {
+                      if (value && !UserState().isVip.value) {
+                        Navigator.pop(context);
+                        showDialog(
+                          context: context,
+                          builder: (context) => const IslandVipGuardDialog(
+                            title: '解锁高级编辑模式',
+                            description: '“图文混排”功能属于“星光计划”会员专享。开启后，您的图片将不再受布局限制。',
+                          ),
+                        );
+                        return;
+                      }
+                      setModalState(() => isMixedLayout = value);
+                      setState(() => isMixedLayout = value);
+                    },
+                  ),
+                  accentColor: accentColor,
+                  textColor: textColor,
+                ),
+                const SizedBox(height: 12),
+                // 占位功能 2
+                _buildMoreMenuItem(
+                  icon: Icons.auto_awesome_motion_rounded,
+                  title: "智能排版 (开发中)",
+                  subtitle: "根据心情自动调整内容布局",
+                  trailing: Icon(Icons.lock_outline_rounded, size: 20, color: textColor.withValues(alpha: 0.3)),
+                  accentColor: accentColor,
+                  textColor: textColor,
+                  onTap: () {},
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          );
+        }
+      ),
+    );
+  }
+
+  Widget _buildMoreMenuItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget trailing,
+    required Color accentColor,
+    required Color textColor,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: accentColor.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: accentColor, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                      fontFamily: 'LXGWWenKai',
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: textColor.withValues(alpha: 0.5),
+                      fontFamily: 'LXGWWenKai',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            trailing,
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -40,9 +40,9 @@ class _PdfThemeColors {
 
 class ExportService {
   static Future<void> exportToPdf(
-      List<DiaryEntry> entries, String title, String userName, {PdfThemeType theme = PdfThemeType.classic}) async {
+      List<DiaryEntry> entries, String title, String userName, {PdfThemeType theme = PdfThemeType.classic, bool includeBackground = false}) async {
     try {
-      final bytes = await generatePdfBytes(entries, title, userName, theme: theme);
+      final bytes = await generatePdfBytes(entries, title, userName, theme: theme, includeBackground: includeBackground);
       if (bytes == null) return;
       
       try {
@@ -62,7 +62,7 @@ class ExportService {
   }
 
   static Future<Uint8List?> generatePdfBytes(
-      List<DiaryEntry> entries, String title, String userName, {PdfThemeType theme = PdfThemeType.classic}) async {
+      List<DiaryEntry> entries, String title, String userName, {PdfThemeType theme = PdfThemeType.classic, bool includeBackground = false}) async {
     final pdf = pw.Document();
     final colors = theme == PdfThemeType.minimalist ? _PdfThemeColors.minimalist : _PdfThemeColors.classic;
 
@@ -131,8 +131,30 @@ class ExportService {
         }());
       }
 
+      // 4. 并行加载信纸背景资源 (如果开启)
+      final Map<String, pw.ImageProvider> paperBackgrounds = {};
+      final List<Future<void>> backgroundFutures = [];
+      if (includeBackground) {
+        print("PDF CORE: Preloading paper backgrounds...");
+        final Set<String> neededPaperStyles = entries.map((e) => e.paperStyle).where((s) => s.startsWith('note')).toSet();
+        for (var style in neededPaperStyles) {
+          final currentStyle = style;
+          backgroundFutures.add(() async {
+            try {
+              final fileName = currentStyle.replaceFirst('note', 'note_bg');
+              final ext = ['note1', 'note2', 'note3', 'note4', 'note5'].contains(currentStyle) ? '.png' : '.jpg';
+              final path = 'assets/images/note/$fileName$ext';
+              final data = await rootBundle.load(path);
+              paperBackgrounds[currentStyle] = pw.MemoryImage(data.buffer.asUint8List());
+            } catch (e) {
+              print("PDF CORE: Paper background load error ($currentStyle): $e");
+            }
+          }());
+        }
+      }
+
       // 等待所有异步资源完成
-      await Future.wait([...moodFutures, ...emojiFutures]);
+      await Future.wait([...moodFutures, ...emojiFutures, ...backgroundFutures]);
       print("PDF CORE: All assets ready.");
 
       // 4. 内容排序与文案准备
@@ -174,7 +196,7 @@ class ExportService {
           footer: (context) => _buildFooter(context.pageNumber, context.pagesCount, ttf, randomQuote, colors),
           build: (context) => [
              // 正文直接开始，不再显示统计（已移至封面）
-             for (var e in sortedEntries) ..._buildEntryWidgets(e, moodIcons, emojiImages, ttf, colors, theme),
+             for (var e in sortedEntries) ..._buildEntryWidgets(e, moodIcons, emojiImages, paperBackgrounds, ttf, colors, theme, includeBackground),
           ],
         ),
       );
@@ -365,13 +387,22 @@ class ExportService {
     );
   }
 
-  static List<pw.Widget> _buildEntryWidgets(DiaryEntry entry, Map<int, pw.ImageProvider> icons, Map<String, pw.ImageProvider> emojiImages, pw.Font font, _PdfThemeColors colors, PdfThemeType theme) {
+  static List<pw.Widget> _buildEntryWidgets(
+    DiaryEntry entry, 
+    Map<int, pw.ImageProvider> icons, 
+    Map<String, pw.ImageProvider> emojiImages, 
+    Map<String, pw.ImageProvider> paperBackgrounds,
+    pw.Font font, 
+    _PdfThemeColors colors, 
+    PdfThemeType theme,
+    bool includeBackground,
+  ) {
     final weekdays = ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
     final dateStr = "${entry.dateTime.year}/${entry.dateTime.month}/${entry.dateTime.day}";
     final weekdayStr = weekdays[entry.dateTime.weekday];
     final timeStr = "${entry.dateTime.hour.toString().padLeft(2, '0')}:${entry.dateTime.minute.toString().padLeft(2, '0')}";
-
-    return [
+    
+    final widgets = <pw.Widget>[
       pw.SizedBox(height: 8),
       pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -446,6 +477,33 @@ class ExportService {
       pw.SizedBox(height: 12),
       pw.Divider(height: 1, color: colors.divider, thickness: 0.5),
     ];
+
+    // 如果开启了背景且有对应的背景图，则进行包裹
+    if (includeBackground && paperBackgrounds.containsKey(entry.paperStyle)) {
+      return [
+        pw.Container(
+          margin: const pw.EdgeInsets.symmetric(vertical: 10),
+          decoration: pw.BoxDecoration(
+            image: pw.DecorationImage(
+              image: paperBackgrounds[entry.paperStyle]!,
+              fit: pw.BoxFit.cover,
+              alignment: pw.Alignment.topCenter,
+            ),
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+            border: pw.Border.all(color: colors.divider, width: 0.5),
+          ),
+          child: pw.Padding(
+            padding: const pw.EdgeInsets.all(12),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: widgets,
+            ),
+          ),
+        ),
+      ];
+    }
+
+    return widgets;
   }
 
   /// 渲染并解析带样式的文本块（支持背景色、前景色、表情、话题）

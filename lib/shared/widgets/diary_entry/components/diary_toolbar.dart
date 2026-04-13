@@ -70,7 +70,7 @@ class DiaryToolbar extends StatelessWidget {
       builder: (context, constraints) {
         final double rowWidth = constraints.maxWidth - 16;
 
-        return Container(
+        return SizedBox(
           height: 110,
           width: double.infinity,
           child: Stack(
@@ -123,24 +123,24 @@ class DiaryToolbar extends StatelessWidget {
     final List<Map<String, dynamic>> icons = [
       // 第一行
       {
-        'path': isEmojiOpen
-            ? 'assets/images/icons/keyword.png'
-            : 'assets/images/icons/emoji_icon.png',
+        'icon': isEmojiOpen
+            ? Icons.keyboard_alt_rounded
+            : Icons.mood_rounded,
         'onTap': onEmojiToggle,
       },
-      {'path': 'assets/images/icons/photo_icon.png', 'onTap': onImagePick},
-      {'path': 'assets/images/icons/watcher.png', 'onTap': onWeatherClick},
-      {'path': 'assets/images/icons/calendar.png', 'onTap': onDateClick},
-      {'path': 'assets/images/icons/time.png', 'onTap': onTimeClick},
-      {'path': 'assets/images/icons/address_icon.png', 'onTap': onLocationClick},
-      {'path': 'assets/images/icons/tag.png', 'onTap': onTagClick},
+      {'icon': Icons.photo_library_rounded, 'onTap': onImagePick},
+      {'icon': Icons.wb_sunny_rounded, 'onTap': onWeatherClick},
+      {'icon': Icons.calendar_month_rounded, 'onTap': onDateClick},
+      {'icon': Icons.schedule_rounded, 'onTap': onTimeClick},
+      {'icon': Icons.location_on_rounded, 'onTap': onLocationClick},
+      {'icon': Icons.local_offer_rounded, 'onTap': onTagClick},
       
       // 第二行
-      {'path': 'assets/images/icons/fontSize_icon.png', 'onTap': onFontSizeClick},
-      {'path': 'assets/images/icons/finally_icon.png', 'onTap': onFontClick},
-      {'path': 'assets/images/icons/pencil_icon.png', 'onTap': onColorClick},
-      {'path': 'assets/images/icons/calligraphy_icon.png', 'onTap': onBgColorClick},
-      {'path': 'assets/images/icons/more.png', 'onTap': onMoreClick},
+      {'icon': Icons.format_size_rounded, 'onTap': onFontSizeClick},
+      {'icon': Icons.font_download_rounded, 'onTap': onFontClick},
+      {'icon': Icons.palette_rounded, 'onTap': onColorClick},
+      {'icon': Icons.style_rounded, 'onTap': onBgColorClick},
+      {'icon': Icons.more_horiz_rounded, 'onTap': onMoreClick},
       {
         'icon': Icons.close_rounded,
         'onTap': onClose,
@@ -165,12 +165,10 @@ class DiaryToolbar extends StatelessWidget {
         children: row1Icons.map((icon) {
           return _buildToolbarItem(
             itemWidth,
-            assetPath: icon['path'],
             icon: icon['icon'],
             iconColor: icon['color'],
             bgColor: icon['bgColor'],
             onTap: icon['onTap'],
-            isNight: isNight,
             primaryColor: primaryColor,
           );
         }).toList(),
@@ -180,12 +178,10 @@ class DiaryToolbar extends StatelessWidget {
         children: row2Icons.map((icon) {
           return _buildToolbarItem(
             itemWidth,
-            assetPath: icon['path'],
             icon: icon['icon'],
             iconColor: icon['color'],
             bgColor: icon['bgColor'],
             onTap: icon['onTap'],
-            isNight: isNight,
             primaryColor: primaryColor,
           );
         }).toList(),
@@ -195,13 +191,11 @@ class DiaryToolbar extends StatelessWidget {
 
   Widget _buildToolbarItem(
     double width, {
-    String? assetPath,
-    IconData? icon,
+    required IconData icon,
     Color? iconColor,
     Color? bgColor,
     VoidCallback? onTap,
     bool isSelected = false,
-    required bool isNight,
     required Color primaryColor,
   }) {
     return SizedBox(
@@ -217,18 +211,11 @@ class DiaryToolbar extends StatelessWidget {
                   : (bgColor ?? Colors.transparent),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: assetPath != null
-                ? Image.asset(
-                    assetPath,
-                    width: 28,
-                    height: 28,
-                    fit: BoxFit.contain,
-                  )
-                : Icon(
-                    icon,
-                    size: 24,
-                    color: iconColor,
-                  ),
+            child: Icon(
+              icon,
+              size: 24,
+              color: iconColor ?? primaryColor.withValues(alpha: 0.8),
+            ),
           ),
         )
         .animate(target: isSelected ? 1 : 0)

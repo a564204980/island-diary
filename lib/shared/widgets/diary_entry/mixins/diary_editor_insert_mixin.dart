@@ -72,12 +72,12 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       );
       
       // 4. 如果没有缓存或已过期，则申请当前位置（增加 10s 超时）
-      if (position == null) {
-        position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.medium,
-          timeLimit: const Duration(seconds: 10),
-        );
-      }
+      position ??= await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
     } catch (e) {
       String msg = "获取位置失败";
       if (e.toString().contains("timeout")) {
@@ -256,7 +256,7 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     });
   }
 
-  void onMoreClick() {
+  void showPaperPicker() {
     final bool isNight = UserState().isNight;
     final mood = (currentMoodIndex != null && currentMoodIndex! >= 0) ? kMoods[currentMoodIndex!] : null;
     final defaultAccentColor = isNight ? const Color(0xFFE0C097) : const Color(0xFF8B5E3C);

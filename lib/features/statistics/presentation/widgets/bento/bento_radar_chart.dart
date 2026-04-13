@@ -17,7 +17,7 @@ class _RadarIntensityData {
   });
 }
 
-extension BentoRadarChart on _StatisticsPageState {
+extension _BentoRadarChart on _StatisticsPageState {
   Widget _buildRadarBento(bool isNight, List<DiaryEntry> entries, Color themeColor) {
     if (entries.isEmpty) return const SizedBox.shrink();
 
@@ -89,14 +89,12 @@ extension BentoRadarChart on _StatisticsPageState {
               title: '心境雷达',
               helpContent: '基于日记记录，从[[多个维度]]呈现您的情感偏好，助您发现潜意识中的[[情绪主导力量]]。',
               isNight: isNight,
-              rightAction: Icon(CupertinoIcons.waveform_circle_fill, size: 18, color: isNight ? Colors.white54 : Colors.black26),
+              rightAction: Icon(CupertinoIcons.waveform_circle_fill, size: 18, color: isNight ? Colors.white54 : Colors.black.withValues(alpha: 0.26)),
             ),
             const SizedBox(height: 24),
             LayoutBuilder(
               builder: (context, constraints) {
                 final double size = constraints.maxWidth;
-                final double centerX = size / 2;
-                final double centerY = size / 2;
                 final double radius = size / 4.8;
                 final int n = chartData.length;
 
@@ -205,18 +203,18 @@ extension BentoRadarChart on _StatisticsPageState {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: item.avgIntensity > 0 
-                                        ? item.glowColor.withOpacity(isNight ? 0.35 : 0.25)
-                                        : (isNight ? Colors.white10 : Colors.black.withOpacity(0.04)),
+                                        ? item.glowColor.withValues(alpha: isNight ? 0.35 : 0.25)
+                                        : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
                                     boxShadow: [
                                       if (item.avgIntensity > 0)
                                         BoxShadow(
-                                          color: item.glowColor.withOpacity(0.2),
+                                          color: item.glowColor.withValues(alpha: 0.2),
                                           blurRadius: 8,
                                           spreadRadius: -2,
                                         ),
                                       if (item.avgIntensity == 0)
                                         BoxShadow(
-                                          color: item.glowColor.withOpacity(0.05),
+                                          color: item.glowColor.withValues(alpha: 0.05),
                                           blurRadius: 4,
                                         ),
                                     ],
@@ -282,7 +280,7 @@ class _IntensityRadarPainter extends CustomPainter {
 
     // 绘制背景虚线同心圆 - 提高对比度
     final gridPaint = Paint()
-      ..color = isNight ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.12)
+      ..color = isNight ? Colors.white.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.12)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8;
 
@@ -321,13 +319,13 @@ class _IntensityRadarPainter extends CustomPainter {
 
     // 填充蒙版
     final fillPaint = Paint()
-      ..color = themeColor.withOpacity(0.35)
+      ..color = themeColor.withValues(alpha: 0.35)
       ..style = PaintingStyle.fill;
     canvas.drawPath(polygonPath, fillPaint);
 
     // 绘制加粗描边
     final borderPaint = Paint()
-      ..color = themeColor.withOpacity(0.8)
+      ..color = themeColor.withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
@@ -344,7 +342,7 @@ class _IntensityRadarPainter extends CustomPainter {
       
       // 顶点光晕
       canvas.drawCircle(points[i], 8, Paint()
-        ..color = dotColor.withOpacity(0.3)
+        ..color = dotColor.withValues(alpha: 0.3)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3)
       );
     }

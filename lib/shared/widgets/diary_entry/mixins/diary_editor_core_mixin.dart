@@ -29,6 +29,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   Color currentTextColor = UserState().isNight
       ? const Color(0xFFE0C097)
       : const Color(0xFF5D4037);
+  Color currentHighlightColor = Colors.transparent;
   double currentFontSize = UserState().preferredFontSize.value;
   String currentFontFamily = UserState().preferredFontFamily.value;
   String? lastFocusedBlockId;
@@ -39,6 +40,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   late double currentIntensity;
   String? currentTag;
   String currentPaperStyle = 'classic';
+  bool isMixedLayout = true; // 是否开启图文混排
 
   String get fixedQuote => _fixedQuote ?? '';
 
@@ -191,12 +193,16 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     final focused = blocks.whereType<TextBlock>().where(
       (b) => b.focusNode.hasFocus,
     );
-    if (focused.isNotEmpty) return focused.first;
+    if (focused.isNotEmpty) {
+      return focused.first;
+    }
     if (lastFocusedBlockId != null) {
       final lastFocused = blocks.whereType<TextBlock>().where(
         (b) => b.id == lastFocusedBlockId,
       );
-      if (lastFocused.isNotEmpty) return lastFocused.first;
+      if (lastFocused.isNotEmpty) {
+        return lastFocused.first;
+      }
     }
     if (blocks.whereType<TextBlock>().isNotEmpty) {
       return blocks.whereType<TextBlock>().last;
@@ -267,10 +273,14 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
         await UserState().saveDiary();
       }
 
-      if (mounted) Navigator.of(context).pop(true);
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
       return true;
     } catch (e) {
-      IslandAlert.show(context, icon: '🏮', message: '日记暂时无法保存: $e');
+      if (mounted) {
+        IslandAlert.show(context, icon: '🏮', message: '日记暂时无法保存: $e');
+      }
       return false;
     }
   }
@@ -293,8 +303,9 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       if (box == null || !box.hasSize) {
         if (retryCount < 5) {
           Future.delayed(const Duration(milliseconds: 50), () {
-            if (mounted)
+            if (mounted) {
               _performScrollToActiveBlock(retryCount: retryCount + 1);
+            }
           });
         }
         return;
@@ -326,11 +337,14 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       );
 
       final blockContext = key.currentContext;
-      if (blockContext == null) return;
-
+      if (blockContext == null) {
+        return;
+      }
       final scrollable = Scrollable.of(blockContext);
       final scrollObject = scrollable.context.findRenderObject();
-      if (scrollObject is! RenderBox) return;
+      if (scrollObject is! RenderBox) {
+        return;
+      }
 
       final Offset caretInScrollOffset = box.localToGlobal(
         Offset(caretOffset.dx, caretOffset.dy + 4),
@@ -362,11 +376,74 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   }
 
   void ensureCursorVisible() {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     final activeBlock = activeTextBlock;
     if (activeBlock != null) {
       activeBlock.focusNode.requestFocus();
       scrollToActiveBlock();
+    }
+  }
+
+  void handleBackspaceAtStart(int index) {
+    if (index <= 0) {
+      return;
+    }
+
+    final currentBlock = blocks[index];
+    if (currentBlock is! TextBlock) {
+      return;
+    }
+
+    final prevBlock = blocks[index - 1];
+
+    if (prevBlock is TextBlock) {
+      // 合并两个文本块的逻辑
+      final currentController = currentBlock.controller as DiaryTextEditingController;
+      final prevController = prevBlock.controller as DiaryTextEditingController;
+      
+      final String oldText = prevController.text;
+      final String newText = oldText + currentController.text;
+      
+      // 合并属性，当前块的属性需要增加 oldText.length 的偏移
+      final List<TextAttribute> mergedAttributes = List.from(prevController.attributes);
+      for (var attr in currentController.attributes) {
+        mergedAttributes.add(TextAttribute(
+          start: attr.start + oldText.length,
+          end: attr.end + oldText.length,
+          color: attr.color,
+          backgroundColor: attr.backgroundColor,
+          fontSize: attr.fontSize,
+        ));
+      }
+
+      setState(() {
+        prevController.text = newText;
+        prevController.attributes.clear();
+        prevController.attributes.addAll(mergedAttributes);
+        
+        blocks.removeAt(index);
+        blockKeys.remove(currentBlock.id);
+        
+        lastFocusedBlockId = prevBlock.id;
+      });
+      
+      onBlocksChanged();
+      
+      // 移动光标到衔接点并强关焦点
+      Future.delayed(Duration.zero, () {
+        prevBlock.focusNode.requestFocus();
+        prevController.selection = TextSelection.collapsed(offset: oldText.length);
+      });
+    } else {
+      // 删除上方媒体块的逻辑
+      setState(() {
+        blocks.removeAt(index - 1);
+        blockKeys.remove(prevBlock.id);
+      });
+      onBlocksChanged();
+      // 当前块焦点保持，不需额外操作，索引自动变化
     }
   }
 

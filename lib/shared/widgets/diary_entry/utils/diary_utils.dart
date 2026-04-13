@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -152,7 +153,34 @@ class DiaryUtils {
         width: width, 
         height: height, 
         fit: fit,
-        // network暂不支持直接设置 cacheWidth, 但由于网络图通常经过后端压缩，这里主要关注本地大图
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            width: width,
+            height: height,
+            color: Colors.black.withValues(alpha: 0.05),
+            child: const Center(child: CupertinoActivityIndicator(radius: 10)),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint("Image load error ($path): $error");
+          return Container(
+            width: width,
+            height: height,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.05),
+              borderRadius: borderRadius,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.photo, size: 24, color: Colors.black.withValues(alpha: 0.2)),
+                const SizedBox(height: 4),
+                Text('图片加载失败', style: TextStyle(fontSize: 10, color: Colors.black.withValues(alpha: 0.2))),
+              ],
+            ),
+          );
+        },
       );
     } else if (path.startsWith('/') ||
         path.contains('cache/') ||
@@ -278,6 +306,8 @@ class DiaryUtils {
       return const Color(0xFF4A4A4A); // 极简配色：深炭灰
     } else if (paperStyle == 'note4') {
       return const Color(0xFF435B66); // 淡雅配色：深青灰
+    } else if (paperStyle == 'note5') {
+      return const Color(0xFF3E4F59); // 优雅配色：深石岩
     } else if (paperStyle.startsWith('note')) {
       return const Color(0xFF7D6B5D); // 其他信纸默认棕色
     }

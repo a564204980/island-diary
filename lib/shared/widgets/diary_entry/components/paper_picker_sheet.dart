@@ -19,6 +19,7 @@ class PaperPickerSheet extends StatelessWidget {
     'note2': '复古',
     'note3': '极简',
     'note4': '淡雅',
+    'note5': '优雅',
   };
 
   @override
@@ -34,7 +35,7 @@ class PaperPickerSheet extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -59,7 +60,7 @@ class PaperPickerSheet extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.close, color: textColor.withOpacity(0.5)),
+                  icon: Icon(Icons.close, color: textColor.withValues(alpha: 0.5)),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -97,7 +98,7 @@ class PaperPickerSheet extends StatelessWidget {
                             boxShadow: [
                               if (isSelected)
                                 BoxShadow(
-                                  color: accentColor.withOpacity(0.3),
+                                  color: accentColor.withValues(alpha: 0.3),
                                   blurRadius: 8,
                                   spreadRadius: 1,
                                 ),
@@ -110,7 +111,7 @@ class PaperPickerSheet extends StatelessWidget {
                                 if (key.startsWith('note'))
                                   Positioned.fill(
                                     child: Image.asset(
-                                      'assets/images/note/${key.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4'].contains(key) ? '.png' : '.jpg'}',
+                                      'assets/images/note/${key.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5'].contains(key) ? '.png' : '.jpg'}',
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -132,7 +133,7 @@ class PaperPickerSheet extends StatelessWidget {
                           label,
                           style: TextStyle(
                             fontSize: 12,
-                            color: isSelected ? accentColor : textColor.withOpacity(0.6),
+                            color: isSelected ? accentColor : textColor.withValues(alpha: 0.6),
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             fontFamily: 'LXGWWenKai',
                           ),

@@ -1,107 +1,6 @@
 part of '../../pages/statistics_page.dart';
 
-extension BentoBehavioralAnalysis on _StatisticsPageState {
-  Widget _buildTagsBento(bool isNight, List<DiaryEntry> filtered) {
-    if (filtered.isEmpty) return const SizedBox.shrink();
-
-    // 1. 数据聚合：按标签组织日记
-    Map<String, List<DiaryEntry>> tagGroups = {};
-    for (var entry in filtered) {
-      if (entry.tag != null && entry.tag!.trim().isNotEmpty) {
-        final tag = entry.tag!.trim();
-        if (!tagGroups.containsKey(tag)) tagGroups[tag] = [];
-        tagGroups[tag]!.add(entry);
-      }
-    }
-
-    if (tagGroups.isEmpty) return const SizedBox.shrink();
-
-    // 2. 多维洞察推演
-    List<Widget> insights = [];
-
-    // --- 维度 A: 表达欲/投入深度 (基于日记文本长度) ---
-    String? deepEngagementTag;
-    double maxAvgLength = 0;
-    tagGroups.forEach((tag, entries) {
-      double avgLen = entries.fold(0.0, (sum, e) => sum + e.content.length) / entries.length;
-      if (avgLen > maxAvgLength && entries.length >= 2) {
-        maxAvgLength = avgLen;
-        deepEngagementTag = tag;
-      }
-    });
-    if (deepEngagementTag != null) {
-      insights.add(_buildInsightItem(
-        isNight: isNight,
-        title: '深度投入',
-        subtitle: '该活动下您的日记平均字数远超其他，它是您的灵魂树洞。',
-        label: deepEngagementTag!,
-        icon: CupertinoIcons.doc_text_viewfinder,
-        color: const Color(0xFF6A11CB),
-      ));
-    }
-
-    // --- 维度 B: 时间共鸣 (深夜/清晨 偏好) ---
-    String? lateNightTag;
-    tagGroups.forEach((tag, entries) {
-      int lateNightCount = entries.where((e) => e.dateTime.hour >= 22 || e.dateTime.hour <= 4).length;
-      if (lateNightCount >= 2 && lateNightCount / entries.length > 0.6) {
-        lateNightTag = tag;
-      }
-    });
-    if (lateNightTag != null) {
-      insights.add(_buildInsightItem(
-        isNight: isNight,
-        title: '深夜共鸣',
-        subtitle: '这是一项高度绑定“静谧时光”的活动，常在您的深夜出现。',
-        label: lateNightTag!,
-        icon: CupertinoIcons.moon_stars_fill,
-        color: const Color(0xFF2575FC),
-      ));
-    }
-
-    // --- 维度 C: 环境耦合 (天气亲和度) ---
-    String? rainAffinityTag;
-    tagGroups.forEach((tag, entries) {
-       int rainCount = entries.where((e) => e.weather?.contains('雨') ?? false).length;
-       if (rainCount >= 1 && rainCount / entries.length > 0.5) {
-         rainAffinityTag = tag;
-       }
-    });
-    if (rainAffinityTag != null) {
-      insights.add(_buildInsightItem(
-        isNight: isNight,
-        title: '雨天耦合',
-        subtitle: '您倾向于在阴雨连绵时开启此项活动，它是您的雨中避难所。',
-        label: rainAffinityTag!,
-        icon: CupertinoIcons.cloud_rain_fill,
-        color: const Color(0xFF4FACFE),
-      ));
-    }
-
-    if (insights.isEmpty) {
-       // 如果没有特殊联系，退回到之前的相关性逻辑
-       return _buildFallbackImpactBento(isNight, tagGroups);
-    }
-
-    return _buildGlassCard(
-      isNight: isNight,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildBentoHeader(
-            context: context,
-            title: '心灵折射',
-            helpContent: '分析您的表达欲、时间偏好与天气适应度，洞察[[特定生活情境]]下的[[情感共振]]。',
-            isNight: isNight,
-            rightAction: Icon(CupertinoIcons.sparkles, size: 18, color: isNight ? Colors.white54 : Colors.amber),
-          ),
-          const SizedBox(height: 16),
-          ...insights,
-        ],
-      ),
-    );
-  }
+extension _BentoBehavioralAnalysis on _StatisticsPageState {
 
   Widget _buildInsightItem({
     required bool isNight, 
@@ -119,7 +18,7 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [color.withOpacity(0.8), color.withOpacity(0.4)]),
+              gradient: LinearGradient(colors: [color.withValues(alpha: 0.8), color.withValues(alpha: 0.4)]),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 18, color: Colors.white),
@@ -135,7 +34,7 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
                     Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isNight ? Colors.white : Colors.black87)),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: color.withOpacity(0.2))),
+                      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: color.withValues(alpha: 0.2))),
                       child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
                     )
                   ],
@@ -188,7 +87,7 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
         const Spacer(),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
           child: Text(tag, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
         )
       ],
@@ -199,15 +98,13 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
     return filtered.any((e) => e.weather != null && e.weather!.isNotEmpty && e.weather != '未设置');
   }
 
-  bool _hasTagData(List<DiaryEntry> filtered) {
-    return filtered.any((e) => e.tag != null && e.tag!.isNotEmpty);
-  }
-
   Widget _buildWeatherMoodBento(bool isNight, List<DiaryEntry> filtered) {
     Map<String, List<DiaryEntry>> weatherGroups = {};
     for (var e in filtered) {
       if (e.weather != null && e.weather!.isNotEmpty && e.weather != '未设置') {
-        if (!weatherGroups.containsKey(e.weather!)) weatherGroups[e.weather!] = [];
+        if (!weatherGroups.containsKey(e.weather!)) {
+          weatherGroups[e.weather!] = [];
+        }
         weatherGroups[e.weather!]!.add(e);
       }
     }
@@ -247,34 +144,41 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
                      ],
                    ),
                    const SizedBox(height: 4),
-                   Stack(
-                     children: [
-                       Container(height: 4, width: double.infinity, decoration: BoxDecoration(color: isNight ? Colors.white10 : Colors.black.withOpacity(0.05), borderRadius: BorderRadius.circular(2))),
-                       FractionallySizedBox(
-                         widthFactor: avg / 10.0,
-                         child: Container(height: 4, decoration: BoxDecoration(color: const Color(0xFFD4A373).withOpacity(0.8), borderRadius: BorderRadius.circular(2))),
-                       )
-                     ],
-                   )
+                    Stack(
+                      children: [
+                        Container(height: 4, width: double.infinity, decoration: BoxDecoration(color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(2))),
+                        FractionallySizedBox(
+                          widthFactor: avg / 10.0,
+                          child: Container(height: 4, decoration: BoxDecoration(color: const Color(0xFFD4A373).withValues(alpha: 0.8), borderRadius: BorderRadius.circular(2))),
+                        )
+                      ],
+                    )
                  ],
                ),
              );
-          }).toList()
+          })
         ],
       )
     );
   }
 
   Widget _buildTimePatternBento(bool isNight, List<DiaryEntry> filtered) {
-    if (filtered.isEmpty) return const SizedBox.shrink();
+    if (filtered.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     List<int> counts = List.filled(4, 0); // 凌晨, 上午, 下午, 晚上
     for (var e in filtered) {
       int h = e.dateTime.hour;
-      if (h >= 0 && h < 6) counts[0]++;
-      else if (h >= 6 && h < 12) counts[1]++;
-      else if (h >= 12 && h < 18) counts[2]++;
-      else if (h >= 18 && h < 24) counts[3]++;
+      if (h >= 0 && h < 6) {
+        counts[0]++;
+      } else if (h >= 6 && h < 12) {
+        counts[1]++;
+      } else if (h >= 12 && h < 18) {
+        counts[2]++;
+      } else if (h >= 18 && h < 24) {
+        counts[3]++;
+      }
     }
 
     int maxCount = counts.reduce(max);
@@ -323,15 +227,15 @@ extension BentoBehavioralAnalysis on _StatisticsPageState {
                      decoration: BoxDecoration(
                        gradient: LinearGradient(
                          begin: Alignment.bottomCenter, end: Alignment.topCenter,
-                         colors: [
-                           baseColor.withOpacity(isDominant ? 0.9 : 0.3),
-                           baseColor.withOpacity(isDominant ? 0.3 : 0.05),
-                         ]
-                       ),
-                       borderRadius: BorderRadius.circular(16),
-                       boxShadow: isDominant ? [
-                         BoxShadow(color: baseColor.withOpacity(0.4), blurRadius: 12, spreadRadius: 2)
-                       ] : null,
+                          colors: [
+                            baseColor.withValues(alpha: isDominant ? 0.9 : 0.3),
+                            baseColor.withValues(alpha: isDominant ? 0.3 : 0.05),
+                          ]
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: isDominant ? [
+                          BoxShadow(color: baseColor.withValues(alpha: 0.4), blurRadius: 12, spreadRadius: 2)
+                        ] : null,
                      ),
                      child: Padding(
                        padding: const EdgeInsets.all(6.0),

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 /// 表情映射工具类，用于 Unicode 字符与高清图片路径的对应
 class EmojiMapping {
