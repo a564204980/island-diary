@@ -6,6 +6,7 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 // import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/hand_drawn_divider.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
@@ -141,13 +142,45 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
   @override
   Widget build(BuildContext context) {
     final bool isNight = widget.isNight;
-    final bgColor = isNight ? const Color(0xFF13131F) : const Color(0xFFF7F2E9);
+    // 如果使用自定义信纸背景（note系列），即便在晚上也不使用夜间模式样式
+    final bool effectiveIsNight = isNight && !_currentEntry.paperStyle.startsWith('note');
+    final bgColor = effectiveIsNight ? const Color(0xFF13131F) : const Color(0xFFF7F2E9);
+    final mood = kMoods[_currentEntry.moodIndex.clamp(0, kMoods.length - 1)];
+    final baseGlowColor = mood.glowColor ?? const Color(0xFFD4A373);
+    final accentColor = effectiveIsNight
+        ? baseGlowColor
+        : Color.lerp(baseGlowColor, Colors.black, 0.45)!;
 
     return Scaffold(
       backgroundColor: bgColor,
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
+          // 信纸底色与纹理层
+          Positioned.fill(
+            child: Stack(
+              children: [
+                if (_currentEntry.paperStyle.startsWith('note'))
+                  Positioned.fill(
+                    child: Image.asset(
+                      'assets/images/note/${_currentEntry.paperStyle.replaceFirst('note', 'note_bg')}${_currentEntry.paperStyle == 'note1' ? '.png' : '.jpg'}',
+                      fit: BoxFit.cover,
+                      color: effectiveIsNight ? Colors.black.withOpacity(0.3) : null,
+                      colorBlendMode: effectiveIsNight ? BlendMode.darken : null,
+                    ),
+                  ),
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: PaperBackgroundPainter(
+                      style: _currentEntry.paperStyle,
+                      isNight: effectiveIsNight,
+                      accentColor: accentColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Positioned.fill(
             child: SafeArea(
               bottom: false,
@@ -162,19 +195,19 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(isNight),
+                    _buildHeader(effectiveIsNight),
                     const SizedBox(height: 32),
-                    _buildRichTextView(isNight),
+                    _buildRichTextView(effectiveIsNight),
                     const SizedBox(height: 48),
-                    _buildImages(isNight),
+                    _buildImages(effectiveIsNight),
                     const SizedBox(height: 48),
                     DiaryTimeline(
                       replies: _currentEntry.replies,
-                      isNight: isNight,
+                      isNight: effectiveIsNight,
                     ),
                     DiaryReplies(
                       replies: _currentEntry.replies,
-                      isNight: isNight,
+                      isNight: effectiveIsNight,
                     ),
                   ],
                 ),
@@ -425,7 +458,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               style: TextStyle(
                 fontSize: 60,
                 fontWeight: FontWeight.bold,
-                color: isNight ? accentColor : const Color(0xFF8B5E3C),
+                color: isNight ? accentColor : (_currentEntry.paperStyle.startsWith('note') ? Colors.black : const Color(0xFF634732)),
                 fontFamily: 'LXGWWenKai',
                 letterSpacing: -1,
               ),
@@ -435,7 +468,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w500,
-                color: isNight ? Colors.white38 : const Color(0xFFAFA296),
+                color: isNight ? Colors.white38 : (_currentEntry.paperStyle.startsWith('note') ? Colors.black.withOpacity(0.7) : const Color(0xFF8B5E3C).withOpacity(0.7)),
                 fontFamily: 'LXGWWenKai',
               ),
             ),
@@ -448,7 +481,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           style: TextStyle(
             fontSize: 16,
             fontStyle: FontStyle.italic,
-            color: isNight ? Colors.white38 : const Color(0xFFAFA296),
+            color: isNight ? Colors.white38 : (_currentEntry.paperStyle.startsWith('note') ? Colors.black.withOpacity(0.6) : const Color(0xFF8B5E3C).withOpacity(0.6)),
             fontFamily: 'LXGWWenKai',
           ),
         ),
@@ -655,7 +688,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     final textStyle = TextStyle(
       fontSize: 18,
       height: 1.8,
-      color: isNight ? Colors.white.withOpacity(0.85) : const Color(0xFF4A342E),
+      color: isNight ? Colors.white.withOpacity(0.85) : (_currentEntry.paperStyle.startsWith('note') ? Colors.black : const Color(0xFF4A342E)),
       fontFamily: 'LXGWWenKai',
     );
 

@@ -22,6 +22,8 @@ class DiaryToolbar extends StatelessWidget {
   final VoidCallback? onClose;
   final VoidCallback? onSave;
   final Color? accentColor;
+  final bool? isNightOverride;
+  final bool isNoteBackground;
 
   const DiaryToolbar({
     super.key,
@@ -41,20 +43,28 @@ class DiaryToolbar extends StatelessWidget {
     this.onClose,
     this.onSave,
     this.accentColor,
+    this.isNightOverride,
+    this.isNoteBackground = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bool isNight = UserState().isNight;
-    final Color toolbarBg = isNight 
-        ? const Color(0xFF2A2A3E).withOpacity(0.9) 
-        : const Color(0xFFF9EED8).withOpacity(0.85);
-    final Color toolbarBorder = isNight
-        ? const Color(0xFFE0C097).withOpacity(0.3)
-        : const Color(0xFF8B5E3C);
+    final bool isNight = isNightOverride ?? UserState().isNight;
     final Color primaryColor = isNight
         ? const Color(0xFFE0C097)
         : (accentColor ?? const Color(0xFF8B5E3C));
+        
+        
+    final Color toolbarBg = isNight 
+        ? const Color(0xFF1E1E2C).withValues(alpha: isNoteBackground ? 0.8 : 0.9) 
+        : (isNoteBackground 
+            ? Colors.white.withValues(alpha: 0.12)
+            : primaryColor.withValues(alpha: 0.08));
+            
+    final Color toolbarBorder = isNoteBackground 
+        ? (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.08))
+        : primaryColor.withValues(alpha: 0.3);
+
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -65,15 +75,29 @@ class DiaryToolbar extends StatelessWidget {
           width: double.infinity,
           child: Stack(
             children: [
-              // 背景 - 磨砂玻璃 + 手绘线条
+              // 背景 - 阴影层 (不在 ClipRect 内，允许向外溢出)
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: HandDrawnToolbarPainter(
+                    color: toolbarBg,
+                    borderColor: toolbarBorder,
+                    shadowOnly: true,
+                  ),
+                ),
+              ),
+              // 背景 - 磨砂玻璃 + 手绘线条 (受 ClipRect 限制以保证模糊范围)
               Positioned.fill(
                 child: ClipRect(
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                    filter: ImageFilter.blur(
+                      sigmaX: isNoteBackground ? 12 : 6, 
+                      sigmaY: isNoteBackground ? 12 : 6,
+                    ),
                     child: CustomPaint(
                       painter: HandDrawnToolbarPainter(
                         color: toolbarBg,
                         borderColor: toolbarBorder,
+                        shadowOnly: false,
                       ),
                     ),
                   ),
@@ -120,12 +144,12 @@ class DiaryToolbar extends StatelessWidget {
       {
         'icon': Icons.close_rounded,
         'onTap': onClose,
-        'color': Colors.redAccent.withOpacity(0.7),
+        'color': isNight ? const Color(0xFFFF8A80) : const Color(0xFFD32F2F),
       },
       {
         'icon': Icons.check_rounded,
         'onTap': onSave,
-        'color': primaryColor,
+        'color': isNight ? const Color(0xFFA5D6A7) : primaryColor,
       },
     ];
 
@@ -142,6 +166,7 @@ class DiaryToolbar extends StatelessWidget {
             assetPath: icon['path'],
             icon: icon['icon'],
             iconColor: icon['color'],
+            bgColor: icon['bgColor'],
             onTap: icon['onTap'],
             isNight: isNight,
             primaryColor: primaryColor,
@@ -156,6 +181,7 @@ class DiaryToolbar extends StatelessWidget {
             assetPath: icon['path'],
             icon: icon['icon'],
             iconColor: icon['color'],
+            bgColor: icon['bgColor'],
             onTap: icon['onTap'],
             isNight: isNight,
             primaryColor: primaryColor,
@@ -170,6 +196,7 @@ class DiaryToolbar extends StatelessWidget {
     String? assetPath,
     IconData? icon,
     Color? iconColor,
+    Color? bgColor,
     VoidCallback? onTap,
     bool isSelected = false,
     required bool isNight,
@@ -180,33 +207,24 @@ class DiaryToolbar extends StatelessWidget {
       child: Center(
         child: InkWell(
           onTap: onTap ?? () {},
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? primaryColor.withOpacity(0.2)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: assetPath != null
-                ? Image.asset(
-                    assetPath,
-                    width: 32,
-                    height: 32,
-                    fit: BoxFit.contain,
-                  )
-                : Icon(
-                    icon,
-                    size: 28,
-                    color: iconColor,
-                  ),
-          )
-          .animate(target: isSelected ? 1 : 0)
-          .scale(
-            begin: const Offset(1, 1),
-            end: const Offset(1.2, 1.2),
-            duration: 200.ms,
-          ),
+          child: assetPath != null
+              ? Image.asset(
+                  assetPath,
+                  width: 32,
+                  height: 32,
+                  fit: BoxFit.contain,
+                )
+              : Icon(
+                  icon,
+                  size: 28,
+                  color: iconColor,
+                ),
+        )
+        .animate(target: isSelected ? 1 : 0)
+        .scale(
+          begin: const Offset(1, 1),
+          end: const Offset(1.2, 1.2),
+          duration: 200.ms,
         ),
       ),
     );

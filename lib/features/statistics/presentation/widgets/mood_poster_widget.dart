@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
@@ -38,6 +39,13 @@ class _MoodPosterWidgetState extends State<MoodPosterWidget> {
       if (byteData == null) return;
 
       final buffer = byteData.buffer.asUint8List();
+      
+      if (kIsWeb) {
+        // Web 平台暂不支持通过 File 路径分享，可提示或使用 blob 分享
+        debugPrint('Sharing via File is not supported on Web');
+        return;
+      }
+      
       final tempDir = await getTemporaryDirectory();
       final file = await File('${tempDir.path}/soul_poster_${DateTime.now().millisecondsSinceEpoch}.png').create();
       await file.writeAsBytes(buffer);

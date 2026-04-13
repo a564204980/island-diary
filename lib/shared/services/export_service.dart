@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -528,6 +529,7 @@ class ExportService {
   }
 
   static pw.Widget _buildImageBlock(String path) {
+    if (kIsWeb) return pw.SizedBox(height: 0, width: 0);
     try {
       final file = File(path);
       if (file.existsSync()) {

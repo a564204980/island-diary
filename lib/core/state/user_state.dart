@@ -29,6 +29,7 @@ class UserState {
   static const _keyDraftCustomDate = 'diary_draft_custom_date';
   static const _keyDraftCustomTime = 'diary_draft_custom_time';
   static const _keyDraftDateTime = 'diary_draft_date_time'; // 新增：草稿特定的时间锚点
+  static const _keyDraftPaperStyle = 'diary_draft_paper_style'; // 新增：信纸样式
   static const _keySavedDiaries = 'saved_diaries';
   static const _keyThemeMode = 'theme_mode'; // 新增主题模式键
   static const _keyRecordGuidance = 'has_seen_record_guidance'; // 记录页引导
@@ -48,6 +49,12 @@ class UserState {
   static const _keyIsBiometricEnabled = 'is_biometric_enabled'; // 生物识别
   static const _keyIsMistModeEnabled = 'is_mist_mode_enabled'; // 迷雾模式
   static const _keyDestructionCode = 'destruction_code'; // 自毁码
+  static const _keyIsScreenshotProtected = 'is_screenshot_protected'; // 截屏防护
+  static const _keyIsIntruderCaptureEnabled = 'is_intruder_capture_enabled'; // 入侵抓拍
+  static const _keyAutoLockDuration = 'auto_lock_duration'; // 自动锁定时间
+  static const _keyAppIconType = 'app_icon_type'; // 图标伪装类型
+  static const _keyIntruderLogs = 'intruder_logs'; // 入侵记录
+  static const _keyPreferredPaperStyle = 'preferred_paper_style'; // 全局信纸偏好
 
 
 
@@ -119,6 +126,14 @@ class UserState {
   final ValueNotifier<bool> isBiometricEnabled = ValueNotifier<bool>(false);
   final ValueNotifier<bool> isMistModeEnabled = ValueNotifier<bool>(false);
   final ValueNotifier<String> destructionCode = ValueNotifier<String>('');
+  final ValueNotifier<bool> isScreenshotProtected = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> isIntruderCaptureEnabled = ValueNotifier<bool>(false);
+  final ValueNotifier<int> autoLockDuration = ValueNotifier<int>(0); // 0 为立即
+  final ValueNotifier<String> appIconType = ValueNotifier<String>('default');
+  final ValueNotifier<List<Map<String, dynamic>>> intruderLogs = ValueNotifier<List<Map<String, dynamic>>>([]);
+  
+  /// 全局信纸样式偏好 (新建日记时默认应用)
+  final ValueNotifier<String> preferredPaperStyle = ValueNotifier<String>('note1');
 
 
 
@@ -147,6 +162,7 @@ class UserState {
     String? customTime,
     DateTime? dateTime,
     List<Map<String, dynamic>>? blocks,
+    String? paperStyle,
   }) async {
     final draft = DiaryDraft(
       moodIndex: moodIndex,
@@ -160,6 +176,7 @@ class UserState {
       customTime: customTime,
       dateTime: dateTime,
       blocks: blocks,
+      paperStyle: paperStyle ?? 'note1',
     );
     diaryDraft.value = draft;
 
@@ -187,6 +204,8 @@ class UserState {
     else await prefs.remove(_keyDraftCustomTime);
     if (dateTime != null) await prefs.setString(_keyDraftDateTime, dateTime.toIso8601String());
     else await prefs.remove(_keyDraftDateTime);
+    if (paperStyle != null) await prefs.setString(_keyDraftPaperStyle, paperStyle);
+    else await prefs.remove(_keyDraftPaperStyle);
   }
 
   /// 清空草稿
@@ -204,6 +223,7 @@ class UserState {
     await prefs.remove(_keyDraftCustomDate);
     await prefs.remove(_keyDraftCustomTime);
     await prefs.remove(_keyDraftDateTime);
+    await prefs.remove(_keyDraftPaperStyle);
   }
 
   /// 将当前草稿保存为正式日记并持久化
@@ -231,7 +251,6 @@ class UserState {
           rewardKeys[math.Random().nextInt(rewardKeys.length)];
       final config = DiaryUtils.rewardConfigs[randomKey]!;
 
-      // 插入奖励块到首位
       blocks.insert(0, {
         'id': 'reward_${entryDate.millisecondsSinceEpoch}',
         'type': 'reward',
@@ -253,6 +272,7 @@ class UserState {
       customDate: draft.customDate,
       customTime: draft.customTime,
       blocks: blocks,
+      paperStyle: draft.paperStyle,
     );
 
     // 更新内存列表
@@ -474,6 +494,51 @@ class UserState {
       destructionCode.value = destCode;
       await prefs.setString(_keyDestructionCode, destCode);
     }
+    if (appLock != null) {
+      isAppLockEnabled.value = appLock;
+      await prefs.setBool(_keyIsAppLockEnabled, appLock);
+    }
+  }
+
+  /// 更新进阶安全设置
+  Future<void> updateAdvancedSecurity({
+    bool? screenshot,
+    bool? intruder,
+    int? lockDuration,
+    String? iconType,
+    Map<String, dynamic>? newIntruderLog,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (screenshot != null) {
+      isScreenshotProtected.value = screenshot;
+      await prefs.setBool(_keyIsScreenshotProtected, screenshot);
+    }
+    if (intruder != null) {
+      isIntruderCaptureEnabled.value = intruder;
+      await prefs.setBool(_keyIsIntruderCaptureEnabled, intruder);
+    }
+    if (lockDuration != null) {
+      autoLockDuration.value = lockDuration;
+      await prefs.setInt(_keyAutoLockDuration, lockDuration);
+    }
+    if (iconType != null) {
+      appIconType.value = iconType;
+      await prefs.setString(_keyAppIconType, iconType);
+    }
+    if (newIntruderLog != null) {
+      final updatedLogs = List<Map<String, dynamic>>.from(intruderLogs.value);
+      updatedLogs.insert(0, newIntruderLog);
+      if (updatedLogs.length > 50) updatedLogs.removeLast(); // 最多保留 50 条
+      intruderLogs.value = updatedLogs;
+      await prefs.setString(_keyIntruderLogs, jsonEncode(updatedLogs));
+    }
+  }
+
+  /// 设置全局信纸偏好并持久化
+  Future<void> setPreferredPaperStyle(String style) async {
+    preferredPaperStyle.value = style;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyPreferredPaperStyle, style);
   }
 
   /// 紧急自毁：清空所有本地数据
@@ -550,6 +615,7 @@ class UserState {
         customTime: prefs.getString(_keyDraftCustomTime),
         dateTime: prefs.getString(_keyDraftDateTime) != null ? DateTime.parse(prefs.getString(_keyDraftDateTime)!) : null,
         blocks: blocks,
+        paperStyle: prefs.getString(_keyDraftPaperStyle) ?? 'note1',
       );
     }
 
@@ -612,6 +678,23 @@ class UserState {
     isBiometricEnabled.value = prefs.getBool(_keyIsBiometricEnabled) ?? false;
     isMistModeEnabled.value = prefs.getBool(_keyIsMistModeEnabled) ?? false;
     destructionCode.value = prefs.getString(_keyDestructionCode) ?? '';
+    isScreenshotProtected.value = prefs.getBool(_keyIsScreenshotProtected) ?? false;
+    isIntruderCaptureEnabled.value = prefs.getBool(_keyIsIntruderCaptureEnabled) ?? false;
+    autoLockDuration.value = prefs.getInt(_keyAutoLockDuration) ?? 0;
+    appIconType.value = prefs.getString(_keyAppIconType) ?? 'default';
+    
+    final logsJson = prefs.getString(_keyIntruderLogs);
+    if (logsJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(logsJson);
+        intruderLogs.value = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      } catch (e) {
+        debugPrint('Error decoding intruder logs: $e');
+      }
+    }
+
+    // 加载信纸偏好
+    preferredPaperStyle.value = prefs.getString(_keyPreferredPaperStyle) ?? 'note1';
   }
 
 
@@ -686,6 +769,7 @@ class DiaryDraft {
   final String? customTime;
   final DateTime? dateTime;
   final List<Map<String, dynamic>>? blocks; // 结构化分块数据
+  final String paperStyle;
 
   DiaryDraft({
     required this.moodIndex,
@@ -699,5 +783,6 @@ class DiaryDraft {
     this.customTime,
     this.dateTime,
     this.blocks,
+    this.paperStyle = 'classic',
   });
 }

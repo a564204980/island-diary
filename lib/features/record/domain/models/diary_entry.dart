@@ -16,6 +16,7 @@ class DiaryEntry {
   final String? customDate;
   final String? customTime;
   final List<DiaryReply> replies; // 自我回复/回响列表
+  final String paperStyle; // 信纸样式: classic, grid, lined, aesthetics, vintage
 
   DiaryEntry({
     String? id,
@@ -31,6 +32,7 @@ class DiaryEntry {
     this.customDate,
     this.customTime,
     List<DiaryReply>? replies,
+    this.paperStyle = 'note1',
   })  : id = id ?? const Uuid().v4(),
         replies = replies ?? [];
 
@@ -49,6 +51,7 @@ class DiaryEntry {
       'customDate': customDate,
       'customTime': customTime,
       'replies': replies.map((x) => x.toMap()).toList(),
+      'paperStyle': paperStyle,
     };
   }
 
@@ -70,6 +73,7 @@ class DiaryEntry {
           ? List<DiaryReply>.from(
               (map['replies'] as List).map((x) => DiaryReply.fromMap(x)))
           : [],
+      paperStyle: map['paperStyle'] ?? 'note1',
     );
   }
 

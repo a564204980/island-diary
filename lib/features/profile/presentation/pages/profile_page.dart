@@ -2,9 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:island_diary/features/profile/presentation/pages/vip_benefits_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/security_center_page.dart';
 import 'package:island_diary/core/state/user_state.dart';
-
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -12,7 +12,7 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userState = UserState();
-    
+
     return ListenableBuilder(
       listenable: Listenable.merge([
         userState.themeMode,
@@ -36,7 +36,10 @@ class ProfilePage extends StatelessWidget {
 
             SafeArea(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 20,
+                ),
                 physics: const BouncingScrollPhysics(),
                 children: [
                   const SizedBox(height: 20),
@@ -50,7 +53,7 @@ class ProfilePage extends StatelessWidget {
 
                   // 3. 功能矩阵 (Bento Style)
                   _buildBentoMenu(context, isNight),
-                  
+
                   const SizedBox(height: 32),
                   // 4. 底部信息
                   Center(
@@ -89,39 +92,41 @@ class ProfilePage extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
                     colors: [
-                      const Color(0xFFFFF176).withOpacity(0.5),
-                      const Color(0xFFCE93D8).withOpacity(0.5),
-                      const Color(0xFFFFF176).withOpacity(0.5),
+                      const Color(0xFFFFF176).withValues(alpha: 0.5),
+                      const Color(0xFFCE93D8).withValues(alpha: 0.5),
+                      const Color(0xFFFFF176).withValues(alpha: 0.5),
                     ],
                   ),
                 ),
               ).animate(onPlay: (c) => c.repeat()).rotate(duration: 4.seconds),
-            
+
             Container(
               width: 96,
               height: 96,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isVip ? const Color(0xFFFFF176) : Colors.white.withOpacity(0.2),
+                  color: isVip
+                      ? const Color(0xFFFFF176)
+                      : Colors.white.withValues(alpha: 0.2),
                   width: 3,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: isVip 
-                      ? const Color(0xFFFFF176).withOpacity(0.3)
-                      : Colors.black.withOpacity(0.1),
+                    color: isVip
+                        ? const Color(0xFFFFF176).withValues(alpha: 0.3)
+                        : Colors.black.withValues(alpha: 0.1),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),
                 ],
                 image: const DecorationImage(
-                  image: AssetImage('assets/images/emoji/weixiao.png'), // TODO: 提示用户替换为生成的美观头像
+                  image: AssetImage('assets/images/emoji/weixiao.png'),
                   fit: BoxFit.cover,
                 ),
               ),
             ),
-            
+
             // VIP 挂件
             if (isVip)
               Positioned(
@@ -133,14 +138,18 @@ class ProfilePage extends StatelessWidget {
                     color: Color(0xFFFFF176),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.star, size: 14, color: Color(0xFF3E2723)),
+                  child: const Icon(
+                    Icons.star,
+                    size: 14,
+                    color: Color(0xFF3E2723),
+                  ),
                 ),
               ),
           ],
         ).animate().scale(curve: Curves.easeOutBack, duration: 600.ms),
-        
+
         const SizedBox(height: 16),
-        
+
         // 姓名与称号
         Column(
           children: [
@@ -157,9 +166,11 @@ class ProfilePage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
               decoration: BoxDecoration(
-                color: isVip 
-                    ? const Color(0xFFFFF176).withOpacity(0.2) 
-                    : (isNight ? Colors.white12 : Colors.black.withOpacity(0.05)),
+                color: isVip
+                    ? const Color(0xFFFFF176).withValues(alpha: 0.2)
+                    : (isNight
+                          ? Colors.white12
+                          : Colors.black.withValues(alpha: 0.05)),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -167,7 +178,11 @@ class ProfilePage extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: isVip ? (isNight ? const Color(0xFFFFCC80) : const Color(0xFF7B5C2E)) : (isNight ? Colors.white38 : Colors.black38),
+                  color: isVip
+                      ? (isNight
+                            ? const Color(0xFFFFCC80)
+                            : const Color(0xFF7B5C2E))
+                      : (isNight ? Colors.white38 : Colors.black38),
                 ),
               ),
             ),
@@ -177,99 +192,131 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildVipMembershipCard(BuildContext context, bool isVip, bool isNight) {
+  Widget _buildVipMembershipCard(
+    BuildContext context,
+    bool isVip,
+    bool isNight,
+  ) {
     return Container(
-      height: 140,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: isVip ? const Color(0xFFAB47BC).withOpacity(0.2) : Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: Stack(
-          children: [
-            // 极光渐变背景
-            Positioned.fill(
-              child: AnimatedGradient(
-                isVip: isVip,
-                isNight: isNight,
+          height: 140,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: isVip
+                    ? const Color(0xFFAB47BC).withValues(alpha: 0.2)
+                    : Colors.black.withValues(alpha: 0.1),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
-            ),
-            
-            // 内容
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: Stack(
+              children: [
+                // 极光渐变背景
+                Positioned.fill(
+                  child: AnimatedGradient(isVip: isVip, isNight: isNight),
+                ),
+
+                // 内容
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            isVip ? '星光计划 · 已激活' : '星光计划 · 永久居民',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: isVip ? Colors.white : (isNight ? Colors.white : const Color(0xFF3E2723)),
-                              letterSpacing: 1,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isVip ? '星光计划 · 已激活' : '星光计划 · 永久居民',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: isVip
+                                      ? Colors.white
+                                      : (isNight
+                                            ? Colors.white
+                                            : const Color(0xFF3E2723)),
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              Text(
+                                isVip ? '您的岛屿正沐浴在永恒星光中' : '让每一份心情都拥有流光溢彩的家',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isVip
+                                      ? Colors.white.withValues(alpha: 0.7)
+                                      : (isNight
+                                            ? Colors.white38
+                                            : Colors.black38),
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            isVip ? '您的岛屿正沐浴在永恒星光中' : '让每一份心情都拥有流光溢彩的家',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isVip ? Colors.white.withOpacity(0.7) : (isNight ? Colors.white38 : Colors.black38),
-                            ),
+                          Icon(
+                            isVip ? Icons.workspace_premium : Icons.stars,
+                            color: isVip
+                                ? const Color(0xFFFFF176)
+                                : (isNight ? Colors.white24 : Colors.black12),
+                            size: 32,
                           ),
                         ],
                       ),
-                      Icon(
-                        isVip ? Icons.workspace_premium : Icons.stars,
-                        color: isVip ? const Color(0xFFFFF176) : (isNight ? Colors.white24 : Colors.black12),
-                        size: 32,
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const VipBenefitsPage(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isVip
+                                ? Colors.white.withValues(alpha: 0.2)
+                                : (isNight
+                                      ? Colors.white
+                                      : const Color(0xFF3E2723)),
+                            borderRadius: BorderRadius.circular(16),
+                            border: isVip
+                                ? Border.all(color: Colors.white30)
+                                : null,
+                          ),
+                          child: Text(
+                            isVip ? '查看专属权益' : '立即入驻',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isVip
+                                  ? Colors.white
+                                  : (isNight
+                                        ? const Color(0xFF3E2723)
+                                        : Colors.white),
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () {
-                      if (!isVip) {
-                        UserState().setIsVip(true);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isVip ? Colors.white.withOpacity(0.2) : (isNight ? Colors.white : const Color(0xFF3E2723)),
-                        borderRadius: BorderRadius.circular(16),
-                        border: isVip ? Border.all(color: Colors.white30) : null,
-                      ),
-                      child: Text(
-                        isVip ? '查看专属权益' : '立即入驻',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isVip ? Colors.white : (isNight ? const Color(0xFF3E2723) : Colors.white),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    ).animate().slideX(begin: -0.1, end: 0, curve: Curves.easeOutCubic, delay: 300.ms).fadeIn(delay: 300.ms);
+          ),
+        )
+        .animate()
+        .slideX(begin: -0.1, end: 0, curve: Curves.easeOutCubic, delay: 300.ms)
+        .fadeIn(delay: 300.ms);
   }
 
   Widget _buildBentoMenu(BuildContext context, bool isNight) {
@@ -278,18 +325,30 @@ class ProfilePage extends StatelessWidget {
         // 第一排 Bento
         Row(
           children: [
-            Expanded(
-              flex: 3,
-              child: _buildThemeBento(isNight),
-            ),
+            Expanded(flex: 3, child: _buildThemeBento(isNight)),
             const SizedBox(width: 12),
             Expanded(
               flex: 2,
               child: GestureDetector(
                 onTap: () {
+                  final isNight = UserState().isNight;
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SecurityCenterPage()),
+                    PageRouteBuilder(
+                      opaque: true, // 保持不透明以覆盖底层
+                      barrierColor: isNight
+                          ? Colors.black
+                          : const Color(0xFFFDFCF7),
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          const SecurityCenterPage(),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            );
+                          },
+                    ),
                   );
                 },
                 child: _buildQuickActionBento(
@@ -300,7 +359,6 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
             ),
-
           ],
         ),
         const SizedBox(height: 12),
@@ -332,7 +390,7 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildThemeBento(bool isNight) {
     final mode = UserState().themeMode.value;
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _bentoDecoration(isNight),
@@ -341,9 +399,20 @@ class ProfilePage extends StatelessWidget {
         children: [
           Row(
             children: [
-                Icon(Icons.palette_outlined, size: 16, color: isNight ? Colors.white38 : Colors.black38),
-                const SizedBox(width: 6),
-                Text('主题模式', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isNight ? Colors.white70 : Colors.black54)),
+              Icon(
+                Icons.palette_outlined,
+                size: 16,
+                color: isNight ? Colors.white38 : Colors.black38,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '主题模式',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isNight ? Colors.white70 : Colors.black54,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -370,19 +439,25 @@ class ProfilePage extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: isSelected 
-                  ? (isNight ? const Color(0xFFFFF176).withOpacity(0.15) : const Color(0xFFFFF176).withOpacity(0.3))
+              color: isSelected
+                  ? (isNight
+                        ? const Color(0xFFFFF176).withValues(alpha: 0.15)
+                        : const Color(0xFFFFF176).withValues(alpha: 0.3))
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? const Color(0xFFFFF176).withOpacity(0.5) : Colors.transparent,
+                color: isSelected
+                    ? const Color(0xFFFFF176).withValues(alpha: 0.5)
+                    : Colors.transparent,
               ),
             ),
             child: Icon(
               opt['icon'] as IconData,
               size: 18,
-              color: isSelected 
-                  ? (isNight ? const Color(0xFFFFF176) : const Color(0xFF7B5C2E))
+              color: isSelected
+                  ? (isNight
+                        ? const Color(0xFFFFF176)
+                        : const Color(0xFF7B5C2E))
                   : (isNight ? Colors.white24 : Colors.black12),
             ),
           ),
@@ -406,7 +481,7 @@ class ProfilePage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, size: 18, color: color),
@@ -427,10 +502,14 @@ class ProfilePage extends StatelessWidget {
 
   BoxDecoration _bentoDecoration(bool isNight) {
     return BoxDecoration(
-      color: isNight ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.4),
+      color: isNight
+          ? Colors.white.withValues(alpha: 0.05)
+          : Colors.white.withValues(alpha: 0.4),
       borderRadius: BorderRadius.circular(24),
       border: Border.all(
-        color: isNight ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.3),
+        color: isNight
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.3),
       ),
     );
   }
@@ -440,19 +519,27 @@ class ProfilePage extends StatelessWidget {
 class AnimatedGradient extends StatefulWidget {
   final bool isVip;
   final bool isNight;
-  const AnimatedGradient({super.key, required this.isVip, required this.isNight});
+  const AnimatedGradient({
+    super.key,
+    required this.isVip,
+    required this.isNight,
+  });
 
   @override
   State<AnimatedGradient> createState() => _AnimatedGradientState();
 }
 
-class _AnimatedGradientState extends State<AnimatedGradient> with SingleTickerProviderStateMixin {
+class _AnimatedGradientState extends State<AnimatedGradient>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
   }
 
   @override
@@ -471,28 +558,26 @@ class _AnimatedGradientState extends State<AnimatedGradient> with SingleTickerPr
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: widget.isVip 
-                ? [
-                    const Color(0xFFCE93D8),
-                    const Color(0xFF7E57C2),
-                    const Color(0xFF42A5F5),
-                  ]
-                : (widget.isNight
-                    ? [const Color(0xFF37474F), const Color(0xFF263238)]
-                    : [const Color(0xFFEEEEEE), const Color(0xFFF5F5F5)]),
-              stops: widget.isVip 
-                ? [
-                    0.0,
-                    0.5 + 0.2 * math.sin(_controller.value * 2 * math.pi),
-                    1.0,
-                  ]
-                : null, // 非 VIP 状态下不使用动态 stop
+              colors: widget.isVip
+                  ? [
+                      const Color(0xFFCE93D8),
+                      const Color(0xFF7E57C2),
+                      const Color(0xFF42A5F5),
+                    ]
+                  : (widget.isNight
+                        ? [const Color(0xFF37474F), const Color(0xFF263238)]
+                        : [const Color(0xFFEEEEEE), const Color(0xFFF5F5F5)]),
+              stops: widget.isVip
+                  ? [
+                      0.0,
+                      0.5 + 0.2 * math.sin(_controller.value * 2 * math.pi),
+                      1.0,
+                    ]
+                  : null, // 非 VIP 状态下不使用动态 stop
             ),
-
           ),
         );
       },
     );
   }
 }
-

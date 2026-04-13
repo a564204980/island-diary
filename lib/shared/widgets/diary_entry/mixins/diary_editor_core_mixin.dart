@@ -38,6 +38,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   int? currentMoodIndex;
   late double currentIntensity;
   String? currentTag;
+  String currentPaperStyle = 'classic';
 
   String get fixedQuote => _fixedQuote ?? '';
 
@@ -55,10 +56,14 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       loadDraft();
     }
 
-    // 初始化心情相关状态
+    // 初始化心情与信纸相关状态
     currentMoodIndex = entry?.moodIndex ?? widget.moodIndex;
     currentIntensity = entry?.intensity ?? widget.intensity;
     currentTag = entry?.tag ?? widget.tag;
+    currentPaperStyle = entry?.paperStyle ?? 
+                      UserState().diaryDraft.value?.paperStyle ?? 
+                      UserState().preferredPaperStyle.value;
+    syncBlockColors();
 
     updateMoodQuote();
 
@@ -96,10 +101,10 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     }
     weather = entry.weather;
     temp = entry.temp;
-    location = entry.location;
     customDate = entry.customDate;
     customTime = entry.customTime;
     replies = List<DiaryReply>.from(entry.replies); // 初始化回复内容
+    currentPaperStyle = entry.paperStyle;
   }
 
   void addFocusListener(TextBlock block) {
@@ -147,6 +152,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       location = UserState().diaryDraft.value?.location;
       customDate = UserState().diaryDraft.value?.customDate;
       customTime = UserState().diaryDraft.value?.customTime;
+      currentPaperStyle = UserState().diaryDraft.value?.paperStyle ?? 'classic';
 
       if (draftModified) {
         onBlocksChanged();
@@ -177,6 +183,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       customTime: customTime,
       dateTime: _entryDateTime,
       blocks: blocks.map((b) => b.toMap()).toList(),
+      paperStyle: currentPaperStyle,
     );
   }
 
@@ -235,9 +242,9 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           temp: temp,
           location: location,
           customDate: customDate,
-          customTime: customTime,
           blocks: blocks.map((b) => b.toMap()).toList(),
           replies: replies, // 使用本地维护的回复状态
+          paperStyle: currentPaperStyle,
         );
         await UserState().updateDiary(updatedEntry);
       } else {
@@ -255,6 +262,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           customTime: customTime,
           dateTime: _entryDateTime,
           blocks: blocks.map((b) => b.toMap()).toList(),
+          paperStyle: currentPaperStyle,
         );
         await UserState().saveDiary();
       }
@@ -364,5 +372,31 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
 
   void toggleRecord() {
     setState(() => isRecording = !isRecording);
+  }
+
+  /// 集中处理所有文本块的颜色同步，避免在 build 阶段触发状态更新
+  void syncBlockColors() {
+    final bool isNight = UserState().isNight;
+    // 选取对应信纸样式的固定墨水色
+    final Color standardDefaultColor = const Color(0xFF8B5E3C);
+    final Color noteDefaultColor = currentPaperStyle == 'note1' 
+        ? const Color(0xFF5A7285) 
+        : const Color(0xFF7D6B5D);
+        
+    final Color targetColor = isNight && !currentPaperStyle.startsWith('note')
+        ? const Color(0xFFE0C097)
+        : (currentPaperStyle.startsWith('note') ? noteDefaultColor : standardDefaultColor);
+
+    for (var block in blocks) {
+      if (block is TextBlock && block.controller is DiaryTextEditingController) {
+        final tc = block.controller as DiaryTextEditingController;
+        if (tc.baseColor != targetColor) {
+          tc.updateBaseColor(targetColor);
+        }
+      }
+    }
+    
+    // 同步当前默认文字颜色，用于后续新生成的块
+    currentTextColor = targetColor;
   }
 }

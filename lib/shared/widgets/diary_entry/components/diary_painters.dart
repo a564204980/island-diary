@@ -26,7 +26,7 @@ class HandDrawnTagPainter extends CustomPainter {
 
     // 4. 绘制主边框线条（圆润写意）
     final borderPaint = Paint()
-      ..color = borderColor.withOpacity(0.35)
+      ..color = borderColor.withValues(alpha: 0.35)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0
       ..strokeCap = StrokeCap.round
@@ -40,7 +40,7 @@ class HandDrawnTagPainter extends CustomPainter {
       extraPath,
       borderPaint
         ..strokeWidth = 0.4
-        ..color = borderColor.withOpacity(0.12),
+        ..color = borderColor.withValues(alpha: 0.12),
     );
   }
 
@@ -49,14 +49,14 @@ class HandDrawnTagPainter extends CustomPainter {
     // 基础柔和投影
     canvas.drawShadow(
       path.shift(const Offset(0, 1)),
-      Colors.black.withOpacity(0.1),
+      Colors.black.withValues(alpha: 0.1),
       4.0,
       true,
     );
 
     // 白色外发光扩散感
     final glowPaint = Paint()
-      ..color = Colors.white.withOpacity(0.7)
+      ..color = Colors.white.withValues(alpha: 0.7)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4.0
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0);
@@ -98,7 +98,7 @@ class HandDrawnTagPainter extends CustomPainter {
       final paint = Paint()
         ..shader = RadialGradient(
           colors: [
-            (bloom['color'] as Color).withOpacity(0.18),
+            (bloom['color'] as Color).withValues(alpha: 0.18),
             Colors.transparent,
           ],
           center: bloom['center'] as Alignment,
@@ -115,15 +115,16 @@ class HandDrawnTagPainter extends CustomPainter {
 
       final colorType = random.nextInt(3);
       Color dotColor;
-      if (colorType == 0)
+      if (colorType == 0) {
         dotColor = const Color(0xFFA2D2FF);
-      else if (colorType == 1)
+      } else if (colorType == 1) {
         dotColor = const Color(0xFFFFC2D1);
-      else
+      } else {
         dotColor = const Color(0xFFE2B6FF);
+      }
 
       final dotPaint = Paint()
-        ..color = dotColor.withOpacity(0.08)
+        ..color = dotColor.withValues(alpha: 0.08)
         ..maskFilter = MaskFilter.blur(
           BlurStyle.normal,
           random.nextDouble() * 1.5 + 0.5,
@@ -184,15 +185,16 @@ class HandDrawnTagPainter extends CustomPainter {
 class HandDrawnToolbarPainter extends CustomPainter {
   final Color color;
   final Color borderColor;
+  final bool shadowOnly;
 
-  HandDrawnToolbarPainter({required this.color, required this.borderColor});
+  HandDrawnToolbarPainter({
+    required this.color,
+    required this.borderColor,
+    this.shadowOnly = false,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
     // 创建带波动感的手绘路径
     final path = Path();
     final w = size.width;
@@ -215,7 +217,7 @@ class HandDrawnToolbarPainter extends CustomPainter {
       step++;
     }
 
-    // 3. 底部边缘 (直线，按要求取消起伏)
+    // 3. 底部边缘 (直线)
     path.lineTo(w, h);
     path.lineTo(0, h);
 
@@ -228,24 +230,59 @@ class HandDrawnToolbarPainter extends CustomPainter {
     }
 
     path.close();
+    
+    // 1. 绘制阴影 (仅在 shadowOnly 为 true 时，或普通绘制的第一步)
+    if (shadowOnly) {
+      canvas.drawShadow(path.shift(const Offset(0, 4)), Colors.black.withValues(alpha: 0.15), 10.0, true);
+      return;
+    }
 
+    // 2. 绘制基础填充
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
     canvas.drawPath(path, paint);
 
-    // 绘制顶部分隔细线，带点手绘感
+    // 3. 绘制顶部分隔线条 (加粗，但减弱透明度以达到轻盈感)
     final linePaint = Paint()
-      ..color = borderColor.withOpacity(0.2)
+      ..color = borderColor.withValues(alpha: 0.25)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
+      ..strokeWidth = 2.2;
 
     final linePath = Path();
     linePath.moveTo(0, 5);
     for (double i = 0; i <= w; i += 30) {
       linePath.lineTo(i, 3.0 + (i % 60 == 0 ? 2.0 : -0.5));
     }
+    linePath.lineTo(w, 3.0);
     canvas.drawPath(linePath, linePaint);
   }
 
   @override
   bool shouldRepaint(covariant HandDrawnToolbarPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.borderColor != borderColor;
+      oldDelegate.color != color ||
+      oldDelegate.borderColor != borderColor ||
+      oldDelegate.shadowOnly != shadowOnly;
+}
+
+/// 日记信纸背景绘制总调度
+class PaperBackgroundPainter extends CustomPainter {
+  final String style;
+  final bool isNight;
+  final Color accentColor;
+
+  PaperBackgroundPainter({
+    required this.style,
+    required this.isNight,
+    required this.accentColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Current design only uses the base background color or external image.
+    // The previous complex textures have been removed for simplicity.
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
 }

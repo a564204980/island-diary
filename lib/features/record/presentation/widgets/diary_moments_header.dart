@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/sprite_animation.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:image_picker/image_picker.dart';
 
 class DiaryMomentsHeader extends StatelessWidget {
@@ -38,8 +39,8 @@ class DiaryMomentsHeader extends StatelessWidget {
                       color: isNight ? const Color(0xFF1A1C1E) : const Color(0xFFF0F0F0),
                     ),
                     child: coverPath != null
-                        ? Image.file(
-                            File(coverPath),
+                        ? DiaryUtils.buildImage(
+                            coverPath,
                             fit: BoxFit.cover,
                           )
                         : Image.asset(

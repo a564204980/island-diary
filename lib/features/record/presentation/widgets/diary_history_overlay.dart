@@ -12,6 +12,7 @@ import 'package:island_diary/features/record/presentation/widgets/diary_share_ca
 import 'package:island_diary/features/record/presentation/widgets/export_config_dialog.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
 import 'package:share_plus/share_plus.dart';
 
 enum DiaryLayoutMode {
@@ -104,7 +105,11 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
           if (!isMoments && !isCalendar)
             Positioned.fill(
               child: CustomPaint(
-                painter: PaperBackgroundPainter(isNight: isNight),
+                painter: PaperBackgroundPainter(
+                  style: 'classic', // 历史记录列表默认使用经典风格线稿
+                  isNight: isNight,
+                  accentColor: isNight ? const Color(0xFFE0C097) : const Color(0xFFD4A373),
+                ),
               ),
             ),
           Positioned.fill(
@@ -352,21 +357,6 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
     );
     UserState().isDiarySheetOpen.value = false;
   }
-}
-
-class PaperBackgroundPainter extends CustomPainter {
-  final bool isNight;
-  PaperBackgroundPainter({this.isNight = false});
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (isNight) return;
-    final paint = Paint()..color = Colors.black.withOpacity(0.04)..strokeWidth = 1.0;
-    for (double y = 100; y < size.height; y += 28.0) canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    final redLinePaint = Paint()..color = Colors.red.withOpacity(0.08)..strokeWidth = 1.5;
-    canvas.drawLine(const Offset(68, 0), Offset(68, size.height), redLinePaint);
-  }
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 class HorizontalWeekCalendar extends StatefulWidget {

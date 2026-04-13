@@ -11,7 +11,7 @@ class HandDrawnLinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color.withOpacity(0.6)
+      ..color = color.withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
@@ -46,7 +46,7 @@ class HandDrawnLinePainter extends CustomPainter {
       path,
       paint
         ..strokeWidth = strokeWidth * 0.3
-        ..color = color.withOpacity(0.2),
+        ..color = color.withValues(alpha: 0.2),
     );
   }
 

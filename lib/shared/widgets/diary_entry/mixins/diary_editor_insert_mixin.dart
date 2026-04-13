@@ -5,7 +5,10 @@ import '../utils/diary_utils.dart';
 import '../components/diary_date_picker_sheet.dart';
 import '../components/diary_time_picker_sheet.dart';
 import '../components/diary_weather_picker_sheet.dart';
+import '../components/paper_picker_sheet.dart';
+import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
+import 'package:island_diary/core/state/user_state.dart';
 import './diary_editor_core_mixin.dart';
 
 mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
@@ -254,6 +257,37 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
   }
 
   void onMoreClick() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('更多功能开发中...')));
+    final bool isNight = UserState().isNight;
+    final mood = (currentMoodIndex != null && currentMoodIndex! >= 0) ? kMoods[currentMoodIndex!] : null;
+    final defaultAccentColor = isNight ? const Color(0xFFE0C097) : const Color(0xFF8B5E3C);
+    final moodGlowColor = mood?.glowColor;
+    final accentColor = mood == null 
+        ? defaultAccentColor 
+        : isNight 
+          ? (moodGlowColor ?? defaultAccentColor) 
+          : Color.lerp(moodGlowColor ?? defaultAccentColor, Colors.black, 0.45)!;
+
+    FocusScope.of(context).unfocus();
+    setState(() => isColorPickerOpen = true);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => PaperPickerSheet(
+        currentStyle: currentPaperStyle,
+        accentColor: accentColor,
+        onStyleSelected: (style) {
+          setState(() {
+            currentPaperStyle = style;
+            syncBlockColors();
+          });
+          UserState().setPreferredPaperStyle(style);
+          onBlocksChanged();
+          Navigator.pop(context);
+        },
+      ),
+    ).then((_) {
+      if (mounted) setState(() => isColorPickerOpen = false);
+    });
   }
 }

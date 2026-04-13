@@ -386,7 +386,7 @@ class DiaryTextEditingController extends TextEditingController {
             'start': match.start,
             'end': match.end,
             'emojiPath': path,
-            'priority': 3,
+            'priority': 2, // 降低优先级，确保 Markdown 符号等能覆盖它
           });
         }
       }
@@ -704,8 +704,8 @@ class DiaryTextEditingController extends TextEditingController {
       }
 
       if (emojiMatch != null) {
-        // 核心修复：WidgetSpan 本身只占用 1 个索引。
-        // 如果原始匹配字符串（如 [发呆]）长度大于 1，必须补齐缺口，否则光标位置会错乱。
+        // 核心修复：保持 WidgetSpan 在前，对齐索引的 Ghost Span 在后。
+        // 但使用接近 0 的字号和透明色，并在最后提供一个空的 TextSpan 以平滑光标落点。
         children.add(
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
@@ -720,15 +720,14 @@ class DiaryTextEditingController extends TextEditingController {
             ),
           ),
         );
-        // 如果原文本长度 > 1，则用透明且极小的 TextSpan 补平索引，确保 textContent 索引映射正确
         if (chunk.length > 1) {
           children.add(
             TextSpan(
               text: chunk.substring(1),
               style: combinedStyle.copyWith(
-                fontSize: 0.01,
+                fontSize: 0.001,
                 color: Colors.transparent,
-                letterSpacing: -1, // 进一步挤压空间
+                letterSpacing: -0.5,
               ),
             ),
           );
@@ -739,6 +738,8 @@ class DiaryTextEditingController extends TextEditingController {
       children.add(TextSpan(text: chunk, style: combinedStyle));
     }
 
+    // 在末尾增加一个微小的空节点，通常能解决 Flutter 中 WidgetSpan 作为行末元素时光标无法落位的问题
+    children.add(const TextSpan(text: ' ' , style: TextStyle(fontSize: 0.001)));
     return TextSpan(style: rootStyle, children: children);
   }
 }

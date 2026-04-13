@@ -13,6 +13,7 @@ import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_form
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_insert_mixin.dart';
 import 'package:island_diary/shared/widgets/mood_picker/mood_popup_picker.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
 
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
@@ -75,17 +76,23 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
   Widget build(BuildContext context) {
     final mood = (currentMoodIndex != null && currentMoodIndex! >= 0) ? kMoods[currentMoodIndex!] : null;
     final bool isNight = UserState().isNight;
-    final bgColor = isNight ? const Color(0xFF13131F) : const Color(0xFFF7F2E9);
+    // 如果使用自定义信纸背景（note系列），即便在晚上也不使用夜间模式样式
+    final bool effectiveIsNight = isNight && !currentPaperStyle.startsWith('note');
+    final bgColor = effectiveIsNight ? const Color(0xFF13131F) : const Color(0xFFF7F2E9);
     
-    // 如果没有选择心情，则使用默认的强调色（米棕色调）
-    final defaultAccentColor = isNight ? const Color(0xFFE0C097) : const Color(0xFF8B5E3C);
+    // 如果没有选择心情，则使用默认的强调色。针对 note 系列使用更中性的色调以适配不同底纹。
+    final Color standardDefaultColor = const Color(0xFF8B5E3C);
+    final Color noteDefaultColor = currentPaperStyle == 'note1' 
+        ? const Color(0xFF5A7285) // note1 为蓝绿色调，默认强调色改为灰蓝色
+        : const Color(0xFF7D6B5D); // 其他 note 默认为中性茶褐色
+    
+    final defaultAccentColor = effectiveIsNight 
+        ? const Color(0xFFE0C097) 
+        : (currentPaperStyle.startsWith('note') ? noteDefaultColor : standardDefaultColor);
     final moodGlowColor = mood?.glowColor;
     
-    final accentColor = mood == null 
-        ? defaultAccentColor
-        : isNight 
-          ? (moodGlowColor ?? defaultAccentColor) 
-          : Color.lerp(moodGlowColor ?? defaultAccentColor, Colors.black, 0.45)!;
+    // UI 强调色固定为基于纸张样式的颜色，不再随心情动态变化
+    final Color accentColor = defaultAccentColor;
 
     final double viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
     // 实时捕获并记忆最大键盘高度，移至主 build 以供内容区域 padding 使用
@@ -117,10 +124,36 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: isNight 
-                      ? [bgColor, bgColor.withOpacity(0.8)]
-                      : [bgColor, bgColor.withOpacity(0.9)],
+                      ? [bgColor, bgColor.withValues(alpha: 0.8)]
+                      : [bgColor, bgColor.withValues(alpha: 0.9)],
                   ),
                 ),
+              ),
+            ),
+            
+            // 信纸底色与纹理层
+            Positioned.fill(
+              child: Stack(
+                children: [
+                  if (currentPaperStyle.startsWith('note'))
+                    Positioned.fill(
+                      child: Image.asset(
+                        'assets/images/note/${currentPaperStyle.replaceFirst('note', 'note_bg')}${currentPaperStyle == 'note1' ? '.png' : '.jpg'}',
+                        fit: BoxFit.cover,
+                        color: isNight ? Colors.black.withValues(alpha: 0.3) : null,
+                        colorBlendMode: isNight ? BlendMode.darken : null,
+                      ),
+                    ),
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: PaperBackgroundPainter(
+                        style: currentPaperStyle,
+                        isNight: effectiveIsNight,
+                        accentColor: accentColor,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             
@@ -155,7 +188,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                   style: TextStyle(
                                     fontSize: 60,
                                     fontWeight: FontWeight.bold,
-                                    color: isNight ? accentColor : const Color(0xFF8B5E3C),
+                                    color: accentColor,
                                     fontFamily: 'LXGWWenKai',
                                     letterSpacing: -1,
                                   ),
@@ -165,7 +198,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w500,
-                                    color: isNight ? Colors.white38 : const Color(0xFFAFA296),
+                                    color: effectiveIsNight ? Colors.white38 : accentColor.withValues(alpha: 0.7),
                                     fontFamily: 'LXGWWenKai',
                                   ),
                                 ),
@@ -178,14 +211,16 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                 fontFamily: 'LXGWWenKai',
                                 fontSize: 16,
                                 fontStyle: FontStyle.italic,
-                                color: (isNight ? Colors.white38 : const Color(0xFFAFA296)).withOpacity(0.7),
+                                color: (effectiveIsNight ? Colors.white38 : accentColor.withValues(alpha: 0.6)),
                               ),
                             ),
                             const SizedBox(height: 12),
                             CustomPaint(
                               size: const Size(double.infinity, 2),
                               painter: HandDrawnLinePainter(
-                                color: isNight ? Colors.white10 : const Color(0xFF8B5E3C).withOpacity(0.5),
+                                color: effectiveIsNight 
+                                  ? Colors.white10 
+                                  : accentColor.withValues(alpha: 0.2),
                                 strokeWidth: 1.5,
                               ),
                             ),
@@ -198,7 +233,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     SliverPersistentHeader(
                       pinned: true,
                       delegate: _StickyTabBarDelegate(
-                        backgroundColor: bgColor.withOpacity(0.9),
+                        backgroundColor: Colors.transparent,
                         child: Wrap(
                           spacing: 8,
                           runSpacing: 8,
@@ -209,9 +244,18 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: accentColor.withOpacity(0.1),
+                                  color: currentPaperStyle.startsWith('note') 
+                                      ? Colors.white.withValues(alpha: 0.4) 
+                                      : accentColor.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: accentColor.withOpacity(0.2), width: 0.5),
+                                  border: Border.all(color: accentColor.withValues(alpha: 0.15)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.03),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -249,8 +293,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: accentColor.withOpacity(0.1),
+                                  color: currentPaperStyle.startsWith('note') 
+                                      ? Colors.white.withValues(alpha: 0.4) 
+                                      : accentColor.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: accentColor.withValues(alpha: currentPaperStyle.startsWith('note') ? 0.2 : 0.15), 
+                                  ),
                                 ),
                                 child: Text(
                                   "$weather ${temp ?? ''}",
@@ -266,8 +315,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: accentColor.withOpacity(0.1),
+                                  color: currentPaperStyle.startsWith('note') 
+                                      ? Colors.white.withValues(alpha: 0.4) 
+                                      : accentColor.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: accentColor.withValues(alpha: currentPaperStyle.startsWith('note') ? 0.2 : 0.15), 
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -290,8 +344,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: accentColor.withOpacity(0.1),
+                                  color: currentPaperStyle.startsWith('note') 
+                                      ? Colors.white.withValues(alpha: 0.4) 
+                                      : accentColor.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: accentColor.withValues(alpha: currentPaperStyle.startsWith('note') ? 0.2 : 0.15), 
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -314,8 +373,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: accentColor.withOpacity(0.1),
+                                  color: currentPaperStyle.startsWith('note') 
+                                      ? Colors.white.withValues(alpha: 0.4) 
+                                      : accentColor.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: accentColor.withValues(alpha: currentPaperStyle.startsWith('note') ? 0.2 : 0.15), 
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -341,7 +405,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(
                         24, 
-                        12, 
+                        36, 
                         24, 
                         math.max(160, currentBottomHeight + 100)
                       ),
@@ -358,6 +422,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               blockKey: key,
                               onRemoveImage: () => removeImage(index),
                               onShowPreview: showImagePreview,
+                              isNightOverride: effectiveIsNight,
+                              isNoteBackground: currentPaperStyle.startsWith('note'),
+                              accentColor: accentColor,
                             );
                           },
                           childCount: blocks.length,
@@ -412,13 +479,15 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             onClose: () => Navigator.of(context).pop(),
                             onSave: onSave,
                             accentColor: accentColor,
+                            isNightOverride: effectiveIsNight,
+                            isNoteBackground: currentPaperStyle.startsWith('note'),
                           ),
                           AnimatedContainer(
                             duration: Duration(milliseconds: isEmojiOpen ? 150 : 250),
                             curve: Curves.easeOutCubic,
                             height: totalBottomHeight,
                             color: (isEmojiOpen || viewInsetsBottom > 0) 
-                              ? (isNight ? const Color(0xFF2A2A3E) : const Color(0xFFF9EED8)).withOpacity(0.95)
+                              ? (effectiveIsNight ? const Color(0xFF1E1E2C) : accentColor.withValues(alpha: 0.12)).withValues(alpha: 0.95)
                               : Colors.transparent,
                             child: Visibility(
                               visible: isEmojiOpen,

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:video_player/video_player.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import '../models/diary_block.dart';
+import '../utils/diary_utils.dart';
 import 'audio_player.dart';
 
 class DiaryBlockItem extends StatelessWidget {
@@ -13,6 +15,9 @@ class DiaryBlockItem extends StatelessWidget {
   final GlobalKey? blockKey;
   final VoidCallback? onRemoveImage;
   final Function(ImageBlock)? onShowPreview;
+  final bool? isNightOverride;
+  final bool isNoteBackground;
+  final Color? accentColor;
 
   const DiaryBlockItem({
     super.key,
@@ -22,6 +27,9 @@ class DiaryBlockItem extends StatelessWidget {
     this.blockKey,
     this.onRemoveImage,
     this.onShowPreview,
+    this.isNightOverride,
+    this.isNoteBackground = false,
+    this.accentColor,
   });
 
   @override
@@ -50,9 +58,9 @@ class DiaryBlockItem extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.5),
+        color: Colors.white.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD4B483).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFFD4B483).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -78,28 +86,33 @@ class DiaryBlockItem extends StatelessWidget {
   }
 
   Widget _buildTextBlock(TextBlock block) {
-    final isNight = UserState().isNight;
+    final isNight = isNightOverride ?? UserState().isNight;
+    
     return TextField(
       controller: block.controller,
       focusNode: block.focusNode,
       maxLines: null,
       readOnly: false,
       showCursor: true,
-      cursorColor: isNight 
-          ? const Color(0xFFE0C097) 
-          : const Color(0xFF8B5E3C),
+      cursorColor: isNoteBackground
+          ? (accentColor ?? (isNight ? const Color(0xFFE0C097) : const Color(0xFF5D4037)))
+          : (isNight ? const Color(0xFFE0C097) : const Color(0xFF8B5E3C)),
       style: TextStyle(
         fontSize: 20, 
         height: 1.6,
-        color: isNight ? const Color(0xFFE0C097) : Colors.black,
+        color: isNoteBackground 
+            ? (accentColor ?? (isNight ? const Color(0xFFE0C097) : const Color(0xFF5D4037))) 
+            : (isNight ? const Color(0xFFE0C097) : const Color(0xFF5D4037)),
         fontFamilyFallback: const ['LXGWWenKai'],
       ),
       decoration: InputDecoration(
         hintText: index == 0 ? '记录下这一刻的想法吧...' : '',
         hintStyle: TextStyle(
-          color: isNight 
-              ? const Color(0xFFBDB2A7).withOpacity(0.6) 
-              : const Color(0xFFA68A78)
+          color: isNoteBackground 
+              ? (accentColor?.withValues(alpha: 0.5) ?? (isNight ? Colors.white38 : Colors.black38))
+              : (isNight 
+                  ? const Color(0xFFBDB2A7).withValues(alpha: 0.6) 
+                  : const Color(0xFF8B5E3C).withValues(alpha: 0.6)),
         ),
         border: InputBorder.none,
         isDense: true,
@@ -119,7 +132,7 @@ class DiaryBlockItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -132,8 +145,8 @@ class DiaryBlockItem extends StatelessWidget {
                       videoPath: block.videoPath!,
                       fallbackPath: block.file.path,
                     )
-                  : Image.file(
-                      File(block.file.path),
+                  : DiaryUtils.buildImage(
+                      block.file.path,
                       fit: BoxFit.cover,
                     ),
             ),
@@ -199,8 +212,13 @@ class _LiveImagePlayerState extends State<_LiveImagePlayer> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.file(File(widget.videoPath))
-      ..initialize().then((_) {
+    if (kIsWeb || widget.videoPath.startsWith('http') || widget.videoPath.startsWith('blob:')) {
+      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoPath));
+    } else {
+      _controller = VideoPlayerController.file(File(widget.videoPath));
+    }
+    
+    _controller.initialize().then((_) {
         if (mounted) {
           setState(() => _initialized = true);
           _controller.setLooping(true);
@@ -221,8 +239,8 @@ class _LiveImagePlayerState extends State<_LiveImagePlayer> {
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
-      return Image.file(
-        File(widget.fallbackPath),
+      return DiaryUtils.buildImage(
+        widget.fallbackPath,
         fit: BoxFit.cover,
       );
     }

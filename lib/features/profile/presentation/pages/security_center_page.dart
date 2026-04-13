@@ -6,8 +6,26 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 
-class SecurityCenterPage extends StatelessWidget {
+class SecurityCenterPage extends StatefulWidget {
   const SecurityCenterPage({super.key});
+
+  @override
+  State<SecurityCenterPage> createState() => _SecurityCenterPageState();
+}
+
+class _SecurityCenterPageState extends State<SecurityCenterPage> {
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 延迟 50ms 启动复杂动效，确保 Scaffold 背景色先渲染
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted) {
+        setState(() => _isInitialized = true);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +49,7 @@ class SecurityCenterPage extends StatelessWidget {
           extendBodyBehindAppBar: true,
           appBar: AppBar(
             title: Text(
-              '灵魂避难所', 
+              '岛屿安全中心', 
               style: TextStyle(
                 fontWeight: FontWeight.w900, 
                 color: isNight ? Colors.white : const Color(0xFF1E3A34), 
@@ -49,10 +67,11 @@ class SecurityCenterPage extends StatelessWidget {
           ),
           body: Stack(
             children: [
-              // 1. 灵魂迷雾背景
-              Positioned.fill(
-                child: _SoulMistyBackground(isEnabled: isEnabled, isNight: isNight),
-              ),
+              // 1. 灵魂迷雾背景 (仅在初始化后渲染)
+              if (_isInitialized)
+                Positioned.fill(
+                  child: _SoulMistyBackground(isEnabled: isEnabled, isNight: isNight),
+                ),
               
               SafeArea(
                 child: ListView(
@@ -81,8 +100,6 @@ class SecurityCenterPage extends StatelessWidget {
     );
   }
 
-
-
   Widget _buildSacredCore(bool isEnabled, bool isNight) {
     return Column(
       children: [
@@ -92,14 +109,12 @@ class SecurityCenterPage extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // 旋转的灵气环
               _RotatingRing(isEnabled: isEnabled, radius: 65, color: const Color(0xFF81C784), speed: 3),
               _RotatingRing(isEnabled: isEnabled, radius: 50, color: const Color(0xFF64B5F6), speed: -2),
               
-              // 核心棱镜
               CustomPaint(
-                size: const Size(60, 70),
-                painter: _SacredPrismPainter(
+                size: const Size(64, 74),
+                painter: _GuardianShieldPainter(
                   color: isEnabled 
                       ? const Color(0xFF81C784) 
                       : (isNight ? Colors.white12 : Colors.black12),
@@ -119,7 +134,7 @@ class SecurityCenterPage extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF81C784).withOpacity(isNight ? 0.15 : 0.08),
+                          color: const Color(0xFF81C784).withValues(alpha: isNight ? 0.15 : 0.08),
                           blurRadius: 40,
                           spreadRadius: 5,
                         )
@@ -132,12 +147,12 @@ class SecurityCenterPage extends StatelessWidget {
         ),
         const SizedBox(height: 32),
         Text(
-          isEnabled ? '结界已立 · 万念皆安' : '圣殿静默 · 守护待启',
+          isEnabled ? '岛屿已守护 · 闲人勿进' : '防线已撤离 · 建议开启',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w900,
-            letterSpacing: 3,
-            color: isNight ? Colors.white : const Color(0xFF1E3A34), // 深森林绿
+            letterSpacing: 2,
+            color: isNight ? Colors.white : const Color(0xFF1E3A34),
             shadows: isNight ? [const Shadow(color: Colors.black26, offset: Offset(2, 2), blurRadius: 4)] : null,
           ),
         ),
@@ -145,7 +160,7 @@ class SecurityCenterPage extends StatelessWidget {
         Opacity(
           opacity: 0.6,
           child: Text(
-            isEnabled ? '岛屿正被神圣的结界温柔笼罩' : '尚未开启结界，灵魂在旷野中流浪',
+            isEnabled ? '岛屿正处于严密保护中，您的日记非常安全' : '还没开启守护，您的秘密可能会被别人看到',
             style: TextStyle(
               fontSize: 12, 
               color: isNight ? Colors.white70 : const Color(0xFF4A615C), 
@@ -155,31 +170,25 @@ class SecurityCenterPage extends StatelessWidget {
           ),
         ),
       ],
-
     ).animate().fadeIn(duration: 1.seconds).scale(begin: const Offset(0.95, 0.95));
   }
-
 
   Widget _buildPremiumBentoGrid(BuildContext context, UserState state, bool isNight) {
     return Column(
       children: [
-        // 主卡片：结界钥匙
         _buildAppLockPremiumCard(context, state),
         const SizedBox(height: 16),
-        
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 迷雾模式
               Expanded(child: _buildMistPremiumBento(state)),
               const SizedBox(width: 16),
-              // 自毁指令
-              Expanded(child: _buildDestructionPremiumBento(context, state)),
+              Expanded(child: _buildScreenshotPremiumBento(state)),
             ],
           ),
         ),
-
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -194,19 +203,19 @@ class SecurityCenterPage extends StatelessWidget {
         children: [
           Row(
             children: [
-              _buildNeonIcon(Icons.key_rounded, const Color(0xFF81C784)),
+              _buildNeonIcon(Icons.security_rounded, const Color(0xFF81C784)),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('心灵结界', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: isNight ? Colors.white : const Color(0xFF1E3A34))),
+                    Text('进岛密码', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: isNight ? Colors.white : const Color(0xFF1E3A34))),
                     const SizedBox(height: 2),
-                    Text('岛屿的唯一进出口凭证', style: TextStyle(fontSize: 12, color: (isNight ? Colors.white : const Color(0xFF4A615C)).withOpacity(0.4))),
+                    Text('给日记加把锁，只有你能进', style: TextStyle(fontSize: 12, color: (isNight ? Colors.white : const Color(0xFF4A615C)).withValues(alpha: 0.4))),
                   ],
                 ),
               ),
-
+              const SizedBox(width: 8),
               Switch.adaptive(
                 value: isEnabled,
                 activeColor: const Color(0xFF81C784),
@@ -223,12 +232,12 @@ class SecurityCenterPage extends StatelessWidget {
           if (isEnabled) ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Divider(height: 1, color: isNight ? Colors.white10 : Colors.black.withOpacity(0.05)),
+              child: Divider(height: 1, color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
             ),
             _buildActionItem(
               icon: Icons.fingerprint_rounded,
-              title: '生物骨骼密码',
-              subtitle: '指纹或面孔即是钥匙',
+              title: '刷脸 / 指纹',
+              subtitle: '不用敲密码，刷一下就能进',
               isNight: isNight,
               trailing: Switch.adaptive(
                 value: state.isBiometricEnabled.value,
@@ -238,9 +247,9 @@ class SecurityCenterPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _buildActionItem(
-              icon: Icons.password_rounded,
-              title: '重铸数字密钥',
-              subtitle: '手动修改当前：${state.appLockPin.value.replaceAll(RegExp(r'.'), '*')}',
+              icon: Icons.lock_reset_rounded,
+              title: '修改进岛密码',
+              subtitle: '觉得当前密码不安全？在这里改一个新的',
               isNight: isNight,
               onTap: () => _showSetPinDialog(context, state),
             ),
@@ -250,91 +259,103 @@ class SecurityCenterPage extends StatelessWidget {
     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0);
   }
 
-
   Widget _buildMistPremiumBento(UserState state) {
     final isNight = state.isNight;
     return _buildGlassContainer(
       isNight: isNight,
       padding: const EdgeInsets.all(24),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: isNight 
+          ? [const Color(0xFF64B5F6).withValues(alpha: 0.08), Colors.transparent]
+          : [const Color(0xFFE3F2FD).withValues(alpha: 0.5), Colors.white.withValues(alpha: 0.1)],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildNeonIcon(Icons.waves_rounded, const Color(0xFF64B5F6)),
-          const SizedBox(height: 20),
-          Text('幽冥护盾', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: isNight ? Colors.white : const Color(0xFF2D3436))),
-          const SizedBox(height: 6),
-          Text('后台任务中隐藏记忆', style: TextStyle(fontSize: 10, color: (isNight ? Colors.white : Colors.black).withOpacity(0.3), height: 1.4)),
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Switch.adaptive(
-              value: state.isMistModeEnabled.value,
-              activeColor: const Color(0xFF64B5F6),
-              onChanged: (val) => state.updateSecuritySettings(mistMode: val),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildNeonIcon(Icons.blur_on_rounded, const Color(0xFF64B5F6)),
+              Switch.adaptive(
+                value: state.isMistModeEnabled.value,
+                activeColor: const Color(0xFF64B5F6),
+                onChanged: (val) => state.updateSecuritySettings(mistMode: val),
+              ),
+            ],
           ),
+          const SizedBox(height: 24),
+          Text('后台模糊', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isNight ? Colors.white : const Color(0xFF2D3436))),
+          const SizedBox(height: 6),
+          Text('切换App时，把日记内容弄模糊', style: TextStyle(fontSize: 11, color: (isNight ? Colors.white70 : Colors.black54).withValues(alpha: 0.5), height: 1.4)),
         ],
       ),
     ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0);
   }
 
 
-  Widget _buildDestructionPremiumBento(BuildContext context, UserState state) {
-    final hasCode = state.destructionCode.value.isNotEmpty;
+  Widget _buildScreenshotPremiumBento(UserState state) {
     final isNight = state.isNight;
-    
-    return _buildGlassContainer(
-      isNight: isNight,
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildNeonIcon(Icons.flare_rounded, const Color(0xFFF06292)),
-          const SizedBox(height: 20),
-          Text('星尘湮灭', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: isNight ? Colors.white : const Color(0xFF2D3436))),
-          const SizedBox(height: 6),
-          GestureDetector(
-            onTap: () => _showSetDestructionDialog(context, state),
-            child: Text(
-              hasCode ? '湮灭法阵：已契约' : '未缔结契约',
-              style: TextStyle(
-                fontSize: 10, 
-                color: hasCode ? const Color(0xFFF06292) : (isNight ? Colors.white : Colors.black).withOpacity(0.3),
-                decoration: TextDecoration.underline,
-              ),
+    return ListenableBuilder(
+      listenable: state.isScreenshotProtected,
+      builder: (context, _) => _buildGlassContainer(
+        isNight: isNight,
+        padding: const EdgeInsets.all(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isNight 
+            ? [const Color(0xFF4DB6AC).withValues(alpha: 0.08), Colors.transparent]
+            : [const Color(0xFFE0F2F1).withValues(alpha: 0.5), Colors.white.withValues(alpha: 0.1)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildNeonIcon(Icons.monitor_rounded, const Color(0xFF4DB6AC)),
+                Switch.adaptive(
+                  value: state.isScreenshotProtected.value,
+                  activeColor: const Color(0xFF4DB6AC),
+                  onChanged: (val) => state.updateAdvancedSecurity(screenshot: val),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 8), 
-        ],
-      ),
-    ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1, end: 0);
-
-
+            const SizedBox(height: 24),
+            Text('潮汐屏障', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isNight ? Colors.white : const Color(0xFF2D3436))),
+            const SizedBox(height: 6),
+            Text('禁止在图内截屏', style: TextStyle(fontSize: 11, color: (isNight ? Colors.white70 : Colors.black54).withValues(alpha: 0.5), height: 1.4)),
+          ],
+        ),
+      ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0),
+    );
   }
 
-  Widget _buildGlassContainer({required Widget child, EdgeInsets? padding, required bool isNight}) {
+
+
+  Widget _buildGlassContainer({required Widget child, EdgeInsets? padding, required bool isNight, Gradient? gradient}) {
     return Container(
       padding: padding ?? const EdgeInsets.all(26),
       decoration: BoxDecoration(
-        color: isNight ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.85),
+        color: isNight ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.85),
+        gradient: gradient,
         borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: isNight ? Colors.white.withOpacity(0.12) : Colors.white,
-          width: 0.8,
+          color: isNight ? Colors.white.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.5),
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: isNight 
-                ? Colors.black.withOpacity(0.4) 
-                : const Color(0xFF7090B0).withOpacity(0.12),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: isNight ? Colors.black.withValues(alpha: 0.5) : const Color(0xFF7090B0).withValues(alpha: 0.15),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
           ),
-          // 内发光 / 反光层
           BoxShadow(
-            color: Colors.white.withOpacity(isNight ? 0.02 : 0.4),
-            spreadRadius: isNight ? -10 : -2,
-            blurRadius: isNight ? 20 : 10,
+            color: Colors.white.withValues(alpha: isNight ? 0.01 : 0.6),
+            spreadRadius: -2,
+            blurRadius: 10,
           ),
         ],
       ),
@@ -342,16 +363,14 @@ class SecurityCenterPage extends StatelessWidget {
     );
   }
 
-
-
   Widget _buildNeonIcon(IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: color.withOpacity(0.2), blurRadius: 15, spreadRadius: 1),
+          BoxShadow(color: color.withValues(alpha: 0.2), blurRadius: 15, spreadRadius: 1),
         ],
       ),
       child: Icon(icon, size: 24, color: color),
@@ -365,7 +384,7 @@ class SecurityCenterPage extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: (isNight ? Colors.white : Colors.black).withOpacity(0.05), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.05), shape: BoxShape.circle),
             child: Icon(icon, size: 18, color: isNight ? Colors.white70 : Colors.black54),
           ),
           const SizedBox(width: 14),
@@ -374,11 +393,10 @@ class SecurityCenterPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isNight ? Colors.white : const Color(0xFF1E3A34))),
-                Text(subtitle, style: TextStyle(fontSize: 11, color: isNight ? Colors.white30 : const Color(0xFF4A615C).withOpacity(0.5))),
+                Text(subtitle, style: TextStyle(fontSize: 11, color: isNight ? Colors.white30 : const Color(0xFF4A615C).withValues(alpha: 0.5))),
               ],
             ),
           ),
-
           trailing ?? Icon(Icons.chevron_right_rounded, size: 20, color: isNight ? Colors.white24 : Colors.black26),
         ],
       ),
@@ -389,7 +407,7 @@ class SecurityCenterPage extends StatelessWidget {
     return Center(
       child: Column(
         children: [
-          Container(width: 40, height: 1, color: isNight ? Colors.white10 : Colors.black.withOpacity(0.05)),
+          Container(width: 40, height: 1, color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
           const SizedBox(height: 16),
           Text(
             'ISLAND GUARDIAN SYSTEM 1.0',
@@ -400,9 +418,6 @@ class SecurityCenterPage extends StatelessWidget {
     ).animate(onPlay: (c) => isEnabled ? c.repeat() : null);
   }
 
-
-
-  // --- Dialogs (保持逻辑不变，仅美化样式) ---
   void _showSetPinDialog(BuildContext context, UserState state) {
     final controller = TextEditingController();
     final isNight = state.isNight;
@@ -413,15 +428,15 @@ class SecurityCenterPage extends StatelessWidget {
         child: AlertDialog(
           backgroundColor: isNight ? const Color(0xFF1A1A1A) : Colors.white,
           surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28), side: BorderSide(color: isNight ? Colors.white10 : Colors.black.withOpacity(0.05))),
-          title: Text('重铸密钥', style: TextStyle(color: isNight ? Colors.white : const Color(0xFF2D3436), fontWeight: FontWeight.w900)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28), side: BorderSide(color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05))),
+          title: Text('修改密码', style: TextStyle(color: isNight ? Colors.white : const Color(0xFF2D3436), fontWeight: FontWeight.w900)),
           content: TextField(
             controller: controller,
             autofocus: true,
             keyboardType: TextInputType.number,
             maxLength: 4,
             style: TextStyle(color: isNight ? Colors.white : const Color(0xFF2D3436), fontSize: 24, letterSpacing: 10),
-            decoration: const InputDecoration(hintText: '四个数字', hintStyle: TextStyle(fontSize: 14, letterSpacing: 0), border: InputBorder.none, counterText: ''),
+            decoration: const InputDecoration(hintText: '输入4位数字', hintStyle: TextStyle(fontSize: 14, letterSpacing: 0), border: InputBorder.none, counterText: ''),
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           ),
           actions: [
@@ -433,42 +448,7 @@ class SecurityCenterPage extends StatelessWidget {
                   Navigator.pop(context);
                 }
               },
-              child: const Text('注入能量', style: TextStyle(color: Color(0xFF81C784))),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSetDestructionDialog(BuildContext context, UserState state) {
-    final controller = TextEditingController();
-    final isNight = state.isNight;
-    showDialog(
-      context: context,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: AlertDialog(
-          backgroundColor: isNight ? const Color(0xFF1A1A1A) : Colors.white,
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28), side: BorderSide(color: isNight ? Colors.white10 : Colors.black.withOpacity(0.05))),
-          title: const Text('契约湮灭', style: TextStyle(color: Color(0xFFF06292), fontWeight: FontWeight.w900)),
-          content: TextField(
-            controller: controller,
-            maxLength: 6,
-            style: TextStyle(color: isNight ? Colors.white : const Color(0xFF2D3436), letterSpacing: 5),
-            decoration: const InputDecoration(hintText: '核心指令...', hintStyle: TextStyle(color: Colors.white24), border: InputBorder.none, counterText: ''),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-            TextButton(
-              onPressed: () {
-                if (controller.text.isNotEmpty) {
-                  state.updateSecuritySettings(destCode: controller.text);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('建立契约', style: TextStyle(color: Color(0xFFF06292))),
+              child: const Text('确认修改', style: TextStyle(color: Color(0xFF81C784))),
             ),
           ],
         ),
@@ -508,8 +488,6 @@ class _SoulMistyBackgroundState extends State<_SoulMistyBackground> with SingleT
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        final double animVal = _controller.value.isFinite ? _controller.value : 0.0;
-        
         return Container(
           decoration: BoxDecoration(
             color: isNight ? Colors.black : const Color(0xFFFDFCF7), // 临时屏蔽渐变
@@ -546,8 +524,8 @@ class _SoulMistyBackgroundState extends State<_SoulMistyBackground> with SingleT
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          const Color(0xFFFFD54F).withOpacity(0.15),
-                          const Color(0xFFFFD54F).withOpacity(0),
+                          const Color(0xFFFFD54F).withValues(alpha: 0.15),
+                          const Color(0xFFFFD54F).withValues(alpha: 0),
                         ],
                       ),
                     ),
@@ -567,36 +545,6 @@ class _SoulMistyBackgroundState extends State<_SoulMistyBackground> with SingleT
   }
 }
 
-class _StardustPainter extends CustomPainter {
-  final double progress;
-  final bool isNight;
-  _StardustPainter(this.progress, this.isNight);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (!size.isFinite || size.width <= 0 || size.height <= 0) return; // 严格有效性检查
-    
-    // 确保 progress 为合法数值
-    final safeProgress = progress.isFinite ? progress : 0.0;
-    final paint = Paint()..color = (isNight ? Colors.white : const Color(0xFFBDB183)).withOpacity(0.12);
-
-
-    final random = math.Random(42);
-    for (int i = 0; i < 40; i++) {
-      final x = random.nextDouble() * size.width;
-      final y = (random.nextDouble() * size.height + safeProgress * 50) % size.height;
-      
-      if (x.isFinite && y.isFinite) {
-        canvas.drawCircle(Offset(x, y), random.nextDouble() * 1.5, paint);
-      }
-    }
-
-  }
-
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
 
 class _RotatingRing extends StatefulWidget {
   final bool isEnabled;
@@ -649,14 +597,14 @@ class _RotatingRingState extends State<_RotatingRing> with SingleTickerProviderS
             height: widget.radius * 2,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: widget.color.withOpacity(widget.isEnabled ? 0.2 : 0.05), width: 1.5),
+              border: Border.all(color: widget.color.withValues(alpha: widget.isEnabled ? 0.2 : 0.05), width: 1.5),
             ),
             child: Stack(
               children: [
                 Positioned(
                   top: 0,
                   left: widget.radius - 3,
-                  child: Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: widget.color.withOpacity(0.5))),
+                  child: Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: widget.color.withValues(alpha: 0.5))),
                 ),
               ],
             ),
@@ -667,54 +615,100 @@ class _RotatingRingState extends State<_RotatingRing> with SingleTickerProviderS
   }
 }
 
-class _SacredPrismPainter extends CustomPainter {
+class _GuardianShieldPainter extends CustomPainter {
   final Color color;
   final double glowIntensity;
-  _SacredPrismPainter({required this.color, required this.glowIntensity});
+  _GuardianShieldPainter({required this.color, required this.glowIntensity});
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (!size.isFinite || size.width <= 0 || size.height <= 0) return; // 严格有效性检查
+    if (!size.isFinite || size.width <= 0 || size.height <= 0) return;
+    
     final paint = Paint()
-
-
-
-
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = 2.8
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
-    final path = Path();
-    path.moveTo(size.width / 2, 0);
-    path.lineTo(size.width, size.height * 0.3);
-    path.lineTo(size.width, size.height * 0.7);
-    path.lineTo(size.width / 2, size.height);
-    path.lineTo(0, size.height * 0.7);
-    path.lineTo(0, size.height * 0.3);
-    path.close();
+    double w = size.width;
+    double h = size.height;
 
-    canvas.drawPath(path, paint);
-    
-    // 内部棱线 (增加 Offset 有效性检查)
-    void drawSafeLine(Offset p1, Offset p2) {
-      if (p1.dx.isFinite && p1.dy.isFinite && p2.dx.isFinite && p2.dy.isFinite) {
-        canvas.drawLine(p1, p2, paint);
-      }
+    // 绘制外层主盾牌路径 (经典的圣盾造型)
+    final outerPath = Path();
+    outerPath.moveTo(w * 0.5, 0); // 顶部中点
+    outerPath.lineTo(w * 0.9, h * 0.1); // 右耳
+    outerPath.quadraticBezierTo(w * 1.0, h * 0.5, w * 0.9, h * 0.7); // 右侧弧度
+    outerPath.quadraticBezierTo(w * 0.75, h * 0.95, w * 0.5, h); // 底部尖端
+    outerPath.quadraticBezierTo(w * 0.25, h * 0.95, w * 0.1, h * 0.7); // 左侧弧度
+    outerPath.quadraticBezierTo(0, h * 0.5, w * 0.1, h * 0.1); // 左耳
+    outerPath.close();
+
+    // 绘制内层装饰线
+    final innerPath = Path();
+    double inset = 6.0;
+    innerPath.moveTo(w * 0.5, inset);
+    innerPath.lineTo(w * 0.82, h * 0.15);
+    innerPath.quadraticBezierTo(w * 0.9, h * 0.5, w * 0.82, h * 0.65);
+    innerPath.quadraticBezierTo(w * 0.7, h * 0.88, w * 0.5, h - inset);
+    innerPath.quadraticBezierTo(w * 0.3, h * 0.88, w * 0.18, h * 0.65);
+    innerPath.quadraticBezierTo(w * 0.1, h * 0.5, w * 0.18, h * 0.15);
+    innerPath.close();
+
+    // 1. 绘制内部微光填充
+    if (glowIntensity > 0) {
+      final fillPaint = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            color.withValues(alpha: 0.25 * glowIntensity),
+            color.withValues(alpha: 0.05 * glowIntensity),
+            Colors.transparent,
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, w, h));
+      canvas.drawPath(outerPath, fillPaint);
     }
 
-    drawSafeLine(Offset(size.width / 2, 0), Offset(size.width, size.height * 0.3));
-    drawSafeLine(Offset(size.width / 2, 0), Offset(0, size.height * 0.3));
-    drawSafeLine(Offset(size.width / 2, size.height), Offset(size.width, size.height * 0.7));
-    drawSafeLine(Offset(size.width / 2, size.height), Offset(0, size.height * 0.7));
-    drawSafeLine(Offset(size.width, size.height * 0.3), Offset(0, size.height * 0.7));
-    drawSafeLine(Offset(0, size.height * 0.3), Offset(size.width, size.height * 0.7));
+    // 2. 绘制外边框
+    canvas.drawPath(outerPath, paint);
 
-    
+    // 3. 绘制内边框 (细线)
+    final innerPaint = Paint()
+      ..color = color.withValues(alpha: 0.4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    canvas.drawPath(innerPath, innerPaint);
+
+    // 4. 绘制中心守护纹章 (一个星芒结合几何的符号)
+    final decoPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    double cx = w * 0.5;
+    double cy = h * 0.45;
+    double r = 8.0;
+
+    // 绘制一个菱形核心
+    final corePath = Path();
+    corePath.moveTo(cx, cy - r);
+    corePath.lineTo(cx + r, cy);
+    corePath.lineTo(cx, cy + r);
+    corePath.lineTo(cx - r, cy);
+    corePath.close();
+    canvas.drawPath(corePath, decoPaint);
+
+    // 延伸出的守护光芒
+    canvas.drawLine(Offset(cx, cy - r - 4), Offset(cx, cy - r - 8), decoPaint);
+    canvas.drawLine(Offset(cx, cy + r + 4), Offset(cx, cy + r + 8), decoPaint);
+    canvas.drawLine(Offset(cx - r - 4, cy), Offset(cx - r - 8, cy), decoPaint);
+    canvas.drawLine(Offset(cx + r + 4, cy), Offset(cx + r + 8, cy), decoPaint);
+
+    // 5. 整体外发光
     if (glowIntensity > 0) {
       final glowPaint = Paint()
-        ..color = color.withOpacity(0.2 * glowIntensity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
-      canvas.drawPath(path, glowPaint);
+        ..color = color.withValues(alpha: 0.15 * glowIntensity)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
+      canvas.drawPath(outerPath, glowPaint);
     }
   }
 
