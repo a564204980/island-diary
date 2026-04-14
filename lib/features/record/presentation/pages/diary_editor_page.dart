@@ -4,6 +4,7 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_toolbar.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/emoji_panel.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_block_item.dart';
+import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/hand_drawn_divider.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -15,31 +16,6 @@ import 'package:island_diary/shared/widgets/mood_picker/mood_popup_picker.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
 import 'package:island_diary/shared/widgets/island_vip_guard_dialog.dart';
-
-class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  final Color backgroundColor;
-
-  _StickyTabBarDelegate({required this.child, required this.backgroundColor});
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: backgroundColor,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: child,
-    );
-  }
-
-  @override
-  double get maxExtent => 54;
-  @override
-  double get minExtent => 54;
-
-  @override
-  bool shouldRebuild(covariant _StickyTabBarDelegate oldDelegate) => true;
-}
 
 class DiaryEditorPage extends StatefulWidget {
   final int? moodIndex;
@@ -84,13 +60,16 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     // 如果没有选择心情，则使用默认的强调色。针对 note 系列使用更中性的色调以适配不同底纹。
     final Color standardDefaultColor = const Color(0xFF8B5E3C);
     final Color noteDefaultColor = currentPaperStyle == 'note1' 
-        ? const Color(0xFF5A7285) // note1 为蓝绿色调，默认强调色改为灰蓝色
-        : const Color(0xFF7D6B5D); // 其他 note 默认为中性茶褐色
+        ? const Color(0xFF3D4E5B) // 深灰蓝色
+        : (currentPaperStyle == 'note7' 
+            ? const Color(0xFF546E7A) // 深石青色 (更适配水彩)
+            : (currentPaperStyle == 'note6' 
+                ? const Color(0xFF6D5F56) // 优雅灰褐色
+                : const Color(0xFF4A3E36))); // 默认深咖啡木色
     
     final defaultAccentColor = effectiveIsNight 
         ? const Color(0xFFE0C097) 
         : (currentPaperStyle.startsWith('note') ? noteDefaultColor : standardDefaultColor);
-    final moodGlowColor = mood?.glowColor;
     
     // UI 强调色固定为基于纸张样式的颜色，不再随心情动态变化
     final Color accentColor = defaultAccentColor;
@@ -407,17 +386,39 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                       ),
                     ),
 
-                    // LIST AREA: Blocks
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(
                         24, 
                         12, 
                         24, 
-                        math.max(160, currentBottomHeight + 100)
+                        isImageGrid ? 12 : math.max(160, currentBottomHeight + 100)
                       ),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
+                            // 如果开启了九宫格模式，非图片块按原样渲染，图片块在末尾统一处理
+                            if (isImageGrid) {
+                              final nonImageBlocks = blocks.where((b) => b is! ImageBlock).toList();
+                              if (index >= nonImageBlocks.length) return null;
+                              
+                              final block = nonImageBlocks[index];
+                              final key = blockKeys[block.id];
+                              return DiaryBlockItem(
+                                key: ValueKey(block.id),
+                                block: block,
+                                index: blocks.indexOf(block),
+                                isEmojiOpen: (isEmojiOpen || isColorPickerOpen || isImagePickerOpen),
+                                blockKey: key,
+                                onRemoveImage: () => removeImage(blocks.indexOf(block)),
+                                onDeleteAtStart: () => handleBackspaceAtStart(blocks.indexOf(block)),
+                                onShowPreview: showImagePreview,
+                                isNightOverride: effectiveIsNight,
+                                isNoteBackground: currentPaperStyle.startsWith('note'),
+                                paperStyle: currentPaperStyle,
+                                accentColor: accentColor,
+                              );
+                            }
+
                             final block = blocks[index];
                             final key = blockKeys[block.id];
                             return DiaryBlockItem(
@@ -435,13 +436,21 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               accentColor: accentColor,
                             );
                           },
-                          childCount: blocks.length,
+                          childCount: isImageGrid 
+                              ? blocks.where((b) => b is! ImageBlock).length 
+                              : blocks.length,
                         ),
                       ),
                     ),
 
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: 48),
+                    // 九宫格图片区域
+                    if (isImageGrid)
+                      SliverToBoxAdapter(
+                        child: _buildImageGridArea(effectiveIsNight, accentColor),
+                      ),
+
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: isImageGrid ? math.max(120, currentBottomHeight + 50) : 48),
                     ),
                   ],
                 ),
@@ -489,6 +498,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             accentColor: accentColor,
                             isNightOverride: effectiveIsNight,
                             isNoteBackground: currentPaperStyle.startsWith('note'),
+                            paperStyle: currentPaperStyle,
                           ),
                           AnimatedContainer(
                             duration: Duration(milliseconds: isEmojiOpen ? 150 : 250),
@@ -553,14 +563,15 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     // 使用与主 build 一致的逻辑
     final bool effectiveIsNight = isNight && !currentPaperStyle.startsWith('note');
     
-    // 计算纸张相关的默认色
-    final Color noteDefaultColor = currentPaperStyle == 'note1' 
-        ? const Color(0xFF5A7285) 
-        : const Color(0xFF7D6B5D);
-    
     final Color accentColor = effectiveIsNight 
         ? const Color(0xFFE0C097) 
-        : (currentPaperStyle.startsWith('note') ? noteDefaultColor : const Color(0xFF8B5E3C));
+        : (currentPaperStyle == 'note1' 
+            ? const Color(0xFF5A7285) 
+            : (currentPaperStyle == 'note7'
+                ? const Color(0xFF546E7A)
+                : (currentPaperStyle == 'note6'
+                    ? const Color(0xFF6D5F56)
+                    : const Color(0xFF7D6B5D))));
 
     // 根据纸张主色调给背景上色
     final Color paperInkColor = DiaryUtils.getInkColor(currentPaperStyle, effectiveIsNight);
@@ -623,8 +634,15 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         );
                         return;
                       }
-                      setModalState(() => isMixedLayout = value);
-                      setState(() => isMixedLayout = value);
+                      setModalState(() {
+                        isMixedLayout = value;
+                        if (value) isImageGrid = false; // 互斥逻辑
+                      });
+                      setState(() {
+                        isMixedLayout = value;
+                        if (value) isImageGrid = false;
+                      });
+                      onBlocksChanged(); // 即使是关闭也触发同步
                     },
                   ),
                   accentColor: accentColor,
@@ -640,6 +658,52 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   accentColor: accentColor,
                   textColor: textColor,
                   onTap: () {},
+                ),
+                const SizedBox(height: 12),
+                // 图片九宫格开关
+                _buildMoreMenuItem(
+                  icon: Icons.grid_view_rounded,
+                  title: "开启图片九宫格",
+                  subtitle: "图片不再混排，统一于末尾网格展示",
+                  trailing: Switch(
+                    value: isImageGrid,
+                    activeColor: accentColor,
+                    onChanged: (value) {
+                      if (value && !UserState().isVip.value) {
+                        Navigator.pop(context);
+                        showDialog(
+                          context: context,
+                          builder: (context) => const IslandVipGuardDialog(
+                            title: '解锁九宫格布局',
+                            description: '“图片九宫格”功能属于“星光计划”会员专享。开启后，您的图片将以精致的网格形式呈现。',
+                          ),
+                        );
+                        return;
+                      }
+                      setModalState(() {
+                        isImageGrid = value;
+                        if (value) {
+                          isMixedLayout = false; // 互斥逻辑
+                          // 清理逻辑：开启九宫格时，移除文末由于自动插入产生的冗余空行
+                          if (blocks.length > 1 && blocks.last is TextBlock && (blocks.last as TextBlock).controller.text.isEmpty) {
+                            blocks.removeLast();
+                          }
+                        }
+                      });
+                      setState(() {
+                        isImageGrid = value;
+                        if (value) {
+                          isMixedLayout = false;
+                          if (blocks.length > 1 && blocks.last is TextBlock && (blocks.last as TextBlock).controller.text.isEmpty) {
+                            blocks.removeLast();
+                          }
+                        }
+                      });
+                      onBlocksChanged();
+                    },
+                  ),
+                  accentColor: accentColor,
+                  textColor: textColor,
                 ),
                 const SizedBox(height: 20),
               ],
@@ -707,6 +771,72 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
             trailing,
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildImageGridArea(bool isNight, Color accentColor) {
+    final images = blocks.whereType<ImageBlock>().toList();
+    if (images.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double spacing = 8;
+          final double itemSize = (constraints.maxWidth - spacing * 2) / 3;
+
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: images.map((img) {
+              final index = blocks.indexOf(img);
+              return Stack(
+                children: [
+                  GestureDetector(
+                    onTap: () => showImagePreview(img),
+                    child: Container(
+                      width: itemSize,
+                      height: itemSize,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: DiaryUtils.buildImage(
+                          img.file.path,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: GestureDetector(
+                      onTap: () => removeImage(index),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.black45,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, color: Colors.white, size: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }).toList().cast<Widget>(),
+          );
+        },
       ),
     );
   }

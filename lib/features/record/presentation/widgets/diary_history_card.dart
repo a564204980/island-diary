@@ -113,7 +113,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
 
     final textStyle = TextStyle(
       fontSize: 15.5,
-      color: widget.isNight ? Colors.white70 : Colors.black.withOpacity(0.75),
+      color: widget.isNight ? Colors.white70 : Colors.black.withValues(alpha: 0.75),
       height: 1.6,
       fontFamily: 'LXGWWenKai',
     );
@@ -166,7 +166,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                     textAlign: TextAlign.right,
                     style: TextStyle(
                       fontSize: widget.showDate ? 13 : 15,
-                      color: widget.isNight ? Colors.white30 : Colors.black.withOpacity(0.35),
+                      color: widget.isNight ? Colors.white30 : Colors.black.withValues(alpha: 0.35),
                       fontWeight: FontWeight.w600,
                       fontFamily: 'LXGWWenKai',
                     ),
@@ -190,7 +190,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                               ? null
                               : [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: Colors.black.withValues(alpha: 0.1),
                                     blurRadius: 2,
                                     offset: const Offset(1, 1),
                                   ),
@@ -213,12 +213,12 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
                           color: widget.isNight
-                              ? Colors.white.withOpacity(0.05)
-                              : Colors.black.withOpacity(0.03),
+                              ? Colors.white.withValues(alpha: 0.05)
+                              : Colors.black.withValues(alpha: 0.03),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(
+                            color: Colors.black.withValues(alpha: 
                               widget.isNight ? 0.35 : 0.12,
                             ),
                             blurRadius: 10,
@@ -254,7 +254,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                                       size: 18,
                                       color: widget.isNight
                                           ? Colors.white24
-                                          : Colors.black.withOpacity(0.15),
+                                          : Colors.black.withValues(alpha: 0.15),
                                     ),
                                   ),
                                 ),
@@ -311,7 +311,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 color: widget.isNight
-                                                    ? const Color(0xFFD4A373).withOpacity(0.8)
+                                                    ? const Color(0xFFD4A373).withValues(alpha: 0.8)
                                                     : const Color(0xFFD4A373),
                                                 fontWeight: FontWeight.bold,
                                                 fontFamily: 'LXGWWenKai',
@@ -322,7 +322,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                                               _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                                               size: 16,
                                               color: widget.isNight
-                                                  ? const Color(0xFFD4A373).withOpacity(0.8)
+                                                  ? const Color(0xFFD4A373).withValues(alpha: 0.8)
                                                   : const Color(0xFFD4A373),
                                             ),
                                           ],
@@ -334,26 +334,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                               );
                             },
                           ),
-                          if (widget.entry.blocks.any((b) => b['type'] == 'image')) ...[
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: widget.entry.blocks
-                                  .where((b) => b['type'] == 'image')
-                                  .take(_isExpanded ? 999 : 4)
-                                  .map(
-                                    (b) => DiaryUtils.buildImage(
-                                      b['path'],
-                                      width: 46,
-                                      height: 46,
-                                      fit: BoxFit.cover,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                          ],
+                          _buildPhotoGrid(context),
                           const SizedBox(height: 12),
                           // 底部信息行：日期+时刻 (左) & 回复数 (右)
                           Row(
@@ -416,6 +397,74 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     .moveX(begin: 12, end: 0);
   }
 
+  Widget _buildPhotoGrid(BuildContext context) {
+    final images = widget.entry.blocks.where((b) => b['type'] == 'image').toList();
+    if (images.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double gridWidth = constraints.maxWidth;
+          
+          if (!widget.entry.isImageGrid) {
+            // 普通模式：精致的小图标排列
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: images
+                  .take(_isExpanded ? 999 : 4)
+                  .map(
+                    (b) => DiaryUtils.buildImage(
+                      b['path'],
+                      width: 46,
+                      height: 46,
+                      fit: BoxFit.cover,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  )
+                  .toList(),
+            );
+          }
+
+          // 九宫格模式
+          if (images.length == 1) {
+            // 单张：比例较大的展示
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: DiaryUtils.buildImage(
+                images[0]['path'],
+                width: gridWidth * 0.7,
+                height: gridWidth * 0.5,
+                fit: BoxFit.cover,
+              ),
+            );
+          }
+
+          final double spacing = 6;
+          final int crossAxisCount = 3; // 无论多少图（除单图外），列表都用 3 列更加整齐
+          final double itemSize = (gridWidth - (spacing * (crossAxisCount - 1))) / crossAxisCount;
+
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: images.take(9).map((img) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: DiaryUtils.buildImage(
+                  img['path'],
+                  width: itemSize,
+                  height: itemSize,
+                  fit: BoxFit.cover,
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildTimelineLine({required bool isTop}) {
     return Container(
       width: 4,
@@ -424,8 +473,8 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            widget.isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-            widget.isNight ? Colors.white.withOpacity(0.01) : Colors.black.withOpacity(0.01),
+            widget.isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+            widget.isNight ? Colors.white.withValues(alpha: 0.01) : Colors.black.withValues(alpha: 0.01),
           ],
         ),
         borderRadius: BorderRadius.circular(2),
@@ -453,7 +502,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: badgeColor.withOpacity(isNight ? 0.15 : 0.18),
+            color: badgeColor.withValues(alpha: isNight ? 0.15 : 0.18),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -475,7 +524,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: badgeColor.withOpacity(isNight ? 0.8 : 1.0),
+                  color: badgeColor.withValues(alpha: isNight ? 0.8 : 1.0),
                   fontFamily: 'LXGWWenKai',
                 ),
               ),
@@ -489,10 +538,10 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: badgeColor.withOpacity(isNight ? 0.08 : 0.12),
+              color: badgeColor.withValues(alpha: isNight ? 0.08 : 0.12),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: badgeColor.withOpacity(isNight ? 0.2 : 0.25),
+                color: badgeColor.withValues(alpha: isNight ? 0.2 : 0.25),
                 width: 0.5,
               ),
             ),
@@ -501,7 +550,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
+                color: badgeColor.withValues(alpha: isNight ? 0.6 : 1.0),
                 fontFamily: 'LXGWWenKai',
               ),
             ),
@@ -512,10 +561,10 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: badgeColor.withOpacity(isNight ? 0.08 : 0.12),
+              color: badgeColor.withValues(alpha: isNight ? 0.08 : 0.12),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: badgeColor.withOpacity(isNight ? 0.2 : 0.25),
+                color: badgeColor.withValues(alpha: isNight ? 0.2 : 0.25),
                 width: 0.5,
               ),
             ),
@@ -524,7 +573,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
+                color: badgeColor.withValues(alpha: isNight ? 0.6 : 1.0),
                 fontFamily: 'LXGWWenKai',
               ),
             ),
@@ -535,17 +584,17 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: badgeColor.withOpacity(isNight ? 0.08 : 0.12),
+              color: badgeColor.withValues(alpha: isNight ? 0.08 : 0.12),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: badgeColor.withOpacity(isNight ? 0.2 : 0.25),
+                color: badgeColor.withValues(alpha: isNight ? 0.2 : 0.25),
                 width: 0.5,
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.location_on_outlined, size: 10, color: badgeColor.withOpacity(isNight ? 0.6 : 1.0)),
+                Icon(Icons.location_on_outlined, size: 10, color: badgeColor.withValues(alpha: isNight ? 0.6 : 1.0)),
                 const SizedBox(width: 2),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 160),
@@ -556,7 +605,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: badgeColor.withOpacity(isNight ? 0.6 : 1.0),
+                      color: badgeColor.withValues(alpha: isNight ? 0.6 : 1.0),
                       fontFamily: 'LXGWWenKai',
                     ),
                   ),
@@ -572,13 +621,13 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: isNight
-                  ? Colors.white.withOpacity(0.08)
-                  : const Color(0xFF8B7763).withOpacity(0.08),
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : const Color(0xFF8B7763).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isNight
                     ? Colors.white12
-                    : const Color(0xFF8B7763).withOpacity(0.15),
+                    : const Color(0xFF8B7763).withValues(alpha: 0.15),
                 width: 0.5,
               ),
             ),
@@ -591,7 +640,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                     fontSize: 12,
                     color: isNight
                         ? Colors.white38
-                        : const Color(0xFF8B7763).withOpacity(0.5),
+                        : const Color(0xFF8B7763).withValues(alpha: 0.5),
                     fontWeight: FontWeight.bold,
                   ),
                 ),

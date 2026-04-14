@@ -16,7 +16,10 @@ class DiaryEntry {
   final String? customDate;
   final String? customTime;
   final List<DiaryReply> replies; // 自我回复/回响列表
-  final String paperStyle; // 信纸样式: classic, grid, lined, aesthetics, vintage
+  final String paperStyle; // 信纸样式
+  final bool isImageGrid; // 是否开启图片九宫格
+  final bool isMixedLayout; // 是否开启图文混排
+  final bool isLiked; // 是否已点赞（朋友圈模式交互）
 
   DiaryEntry({
     String? id,
@@ -33,6 +36,9 @@ class DiaryEntry {
     this.customTime,
     List<DiaryReply>? replies,
     this.paperStyle = 'note1',
+    this.isImageGrid = false,
+    this.isMixedLayout = false,
+    this.isLiked = false,
   })  : id = id ?? const Uuid().v4(),
         replies = replies ?? [];
 
@@ -52,6 +58,9 @@ class DiaryEntry {
       'customTime': customTime,
       'replies': replies.map((x) => x.toMap()).toList(),
       'paperStyle': paperStyle,
+      'isImageGrid': isImageGrid,
+      'isMixedLayout': isMixedLayout,
+      'isLiked': isLiked,
     };
   }
 
@@ -74,6 +83,9 @@ class DiaryEntry {
               (map['replies'] as List).map((x) => DiaryReply.fromMap(x)))
           : [],
       paperStyle: map['paperStyle'] ?? 'note1',
+      isImageGrid: map['isImageGrid'] ?? false,
+      isMixedLayout: map['isMixedLayout'] ?? false,
+      isLiked: map['isLiked'] ?? false,
     );
   }
 

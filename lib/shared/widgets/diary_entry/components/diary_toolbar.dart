@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
 import 'package:island_diary/core/state/user_state.dart';
+import '../utils/diary_utils.dart';
 import 'diary_painters.dart';
 
 /// 随键盘起伏的动态吸附工具栏（双行版）
@@ -24,6 +25,7 @@ class DiaryToolbar extends StatelessWidget {
   final Color? accentColor;
   final bool? isNightOverride;
   final bool isNoteBackground;
+  final String paperStyle;
 
   const DiaryToolbar({
     super.key,
@@ -45,25 +47,27 @@ class DiaryToolbar extends StatelessWidget {
     this.accentColor,
     this.isNightOverride,
     this.isNoteBackground = false,
+    this.paperStyle = 'standard',
   });
 
   @override
   Widget build(BuildContext context) {
     final bool isNight = isNightOverride ?? UserState().isNight;
-    final Color primaryColor = isNight
-        ? const Color(0xFFE0C097)
-        : (accentColor ?? const Color(0xFF8B5E3C));
-        
+    
+    // 核心墨水/强调色
+    final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
+    final Color primaryColor = isNight ? const Color(0xFFE0C097) : inkColor;
+    
+    // 动态工具栏背景：基于信纸色调进行高亮处理
+    final Color paperBase = DiaryUtils.getPaperBaseColor(paperStyle, isNight);
         
     final Color toolbarBg = isNight 
-        ? const Color(0xFF1E1E2C).withValues(alpha: isNoteBackground ? 0.8 : 0.9) 
-        : (isNoteBackground 
-            ? Colors.white.withValues(alpha: 0.12)
-            : primaryColor.withValues(alpha: 0.08));
+        ? const Color(0xFF1E1E2C).withValues(alpha: 0.95) 
+        : paperBase.withValues(alpha: 0.95);
             
-    final Color toolbarBorder = isNoteBackground 
-        ? (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.08))
-        : primaryColor.withValues(alpha: 0.3);
+    final Color toolbarBorder = isNight 
+        ? Colors.white24 
+        : primaryColor.withValues(alpha: 0.25);
 
 
     return LayoutBuilder(
@@ -90,8 +94,8 @@ class DiaryToolbar extends StatelessWidget {
                 child: ClipRect(
                   child: BackdropFilter(
                     filter: ImageFilter.blur(
-                      sigmaX: isNoteBackground ? 12 : 6, 
-                      sigmaY: isNoteBackground ? 12 : 6,
+                      sigmaX: isNoteBackground ? 1 : 4, 
+                      sigmaY: isNoteBackground ? 1 : 4,
                     ),
                     child: CustomPaint(
                       painter: HandDrawnToolbarPainter(
@@ -161,7 +165,7 @@ class DiaryToolbar extends StatelessWidget {
 
     return [
       Row(
-        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 改为均匀分布
         children: row1Icons.map((icon) {
           return _buildToolbarItem(
             itemWidth,
@@ -174,7 +178,7 @@ class DiaryToolbar extends StatelessWidget {
         }).toList(),
       ),
       Row(
-        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 改为均匀分布
         children: row2Icons.map((icon) {
           return _buildToolbarItem(
             itemWidth,
@@ -207,14 +211,18 @@ class DiaryToolbar extends StatelessWidget {
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: isSelected
-                  ? primaryColor.withValues(alpha: 0.15)
-                  : (bgColor ?? Colors.transparent),
+                  ? primaryColor.withValues(alpha: 0.2)
+                  : (bgColor ?? primaryColor.withValues(alpha: 0.05)),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? primaryColor.withValues(alpha: 0.3) : Colors.transparent,
+                width: 1,
+              ),
             ),
             child: Icon(
               icon,
-              size: 24,
-              color: iconColor ?? primaryColor.withValues(alpha: 0.8),
+              size: 22, // 略微缩小图标以适应背景圆角
+              color: iconColor ?? primaryColor,
             ),
           ),
         )

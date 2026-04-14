@@ -5,20 +5,26 @@ import '../../../domain/models/diary_entry.dart';
 class DiaryReplies extends StatelessWidget {
   final List<DiaryReply> replies;
   final bool isNight;
+  final Color? accentColor;
+  final Color? inkColor;
 
   const DiaryReplies({
     super.key,
     required this.replies,
     required this.isNight,
+    this.accentColor,
+    this.inkColor,
   });
 
   @override
   Widget build(BuildContext context) {
     if (replies.isEmpty) return const SizedBox.shrink();
 
-    final accentColor = isNight
+    final effectiveAccentColor = accentColor ?? (isNight
         ? const Color(0xFFD4A373)
-        : const Color(0xFF8B5E3C);
+        : const Color(0xFF8B5E3C));
+    
+    final effectiveInkColor = inkColor ?? (isNight ? Colors.white70 : const Color(0xFF5D4037));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -30,7 +36,7 @@ class DiaryReplies extends StatelessWidget {
               width: 4,
               height: 20,
               decoration: BoxDecoration(
-                color: accentColor,
+                color: effectiveAccentColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -40,7 +46,7 @@ class DiaryReplies extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: isNight ? Colors.white70 : const Color(0xFF5D4037),
+                color: effectiveInkColor,
                 fontFamily: 'LXGWWenKai',
               ),
             ),
@@ -73,9 +79,7 @@ class DiaryReplies extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     height: 1.6,
-                    color: isNight
-                        ? Colors.white.withOpacity(0.8)
-                        : const Color(0xFF4A342E),
+                    color: effectiveInkColor.withValues(alpha: 0.9),
                     fontFamily: 'LXGWWenKai',
                   ),
                 ),

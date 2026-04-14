@@ -4,7 +4,10 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/shared/widgets/sprite_animation.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
+import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
+import 'moments_interaction_popover.dart';
 
 class DiaryMomentsCard extends StatefulWidget {
   final DiaryEntry entry;
@@ -24,14 +27,122 @@ class DiaryMomentsCard extends StatefulWidget {
 
 class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
   bool _isExpanded = false;
+  bool _showPopover = false;
+
+  void _togglePopover() {
+    setState(() {
+      _showPopover = !_showPopover;
+    });
+  }
+
+  void _handleLike() async {
+    await UserState().toggleLike(widget.entry.id);
+    setState(() {
+      _showPopover = false;
+    });
+  }
+
+  void _handleReply() {
+    setState(() {
+      _showPopover = false;
+    });
+    _showReplyDialog();
+  }
+
+  void _handleEdit() {
+    setState(() {
+      _showPopover = false;
+    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DiaryEditorPage(
+          moodIndex: widget.entry.moodIndex,
+          intensity: widget.entry.intensity,
+          tag: widget.entry.tag,
+          entry: widget.entry,
+        ),
+      ),
+    );
+  }
+
+  void _handleDelete() {
+    setState(() {
+      _showPopover = false;
+    });
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认删除', style: TextStyle(fontFamily: 'LXGWWenKai')),
+        content: const Text('这段记忆将被抹去，确认要删除吗？', style: TextStyle(fontFamily: 'LXGWWenKai')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: Colors.grey, fontFamily: 'LXGWWenKai')),
+          ),
+          TextButton(
+            onPressed: () async {
+              await UserState().deleteDiary(widget.entry.id);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('删除', style: TextStyle(color: Colors.red, fontFamily: 'LXGWWenKai')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReplyDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('时光回响', style: TextStyle(fontFamily: 'LXGWWenKai')),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: '写下此刻的感悟...',
+            hintStyle: TextStyle(fontSize: 14, fontFamily: 'LXGWWenKai'),
+            border: OutlineInputBorder(),
+          ),
+          style: const TextStyle(fontSize: 15, fontFamily: 'LXGWWenKai'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: Colors.grey, fontFamily: 'LXGWWenKai')),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (controller.text.trim().isNotEmpty) {
+                await UserState().addReplyToDiary(widget.entry.id, controller.text.trim());
+              }
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('发送', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'LXGWWenKai')),
+          ),
+        ],
+      ),
+    );
+  }
 
   String _getMoodAnimation(int moodIndex) {
     // 映射心情 ID 到对应的史莱姆动画
     // 0: 期待, 1: 厌恶, 2: 恐惧, 3: 惊喜, 4: 平静, 5: 愤怒, 6: 悲伤, 7: 开心
-    if (moodIndex == 7) return 'assets/images/emoji/weixiao.png'; // 开心
-    if (moodIndex == 3) return 'assets/images/emoji/daxiao.png';  // 惊喜 -> 大笑
-    if (moodIndex == 6) return 'assets/images/emoji/nanguo.png';  // 悲伤 -> 南过
-    if (moodIndex == 1 || moodIndex == 5) return 'assets/images/emoji/sikao.png'; // 愤怒/厌恶 -> 思考
+    if (moodIndex == 7) {
+      return 'assets/images/emoji/weixiao.png'; // 开心
+    }
+    if (moodIndex == 3) {
+      return 'assets/images/emoji/daxiao.png';  // 惊喜 -> 大笑
+    }
+    if (moodIndex == 6) {
+      return 'assets/images/emoji/nanguo.png';  // 悲伤 -> 南过
+    }
+    if (moodIndex == 1 || moodIndex == 5) {
+      return 'assets/images/emoji/sikao.png'; // 愤怒/厌恶 -> 思考
+    }
     return 'assets/images/emoji/weixiao.png'; // 默认微笑
   }
 
@@ -68,8 +179,11 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
               withComposing: false,
               hideMarkdownSymbols: true,
             );
-            if (span.children != null) spans.addAll(span.children!);
-            else spans.add(span);
+            if (span.children != null) {
+              spans.addAll(span.children!);
+            } else {
+              spans.add(span);
+            }
           }
           block.dispose();
         }
@@ -82,7 +196,7 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
   Widget build(BuildContext context) {
     final textStyle = TextStyle(
       fontSize: 15.0,
-      color: widget.isNight ? Colors.white70 : Colors.black.withOpacity(0.85),
+      color: widget.isNight ? Colors.white70 : Colors.black.withValues(alpha: 0.85),
       height: 1.5,
       fontFamily: 'LXGWWenKai',
     );
@@ -92,7 +206,7 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: widget.isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+            color: widget.isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
             width: 0.5,
           ),
         ),
@@ -137,14 +251,49 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
                 ),
                 const SizedBox(height: 6),
 
-                // 正文
-                RichText(
-                  maxLines: _isExpanded ? null : 6,
-                  overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                  text: TextSpan(children: _buildRichTextSpans(textStyle)),
-                ),
+                Builder(
+                  builder: (context) {
+                    final screenWidth = MediaQuery.of(context).size.width;
+                    final estimateWidth = screenWidth - 100; // 减去头像和间距
 
-                // 展开/收起 (如果有需要)
+                    final richSpans = _buildRichTextSpans(textStyle);
+                    final displaySpan = TextSpan(children: richSpans);
+                    
+                    final tp = TextPainter(
+                      text: displaySpan,
+                      maxLines: 6,
+                      textDirection: TextDirection.ltr,
+                    )..layout(maxWidth: estimateWidth > 0 ? estimateWidth : 200);
+
+                    final bool hasOverflow = tp.didExceedMaxLines;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        RichText(
+                          maxLines: _isExpanded ? null : 6,
+                          overflow: _isExpanded ? TextOverflow.visible : TextOverflow.clip,
+                          text: displaySpan,
+                        ),
+                        if (hasOverflow) ...[
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () => setState(() => _isExpanded = !_isExpanded),
+                            child: Text(
+                              _isExpanded ? '收起' : '全文',
+                              style: const TextStyle(
+                                color: Color(0xFF576B95),
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'LXGWWenKai',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
+                ),
                 
                 // 图片展示 (九宫格)
                 _buildPhotoGrid(),
@@ -168,13 +317,40 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
                         fontFamily: 'LXGWWenKai',
                       ),
                     ),
-                    Icon(
-                      Icons.more_horiz_rounded,
-                      size: 20,
-                      color: widget.isNight ? Colors.white30 : const Color(0xFF576B95).withOpacity(0.6),
+                    Stack(
+                      alignment: Alignment.centerRight,
+                      clipBehavior: Clip.none,
+                      children: [
+                        if (_showPopover)
+                          Positioned(
+                            right: 30,
+                            child: MomentsInteractionPopover(
+                              isLiked: widget.entry.isLiked,
+                              onLike: _handleLike,
+                              onComment: _handleReply,
+                              onEdit: _handleEdit,
+                              onDelete: _handleDelete,
+                            ),
+                          ),
+                        GestureDetector(
+                          onTap: _togglePopover,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            child: Icon(
+                              Icons.more_horiz_rounded,
+                              size: 20,
+                              color: widget.isNight ? Colors.white30 : const Color(0xFF576B95).withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+                if (widget.entry.replies.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildReplyList(),
+                ],
               ],
             ),
           ),
@@ -203,7 +379,7 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
           if (images.length == 1) {
              // 单张图大图
              return ClipRRect(
-               borderRadius: BorderRadius.circular(4),
+               borderRadius: BorderRadius.circular(12),
                child: DiaryUtils.buildImage(
                  images[0]['path'],
                  width: gridWidth * 0.6,
@@ -222,7 +398,7 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
             runSpacing: spacing,
             children: images.take(9).map((img) {
               return ClipRRect(
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(8),
                 child: DiaryUtils.buildImage(
                   img['path'],
                   width: itemSize,
@@ -240,7 +416,7 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
   Widget _buildMoodTags() {
     final moodIdx = widget.entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
-    final Color tagColor = (mood.glowColor ?? const Color(0xFF576B95)).withOpacity(0.7);
+    final Color tagColor = (mood.glowColor ?? const Color(0xFF576B95)).withValues(alpha: 0.7);
 
     return Wrap(
       spacing: 6,
@@ -264,6 +440,42 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildReplyList() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: widget.isNight ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF3F3F5),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: widget.entry.replies.map((reply) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  fontSize: 13,
+                  color: widget.isNight ? Colors.white70 : Colors.black87,
+                  fontFamily: 'LXGWWenKai',
+                  height: 1.4,
+                ),
+                children: [
+                  const TextSpan(
+                    text: '我: ',
+                    style: TextStyle(color: Color(0xFF576B95), fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(text: reply.content),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 }

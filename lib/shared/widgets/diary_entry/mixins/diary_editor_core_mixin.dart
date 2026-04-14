@@ -41,6 +41,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   String? currentTag;
   String currentPaperStyle = 'classic';
   bool isMixedLayout = true; // 是否开启图文混排
+  bool isImageGrid = false; // 是否开启图片九宫格
 
   String get fixedQuote => _fixedQuote ?? '';
 
@@ -65,6 +66,16 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     currentPaperStyle = entry?.paperStyle ?? 
                       UserState().diaryDraft.value?.paperStyle ?? 
                       UserState().preferredPaperStyle.value;
+    isImageGrid = entry?.isImageGrid ??
+                  UserState().diaryDraft.value?.isImageGrid ??
+                  false;
+    isMixedLayout = entry?.isMixedLayout ??
+                    UserState().diaryDraft.value?.isMixedLayout ??
+                    !isImageGrid; // 如果开启了九宫格，默认关闭混排
+    
+    // 强制互斥检查
+    if (isImageGrid) isMixedLayout = false;
+
     syncBlockColors();
 
     updateMoodQuote();
@@ -107,6 +118,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     customTime = entry.customTime;
     replies = List<DiaryReply>.from(entry.replies); // 初始化回复内容
     currentPaperStyle = entry.paperStyle;
+    isImageGrid = entry.isImageGrid;
+    isMixedLayout = entry.isMixedLayout;
   }
 
   void addFocusListener(TextBlock block) {
@@ -155,6 +168,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       customDate = UserState().diaryDraft.value?.customDate;
       customTime = UserState().diaryDraft.value?.customTime;
       currentPaperStyle = UserState().diaryDraft.value?.paperStyle ?? 'classic';
+      isImageGrid = UserState().diaryDraft.value?.isImageGrid ?? false;
+      isMixedLayout = UserState().diaryDraft.value?.isMixedLayout ?? !isImageGrid;
 
       if (draftModified) {
         onBlocksChanged();
@@ -186,6 +201,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       dateTime: _entryDateTime,
       blocks: blocks.map((b) => b.toMap()).toList(),
       paperStyle: currentPaperStyle,
+      isImageGrid: isImageGrid,
+      isMixedLayout: isMixedLayout,
     );
   }
 
@@ -251,6 +268,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           blocks: blocks.map((b) => b.toMap()).toList(),
           replies: replies, // 使用本地维护的回复状态
           paperStyle: currentPaperStyle,
+          isImageGrid: isImageGrid,
+          isMixedLayout: isMixedLayout,
         );
         await UserState().updateDiary(updatedEntry);
       } else {
@@ -269,6 +288,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           dateTime: _entryDateTime,
           blocks: blocks.map((b) => b.toMap()).toList(),
           paperStyle: currentPaperStyle,
+          isImageGrid: isImageGrid,
+          isMixedLayout: isMixedLayout,
         );
         await UserState().saveDiary();
       }

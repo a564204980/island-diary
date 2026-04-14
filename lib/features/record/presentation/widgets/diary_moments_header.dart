@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/shared/widgets/sprite_animation.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -44,8 +43,18 @@ class DiaryMomentsHeader extends StatelessWidget {
                             fit: BoxFit.cover,
                           )
                         : Image.asset(
-                            'assets/images/decoration/furniture/house.png',
+                            'assets/images/note/note_bg1.png',
                             fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              color: isNight ? const Color(0xFF1A1C1E) : const Color(0xFFD4A373).withOpacity(0.1),
+                              child: Center(
+                                child: Icon(
+                                  Icons.landscape_rounded,
+                                  color: isNight ? Colors.white12 : Colors.black12,
+                                  size: 48,
+                                ),
+                              ),
+                            ),
                           ),
                   ),
                 ),
@@ -114,72 +123,6 @@ class DiaryMomentsHeader extends StatelessWidget {
                 ),
               ),
 
-              // 4. 个人信息叠加层
-              Positioned(
-                right: 20,
-                bottom: 10,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 35, right: 12),
-                      child: ValueListenableBuilder<String>(
-                        valueListenable: UserState().userName,
-                        builder: (context, name, _) {
-                          return Text(
-                            name.isEmpty ? "我" : name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'LXGWWenKai',
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black45,
-                                  blurRadius: 8,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    Container(
-                      width: 76,
-                      height: 76,
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          color: isNight ? const Color(0xFF2C2E30) : const Color(0xFFFDF9F0),
-                          child: const Center(
-                            child: SpriteAnimation(
-                              assetPath: 'assets/images/emoji/weixiao.png',
-                              frameCount: 9,
-                              duration: Duration(milliseconds: 1000),
-                              size: 60.0,
-                              isPlaying: true,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         );

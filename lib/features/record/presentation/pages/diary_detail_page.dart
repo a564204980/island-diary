@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
@@ -83,7 +82,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      UserState().deleteDiary(_currentEntry);
+                      UserState().deleteDiary(_currentEntry.id);
                       Navigator.pop(context); // 关闭弹窗
                       Navigator.pop(context); // 返回列表
                     },
@@ -149,6 +148,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     final accentColor = _effectiveIsNight
         ? baseGlowColor
         : Color.lerp(baseGlowColor, Colors.black, 0.45)!;
+    final inkColor = DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -195,18 +195,22 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHeader(),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 20),
                     _buildRichTextView(),
-                    const SizedBox(height: 48),
-                    _buildImages(),
+                    const SizedBox(height: 12),
+                    _buildImagesView(),
                     const SizedBox(height: 48),
                     DiaryTimeline(
                       replies: _currentEntry.replies,
                       isNight: _effectiveIsNight,
+                      inkColor: inkColor,
+                      accentColor: accentColor,
                     ),
                     DiaryReplies(
                       replies: _currentEntry.replies,
                       isNight: _effectiveIsNight,
+                      inkColor: inkColor,
+                      accentColor: accentColor,
                     ),
                   ],
                 ),
@@ -422,7 +426,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Container(
+      child: SizedBox(
         width: width,
         height: 54,
         child: Icon(icon, color: color, size: iconSize),
@@ -495,7 +499,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             strokeWidth: 1.5,
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
         // 浮动信息：心情标签 + 地点 + 天气
         // 标签行
         Wrap(
@@ -709,16 +713,50 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     ).animate().fadeIn(delay: 300.ms, duration: 800.ms);
   }
 
-  Widget _buildImages() {
+  Widget _buildImagesView() {
     final images = _currentEntry.blocks
         .where((b) => b['type'] == 'image')
         .toList();
     if (images.isEmpty) return const SizedBox.shrink();
 
+    if (_currentEntry.isImageGrid) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final double spacing = 8;
+          final double itemSize = (constraints.maxWidth - spacing * 2) / 3;
+
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: images.map((image) {
+              final path = image['path'];
+              return Container(
+                width: itemSize,
+                height: itemSize,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: DiaryUtils.buildImage(path, fit: BoxFit.cover),
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ).animate().fadeIn(delay: 500.ms, duration: 800.ms);
+    }
+
     return Column(
       children: images.map((image) {
         final path = image['path'];
-        final videoPath = image['videoPath'];
 
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 8),

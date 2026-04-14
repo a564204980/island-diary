@@ -51,12 +51,12 @@ class ExportService {
           name: 'isle_diary_book_${DateTime.now().millisecondsSinceEpoch}.pdf',
         );
       } catch (e) {
-        print("PDF CORE: Printing.layoutPdf failed, falling back to share: $e");
+        debugPrint("PDF CORE: Printing.layoutPdf failed, falling back to share: $e");
         throw 'PRINT_SERVICE_NOT_FOUND';
       }
     } catch (e, stack) {
       if (e == 'PRINT_SERVICE_NOT_FOUND') rethrow;
-      print("PDF CORE ERROR: $e\n$stack");
+      debugPrint("PDF CORE ERROR: $e\n$stack");
       rethrow;
     }
   }
@@ -68,7 +68,7 @@ class ExportService {
 
     try {
       // 1. 并行加载核心字体与基础资源
-      print("PDF CORE: Parallel loading started...");
+      debugPrint("PDF CORE: Parallel loading started...");
       final fontFuture = rootBundle.load("assets/fonts/LXGWWenKai-Regular.ttf");
       final emojiFontFuture = rootBundle.load("assets/fonts/nishiki-teki.ttf");
       
@@ -77,7 +77,7 @@ class ExportService {
       final emojiFont = pw.Font.ttf(results[1]);
 
       // 2. 并行加载心情图标
-      print("PDF CORE: Preloading mood icons...");
+      debugPrint("PDF CORE: Preloading mood icons...");
       final Map<int, pw.ImageProvider> moodIcons = {};
       final List<Future<void>> moodFutures = [];
       
@@ -91,13 +91,13 @@ class ExportService {
               moodIcons[idx] = pw.MemoryImage(iconData.buffer.asUint8List());
             }
           } catch (e) {
-             print("PDF CORE: Icon $idx load error: $e");
+             debugPrint("PDF CORE: Icon $idx load error: $e");
           }
         }());
       }
 
       // 3. 预分析并并行加载表情图片
-      print("PDF CORE: Preloading emoji images...");
+      debugPrint("PDF CORE: Preloading emoji images...");
       final Set<String> usedEmojiPaths = {};
       for (var entry in entries) {
         final chunks = EmojiMapping.parseText(entry.content);
@@ -126,7 +126,7 @@ class ExportService {
             final data = await rootBundle.load(currentPath);
             emojiImages[currentPath] = pw.MemoryImage(data.buffer.asUint8List());
           } catch (e) {
-            print("PDF CORE: Emoji load error ($currentPath): $e");
+            debugPrint("PDF CORE: Emoji load error ($currentPath): $e");
           }
         }());
       }
@@ -135,7 +135,7 @@ class ExportService {
       final Map<String, pw.ImageProvider> paperBackgrounds = {};
       final List<Future<void>> backgroundFutures = [];
       if (includeBackground) {
-        print("PDF CORE: Preloading paper backgrounds...");
+        debugPrint("PDF CORE: Preloading paper backgrounds...");
         final Set<String> neededPaperStyles = entries.map((e) => e.paperStyle).where((s) => s.startsWith('note')).toSet();
         for (var style in neededPaperStyles) {
           final currentStyle = style;
@@ -147,7 +147,7 @@ class ExportService {
               final data = await rootBundle.load(path);
               paperBackgrounds[currentStyle] = pw.MemoryImage(data.buffer.asUint8List());
             } catch (e) {
-              print("PDF CORE: Paper background load error ($currentStyle): $e");
+              debugPrint("PDF CORE: Paper background load error ($currentStyle): $e");
             }
           }());
         }
@@ -155,7 +155,7 @@ class ExportService {
 
       // 等待所有异步资源完成
       await Future.wait([...moodFutures, ...emojiFutures, ...backgroundFutures]);
-      print("PDF CORE: All assets ready.");
+      debugPrint("PDF CORE: All assets ready.");
 
       // 4. 内容排序与文案准备
       final sortedEntries = List<DiaryEntry>.from(entries)
@@ -171,7 +171,7 @@ class ExportService {
       final randomQuote = quotes[DateTime.now().millisecond % quotes.length];
 
       // 5. 生成扉页（封面）
-      print("PDF CORE: Generating cover page...");
+      debugPrint("PDF CORE: Generating cover page...");
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
@@ -184,7 +184,7 @@ class ExportService {
       );
 
       // 6. 生成 MultiPage 内容 (正文)
-      print("PDF CORE: Generating MultiPage layout...");
+      debugPrint("PDF CORE: Generating MultiPage layout...");
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
@@ -201,10 +201,10 @@ class ExportService {
         ),
       );
 
-      print("PDF CORE: Finalizing layout...");
+      debugPrint("PDF CORE: Finalizing layout...");
       return await pdf.save();
     } catch (e, stack) {
-      print("PDF CORE ERROR: $e\n$stack");
+      debugPrint("PDF CORE ERROR: $e\n$stack");
       return null;
     }
   }
@@ -355,35 +355,6 @@ class ExportService {
           ],
         ),
       ),
-    );
-  }
-
-  static pw.Widget _buildStats(List<DiaryEntry> entries, pw.Font font, String quote, _PdfThemeColors colors) {
-    final days = _countUniqueDays(entries);
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Row(
-           children: [
-             _buildStatItem("记录时光", "$days天", font, colors),
-             pw.SizedBox(width: 40),
-             _buildStatItem("岛屿累计", "${entries.length}篇", font, colors),
-           ]
-        ),
-        pw.SizedBox(height: 10),
-        pw.Text(quote, style: pw.TextStyle(font: font, fontSize: 11, color: colors.secondaryText)),
-        pw.SizedBox(height: 10),
-      ],
-    );
-  }
-
-  static pw.Widget _buildStatItem(String label, String value, pw.Font font, _PdfThemeColors colors) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(value, style: pw.TextStyle(font: font, fontSize: 18, fontWeight: pw.FontWeight.bold, color: colors.secondaryText)),
-        pw.Text(label, style: pw.TextStyle(font: font, fontSize: 10, color: colors.tertiaryText)),
-      ],
     );
   }
 

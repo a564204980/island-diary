@@ -10,9 +10,7 @@ import '../../island_vip_guard_dialog.dart';
 import './diary_editor_core_mixin.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as p;
 import 'package:island_diary/core/constants/api_constants.dart';
-import 'package:island_diary/shared/widgets/island_alert.dart';
 
 mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
   void onImageButtonPressed() async {
@@ -66,6 +64,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       ),
     );
 
+    if (!mounted) return;
     if (source == null) {
       setState(() => isImagePickerOpen = false);
       return;
@@ -82,12 +81,14 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
           requestType: RequestType.common,
         ),
       );
+      if (!mounted) return;
       if (result == null || result.isEmpty) {
         setState(() => isImagePickerOpen = false);
         return;
       }
       final entity = result.first;
       final file = await entity.originFile;
+      if (!mounted) return;
       if (file == null) {
         setState(() => isImagePickerOpen = false);
         return;
@@ -100,6 +101,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     } else {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: ImageSource.camera);
+      if (!mounted) return;
       if (image == null) {
         setState(() => isImagePickerOpen = false);
         return;
@@ -107,10 +109,22 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       pickedPath = image.path;
     }
 
+    if (!mounted) return;
     setState(() => isImagePickerOpen = false);
 
     final int insertIndex;
     TextBlock? newBottomBlock;
+
+    if (isImageGrid) {
+      final imageBlock = ImageBlock(XFile(pickedPath), videoPath: pickedVideoPath);
+      setState(() {
+        blocks.add(imageBlock);
+        blockKeys[imageBlock.id] = GlobalKey();
+      });
+      onBlocksChanged();
+      _uploadImageInBackground(imageBlock, pickedPath);
+      return;
+    }
 
     // 布局校验：当用户不是 VIP 或 主动关闭了图文混排开关时，强制置底
     final bool canMix = isVip && isMixedLayout;
@@ -145,6 +159,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
 
     final imageBlock = ImageBlock(XFile(pickedPath), videoPath: pickedVideoPath);
 
+    if (!mounted) return;
     setState(() {
       blocks.insert(insertIndex, imageBlock);
       if (needsNewBottomBlock) {
@@ -218,6 +233,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
   void onMusicButtonPressed() async {
     FocusScope.of(context).unfocus();
     await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
 
     final activeBlock = activeTextBlock;
     TextSelection? savedSelection;
@@ -225,6 +241,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
 
     final FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.audio);
 
+    if (!mounted) return;
     if (result != null && result.files.single.path != null) {
       final file = result.files.single;
       final int insertIndex;
@@ -325,6 +342,20 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
 
     final int insertIndex;
     TextBlock? newBottomBlock;
+
+    if (isImageGrid) {
+      final parts = imagePath.split('|');
+      final actualImagePath = parts[0];
+      final String? videoPath = parts.length > 1 ? parts[1] : null;
+      final imageBlock = ImageBlock(XFile(actualImagePath), videoPath: videoPath);
+      setState(() {
+        blocks.add(imageBlock);
+        blockKeys[imageBlock.id] = GlobalKey();
+      });
+      onBlocksChanged();
+      _uploadImageInBackground(imageBlock, actualImagePath);
+      return;
+    }
 
     // 布局校验：当用户不是 VIP 或 主动关闭了图文混排开关时，强制置底
     final bool canMix = isVip && isMixedLayout;

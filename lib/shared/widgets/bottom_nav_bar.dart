@@ -138,14 +138,14 @@ class _BottomNavBarState extends State<BottomNavBar> {
             boxShadow: [
               BoxShadow(
                 color: widget.isNight
-                    ? Colors.black.withOpacity(0.18)
-                    : const Color(0xFF1B3B5F).withOpacity(0.2),
+                    ? Colors.black.withValues(alpha: 0.18)
+                    : const Color(0xFF1B3B5F).withValues(alpha: 0.2),
                 blurRadius: widget.isNight ? 20 : 40,
                 offset: Offset(0, widget.isNight ? 8 : 12),
               ),
               if (!widget.isNight)
                 BoxShadow(
-                  color: const Color(0xFF80D8FF).withOpacity(0.12),
+                  color: const Color(0xFF80D8FF).withValues(alpha: 0.12),
                   blurRadius: 20,
                   spreadRadius: -2,
                 ),
@@ -202,18 +202,18 @@ class _BottomNavBarState extends State<BottomNavBar> {
                           end: Alignment.bottomCenter,
                           colors: widget.currentIndex == 1
                               ? [
-                                  const Color(0xFFF5E6CC).withOpacity(0.6),
-                                  const Color(0xFFFFF8E1).withOpacity(0.4),
+                                  const Color(0xFFF5E6CC).withValues(alpha: 0.6),
+                                  const Color(0xFFFFF8E1).withValues(alpha: 0.4),
                                 ]
                               : [
-                                  const Color(0xFFB3E5FC).withOpacity(0.5),
-                                  const Color(0xFFE1F5FE).withOpacity(0.3),
+                                  const Color(0xFFB3E5FC).withValues(alpha: 0.5),
+                                  const Color(0xFFE1F5FE).withValues(alpha: 0.3),
                                 ],
                         ),
                   color: widget.isNight 
                       ? (widget.currentIndex == 1 
-                          ? const Color(0xFF4A3C31).withOpacity(0.3) 
-                          : const Color(0xFF736675).withOpacity(0.2))
+                          ? const Color(0xFF4A3C31).withValues(alpha: 0.3) 
+                          : const Color(0xFF736675).withValues(alpha: 0.2))
                       : null,
                 ),
               ),
@@ -237,9 +237,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xFFFFF176).withOpacity(0.0),
-              const Color(0xFFFFF176).withOpacity(0.6),
-              const Color(0xFFFFF176).withOpacity(0.0),
+              const Color(0xFFFFF176).withValues(alpha: 0.0),
+              const Color(0xFFFFF176).withValues(alpha: 0.6),
+              const Color(0xFFFFF176).withValues(alpha: 0.0),
             ],
           ),
         ),
@@ -262,10 +262,10 @@ class _BottomNavBarState extends State<BottomNavBar> {
                     ? const [Color(0xFFEEBB3C), Color(0xFF3E2723)] 
                     : const [Color(0xFFEEBB3C), Color(0xFF1B2735)])
                 : [
-                    const Color(0xFFFFF9C4).withOpacity(0.8),
+                    const Color(0xFFFFF9C4).withValues(alpha: 0.8),
                     widget.currentIndex == 1 
-                        ? const Color(0xFFFFCC80).withOpacity(0.3) 
-                        : const Color(0xFFB3E5FC).withOpacity(0.2),
+                        ? const Color(0xFFFFCC80).withValues(alpha: 0.3) 
+                        : const Color(0xFFB3E5FC).withValues(alpha: 0.2),
                   ],
             ),
           ),
@@ -409,7 +409,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
         context: context,
         barrierDismissible: true,
         barrierLabel: 'MoodPicker',
-        barrierColor: Colors.black.withOpacity(0.6),
+        barrierColor: Colors.black.withValues(alpha: 0.6),
         transitionDuration: const Duration(milliseconds: 500),
         transitionBuilder: (context, animation, secondaryAnimation, child) {
           final curvedAnimation =

@@ -29,7 +29,9 @@ class UserState {
   static const _keyDraftCustomDate = 'diary_draft_custom_date';
   static const _keyDraftCustomTime = 'diary_draft_custom_time';
   static const _keyDraftDateTime = 'diary_draft_date_time'; // 新增：草稿特定的时间锚点
-  static const _keyDraftPaperStyle = 'diary_draft_paper_style'; // 新增：信纸样式
+  static const _keyDraftPaperStyle = 'diary_draft_paper_style'; // 信纸样式
+  static const _keyDraftIsImageGrid = 'diary_draft_is_image_grid'; // 图片九宫格
+  static const _keyDraftIsMixedLayout = 'diary_draft_is_mixed_layout'; // 图文混排
   static const _keySavedDiaries = 'saved_diaries';
   static const _keyThemeMode = 'theme_mode'; // 新增主题模式键
   static const _keyRecordGuidance = 'has_seen_record_guidance'; // 记录页引导
@@ -171,6 +173,8 @@ class UserState {
     DateTime? dateTime,
     List<Map<String, dynamic>>? blocks,
     String? paperStyle,
+    bool? isImageGrid,
+    bool? isMixedLayout,
   }) async {
     final draft = DiaryDraft(
       moodIndex: moodIndex,
@@ -185,6 +189,8 @@ class UserState {
       dateTime: dateTime,
       blocks: blocks,
       paperStyle: paperStyle ?? 'note1',
+      isImageGrid: isImageGrid ?? false,
+      isMixedLayout: isMixedLayout ?? true,
     );
     diaryDraft.value = draft;
 
@@ -214,6 +220,10 @@ class UserState {
     else await prefs.remove(_keyDraftDateTime);
     if (paperStyle != null) await prefs.setString(_keyDraftPaperStyle, paperStyle);
     else await prefs.remove(_keyDraftPaperStyle);
+    if (isImageGrid != null) await prefs.setBool(_keyDraftIsImageGrid, isImageGrid);
+    else await prefs.remove(_keyDraftIsImageGrid);
+    if (isMixedLayout != null) await prefs.setBool(_keyDraftIsMixedLayout, isMixedLayout);
+    else await prefs.remove(_keyDraftIsMixedLayout);
   }
 
   /// 清空草稿
@@ -232,6 +242,8 @@ class UserState {
     await prefs.remove(_keyDraftCustomTime);
     await prefs.remove(_keyDraftDateTime);
     await prefs.remove(_keyDraftPaperStyle);
+    await prefs.remove(_keyDraftIsImageGrid);
+    await prefs.remove(_keyDraftIsMixedLayout);
   }
 
   /// 将当前草稿保存为正式日记并持久化
@@ -244,29 +256,7 @@ class UserState {
         ? List<Map<String, dynamic>>.from(draft.blocks!)
         : [];
 
-    // 检查今日是否已记录过（用于发放奖励）
-    final bool isFirstToday = !savedDiaries.value.any(
-      (e) =>
-          e.dateTime.year == entryDate.year &&
-          e.dateTime.month == entryDate.month &&
-          e.dateTime.day == entryDate.day,
-    );
-
-    if (isFirstToday) {
-      // 随机抽取一个奖励
-      final rewardKeys = DiaryUtils.rewardConfigs.keys.toList();
-      final String randomKey =
-          rewardKeys[math.Random().nextInt(rewardKeys.length)];
-      final config = DiaryUtils.rewardConfigs[randomKey]!;
-
-      blocks.insert(0, {
-        'id': 'reward_${entryDate.millisecondsSinceEpoch}',
-        'type': 'reward',
-        'rewardId': randomKey,
-        'path': config['path'],
-        'name': config['name'],
-      });
-    }
+    // 移除每日首次记录奖励发放逻辑
 
     final newEntry = DiaryEntry(
       dateTime: entryDate,
@@ -281,6 +271,8 @@ class UserState {
       customTime: draft.customTime,
       blocks: blocks,
       paperStyle: draft.paperStyle,
+      isImageGrid: draft.isImageGrid,
+      isMixedLayout: draft.isMixedLayout,
     );
 
     // 更新内存列表
@@ -320,12 +312,58 @@ class UserState {
       customDate: entry.customDate,
       customTime: entry.customTime,
       replies: [...entry.replies, newReply],
+      paperStyle: entry.paperStyle,
+      isImageGrid: entry.isImageGrid,
+      isMixedLayout: entry.isMixedLayout,
+      isLiked: entry.isLiked,
+    );
+    
+    final newList = List<DiaryEntry>.from(savedDiaries.value);
+    newList[index] = updatedEntry;
+    savedDiaries.value = newList;
+    await _saveDiariesToStorage();
+  }
+
+  /// 切换日记的点赞状态
+  Future<void> toggleLike(String diaryId) async {
+    final index = savedDiaries.value.indexWhere((e) => e.id == diaryId);
+    if (index == -1) return;
+
+    final entry = savedDiaries.value[index];
+    final updatedEntry = DiaryEntry(
+      id: entry.id,
+      dateTime: entry.dateTime,
+      moodIndex: entry.moodIndex,
+      intensity: entry.intensity,
+      content: entry.content,
+      tag: entry.tag,
+      blocks: entry.blocks,
+      weather: entry.weather,
+      temp: entry.temp,
+      location: entry.location,
+      customDate: entry.customDate,
+      customTime: entry.customTime,
+      replies: entry.replies,
+      paperStyle: entry.paperStyle,
+      isImageGrid: entry.isImageGrid,
+      isMixedLayout: entry.isMixedLayout,
+      isLiked: !entry.isLiked,
     );
 
     final newList = List<DiaryEntry>.from(savedDiaries.value);
     newList[index] = updatedEntry;
     savedDiaries.value = newList;
+    await _saveDiariesToStorage();
+  }
 
+  /// 删除指定日记
+  Future<void> deleteDiary(String diaryId) async {
+    final index = savedDiaries.value.indexWhere((e) => e.id == diaryId);
+    if (index == -1) return;
+
+    final newList = List<DiaryEntry>.from(savedDiaries.value);
+    newList.removeAt(index);
+    savedDiaries.value = newList;
     await _saveDiariesToStorage();
   }
 
@@ -349,17 +387,6 @@ class UserState {
     }
   }
 
-  /// 删除日记
-  Future<void> deleteDiary(DiaryEntry entry) async {
-    final newList = List<DiaryEntry>.from(savedDiaries.value);
-    newList.removeWhere((e) => e.id == entry.id);
-    savedDiaries.value = newList;
-
-    // 持久化整个列表
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = savedDiaries.value.map((e) => e.toMap()).toList();
-    await prefs.setString(_keySavedDiaries, jsonEncode(jsonList));
-  }
 
   /// 更新用户名称并持久化到本地
   Future<void> setUserName(String name) async {
@@ -638,6 +665,8 @@ class UserState {
         dateTime: prefs.getString(_keyDraftDateTime) != null ? DateTime.parse(prefs.getString(_keyDraftDateTime)!) : null,
         blocks: blocks,
         paperStyle: prefs.getString(_keyDraftPaperStyle) ?? 'note1',
+        isImageGrid: prefs.getBool(_keyDraftIsImageGrid) ?? false,
+        isMixedLayout: prefs.getBool(_keyDraftIsMixedLayout) ?? true,
       );
     }
 
@@ -794,6 +823,8 @@ class DiaryDraft {
   final DateTime? dateTime;
   final List<Map<String, dynamic>>? blocks; // 结构化分块数据
   final String paperStyle;
+  final bool isImageGrid;
+  final bool isMixedLayout;
 
   DiaryDraft({
     required this.moodIndex,
@@ -808,5 +839,7 @@ class DiaryDraft {
     this.dateTime,
     this.blocks,
     this.paperStyle = 'classic',
+    this.isImageGrid = false,
+    this.isMixedLayout = true,
   });
 }

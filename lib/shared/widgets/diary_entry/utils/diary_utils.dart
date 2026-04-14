@@ -1,5 +1,4 @@
 import 'dart:io' as io;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -308,11 +307,42 @@ class DiaryUtils {
       return const Color(0xFF435B66); // 淡雅配色：深青灰
     } else if (paperStyle == 'note5') {
       return const Color(0xFF3E4F59); // 优雅配色：深石岩
+    } else if (paperStyle == 'note6') {
+      return const Color(0xFF5D544D); // 深灰褐
+    } else if (paperStyle == 'note7') {
+      return const Color(0xFF465C66); // 深石青
     } else if (paperStyle.startsWith('note')) {
       return const Color(0xFF7D6B5D); // 其他信纸默认棕色
     }
 
     // 经典模式
     return const Color(0xFF8B5E3C);
+  }
+
+  /// 获取信纸对应的 UI 控件背景色 (如工具栏底色)
+  static Color getPaperBaseColor(String paperStyle, bool isNight) {
+    if (isNight && !paperStyle.startsWith('note')) {
+      return const Color(0xFF1E1E2C);
+    }
+
+    if (paperStyle == 'note1') {
+      return const Color(0xFFE8EEF2); // 淡雅蓝灰
+    } else if (paperStyle == 'note2') {
+      return const Color(0xFFF1E4CF); // 复古米褐
+    } else if (paperStyle == 'note3') {
+      return const Color(0xFFEEEDED); // 简约浅灰
+    } else if (paperStyle == 'note4') {
+      return const Color(0xFFE6ECEF); // 清新淡青
+    } else if (paperStyle == 'note5') {
+      return const Color(0xFFE5EAED); // 优雅石炭
+    } else if (paperStyle == 'note6') {
+      return const Color(0xFFEEE8E2); // 优雅暖灰
+    } else if (paperStyle == 'note7') {
+      return const Color(0xFFEAF0F2); // 清透石青
+    } else if (paperStyle.startsWith('note')) {
+      return const Color(0xFFF3EBE1); // 其他信纸默认米色
+    }
+
+    return const Color(0xFFF7F2E9);
   }
 }

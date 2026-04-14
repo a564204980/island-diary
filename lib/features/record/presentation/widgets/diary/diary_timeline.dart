@@ -5,21 +5,28 @@ import '../../../domain/models/diary_entry.dart';
 class DiaryTimeline extends StatelessWidget {
   final List<DiaryReply> replies;
   final bool isNight;
+  final Color? inkColor;
+  final Color? accentColor;
 
   const DiaryTimeline({
     super.key,
     required this.replies,
     required this.isNight,
+    this.inkColor,
+    this.accentColor,
   });
 
   @override
   Widget build(BuildContext context) {
     if (replies.isEmpty) return const SizedBox.shrink();
 
-    final lineColor = isNight ? Colors.white12 : Colors.black.withOpacity(0.05);
-    final tickColor = isNight ? Colors.white24 : Colors.black12;
-    final timeColor = isNight ? Colors.white38 : const Color(0xFFAFA296);
-    final contentColor = isNight ? Colors.white70 : const Color(0xFF5D4037);
+    final effectiveInkColor = inkColor ?? (isNight ? Colors.white70 : const Color(0xFF5D4037));
+    final effectiveAccentColor = accentColor ?? (isNight ? const Color(0xFFD4A373) : const Color(0xFF8B5E3C));
+
+    final lineColor = effectiveInkColor.withValues(alpha: 0.1);
+    final tickColor = effectiveAccentColor.withValues(alpha: 0.2);
+    final timeColor = effectiveInkColor.withValues(alpha: 0.4);
+    final contentColor = effectiveInkColor.withValues(alpha: 0.9);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
