@@ -148,53 +148,64 @@ class DiaryBlockItem extends StatelessWidget {
   }
 
   Widget _buildImageBlock(ImageBlock block) {
-    return Stack(
-      children: [
-        GestureDetector(
-          onTap: () => onShowPreview?.call(block),
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
+    return Builder(builder: (context) {
+      final bool isWideScreen = MediaQuery.of(context).size.width > 800;
+      
+      return Center(
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: isWideScreen ? 760 : MediaQuery.of(context).size.width * 0.95,
+          ),
+          child: Stack(
+            children: [
+              GestureDetector(
+                onTap: () => onShowPreview?.call(block),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: block.videoPath != null
+                        ? _LiveImagePlayer(
+                            videoPath: block.videoPath!,
+                            fallbackPath: block.file.path,
+                          )
+                        : DiaryUtils.buildImage(
+                            block.file.path,
+                            fit: BoxFit.contain, // 编辑器内也改用 contain 保持完整比例
+                          ),
+                  ),
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: block.videoPath != null
-                  ? _LiveImagePlayer(
-                      videoPath: block.videoPath!,
-                      fallbackPath: block.file.path,
-                    )
-                  : DiaryUtils.buildImage(
-                      block.file.path,
-                      fit: BoxFit.cover,
-                    ),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 16,
-          right: 8,
-          child: IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.black45,
-                shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.close, color: Colors.white, size: 20),
-            ),
-            onPressed: onRemoveImage,
+              Positioned(
+                top: 16,
+                right: 8,
+                child: IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.black45,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, color: Colors.white, size: 20),
+                  ),
+                  onPressed: onRemoveImage,
+                ),
+              ),
+            ],
           ),
         ),
-      ],
-    ).animate().fadeIn().scale();
+      );
+    }).animate().fadeIn().scale();
   }
 
   Widget _buildAudioBlock(AudioBlock block) {

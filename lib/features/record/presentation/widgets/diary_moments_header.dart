@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
@@ -19,18 +18,21 @@ class DiaryMomentsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isWide = MediaQuery.of(context).size.width > 800;
+    final double headerHeight = isWide ? 420.0 : 320.0;
+
     return ValueListenableBuilder<String?>(
       valueListenable: UserState().momentsCoverPath,
       builder: (context, coverPath, _) {
         return Container(
-          height: 320,
-          margin: const EdgeInsets.only(bottom: 20),
+          height: headerHeight,
+          margin: EdgeInsets.only(bottom: isWide ? 40 : 20),
           child: Stack(
             clipBehavior: Clip.none,
             children: [
               // 1. 封面背景图
               Positioned.fill(
-                bottom: 40,
+                bottom: isWide ? 60 : 40,
                 child: GestureDetector(
                   onTap: () => _pickCover(context),
                   child: Container(
@@ -46,7 +48,7 @@ class DiaryMomentsHeader extends StatelessWidget {
                             'assets/images/note/note_bg1.png',
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => Container(
-                              color: isNight ? const Color(0xFF1A1C1E) : const Color(0xFFD4A373).withOpacity(0.1),
+                              color: isNight ? const Color(0xFF1A1C1E) : const Color(0xFFD4A373).withValues(alpha: 0.1),
                               child: Center(
                                 child: Icon(
                                   Icons.landscape_rounded,
@@ -56,6 +58,24 @@ class DiaryMomentsHeader extends StatelessWidget {
                               ),
                             ),
                           ),
+                  ),
+                ),
+              ),
+
+              // 底部通透渐变遮罩 (增强内容衔接)
+              Positioned(
+                left: 0, right: 0, bottom: isWide ? 60 : 40,
+                height: 80,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        (isNight ? Colors.black : Colors.white).withValues(alpha: 0.2),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -71,7 +91,7 @@ class DiaryMomentsHeader extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withOpacity(0.3),
+                          Colors.black.withValues(alpha: 0.35),
                           Colors.transparent,
                         ],
                       ),
@@ -90,7 +110,7 @@ class DiaryMomentsHeader extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.25),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -110,19 +130,18 @@ class DiaryMomentsHeader extends StatelessWidget {
                   onTap: () => _pickCover(context),
                   child: Icon(
                     Icons.camera_alt_rounded,
-                    color: Colors.white.withOpacity(0.8),
-                    size: 24,
+                    color: Colors.white.withValues(alpha: 0.9),
+                    size: 26,
                     shadows: const [
                       Shadow(
-                        color: Colors.black26,
-                        blurRadius: 10,
+                        color: Colors.black45,
+                        blurRadius: 15,
                         offset: Offset(0, 2),
                       ),
                     ],
                   ),
                 ),
               ),
-
             ],
           ),
         );

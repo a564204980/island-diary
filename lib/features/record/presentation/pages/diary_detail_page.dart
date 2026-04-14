@@ -12,6 +12,7 @@ import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart'
 // import 'package:lunar/lunar.dart'; // 移除未使用导入
 import '../widgets/diary/diary_timeline.dart';
 import '../widgets/diary/diary_replies.dart';
+import '../widgets/moments_reply_dialog.dart';
 
 class DiaryDetailPage extends StatefulWidget {
   final DiaryEntry entry;
@@ -162,7 +163,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 if (_currentEntry.paperStyle.startsWith('note'))
                   Positioned.fill(
                     child: Image.asset(
-                      'assets/images/note/${_currentEntry.paperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5'].contains(_currentEntry.paperStyle) ? '.png' : '.jpg'}',
+                      'assets/images/note/${_currentEntry.paperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7', 'note8', 'note9'].contains(_currentEntry.paperStyle) ? '.png' : '.jpg'}',
                       fit: BoxFit.cover,
                       color: _effectiveIsNight ? Colors.black.withValues(alpha: 0.3) : null,
                       colorBlendMode: _effectiveIsNight ? BlendMode.darken : null,
@@ -224,7 +225,16 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
   }
 
   Widget _buildFloatingActions(bool isNight) {
-    final iconColor = isNight ? Colors.white70 : const Color(0xFF8B5E3C);
+    // 获取基于信纸的动态墨水色和背景色
+    final Color inkColor = DiaryUtils.getInkColor(_currentEntry.paperStyle, isNight);
+    final Color paperBaseColor = DiaryUtils.getPaperBaseColor(_currentEntry.paperStyle, isNight);
+    
+    // 图标主色使用墨水色，非活跃状态略带透明
+    final iconColor = inkColor.withValues(alpha: 0.9);
+    // 悬浮条背景跟随信纸基色，但在 note 系列背景下保持较高的不透明度以防背景干扰
+    final barBgColor = _currentEntry.paperStyle.startsWith('note')
+        ? (isNight ? const Color(0xFF2C2E30) : Colors.white).withValues(alpha: 0.9)
+        : paperBaseColor.withValues(alpha: 0.98);
 
     return Positioned(
       left: 0,
@@ -235,13 +245,17 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           height: 54,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
-            color: isNight ? const Color(0xFF2C2E30) : Colors.white,
+            color: barBgColor,
             borderRadius: BorderRadius.circular(27),
+            border: Border.all(
+              color: inkColor.withValues(alpha: 0.1),
+              width: 0.5,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 15,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
@@ -276,7 +290,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               const SizedBox(width: 30),
               _buildActionButton(
                 icon: Icons.delete_outline_rounded,
-                color: Colors.redAccent.withValues(alpha: 0.8),
+                color: Colors.redAccent.withValues(alpha: 0.75),
                 onTap: _handleDelete,
                 label: "删除",
                 width: 40,
@@ -289,110 +303,13 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
   }
 
   void _showReplySheet() {
-    final isNight = _effectiveIsNight;
-    final controller = TextEditingController();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: isNight ? const Color(0xFF2D2A26) : const Color(0xFFFDF7E9),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            border: Border.all(
-              color: isNight ? Colors.white10 : const Color(0xFFE8D5B5),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "留下此刻的回响",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isNight ? Colors.white70 : const Color(0xFF5D4037),
-                      fontFamily: 'LXGWWenKai',
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.close,
-                      color: isNight ? Colors.white30 : Colors.black26,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                maxLines: 4,
-                autofocus: true,
-                style: TextStyle(
-                  color: isNight ? Colors.white : Colors.black87,
-                  fontFamily: 'LXGWWenKai',
-                ),
-                decoration: InputDecoration(
-                  hintText: "记录下这一刻的触动...",
-                  hintStyle: TextStyle(
-                    color: isNight ? Colors.white24 : Colors.black26,
-                    fontSize: 16,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(
-                      color: isNight ? Colors.white10 : const Color(0xFFE8D5B5),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(
-                      color: isNight ? Colors.white24 : const Color(0xFFD4A373),
-                      width: 1.5,
-                    ),
-                  ),
-                  filled: true,
-                  fillColor: isNight ? Colors.black12 : Colors.white24,
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: () => _handleReplySubmit(controller.text),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD4A373),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    "完成回响",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'LXGWWenKai',
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+      builder: (context) => MomentsReplySheet(
+        isNight: _effectiveIsNight,
+        onConfirm: _handleReplySubmit,
       ),
     );
   }
@@ -403,7 +320,6 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     await UserState().addReplyToDiary(_currentEntry.id, content);
 
     if (mounted) {
-      Navigator.pop(context);
       // 刷新当前页面状态
       final updated = UserState().savedDiaries.value.firstWhere(
         (e) => e.id == _currentEntry.id,
@@ -757,22 +673,28 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     return Column(
       children: images.map((image) {
         final path = image['path'];
+        final bool isWide = MediaQuery.of(context).size.width > 800;
 
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: DiaryUtils.buildImage(path, fit: BoxFit.cover),
+        return Center(
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: isWide ? 520 : MediaQuery.of(context).size.width * 0.85,
+            ),
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: DiaryUtils.buildImage(path, fit: BoxFit.contain), 
+            ),
           ),
         );
       }).toList(),

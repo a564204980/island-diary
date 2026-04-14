@@ -60,7 +60,7 @@ class DiaryPaperCanvas extends StatelessWidget {
                         if (style.startsWith('note'))
                           Positioned.fill(
                             child: Image.asset(
-                              'assets/images/note/${style.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5'].contains(style) ? '.png' : '.jpg'}',
+                              'assets/images/note/${style.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7', 'note8', 'note9'].contains(style) ? '.png' : '.jpg'}',
                               fit: BoxFit.cover,
                               color: effectiveIsNight ? Colors.black.withValues(alpha: 0.3) : null,
                               colorBlendMode: effectiveIsNight ? BlendMode.darken : null,

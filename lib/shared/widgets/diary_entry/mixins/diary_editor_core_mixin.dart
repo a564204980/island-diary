@@ -71,7 +71,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
                   false;
     isMixedLayout = entry?.isMixedLayout ??
                     UserState().diaryDraft.value?.isMixedLayout ??
-                    !isImageGrid; // 如果开启了九宫格，默认关闭混排
+                    (!isImageGrid && UserState().isVip.value); // 非会员默认关闭
     
     // 强制互斥检查
     if (isImageGrid) isMixedLayout = false;
@@ -169,7 +169,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       customTime = UserState().diaryDraft.value?.customTime;
       currentPaperStyle = UserState().diaryDraft.value?.paperStyle ?? 'classic';
       isImageGrid = UserState().diaryDraft.value?.isImageGrid ?? false;
-      isMixedLayout = UserState().diaryDraft.value?.isMixedLayout ?? !isImageGrid;
+      isMixedLayout = UserState().diaryDraft.value?.isMixedLayout ?? 
+                      (!isImageGrid && UserState().isVip.value);
 
       if (draftModified) {
         onBlocksChanged();

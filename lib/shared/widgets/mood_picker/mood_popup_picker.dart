@@ -2,16 +2,20 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import '../diary_entry/utils/diary_utils.dart';
 import 'config/mood_config.dart';
 
 class MoodPopupPicker extends StatefulWidget {
   final int? initialIndex;
   final double initialIntensity;
 
+  final String? paperStyle;
+
   const MoodPopupPicker({
     super.key,
     this.initialIndex,
     this.initialIntensity = 6.0,
+    this.paperStyle,
   });
 
   @override
@@ -40,10 +44,13 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
   @override
   Widget build(BuildContext context) {
     final bool isNight = UserState().isNight;
-    final bgColor = isNight ? const Color(0xFF1E1E2C) : const Color(0xFFFDF7E9);
-    final primaryColor = isNight
-        ? const Color(0xFFE0C097)
-        : const Color(0xFF8B5E3C);
+    final String effectiveStyle = widget.paperStyle ?? 'note1';
+
+    final bool effectiveIsNight = isNight && !effectiveStyle.startsWith('note');
+    
+    final bgColor = DiaryUtils.getPopupBackgroundColor(effectiveStyle, effectiveIsNight);
+    final primaryColor = DiaryUtils.getAccentColor(effectiveStyle, effectiveIsNight);
+    final inkColor = DiaryUtils.getInkColor(effectiveStyle, effectiveIsNight);
 
     return Container(
       padding: EdgeInsets.only(
@@ -115,12 +122,12 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                       color: isSelected
                           ? mood.glowColor?.withOpacity(0.15) ??
                                 primaryColor.withOpacity(0.08)
-                          : (isNight ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.5)),
+                          : (effectiveIsNight ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.5)),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isSelected
                             ? primaryColor
-                            : (isNight ? Colors.white.withOpacity(0.1) : primaryColor.withOpacity(0.1)),
+                            : (effectiveIsNight ? Colors.white.withValues(alpha: 0.1) : primaryColor.withValues(alpha: 0.1)),
                         width: isSelected ? 1.5 : 1,
                       ),
                     ),
@@ -144,7 +151,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                                 : FontWeight.w500,
                             color: isSelected 
                                 ? primaryColor 
-                                : (isNight ? Colors.white60 : primaryColor),
+                                : (effectiveIsNight ? Colors.white60 : inkColor.withValues(alpha: 0.7)),
                             fontFamily: 'LXGWWenKai',
                           ),
                         ),
@@ -168,9 +175,9 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
             const SizedBox(height: 10),
             Container(
               decoration: BoxDecoration(
-                color: isNight ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.4),
+                color: effectiveIsNight ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.4),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: isNight ? Colors.white.withOpacity(0.1) : primaryColor.withOpacity(0.1)),
+                border: Border.all(color: effectiveIsNight ? Colors.white.withOpacity(0.1) : inkColor.withValues(alpha: 0.1)),
               ),
               child: TextField(
                 controller: _tagController,
@@ -181,14 +188,14 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                   }
                 },
                 style: TextStyle(
-                  color: isNight ? Colors.white : primaryColor,
+                  color: effectiveIsNight ? Colors.white : inkColor,
                   fontFamily: 'LXGWWenKai',
                   fontSize: 15,
                 ),
                 decoration: InputDecoration(
                   hintText: '想喝奶茶、打工中...',
                   hintStyle: TextStyle(
-                    color: isNight ? Colors.white24 : primaryColor.withOpacity(0.3),
+                    color: effectiveIsNight ? Colors.white24 : inkColor.withValues(alpha: 0.3),
                     fontSize: 14,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
@@ -227,16 +234,16 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: isNight ? Colors.white.withOpacity(0.05) : primaryColor.withOpacity(0.05),
+                                  color: effectiveIsNight ? Colors.white.withOpacity(0.05) : inkColor.withValues(alpha: 0.05),
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: isNight ? Colors.white.withOpacity(0.1) : primaryColor.withOpacity(0.1),
+                                    color: effectiveIsNight ? Colors.white.withOpacity(0.1) : inkColor.withValues(alpha: 0.1),
                                   ),
                                 ),
                                 child: Text(
                                   tag,
                                   style: TextStyle(
-                                    color: isNight ? Colors.white54 : primaryColor.withOpacity(0.6),
+                                    color: effectiveIsNight ? Colors.white54 : inkColor.withValues(alpha: 0.6),
                                     fontSize: 12,
                                     fontFamily: 'LXGWWenKai',
                                   ),
@@ -259,7 +266,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: isNight ? Colors.white38 : primaryColor.withOpacity(0.7),
+                    color: effectiveIsNight ? Colors.white38 : inkColor.withValues(alpha: 0.6),
                     fontFamily: 'LXGWWenKai',
                   ),
                 ),
@@ -279,7 +286,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
             SliderTheme(
               data: SliderThemeData(
                 activeTrackColor: primaryColor,
-                inactiveTrackColor: isNight ? Colors.white10 : primaryColor.withOpacity(0.1),
+                inactiveTrackColor: effectiveIsNight ? Colors.white10 : inkColor.withValues(alpha: 0.1),
                 thumbColor: Colors.white,
                 overlayColor: primaryColor.withOpacity(0.2),
                 trackHeight: 4,
@@ -366,7 +373,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                     child: Text(
                       '落地此情',
                       style: TextStyle(
-                        color: canSave ? Colors.white : (isNight ? Colors.white24 : Colors.black26),
+                        color: canSave ? Colors.white : (effectiveIsNight ? Colors.white24 : inkColor.withValues(alpha: 0.2)),
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'LXGWWenKai',

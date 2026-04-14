@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../controllers/decoration_controller.dart';
 import 'furniture_inventory_tray.dart';
-import '../../../domain/models/furniture_item.dart';
 
 class DecorationOverlayUI extends StatelessWidget {
   final DecorationController controller;

@@ -16,6 +16,7 @@ import 'package:island_diary/shared/widgets/mood_picker/mood_popup_picker.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
 import 'package:island_diary/shared/widgets/island_vip_guard_dialog.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class DiaryEditorPage extends StatefulWidget {
   final int? moodIndex;
@@ -55,24 +56,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     final bool isNight = UserState().isNight;
     // 如果使用自定义信纸背景（note系列），即便在晚上也不使用夜间模式样式
     final bool effectiveIsNight = isNight && !currentPaperStyle.startsWith('note');
-    final bgColor = effectiveIsNight ? const Color(0xFF13131F) : const Color(0xFFF7F2E9);
-    
-    // 如果没有选择心情，则使用默认的强调色。针对 note 系列使用更中性的色调以适配不同底纹。
-    final Color standardDefaultColor = const Color(0xFF8B5E3C);
-    final Color noteDefaultColor = currentPaperStyle == 'note1' 
-        ? const Color(0xFF3D4E5B) // 深灰蓝色
-        : (currentPaperStyle == 'note7' 
-            ? const Color(0xFF546E7A) // 深石青色 (更适配水彩)
-            : (currentPaperStyle == 'note6' 
-                ? const Color(0xFF6D5F56) // 优雅灰褐色
-                : const Color(0xFF4A3E36))); // 默认深咖啡木色
-    
-    final defaultAccentColor = effectiveIsNight 
-        ? const Color(0xFFE0C097) 
-        : (currentPaperStyle.startsWith('note') ? noteDefaultColor : standardDefaultColor);
-    
-    // UI 强调色固定为基于纸张样式的颜色，不再随心情动态变化
-    final Color accentColor = defaultAccentColor;
+    final Color accentColor = DiaryUtils.getAccentColor(currentPaperStyle, effectiveIsNight);
+    final Color bgColor = DiaryUtils.getPaperBaseColor(currentPaperStyle, effectiveIsNight);
 
     final double viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
     // 实时捕获并记忆最大键盘高度，移至主 build 以供内容区域 padding 使用
@@ -118,7 +103,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   if (currentPaperStyle.startsWith('note'))
                     Positioned.fill(
                       child: Image.asset(
-                        'assets/images/note/${currentPaperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5'].contains(currentPaperStyle) ? '.png' : '.jpg'}',
+                        'assets/images/note/${currentPaperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7', 'note8', 'note9'].contains(currentPaperStyle) ? '.png' : '.jpg'}',
                         fit: BoxFit.cover,
                         color: (isNight && !currentPaperStyle.startsWith('note')) 
                             ? Colors.black.withValues(alpha: 0.3) 
@@ -391,13 +376,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         24, 
                         12, 
                         24, 
-                        isImageGrid ? 12 : math.max(160, currentBottomHeight + 100)
+                        (!isMixedLayout) ? 12 : math.max(160, currentBottomHeight + 100)
                       ),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
-                            // 如果开启了九宫格模式，非图片块按原样渲染，图片块在末尾统一处理
-                            if (isImageGrid) {
+                            // 如果关闭了图文混排模式，非图片块按原样渲染，图片块统一在底部预览条显示
+                            if (!isMixedLayout) {
                               final nonImageBlocks = blocks.where((b) => b is! ImageBlock).toList();
                               if (index >= nonImageBlocks.length) return null;
                               
@@ -436,21 +421,15 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               accentColor: accentColor,
                             );
                           },
-                          childCount: isImageGrid 
+                          childCount: (!isMixedLayout)
                               ? blocks.where((b) => b is! ImageBlock).length 
                               : blocks.length,
                         ),
                       ),
                     ),
 
-                    // 九宫格图片区域
-                    if (isImageGrid)
-                      SliverToBoxAdapter(
-                        child: _buildImageGridArea(effectiveIsNight, accentColor),
-                      ),
-
                     SliverToBoxAdapter(
-                      child: SizedBox(height: isImageGrid ? math.max(120, currentBottomHeight + 50) : 48),
+                      child: SizedBox(height: (isImageGrid && !isMixedLayout) ? 48 : math.max(120, currentBottomHeight + 50)),
                     ),
                   ],
                 ),
@@ -478,6 +457,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          _buildImageUploadPreviewBar(effectiveIsNight, accentColor),
                           const SizedBox(height: 8),
                           DiaryToolbar(
                             isEmojiOpen: isEmojiOpen,
@@ -505,7 +485,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             curve: Curves.easeOutCubic,
                             height: totalBottomHeight,
                             color: (isEmojiOpen || viewInsetsBottom > 0) 
-                              ? (effectiveIsNight ? const Color(0xFF1E1E2C) : accentColor.withValues(alpha: 0.12)).withValues(alpha: 0.95)
+                              ? DiaryUtils.getPopupBackgroundColor(currentPaperStyle, effectiveIsNight).withValues(alpha: 0.98)
                               : Colors.transparent,
                             child: Visibility(
                               visible: isEmojiOpen,
@@ -515,6 +495,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                 onBackspace: handleEmojiBackspace,
                                 onSend: handleEmojiSend,
                                 onCustomEmojiSelected: handleCustomEmojiSelected,
+                                paperStyle: currentPaperStyle,
                               ),
                             ),
                           ),
@@ -539,6 +520,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       builder: (context) => MoodPopupPicker(
         initialIndex: currentMoodIndex,
         initialIntensity: currentIntensity,
+        paperStyle: currentPaperStyle,
       ),
     );
 
@@ -563,21 +545,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     // 使用与主 build 一致的逻辑
     final bool effectiveIsNight = isNight && !currentPaperStyle.startsWith('note');
     
-    final Color accentColor = effectiveIsNight 
-        ? const Color(0xFFE0C097) 
-        : (currentPaperStyle == 'note1' 
-            ? const Color(0xFF5A7285) 
-            : (currentPaperStyle == 'note7'
-                ? const Color(0xFF546E7A)
-                : (currentPaperStyle == 'note6'
-                    ? const Color(0xFF6D5F56)
-                    : const Color(0xFF7D6B5D))));
-
-    // 根据纸张主色调给背景上色
-    final Color paperInkColor = DiaryUtils.getInkColor(currentPaperStyle, effectiveIsNight);
-    final Color baseBgColor = effectiveIsNight ? const Color(0xFF1E1E2C) : const Color(0xFFFDF7E9);
-    final Color bgColor = Color.lerp(baseBgColor, accentColor, 0.05)!; 
-    final Color textColor = paperInkColor.withValues(alpha: 0.9);
+    final Color accentColor = DiaryUtils.getAccentColor(currentPaperStyle, effectiveIsNight);
+    final Color bgColor = DiaryUtils.getPopupBackgroundColor(currentPaperStyle, effectiveIsNight);
+    final Color textColor = DiaryUtils.getInkColor(currentPaperStyle, effectiveIsNight).withValues(alpha: 0.9);
 
     showModalBottomSheet(
       context: context,
@@ -594,7 +564,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: accentColor.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, -5),
                 ),
@@ -775,7 +745,90 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     );
   }
 
+  Widget _buildImageUploadPreviewBar(bool isNight, Color accentColor) {
+    if (isMixedLayout) return const SizedBox.shrink();
+
+    final images = blocks.whereType<ImageBlock>().toList();
+    if (images.isEmpty) return const SizedBox.shrink();
+
+    final Color bgColor = DiaryUtils.getPopupBackgroundColor(currentPaperStyle, isNight);
+
+    return Container(
+      height: 90,
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: images.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final img = images[index];
+          final imgIndex = blocks.indexOf(img);
+          
+          return Padding(
+            padding: const EdgeInsets.only(top: 8, right: 8),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                GestureDetector(
+                  onTap: () => showImagePreview(img),
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Hero(
+                        tag: 'preview_${img.id}',
+                        child: DiaryUtils.buildImage(
+                          img.file.path,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: -8,
+                  right: -8,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => removeImage(imgIndex),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.black,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    ).animate().slideY(begin: 0.5, end: 0).fadeIn();
+  }
+
   Widget _buildImageGridArea(bool isNight, Color accentColor) {
+    if (isMixedLayout) return const SizedBox.shrink();
+    
     final images = blocks.whereType<ImageBlock>().toList();
     if (images.isEmpty) return const SizedBox.shrink();
 

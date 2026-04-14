@@ -142,7 +142,7 @@ class ExportService {
           backgroundFutures.add(() async {
             try {
               final fileName = currentStyle.replaceFirst('note', 'note_bg');
-              final ext = ['note1', 'note2', 'note3', 'note4', 'note5'].contains(currentStyle) ? '.png' : '.jpg';
+              final ext = ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7', 'note8', 'note9'].contains(currentStyle) ? '.png' : '.jpg';
               final path = 'assets/images/note/$fileName$ext';
               final data = await rootBundle.load(path);
               paperBackgrounds[currentStyle] = pw.MemoryImage(data.buffer.asUint8List());

@@ -22,10 +22,12 @@ class MomentsInteractionPopover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 40,
+      height: 42, 
       decoration: BoxDecoration(
-        color: const Color(0xFF4C4C4C), // 典型的微信气泡深灰色
-        borderRadius: BorderRadius.circular(6),
+        color: isNight 
+            ? const Color(0xFF26241E).withValues(alpha: 0.98) 
+            : const Color(0xFF5D4037).withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.15),

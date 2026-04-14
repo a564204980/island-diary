@@ -111,7 +111,7 @@ class DiaryUtils {
   static String getPureMoodDescription(String label, double intensity) {
     final prefix = getMoodIntensityPrefix(label, intensity);
     if (prefix.isEmpty) return label;
-    return "${prefix}的$label";
+    return "$prefix的$label";
   }
 
   /// 拟人化强度描述文案映射 (带强度后缀，兼容旧版)
@@ -142,13 +142,16 @@ class DiaryUtils {
     BoxFit fit = BoxFit.cover,
     BorderRadius? borderRadius,
   }) {
+    // 路径规格化处理
+    final String normalizedPath = _normalizeImagePath(path);
+    
     Widget image;
     // 限制解码分辨率，防止大图瞬间打满内存导致严重卡顿
     final int? cacheW = width != null ? (width * 3).toInt() : 400;
 
-    if (path.startsWith('http') || path.startsWith('blob:')) {
+    if (normalizedPath.startsWith('http') || normalizedPath.startsWith('blob:') || normalizedPath.startsWith('data:')) {
       image = Image.network(
-        path, 
+        normalizedPath, 
         width: width, 
         height: height, 
         fit: fit,
@@ -162,40 +165,25 @@ class DiaryUtils {
           );
         },
         errorBuilder: (context, error, stackTrace) {
-          debugPrint("Image load error ($path): $error");
-          return Container(
-            width: width,
-            height: height,
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.05),
-              borderRadius: borderRadius,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.photo, size: 24, color: Colors.black.withValues(alpha: 0.2)),
-                const SizedBox(height: 4),
-                Text('图片加载失败', style: TextStyle(fontSize: 10, color: Colors.black.withValues(alpha: 0.2))),
-              ],
-            ),
-          );
+          debugPrint("Image load error ($normalizedPath): $error");
+          return _buildErrorPlaceholder(width, height, borderRadius);
         },
       );
-    } else if (path.startsWith('/') ||
-        path.contains('cache/') ||
-        path.contains('files/')) {
+    } else if (normalizedPath.startsWith('/') ||
+        normalizedPath.contains('cache/') ||
+        normalizedPath.contains('files/')) {
       // 移动端文件路径
       if (kIsWeb) {
         // 在 Web 平台上，所有的本地文件路径实际上是由浏览器代理的 blob 或相对路径，必须使用 Image.network
         image = Image.network(
-          path, 
+          normalizedPath, 
           width: width, 
           height: height, 
           fit: fit,
         );
       } else {
         image = Image.file(
-          io.File(path), 
+          io.File(normalizedPath), 
           width: width, 
           height: height, 
           fit: fit,
@@ -205,11 +193,15 @@ class DiaryUtils {
     } else {
       // 默认作为资产路径
       image = Image.asset(
-        path, 
-        width: width, 
-        height: height, 
+        normalizedPath,
+        width: width,
+        height: height,
         fit: fit,
         cacheWidth: cacheW,
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint("Asset load error ($normalizedPath): $error");
+          return _buildErrorPlaceholder(width, height, borderRadius);
+        },
       );
     }
 
@@ -217,6 +209,53 @@ class DiaryUtils {
       return ClipRRect(borderRadius: borderRadius, child: image);
     }
     return image;
+  }
+
+  /// 智能路径标准化逻辑：自动识别并补全路径
+  static String _normalizeImagePath(String path) {
+    if (path.isEmpty) return path;
+
+    // 1. 如果已经是绝对路径、URL、Blob 或 Base64，则保持原样
+    if (path.startsWith('http') || 
+        path.startsWith('blob:') || 
+        path.startsWith('data:') || 
+        path.startsWith('/') || 
+        path.startsWith('assets/')) {
+      return path;
+    }
+
+    // 2. 只有文件名的相对路径修复 (多见于 Mock 数据)
+    // 根据系统习惯，尝试优先匹配 note 目录，再匹配通用 images 目录
+    if (!path.contains('/')) {
+      return 'assets/images/note/$path';
+    }
+    
+    // 3. 包含路径但缺少 assets/ 前缀
+    if (path.startsWith('images/')) {
+      return 'assets/$path';
+    }
+
+    return path;
+  }
+
+  /// 构建统一的加载失败占位符
+  static Widget _buildErrorPlaceholder(double? width, double? height, BorderRadius? borderRadius) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.05),
+        borderRadius: borderRadius,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(CupertinoIcons.photo, size: 24, color: Colors.black.withValues(alpha: 0.2)),
+          const SizedBox(height: 4),
+          const Text('图片加载失败', style: TextStyle(fontSize: 10, color: Colors.black45)),
+        ],
+      ),
+    );
   }
 
   /// 将 RepaintBoundary 截取为图片并返回字节流
@@ -304,13 +343,17 @@ class DiaryUtils {
     } else if (paperStyle == 'note3') {
       return const Color(0xFF4A4A4A); // 极简配色：深炭灰
     } else if (paperStyle == 'note4') {
-      return const Color(0xFF435B66); // 淡雅配色：深青灰
+      return const Color(0xFF4D4B48); // 淡雅配色：柔和深褐灰 (适配暖色背景)
     } else if (paperStyle == 'note5') {
-      return const Color(0xFF3E4F59); // 优雅配色：深石岩
+      return const Color(0xFF5D544D); // 优雅配色：深灰褐 (适配暖奶油底色)
     } else if (paperStyle == 'note6') {
       return const Color(0xFF5D544D); // 深灰褐
     } else if (paperStyle == 'note7') {
-      return const Color(0xFF465C66); // 深石青
+      return const Color(0xFF37474F); // 深海蓝灰
+    } else if (paperStyle == 'note8') {
+      return const Color(0xFF5D544D); // 深灰褐
+    } else if (paperStyle == 'note9') {
+      return const Color(0xFF3D3B54); // 恬静：深紫色调石青
     } else if (paperStyle.startsWith('note')) {
       return const Color(0xFF7D6B5D); // 其他信纸默认棕色
     }
@@ -332,17 +375,62 @@ class DiaryUtils {
     } else if (paperStyle == 'note3') {
       return const Color(0xFFEEEDED); // 简约浅灰
     } else if (paperStyle == 'note4') {
-      return const Color(0xFFE6ECEF); // 清新淡青
+      return const Color(0xFFF2F1E8); // 清新淡雅：暖米色 (适配插画资产)
     } else if (paperStyle == 'note5') {
-      return const Color(0xFFE5EAED); // 优雅石炭
+      return const Color(0xFFF8EFDF); // 优雅系列：暖奶油色 (用户指定)
     } else if (paperStyle == 'note6') {
-      return const Color(0xFFEEE8E2); // 优雅暖灰
+      return const Color(0xFFEBE6DF); // 纤维纸纹对比：暖灰褐
     } else if (paperStyle == 'note7') {
-      return const Color(0xFFEAF0F2); // 清透石青
+      return const Color(0xFFEBF5FB); // 水彩风格：浅淡蓝 (更适配清新感)
+    } else if (paperStyle == 'note8') {
+      return const Color(0xFFF7FBFB); // 雅致水色：透亮冷白
+    } else if (paperStyle == 'note9') {
+      return const Color(0xFFFCEFF9); // 恬静水纹：温润粉紫白
     } else if (paperStyle.startsWith('note')) {
       return const Color(0xFFF3EBE1); // 其他信纸默认米色
     }
 
     return const Color(0xFFF7F2E9);
+  }
+
+  /// 获取信纸对应的 UI 强调色 (图标、开关等)
+  static Color getAccentColor(String paperStyle, bool isNight) {
+    if (isNight && !paperStyle.startsWith('note')) {
+      return const Color(0xFFE0C097);
+    }
+
+    if (paperStyle == 'note1') {
+      return const Color(0xFF5A7285);
+    } else if (paperStyle == 'note5') {
+      return const Color(0xFF6D5F56); // 灰咖啡色 (搭配暖底色)
+    } else if (paperStyle == 'note6') {
+      return const Color(0xFF6D5F56);
+    } else if (paperStyle == 'note7') {
+      return const Color(0xFF455A64); // 深石青蓝
+    } else if (paperStyle == 'note2') {
+      return const Color(0xFF8D6E63);
+    } else if (paperStyle == 'note3') {
+      return const Color(0xFF545454); // 极简灰
+    } else if (paperStyle == 'note4') {
+      return const Color(0xFF6D5F56); // 灰调咖啡色
+    } else if (paperStyle == 'note8') {
+      return const Color(0xFF8B7355); // 枯木棕
+    } else if (paperStyle == 'note9') {
+      return const Color(0xFF8A76B1); // 柔紫色
+    } else if (paperStyle.startsWith('note')) {
+      return const Color(0xFF7D6B5D);
+    }
+
+    // 经典模式
+    return const Color(0xFF8B5E3C);
+  }
+
+  /// 获取与信纸风格高度协调的弹窗背景色
+  static Color getPopupBackgroundColor(String paperStyle, bool isNight) {
+    final Color baseBgColor = getPaperBaseColor(paperStyle, isNight);
+    final Color accent = getAccentColor(paperStyle, isNight);
+    
+    // 通过与强调色微弱混合，让背景带上一层温润的色调
+    return Color.lerp(baseBgColor, accent, 0.05)!.withValues(alpha: 0.98);
   }
 }

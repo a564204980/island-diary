@@ -19,6 +19,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       builder: (context) => DiaryColorPickerSheet(
         currentTextColor: currentTextColor,
         currentBgColor: currentHighlightColor,
+        paperStyle: currentPaperStyle,
         onApplyColor: (color, isBackground) {
           final activeBlock = activeTextBlock;
           final selection = activeBlock?.controller.selection;
@@ -81,6 +82,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
         builder: (context, setModalState) {
           return DiaryFontSizePickerSheet(
             currentFontSize: currentFontSize,
+            paperStyle: currentPaperStyle,
             onApplyFontSize: (size) {
               setModalState(() {
                 currentFontSize = size;

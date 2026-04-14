@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../utils/diary_utils.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 class WeatherType {
   final String label;
@@ -24,9 +27,14 @@ const List<WeatherType> kWeatherTypes = [
 ];
 
 class DiaryWeatherPickerSheet extends StatefulWidget {
+  final String paperStyle;
   final Function(String weather, int temperature) onConfirm;
 
-  const DiaryWeatherPickerSheet({super.key, required this.onConfirm});
+  const DiaryWeatherPickerSheet({
+    super.key, 
+    required this.onConfirm,
+    this.paperStyle = 'standard',
+  });
 
   @override
   State<DiaryWeatherPickerSheet> createState() => _DiaryWeatherPickerSheetState();
@@ -38,33 +46,55 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isNight = UserState().isNight;
+    final Color accentColor = DiaryUtils.getAccentColor(widget.paperStyle, isNight);
+    final Color bgColor = DiaryUtils.getPopupBackgroundColor(widget.paperStyle, isNight);
+    final Color inkColor = DiaryUtils.getInkColor(widget.paperStyle, isNight);
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-      decoration: const BoxDecoration(
-        color: Color(0xFFFDF7E9),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(28),
-          topRight: Radius.circular(28),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(32),
+          topRight: Radius.circular(32),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // 顶部装饰条
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
           // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                '天气',
+              Text(
+                '选择天气',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'LXGWWenKai',
-                  color: Color(0xFF8B5E3C),
+                  color: accentColor,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, color: Color(0xFF8B5E3C)),
+                icon: Icon(Icons.close_rounded, color: accentColor.withValues(alpha: 0.6)),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -77,9 +107,9 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 4,
-              childAspectRatio: 0.8,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 8,
+              childAspectRatio: 0.75,
             ),
             itemCount: kWeatherTypes.length,
             itemBuilder: (context, index) {
@@ -88,25 +118,38 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
               return GestureDetector(
                 onTap: () {
                   setState(() => _selectedIdx = index);
-                  // Optionally confirm immediately on icon tap if desired, 
-                  // but user screenshot has a slider, so maybe confirm label + temp later.
-                  // For now, let's just make it selectable.
                   widget.onConfirm(weather.label, _temperature.toInt());
                 },
                 child: Column(
                   children: [
-                    Icon(
-                      weather.icon,
-                      size: 24,
-                      color: isSelected ? const Color(0xFF8B5E3C) : Colors.black45,
+                    AnimatedContainer(
+                      duration: 300.ms,
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? accentColor : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: isSelected ? [
+                          BoxShadow(
+                            color: accentColor.withValues(alpha: 0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ] : null,
+                      ),
+                      child: Icon(
+                        weather.icon,
+                        size: 22,
+                        color: isSelected ? Colors.white : inkColor.withValues(alpha: 0.5),
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       weather.label,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 11,
                         fontFamily: 'LXGWWenKai',
-                        color: isSelected ? const Color(0xFF8B5E3C) : Colors.black26,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected ? accentColor : inkColor.withValues(alpha: 0.4),
                       ),
                     ),
                   ],
@@ -116,27 +159,35 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
           ),
           
           const SizedBox(height: 24),
-          const Divider(height: 1, color: Colors.black12),
+          Divider(height: 1, color: accentColor.withValues(alpha: 0.1)),
           const SizedBox(height: 24),
           
           // Temperature Display
-          Text(
-            '${_temperature.toInt()}°C',
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'LXGWWenKai',
-              color: Color(0xFF8B5E3C),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Text(
+              '${_temperature.toInt()}°C',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'LXGWWenKai',
+                color: accentColor,
+              ),
             ),
           ),
           
+          const SizedBox(height: 16),
           // Temperature Slider
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              activeTrackColor: const Color(0xFF8B5E3C),
-              inactiveTrackColor: const Color(0xFF8B5E3C).withOpacity(0.12),
-              thumbColor: Colors.white,
-              overlayColor: const Color(0xFF8B5E3C).withOpacity(0.1),
+              activeTrackColor: accentColor,
+              inactiveTrackColor: accentColor.withValues(alpha: 0.15),
+              thumbColor: accentColor,
+              overlayColor: accentColor.withValues(alpha: 0.1),
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10, elevation: 3),
               trackHeight: 4,
             ),
@@ -152,17 +203,17 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
           
           // Slider Labels
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('-90°C', style: TextStyle(fontSize: 11, color: const Color(0xFF8B5E3C).withOpacity(0.4), fontFamily: 'LXGWWenKai')),
-                Text('60°C', style: TextStyle(fontSize: 11, color: const Color(0xFF8B5E3C).withOpacity(0.4), fontFamily: 'LXGWWenKai')),
+                Text('-90°C', style: TextStyle(fontSize: 12, color: accentColor.withValues(alpha: 0.4), fontFamily: 'LXGWWenKai')),
+                Text('60°C', style: TextStyle(fontSize: 12, color: accentColor.withValues(alpha: 0.4), fontFamily: 'LXGWWenKai')),
               ],
             ),
           ),
         ],
       ),
-    );
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
   }
 }

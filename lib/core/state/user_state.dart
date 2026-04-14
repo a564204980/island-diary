@@ -190,7 +190,7 @@ class UserState {
       blocks: blocks,
       paperStyle: paperStyle ?? 'note1',
       isImageGrid: isImageGrid ?? false,
-      isMixedLayout: isMixedLayout ?? true,
+      isMixedLayout: isMixedLayout ?? (isVip.value && !(isImageGrid ?? false)),
     );
     diaryDraft.value = draft;
 
@@ -452,8 +452,8 @@ class UserState {
     wallColorLeft.value = left;
     wallColorRight.value = right;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyWallColorLeft, left.value);
-    await prefs.setInt(_keyWallColorRight, right.value);
+    await prefs.setInt(_keyWallColorLeft, left.toARGB32());
+    await prefs.setInt(_keyWallColorRight, right.toARGB32());
   }
 
   /// 设置朋友圈背景封面
@@ -666,7 +666,7 @@ class UserState {
         blocks: blocks,
         paperStyle: prefs.getString(_keyDraftPaperStyle) ?? 'note1',
         isImageGrid: prefs.getBool(_keyDraftIsImageGrid) ?? false,
-        isMixedLayout: prefs.getBool(_keyDraftIsMixedLayout) ?? true,
+        isMixedLayout: prefs.getBool(_keyDraftIsMixedLayout) ?? (isVip.value && !(prefs.getBool(_keyDraftIsImageGrid) ?? false)),
       );
     }
 

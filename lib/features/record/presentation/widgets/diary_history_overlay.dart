@@ -95,12 +95,36 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Container(
-              color: isMoments 
-                ? (isNight ? const Color(0xFF141414) : Colors.white)
-                : (isNight ? const Color(0xFF141414) : const Color(0xFFFDF9F0)),
-            ),
+          ValueListenableBuilder<String?>(
+            valueListenable: UserState().momentsCoverPath,
+            builder: (context, coverPath, _) {
+              return Positioned.fill(
+                child: Container(
+                  color: isNight ? const Color(0xFF1A1C1E) : Colors.white,
+                  child: isMoments
+                      ? (isNight 
+                          ? const SizedBox.shrink() 
+                          : Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: coverPath != null
+                                      ? DiaryUtils.buildImage(coverPath, fit: BoxFit.cover)
+                                      : Image.asset('assets/images/note/note_bg1.png', fit: BoxFit.cover),
+                                ),
+                                Positioned.fill(
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+                                    child: Container(
+                                      color: Colors.white.withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ))
+                      : (isNight ? null : Container(color: const Color(0xFFFDF9F0))),
+                ),
+              );
+            },
           ),
           if (!isMoments && !isCalendar)
             Positioned.fill(
@@ -113,13 +137,10 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
               ),
             ),
           Positioned.fill(
-            child: GestureDetector(
-              onTap: widget.onClose,
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: Container(
-                  color: isNight ? Colors.transparent : Colors.white.withOpacity(0.3),
-                ),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              child: Container(
+                color: isNight ? Colors.transparent : Colors.white.withOpacity(0.3),
               ),
             ),
           ),
@@ -141,51 +162,88 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                     const SizedBox(height: 16),
 
                   Expanded(
-                    child: ValueListenableBuilder<List<DiaryEntry>>(
-                      valueListenable: UserState().savedDiaries,
-                      builder: (context, diaries, _) {
-                        if (isCalendar) {
-                          return DiaryCalendarPanel(
-                            isNight: isNight,
-                            onDateSelected: (date) {
-                              setState(() { _selectedDate = date; _setLayoutMode(DiaryLayoutMode.timeline); });
-                            },
-                            onShareMonth: _shareCurrentMonth,
-                          );
-                        }
+                    child: Center(
+                      child: Container(
+                        constraints: BoxConstraints(maxWidth: isMoments ? double.infinity : 760),
+                        child: ValueListenableBuilder<List<DiaryEntry>>(
+                          valueListenable: UserState().savedDiaries,
+                          builder: (context, diaries, _) {
+                            const double contentMaxWidth = 760.0;
 
-                        final filtered = diaries.where((d) {
-                          final matchesDate = _selectedDate == null ||
-                              (d.dateTime.year == _selectedDate!.year && d.dateTime.month == _selectedDate!.month && d.dateTime.day == _selectedDate!.day);
-                          final matchesSearch = _searchQuery.isEmpty || d.content.contains(_searchQuery);
-                          final matchesMood = _filterMoodIndex == null || d.moodIndex == _filterMoodIndex;
-                          return matchesDate && matchesSearch && matchesMood;
-                        }).toList();
+                            if (isCalendar) {
+                              return Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: contentMaxWidth),
+                                  child: DiaryCalendarPanel(
+                                    isNight: isNight,
+                                    onDateSelected: (date) {
+                                      setState(() { _selectedDate = date; _setLayoutMode(DiaryLayoutMode.timeline); });
+                                    },
+                                    onShareMonth: _shareCurrentMonth,
+                                  ),
+                                ),
+                              );
+                            }
 
-                        return AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: (filtered.isEmpty && !isMoments)
-                            ? Center(
-                                key: const ValueKey('empty'),
-                                child: Text(_searchQuery.isEmpty ? "还没有心情记录呢..." : "没找到相关记录哦~", style: TextStyle(color: isNight ? Colors.white30 : Colors.black.withOpacity(0.3), fontFamily: 'LXGWWenKai')),
-                              )
-                            : ListView.builder(
-                                key: ValueKey('list_$_layoutMode'),
-                                padding: EdgeInsets.only(left: isMoments ? 0 : 16, right: isMoments ? 0 : 16, top: 0, bottom: 100),
-                                itemCount: isMoments ? filtered.length + 1 : filtered.length,
-                                itemBuilder: (context, index) {
-                                  if (isMoments) {
-                                    if (index == 0) return DiaryMomentsHeader(isNight: isNight, onBack: () => _setLayoutMode(DiaryLayoutMode.timeline));
-                                    return DiaryMomentsCard(entry: filtered[index - 1], isNight: isNight, userName: UserState().userName.value);
-                                  }
-                                  return DiaryHistoryCard(
-                                    entry: filtered[index], index: index, isFilteredMode: true, isNight: isNight, showDate: _selectedDate == null, isFirst: index == 0, isLast: index == filtered.length - 1,
-                                    onShare: () => _shareCurrentDay(filtered[index].dateTime),
-                                  );
-                                },
-                              ),
-                        );
-                      },
+                            final filtered = diaries.where((d) {
+                              final matchesDate = _selectedDate == null ||
+                                  (d.dateTime.year == _selectedDate!.year && d.dateTime.month == _selectedDate!.month && d.dateTime.day == _selectedDate!.day);
+                              final matchesSearch = _searchQuery.isEmpty || d.content.contains(_searchQuery);
+                              final matchesMood = _filterMoodIndex == null || d.moodIndex == _filterMoodIndex;
+                              return matchesDate && matchesSearch && matchesMood;
+                            }).toList();
+
+                            return AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              child: (filtered.isEmpty && !isMoments)
+                                ? Center(
+                                    key: const ValueKey('empty'),
+                                    child: Text(_searchQuery.isEmpty ? "还没有心情记录呢..." : "没找到相关记录哦~", style: TextStyle(color: isNight ? Colors.white30 : Colors.black.withOpacity(0.3), fontFamily: 'LXGWWenKai')),
+                                  )
+                                : ListView.builder(
+                                    key: ValueKey('list_$_layoutMode'),
+                                    padding: EdgeInsets.only(top: 0, bottom: 100),
+                                    itemCount: isMoments ? filtered.length + 1 : filtered.length,
+                                    itemBuilder: (context, index) {
+                                      if (isMoments) {
+                                        if (index == 0) {
+                                          return DiaryMomentsHeader(
+                                            isNight: isNight, 
+                                            onBack: () => _setLayoutMode(DiaryLayoutMode.timeline),
+                                          );
+                                        }
+                                        return Center(
+                                          child: ConstrainedBox(
+                                            constraints: const BoxConstraints(maxWidth: contentMaxWidth),
+                                            child: DiaryMomentsCard(
+                                              entry: filtered[index - 1], 
+                                              isNight: isNight, 
+                                              userName: UserState().userName.value,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      return Center(
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(maxWidth: contentMaxWidth),
+                                          child: DiaryHistoryCard(
+                                            entry: filtered[index], 
+                                            index: index, 
+                                            isFilteredMode: true, 
+                                            isNight: isNight, 
+                                            showDate: _selectedDate == null, 
+                                            isFirst: index == 0, 
+                                            isLast: index == filtered.length - 1,
+                                            onShare: () => _shareCurrentDay(filtered[index].dateTime),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 ],

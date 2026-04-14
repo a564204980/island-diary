@@ -20,7 +20,6 @@ class IslandVipGuardDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const starlightColor = Color(0xFFCE93D8);
-    final isNight = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
       child: Container(

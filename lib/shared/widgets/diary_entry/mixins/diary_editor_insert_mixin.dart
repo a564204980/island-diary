@@ -132,6 +132,7 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       backgroundColor: Colors.transparent,
       builder: (context) => DiaryDatePickerSheet(
         initialDate: DateTime.now(),
+        paperStyle: currentPaperStyle,
         onConfirm: (date) {
           final String insertion = DiaryUtils.getFormattedDateWithWeekday(date);
           
@@ -187,6 +188,7 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       backgroundColor: Colors.transparent,
       builder: (context) => DiaryTimePickerSheet(
         initialTime: TimeOfDay.now(),
+        paperStyle: currentPaperStyle,
         onConfirm: (time) {
           final String insertion = DiaryUtils.getFormattedFullTime(time);
           
@@ -242,6 +244,7 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => DiaryWeatherPickerSheet(
+        paperStyle: currentPaperStyle,
         onConfirm: (w, t) {
           setState(() {
             weather = w;

@@ -11,6 +11,7 @@ import './diary_editor_core_mixin.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:http/http.dart' as http;
 import 'package:island_diary/core/constants/api_constants.dart';
+import '../components/diary_image_source_sheet.dart';
 
 mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
   void onImageButtonPressed() async {
@@ -39,28 +40,10 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
 
     final ImageSource? source = await showModalBottomSheet<ImageSource>(
       context: context,
-      backgroundColor: Colors.white,
-      elevation: 10,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library_rounded, color: Color(0xFFC4B69E)),
-              title: const Text('从相册选择', style: TextStyle(fontFamily: 'LXGWWenKai')),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFFC4B69E)),
-              title: const Text('拍照', style: TextStyle(fontFamily: 'LXGWWenKai')),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => DiaryImageSourceSheet(
+        paperStyle: currentPaperStyle,
       ),
     );
 

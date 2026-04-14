@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import '../utils/diary_utils.dart';
 import 'diary_painters.dart';
 
 class PaperPickerSheet extends StatelessWidget {
@@ -14,19 +15,23 @@ class PaperPickerSheet extends StatelessWidget {
     required this.accentColor,
   });
 
-  static const Map<String, String> styles = {
+  static final Map<String, String> styles = {
     'note1': '岛屿',
     'note2': '复古',
     'note3': '极简',
     'note4': '淡雅',
     'note5': '优雅',
+    'note6': '清新',
+    'note7': '淡青',
+    'note8': '雅致',
+    'note9': '恬静',
   };
 
   @override
   Widget build(BuildContext context) {
     final bool isNight = UserState().isNight;
-    final Color bgColor = isNight ? const Color(0xFF2D2A26) : const Color(0xFFFDF7E9);
-    final Color textColor = isNight ? Colors.white70 : const Color(0xFF5D4037);
+    final Color bgColor = DiaryUtils.getPopupBackgroundColor(currentStyle, isNight);
+    final Color textColor = DiaryUtils.getInkColor(currentStyle, isNight).withValues(alpha: 0.9);
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24),
@@ -111,7 +116,7 @@ class PaperPickerSheet extends StatelessWidget {
                                 if (key.startsWith('note'))
                                   Positioned.fill(
                                     child: Image.asset(
-                                      'assets/images/note/${key.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5'].contains(key) ? '.png' : '.jpg'}',
+                                      'assets/images/note/${key.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7', 'note8', 'note9'].contains(key) ? '.png' : '.jpg'}',
                                       fit: BoxFit.cover,
                                     ),
                                   ),
