@@ -59,6 +59,7 @@ class UserState {
   static const _keyPreferredPaperStyle = 'preferred_paper_style'; // 全局信纸偏好
   static const _keyPreferredFontSize = 'preferred_font_size'; // 全局字号偏好
   static const _keyPreferredFontFamily = 'preferred_font_family'; // 全局字体偏好
+  static const _keyMascotDecoration = 'selected_mascot_decoration'; // 小软装扮
 
 
 
@@ -144,6 +145,9 @@ class UserState {
   
   /// 全局字体偏好
   final ValueNotifier<String> preferredFontFamily = ValueNotifier<String>('LXGWWenKai');
+
+  /// 当前选中的小软装扮路径 (null 表示裸装)
+  final ValueNotifier<String?> selectedMascotDecoration = ValueNotifier<String?>(null);
 
 
 
@@ -675,9 +679,25 @@ class UserState {
     if (savedJson != null) {
       try {
         final List<dynamic> decoded = jsonDecode(savedJson);
-        savedDiaries.value = decoded
+        final allEntries = decoded
             .map((e) => DiaryEntry.fromMap(Map<String, dynamic>.from(e)))
             .toList();
+            
+        // 关键修复：清理日记中的失效资源引用
+        for (var entry in allEntries) {
+          entry.blocks.removeWhere((block) {
+            if (block['type'] == 'image') {
+              final path = block['path'] as String?;
+              if (path != null && path.contains('assets/images/residents/')) {
+                debugPrint("Removing stale resident image from diary ${entry.id}: $path");
+                return true;
+              }
+            }
+            return false;
+          });
+        }
+        
+        savedDiaries.value = allEntries;
       } catch (e) {
         debugPrint('Error decoding saved diaries: $e');
       }
@@ -688,9 +708,24 @@ class UserState {
     if (furnitureJson != null) {
       try {
         final List<dynamic> decoded = jsonDecode(furnitureJson);
-        placedFurniture.value = decoded
+        final allPlaced = decoded
             .map((e) => PlacedFurniture.fromMap(Map<String, dynamic>.from(e)))
             .toList();
+        
+        // 关键修复：数据迁移与清理。过滤掉由于版本更新或功能移除导致的失效资源引用。
+        // 特别是针对 hermit_crab.png 及 residents 目录下的失效资产。
+        placedFurniture.value = allPlaced.where((pf) {
+          final path = pf.item.imagePath;
+          // 暂时移除所有指向 residents/ 目录的条目，因为该目录当前未在 pubspec 注册且内容为空。
+          if (path.contains('assets/images/residents/')) {
+            debugPrint("Cleaning up stale resident reference: ${pf.item.id} -> $path");
+            return false;
+          }
+          return true;
+        }).toList();
+
+        // 如果发生了清理，可以考虑立即同步回存储，但为了安全，此处仅更新内存状态。
+        // 下次用户保存场景时会自然持久化。
       } catch (e) {
         debugPrint('Error decoding placed furniture: $e');
       }
@@ -748,6 +783,7 @@ class UserState {
     preferredPaperStyle.value = prefs.getString(_keyPreferredPaperStyle) ?? 'note1';
     preferredFontSize.value = prefs.getDouble(_keyPreferredFontSize) ?? 20.0;
     preferredFontFamily.value = prefs.getString(_keyPreferredFontFamily) ?? 'LXGWWenKai';
+    selectedMascotDecoration.value = prefs.getString(_keyMascotDecoration);
   }
 
 
@@ -800,12 +836,24 @@ class UserState {
     }
   }
 
+  /// 设置并保存小软装扮
+  Future<void> setMascotDecoration(String? assetPath) async {
+    selectedMascotDecoration.value = assetPath;
+    final prefs = await SharedPreferences.getInstance();
+    if (assetPath == null) {
+      await prefs.remove(_keyMascotDecoration);
+    } else {
+      await prefs.setString(_keyMascotDecoration, assetPath);
+    }
+  }
+
   void dispose() {
     userName.dispose();
     hasFinishedOnboarding.dispose();
     hasSeenRecordGuidance.dispose();
     diaryDraft.dispose();
     isSlimeInBottomMenu.dispose();
+    selectedMascotDecoration.dispose();
   }
 }
 

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
 import 'dart:math' as math;
-import 'package:island_diary/shared/widgets/sprite_animation.dart';
+import 'package:island_diary/shared/widgets/static_sprite.dart';
+import 'package:island_diary/core/state/user_state.dart';
 import 'package:flutter/foundation.dart';
 
 enum ParticleType { circle, star, diamond, ring }
@@ -266,11 +267,15 @@ class _DiarySuccessOverlayState extends State<DiarySuccessOverlay>
                     ],
                   ),
                 ),
-                const SpriteAnimation(
-                  assetPath: 'assets/images/emoji/weixiao.png',
-                  frameCount: 9,
-                  size: 80,
-                  duration: Duration(milliseconds: 1200),
+                ListenableBuilder(
+                  listenable: UserState().selectedMascotDecoration,
+                  builder: (context, _) {
+                    return StaticSprite(
+                      assetPath: 'assets/images/emoji/pedding.png',
+                      decorationPath: UserState().selectedMascotDecoration.value,
+                      size: 80,
+                    );
+                  },
                 ),
               ],
             ),

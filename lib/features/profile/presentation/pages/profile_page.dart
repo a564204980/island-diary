@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/profile/presentation/pages/vip_benefits_page.dart';
+import 'package:island_diary/features/profile/presentation/pages/mascot_decoration_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/security_center_page.dart';
 import 'package:island_diary/core/state/user_state.dart';
 
@@ -366,6 +367,27 @@ class ProfilePage extends StatelessWidget {
         Row(
           children: [
             Expanded(
+              flex: 3,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MascotDecorationPage(),
+                    ),
+                  );
+                },
+                child: _buildQuickActionBento(
+                  title: '小软装扮',
+                  icon: Icons.auto_fix_high_rounded,
+                  color: const Color(0xFFFFB74D),
+                  isNight: isNight,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
               child: _buildQuickActionBento(
                 title: '回忆导出',
                 icon: Icons.ios_share,
@@ -373,7 +395,12 @@ class ProfilePage extends StatelessWidget {
                 isNight: isNight,
               ),
             ),
-            const SizedBox(width: 12),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // 第三排 Bento
+        Row(
+          children: [
             Expanded(
               child: _buildQuickActionBento(
                 title: '关于小岛',

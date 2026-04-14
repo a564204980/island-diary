@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:island_diary/shared/widgets/sprite_animation.dart';
+import 'package:island_diary/shared/widgets/static_sprite.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 /// 统一的精灵按钮组件，确保在任何地方（底栏、新手引导）都拥有绝对一致的几何尺寸和视觉表现。
 /// 改为 StatefulWidget，使动画 Controller 常驻不因 rebuild 而重建，消除卡顿感。
@@ -9,30 +10,18 @@ class SlimeButton extends StatefulWidget {
   final bool isGlowing;
   final VoidCallback? onTap;
 
-  // SpriteAnimation 相关属性
+  // 静态外观属性
   final String assetPath;
-  final int frameCount;
-  final int startFrame;
-  final int? endFrame;
-  final int? repeatCount;
-  final Duration duration;
   final double spriteSize;
-  final bool isPlaying;
-  final bool showSlime; // 【新增】控制角色显隐，而不影响底座
+  final bool showSlime; // 控制角色显隐，而不影响底座
 
   const SlimeButton({
     super.key,
     this.isNight = false,
     this.isGlowing = false,
     this.onTap,
-    this.assetPath = 'assets/images/emoji/weixiao.png',
-    this.frameCount = 9,
-    this.startFrame = 0,
-    this.endFrame,
-    this.repeatCount,
-    this.duration = const Duration(milliseconds: 800),
-    this.spriteSize = 42.0,
-    this.isPlaying = true,
+    this.assetPath = 'assets/images/emoji/pedding.png', // 默认改为 pedding.png
+    this.spriteSize = 64.0,
     this.showSlime = true,
   });
 
@@ -100,26 +89,18 @@ class _SlimeButtonState extends State<SlimeButton> {
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 400),
                     opacity: widget.showSlime ? 1.0 : 0.0,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 500),
-                      transitionBuilder:
-                          (Widget child, Animation<double> animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: child,
+                    child: ListenableBuilder(
+                      listenable: UserState().selectedMascotDecoration,
+                      builder: (context, _) {
+                        return StaticSprite(
+                          assetPath: widget.assetPath,
+                          decorationPath: UserState().selectedMascotDecoration.value,
+                          size: widget.spriteSize,
+                          // 如果还是旧的序列图资源（如 weixiao.png ），StaticSprite 默认展示第一帧
+                          // 如果是新的 pedding.png，则自动适配
+                          frameCount: widget.assetPath.contains('weixiao.png') ? 9 : 1, 
                         );
                       },
-                      child: SpriteAnimation(
-                        key: ValueKey(widget.assetPath), // 核心：资源路径变化触发动画
-                        assetPath: widget.assetPath,
-                        frameCount: widget.frameCount,
-                        startFrame: widget.startFrame,
-                        endFrame: widget.endFrame,
-                        repeatCount: widget.repeatCount,
-                        duration: widget.duration,
-                        size: widget.spriteSize,
-                        isPlaying: widget.isPlaying,
-                      ),
                     ),
                   ),
                 ),

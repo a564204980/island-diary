@@ -182,8 +182,15 @@ class DiaryUtils {
           fit: fit,
         );
       } else {
+        // 关键修复：确保文件确实存在，否则返回错误占位符，防止 PathNotFoundException
+        final file = io.File(normalizedPath);
+        if (!file.existsSync()) {
+          debugPrint("Physical file not found ($normalizedPath), skipping...");
+          return _buildErrorPlaceholder(width, height, borderRadius);
+        }
+
         image = Image.file(
-          io.File(normalizedPath), 
+          file, 
           width: width, 
           height: height, 
           fit: fit,

@@ -140,24 +140,10 @@ class _SlimeOnboardingState extends State<SlimeOnboarding> {
   }
 
   Widget _buildSlimeButton() {
-    int start = 0;
-    int end = 8;
-    int? repeatCount;
     bool isGlowing = false;
 
-    if (_step == 0) {
-      // 欢快跳动 (序列帧 1-3)，跳两次静止
-      start = 0;
-      end = 2;
-      repeatCount = 2;
-    } else if (_step == 1) {
-      // 呼吸状态
-      start = 0;
-      end = 8;
-    } else if (_step == 2) {
-      // 呼吸状态 + 发光
-      start = 0;
-      end = 8;
+    if (_step == 2) {
+      // 进入第三步：精灵发光
       isGlowing = true;
     }
 
@@ -168,10 +154,6 @@ class _SlimeOnboardingState extends State<SlimeOnboarding> {
       isNight: widget.isNight,
       isGlowing: isGlowing,
       onTap: _handleSlimeTap,
-      startFrame: start,
-      endFrame: end,
-      repeatCount: repeatCount,
-      duration: _step == 0 ? 400.ms : 800.ms,
     );
   }
 }

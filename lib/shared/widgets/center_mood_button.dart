@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:island_diary/shared/widgets/sprite_animation.dart';
+import 'package:island_diary/shared/widgets/static_sprite.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 /// 底部导航栏中心的“心情精灵”按钮
-/// 独立管理：未来可根据心情状态动态切换不同表情序列帧，并触发不同对话。
+/// 独立管理：未来可根据心情状态动态切换不同表情，并触发不同对话。
 class CenterMoodButton extends StatefulWidget {
   final double radius;
   final VoidCallback onTap;
@@ -20,11 +21,8 @@ class CenterMoodButton extends StatefulWidget {
 }
 
 class _CenterMoodButtonState extends State<CenterMoodButton> {
-  // TODO: 这里后续可以接入 UserState 或 MoodProvider，
-  // 监听用户心情变化，然后动态分配不同的精灵图路径和帧参数。
-  final String _currentAvatarPath = 'assets/images/emoji/weixiao.png';
-  final int _frameCount = 9;
-  final Duration _animationDuration = const Duration(milliseconds: 800);
+  // 切换为静态资源引导
+  final String _currentAvatarPath = 'assets/images/emoji/pedding.png';
 
   @override
   Widget build(BuildContext context) {
@@ -123,12 +121,16 @@ class _CenterMoodButtonState extends State<CenterMoodButton> {
         border: Border.all(color: Colors.white, width: 3),
       ),
       child: Center(
-        child: SpriteAnimation(
-          key: ValueKey(_currentAvatarPath),
-          assetPath: _currentAvatarPath,
-          frameCount: _frameCount,
-          duration: _animationDuration,
-          size: widget.radius * 1.5,
+        child: ListenableBuilder(
+          listenable: UserState().selectedMascotDecoration,
+          builder: (context, _) {
+            return StaticSprite(
+              key: ValueKey(_currentAvatarPath),
+              assetPath: _currentAvatarPath,
+              decorationPath: UserState().selectedMascotDecoration.value,
+              size: widget.radius * 2.2,
+            );
+          },
         ),
       ),
     );

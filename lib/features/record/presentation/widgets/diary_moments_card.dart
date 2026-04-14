@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
-import 'package:island_diary/shared/widgets/sprite_animation.dart';
+import 'package:island_diary/shared/widgets/static_sprite.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -144,21 +144,8 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
   }
 
   String _getMoodAnimation(int moodIndex) {
-    // 映射心情 ID 到对应的史莱姆动画
-    // 0: 期待, 1: 厌恶, 2: 恐惧, 3: 惊喜, 4: 平静, 5: 愤怒, 6: 悲伤, 7: 开心
-    if (moodIndex == 7) {
-      return 'assets/images/emoji/weixiao.png'; // 开心
-    }
-    if (moodIndex == 3) {
-      return 'assets/images/emoji/daxiao.png';  // 惊喜 -> 大笑
-    }
-    if (moodIndex == 6) {
-      return 'assets/images/emoji/nanguo.png';  // 悲伤 -> 南过
-    }
-    if (moodIndex == 1 || moodIndex == 5) {
-      return 'assets/images/emoji/sikao.png'; // 愤怒/厌恶 -> 思考
-    }
-    return 'assets/images/emoji/weixiao.png'; // 默认微笑
+    // 关键重构：按照需求，目前全站统一使用 pedding.png 作为小软的静态形象
+    return 'assets/images/emoji/pedding.png';
   }
 
   List<InlineSpan> _buildRichTextSpans(TextStyle baseStyle) {
@@ -241,12 +228,15 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Center(
-              child: SpriteAnimation(
-                assetPath: _getMoodAnimation(widget.entry.moodIndex),
-                frameCount: 9,
-                duration: const Duration(milliseconds: 1000),
-                size: isWide ? 42.0 : 36.0,
-                isPlaying: true,
+              child: ListenableBuilder(
+                listenable: UserState().selectedMascotDecoration,
+                builder: (context, _) {
+                  return StaticSprite(
+                    assetPath: _getMoodAnimation(widget.entry.moodIndex),
+                    decorationPath: UserState().selectedMascotDecoration.value,
+                    size: isWide ? 42.0 : 36.0,
+                  );
+                },
               ),
             ),
           ),

@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/shared/widgets/sprite_animation.dart';
+import 'package:island_diary/shared/widgets/static_sprite.dart';
 import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/features/record/presentation/widgets/book_glow_hint.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
@@ -364,12 +364,15 @@ class _RecordPageState extends State<RecordPage>
                 top: curY - 42,
                 child: Transform.scale(
                   scale: slimeScale,
-                  child: const SpriteAnimation(
-                    assetPath: 'assets/images/emoji/weixiao.png',
-                    frameCount: 9,
-                    duration: Duration(milliseconds: 800),
-                    size: 42.0,
-                    isPlaying: true,
+                  child: ListenableBuilder(
+                    listenable: UserState().selectedMascotDecoration,
+                    builder: (context, _) {
+                      return StaticSprite(
+                        assetPath: 'assets/images/emoji/pedding.png',
+                        decorationPath: UserState().selectedMascotDecoration.value,
+                        size: 42.0,
+                      );
+                    },
                   ),
                 ),
               ),

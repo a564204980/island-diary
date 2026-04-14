@@ -107,6 +107,7 @@ flutter:
     - assets/images/note/
     - assets/images/icons/
     - assets/images/emoji/
+    - assets/images/emoji/decorate/
     - assets/images/emoji/wechat/face/
     - assets/images/emoji/wechat/gesture/
     - assets/images/emoji/wechat/animal/
