@@ -297,12 +297,12 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
           border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFF4D673).withOpacity(0.55),
+              color: const Color(0xFFF4D673).withValues(alpha: 0.55),
               blurRadius: 25,
               spreadRadius: 2,
             ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -345,7 +345,7 @@ class _MoodPickerSheetState extends State<MoodPickerSheet> {
             counterText: '',
             hintText: '描述此刻的心境...',
             hintStyle: TextStyle(
-              color: const Color(0xFF8D6E63).withOpacity(0.6),
+              color: const Color(0xFF8D6E63).withValues(alpha: 0.6),
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),

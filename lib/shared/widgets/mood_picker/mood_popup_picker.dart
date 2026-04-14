@@ -120,8 +120,8 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                     duration: const Duration(milliseconds: 200),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? mood.glowColor?.withOpacity(0.15) ??
-                                primaryColor.withOpacity(0.08)
+                          ? mood.glowColor?.withValues(alpha: 0.15) ??
+                                 primaryColor.withValues(alpha: 0.08)
                           : (effectiveIsNight ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.5)),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
@@ -168,16 +168,16 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isNight ? Colors.white38 : primaryColor.withOpacity(0.7),
+                color: isNight ? Colors.white38 : primaryColor.withValues(alpha: 0.7),
                 fontFamily: 'LXGWWenKai',
               ),
             ),
             const SizedBox(height: 10),
             Container(
               decoration: BoxDecoration(
-                color: effectiveIsNight ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.4),
+                color: effectiveIsNight ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: effectiveIsNight ? Colors.white.withOpacity(0.1) : inkColor.withValues(alpha: 0.1)),
+                border: Border.all(color: effectiveIsNight ? Colors.white.withValues(alpha: 0.1) : inkColor.withValues(alpha: 0.1)),
               ),
               child: TextField(
                 controller: _tagController,
@@ -234,10 +234,10 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: effectiveIsNight ? Colors.white.withOpacity(0.05) : inkColor.withValues(alpha: 0.05),
+                                  color: effectiveIsNight ? Colors.white.withValues(alpha: 0.05) : inkColor.withValues(alpha: 0.05),
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: effectiveIsNight ? Colors.white.withOpacity(0.1) : inkColor.withValues(alpha: 0.1),
+                                    color: effectiveIsNight ? Colors.white.withValues(alpha: 0.1) : inkColor.withValues(alpha: 0.1),
                                   ),
                                 ),
                                 child: Text(
@@ -288,7 +288,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                 activeTrackColor: primaryColor,
                 inactiveTrackColor: effectiveIsNight ? Colors.white10 : inkColor.withValues(alpha: 0.1),
                 thumbColor: Colors.white,
-                overlayColor: primaryColor.withOpacity(0.2),
+                overlayColor: primaryColor.withValues(alpha: 0.2),
                 trackHeight: 4,
                 thumbShape: const RoundSliderThumbShape(
                   enabledThumbRadius: 8,
@@ -345,21 +345,21 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                       gradient: LinearGradient(
                         colors: canSave 
                             ? [primaryColor, primaryColor.withBlue(primaryColor.blue + 20).withRed(primaryColor.red - 10)]
-                            : [primaryColor.withOpacity(0.2), primaryColor.withOpacity(0.1)],
+                            : [primaryColor.withValues(alpha: 0.2), primaryColor.withValues(alpha: 0.1)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       boxShadow: [
                         if (canSave && isNight)
                           BoxShadow(
-                            color: glowColor.withOpacity(0.4),
+                            color: glowColor.withValues(alpha: 0.4),
                             blurRadius: 15,
                             spreadRadius: -2,
                             offset: const Offset(0, 4),
                           ),
                         if (canSave && !isNight)
                           BoxShadow(
-                            color: primaryColor.withOpacity(0.2),
+                            color: primaryColor.withValues(alpha: 0.2),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -421,7 +421,7 @@ class _IntensityLabel extends StatelessWidget {
       style: TextStyle(
         fontSize: 12,
         fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-        color: isActive ? color : color.withOpacity(0.3),
+        color: isActive ? color : color.withValues(alpha: 0.3),
         fontFamily: 'LXGWWenKai',
       ),
     );
