@@ -19,7 +19,7 @@ class DiaryMomentsCard extends StatefulWidget {
     super.key,
     required this.entry,
     this.isNight = false,
-    this.userName = "我",
+    this.userName = '我',
   });
 
   @override
@@ -144,13 +144,15 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
   }
 
   String _getMoodAnimation(int moodIndex) {
-    // 关键重构：按照需求，目前全站统一使用 pedding.png 作为小软的静态形象
-    return 'assets/images/emoji/pedding.png';
+    // 关键重构：按照需求，目前全站统一使用 marshmallow.png 作为小软的静态形象
+    return 'assets/images/emoji/marshmallow.png';
   }
 
   List<InlineSpan> _buildRichTextSpans(TextStyle baseStyle) {
     if (widget.entry.blocks.isEmpty) {
-      final filteredContent = DiaryUtils.getFilteredContent(widget.entry.content);
+      final filteredContent = DiaryUtils.getFilteredContent(
+        widget.entry.content,
+      );
       return EmojiMapping.parseText(filteredContent).map((chunk) {
         if (chunk.isEmoji) {
           return WidgetSpan(
@@ -198,7 +200,9 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
   Widget build(BuildContext context) {
     final textStyle = TextStyle(
       fontSize: 15.0,
-      color: widget.isNight ? Colors.white70 : Colors.black.withValues(alpha: 0.85),
+      color: widget.isNight
+          ? Colors.white70
+          : Colors.black.withValues(alpha: 0.85),
       height: 1.5,
       fontFamily: 'LXGWWenKai',
     );
@@ -206,12 +210,17 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
     final bool isWide = MediaQuery.of(context).size.width > 800;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isWide ? 20 : 16, vertical: isWide ? 16 : 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: isWide ? 20 : 16,
+        vertical: isWide ? 16 : 12,
+      ),
       decoration: BoxDecoration(
         color: widget.isNight ? const Color(0xFF1A1C1E) : Colors.white,
         border: Border(
           bottom: BorderSide(
-            color: widget.isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+            color: widget.isNight
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.03),
             width: 1,
           ),
         ),
@@ -224,7 +233,9 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
             width: isWide ? 52 : 44,
             height: isWide ? 52 : 44,
             decoration: BoxDecoration(
-              color: widget.isNight ? const Color(0xFF2C2E30) : const Color(0xFFFDF9F0),
+              color: widget.isNight
+                  ? const Color(0xFF2C2E30)
+                  : const Color(0xFFFDF9F0),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Center(
@@ -249,7 +260,7 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
               children: [
                 // 昵称
                 Text(
-                  widget.userName.isEmpty ? "我" : widget.userName,
+                  widget.userName.isEmpty ? '我' : widget.userName,
                   style: const TextStyle(
                     color: Color(0xFF576B95),
                     fontWeight: FontWeight.bold,
@@ -266,12 +277,15 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
 
                     final richSpans = _buildRichTextSpans(textStyle);
                     final displaySpan = TextSpan(children: richSpans);
-                    
-                    final tp = TextPainter(
-                      text: displaySpan,
-                      maxLines: 6,
-                      textDirection: TextDirection.ltr,
-                    )..layout(maxWidth: estimateWidth > 0 ? estimateWidth : 200);
+
+                    final tp =
+                        TextPainter(
+                          text: displaySpan,
+                          maxLines: 6,
+                          textDirection: TextDirection.ltr,
+                        )..layout(
+                          maxWidth: estimateWidth > 0 ? estimateWidth : 200,
+                        );
 
                     final bool hasOverflow = tp.didExceedMaxLines;
 
@@ -280,13 +294,16 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
                       children: [
                         RichText(
                           maxLines: _isExpanded ? null : 6,
-                          overflow: _isExpanded ? TextOverflow.visible : TextOverflow.clip,
+                          overflow: _isExpanded
+                              ? TextOverflow.visible
+                              : TextOverflow.clip,
                           text: displaySpan,
                         ),
                         if (hasOverflow) ...[
                           const SizedBox(height: 4),
                           GestureDetector(
-                            onTap: () => setState(() => _isExpanded = !_isExpanded),
+                            onTap: () =>
+                                setState(() => _isExpanded = !_isExpanded),
                             child: Text(
                               _isExpanded ? '收起' : '全文',
                               style: const TextStyle(
@@ -302,13 +319,13 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
                     );
                   },
                 ),
-                
-                // 图片展示 (九宫格)
+
+                // 图片展示（九宫格）
                 _buildPhotoGrid(),
 
                 const SizedBox(height: 8),
 
-                // 心情话题标签 (模拟朋友圈位置)
+                // 心情话题标签（模拟朋友圈位置）
                 _buildMoodTags(),
 
                 const SizedBox(height: 8),
@@ -330,18 +347,26 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
                       child: GestureDetector(
                         onTap: _togglePopover,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           child: Icon(
                             Icons.more_horiz_rounded,
                             size: 20,
-                            color: widget.isNight ? Colors.white30 : const Color(0xFF576B95).withValues(alpha: 0.6),
+                            color: widget.isNight
+                                ? Colors.white30
+                                : const Color(
+                                    0xFF576B95,
+                                  ).withValues(alpha: 0.6),
                           ),
                         ),
                       ),
                     ),
                   ],
                 ),
-                if (widget.entry.isLiked || widget.entry.replies.isNotEmpty) ...[
+                if (widget.entry.isLiked ||
+                    widget.entry.replies.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   _buildReplyList(),
                 ],
@@ -362,7 +387,9 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
   }
 
   Widget _buildPhotoGrid() {
-    final images = widget.entry.blocks.where((b) => b['type'] == 'image').toList();
+    final images = widget.entry.blocks
+        .where((b) => b['type'] == 'image')
+        .toList();
     if (images.isEmpty) return const SizedBox.shrink();
 
     return Padding(
@@ -373,21 +400,23 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
           final int crossAxisCount = (images.length == 4) ? 2 : 3;
           final bool isWide = MediaQuery.of(context).size.width > 800;
           final double spacing = isWide ? 8.0 : 4.0;
-          
+
           // 更稳健的尺寸计算：手动预留 2.0 像素的排版误差空间
-          final double itemSize = (totalWidth - (spacing * (crossAxisCount - 1)) - 2.0) / crossAxisCount;
+          final double itemSize =
+              (totalWidth - (spacing * (crossAxisCount - 1)) - 2.0) /
+              crossAxisCount;
 
           if (images.length == 1) {
-             final double singleImageSize = isWide ? 240.0 : totalWidth * 0.45;
-             return ClipRRect(
-               borderRadius: BorderRadius.circular(12),
-               child: DiaryUtils.buildImage(
-                 images[0]['path'] ?? '',
-                 width: singleImageSize,
-                 height: isWide ? 240.0 : singleImageSize,
-                 fit: BoxFit.cover,
-               ),
-             );
+            final double singleImageSize = isWide ? 240.0 : totalWidth * 0.45;
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: DiaryUtils.buildImage(
+                images[0]['path'] ?? '',
+                width: singleImageSize,
+                height: isWide ? 240.0 : singleImageSize,
+                fit: BoxFit.cover,
+              ),
+            );
           }
 
           return GridView.builder(
@@ -421,52 +450,57 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
     final moodIdx = widget.entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
     final Color baseColor = (mood.glowColor ?? const Color(0xFF576B95));
-    final Color tagColor = widget.isNight ? baseColor.withValues(alpha: 0.9) : baseColor;
+    final Color tagColor = widget.isNight
+        ? baseColor.withValues(alpha: 0.9)
+        : baseColor;
 
     return Wrap(
       spacing: 8,
       runSpacing: 6,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        // 1. 心情标签 (必选)
+        // 1. 心情标签（必选）
         _buildTagPill(
-          icon: mood.iconPath != null ? Image.asset(
-            mood.iconPath!,
-            width: 12,
-            height: 12,
-            color: tagColor.withValues(alpha: 0.8),
-            fit: BoxFit.contain,
-          ) : null,
+          icon: mood.iconPath != null
+              ? Image.asset(
+                  mood.iconPath!,
+                  width: 12,
+                  height: 12,
+                  color: tagColor.withValues(alpha: 0.8),
+                  fit: BoxFit.contain,
+                )
+              : null,
           label: mood.label,
           color: tagColor,
           isPill: true,
         ),
 
-        // 2. 天气标签 (可选)
+        // 2. 天气标签（可选）
         if (widget.entry.weather != null && widget.entry.weather!.isNotEmpty)
           _buildTagPill(
             icon: Icon(
-              _getWeatherIcon(widget.entry.weather!), 
-              size: 13, 
-              color: (widget.isNight ? Colors.white70 : Colors.black45)
+              _getWeatherIcon(widget.entry.weather!),
+              size: 13,
+              color: (widget.isNight ? Colors.white70 : Colors.black45),
             ),
-            label: "${widget.entry.weather}${widget.entry.temp != null ? ' ${widget.entry.temp}°' : ''}",
+            label:
+                "${widget.entry.weather}${widget.entry.temp != null ? ' ${widget.entry.temp}°' : ''}",
             color: widget.isNight ? Colors.white54 : Colors.black45,
           ),
 
-        // 3. 地点标签 (可选)
+        // 3. 地点标签（可选）
         if (widget.entry.location != null && widget.entry.location!.isNotEmpty)
           _buildTagPill(
             icon: Icon(
-              Icons.location_on_rounded, 
-              size: 12, 
-              color: const Color(0xFF576B95).withValues(alpha: 0.7)
+              Icons.location_on_rounded,
+              size: 12,
+              color: const Color(0xFF576B95).withValues(alpha: 0.7),
             ),
             label: widget.entry.location!,
             color: const Color(0xFF576B95),
           ),
 
-        // 4. 自定义话题标签 (可选)
+        // 4. 自定义话题标签（可选）
         if (widget.entry.tag != null && widget.entry.tag!.isNotEmpty)
           _buildTagPill(
             label: "#${widget.entry.tag}",
@@ -491,16 +525,15 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: isPill ? 10 : 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: widget.isNight ? bgColorAlpha * 1.5 : bgColorAlpha),
+        color: color.withValues(
+          alpha: widget.isNight ? bgColorAlpha * 1.5 : bgColorAlpha,
+        ),
         borderRadius: BorderRadius.circular(isPill ? 100 : borderRadius),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            icon,
-            const SizedBox(width: 4),
-          ],
+          if (icon != null) ...[icon, const SizedBox(width: 4)],
           Text(
             label,
             style: TextStyle(
@@ -517,7 +550,8 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
 
   IconData _getWeatherIcon(String weather) {
     if (weather.contains('晴')) return Icons.wb_sunny_rounded;
-    if (weather.contains('云') || weather.contains('阴')) return Icons.wb_cloudy_rounded;
+    if (weather.contains('阴') || weather.contains('云'))
+      return Icons.wb_cloudy_rounded;
     if (weather.contains('雨')) return Icons.umbrella_rounded;
     if (weather.contains('雪')) return Icons.ac_unit_rounded;
     return Icons.wb_sunny_outlined;
@@ -526,34 +560,38 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
   Widget _buildReplyList() {
     final bool hasLikes = widget.entry.isLiked;
     final bool hasReplies = widget.entry.replies.isNotEmpty;
-    
+
     if (!hasLikes && !hasReplies) return const SizedBox.shrink();
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: widget.isNight ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF3F3F5),
+        color: widget.isNight
+            ? Colors.white.withValues(alpha: 0.06)
+            : const Color(0xFFF3F3F5),
         borderRadius: BorderRadius.circular(8),
-        border: widget.isNight ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
+        border: widget.isNight
+            ? Border.all(color: Colors.white.withValues(alpha: 0.05))
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. 点赞行
+          // 1. 点赞区
           if (hasLikes)
             Padding(
               padding: EdgeInsets.only(bottom: hasReplies ? 6 : 0),
               child: Row(
                 children: [
                   const Icon(
-                    Icons.favorite_border_rounded, 
-                    size: 14, 
-                    color: Color(0xFF576B95)
+                    Icons.favorite_border_rounded,
+                    size: 14,
+                    color: Color(0xFF576B95),
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    widget.userName.isEmpty ? "我" : widget.userName,
+                    widget.userName.isEmpty ? '我' : widget.userName,
                     style: const TextStyle(
                       color: Color(0xFF576B95),
                       fontWeight: FontWeight.bold,
@@ -564,13 +602,15 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
                 ],
               ),
             ),
-          
-          // 2. 分隔线 (如果既有点赞又有回复)
+
+          // 2. 分隔线（如果既有点赞又有回复）
           if (hasLikes && hasReplies)
             Divider(
               height: 12,
               thickness: 0.5,
-              color: widget.isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+              color: widget.isNight
+                  ? Colors.white10
+                  : Colors.black.withValues(alpha: 0.05),
             ),
 
           // 3. 回复列表
@@ -587,10 +627,11 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
                   ),
                   children: [
                     TextSpan(
-                      text: '${widget.userName.isEmpty ? "我" : widget.userName}: ',
+                      text:
+                          '${widget.userName.isEmpty ? '我' : widget.userName}: ',
                       style: const TextStyle(
-                        color: Color(0xFF576B95), 
-                        fontWeight: FontWeight.bold
+                        color: Color(0xFF576B95),
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     TextSpan(text: reply.content),

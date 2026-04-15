@@ -20,8 +20,9 @@ class SlimeButton extends StatefulWidget {
     this.isNight = false,
     this.isGlowing = false,
     this.onTap,
-    this.assetPath = 'assets/images/emoji/pedding.png', // 默认改为 pedding.png
-    this.spriteSize = 64.0,
+    this.assetPath =
+        'assets/images/emoji/marshmallow.png', // 默认改为 marshmallow.png
+    this.spriteSize = 58.0,
     this.showSlime = true,
   });
 
@@ -60,7 +61,12 @@ class _SlimeButtonState extends State<SlimeButton> {
           clipBehavior: Clip.none,
           children: [
             // ── 1. 呼吸光晕 (独立组件，局部重绘) ──
-            Positioned.fill(child: _BreathGlow(isGlowing: widget.isGlowing)),
+            Positioned.fill(
+              child: _BreathGlow(
+                isGlowing: widget.isGlowing,
+                isNight: widget.isNight,
+              ),
+            ),
 
             // ── 2. 精灵球背景容器 (视觉基座) ──
             RepaintBoundary(
@@ -71,21 +77,26 @@ class _SlimeButtonState extends State<SlimeButton> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: widget.isNight
-                      ? const Color(0xFF2A2E50).withOpacity(0.1)
-                      : const Color(0xFFFFF0C0),
+                      ? const Color(0xFF2A2E50).withValues(alpha: 0.1)
+                      : Colors.white.withValues(alpha: 0.6),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFFD97D).withOpacity(0.8),
+                      color: const Color(
+                        0xFFFFD97D,
+                      ).withValues(alpha: widget.isNight ? 0.8 : 0.3),
                       blurRadius: 10,
                       spreadRadius: 2,
                     ),
                   ],
                   border: Border.all(
-                    color: const Color(0xFFFFE4B5),
+                    color: widget.isNight
+                        ? const Color(0xFFFFE4B5).withValues(alpha: 0.5)
+                        : const Color(0xFFFFE4B5).withValues(alpha: 0.8),
                     width: 2.5,
                   ),
                 ),
-                child: Center(
+                child: Align(
+                  alignment: const Alignment(0, 10),
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 400),
                     opacity: widget.showSlime ? 1.0 : 0.0,
@@ -94,11 +105,12 @@ class _SlimeButtonState extends State<SlimeButton> {
                       builder: (context, _) {
                         return StaticSprite(
                           assetPath: widget.assetPath,
-                          decorationPath: UserState().selectedMascotDecoration.value,
+                          decorationPath:
+                              UserState().selectedMascotDecoration.value,
                           size: widget.spriteSize,
-                          // 如果还是旧的序列图资源（如 weixiao.png ），StaticSprite 默认展示第一帧
-                          // 如果是新的 pedding.png，则自动适配
-                          frameCount: widget.assetPath.contains('weixiao.png') ? 9 : 1, 
+                          frameCount: widget.assetPath.contains('weixiao.png')
+                              ? 9
+                              : 1,
                         );
                       },
                     ),
@@ -116,7 +128,8 @@ class _SlimeButtonState extends State<SlimeButton> {
 /// 独立的呼吸光晕组件，防止高频动画导致父组件（精灵按钮甚至底栏）全量重画
 class _BreathGlow extends StatefulWidget {
   final bool isGlowing;
-  const _BreathGlow({required this.isGlowing});
+  final bool isNight;
+  const _BreathGlow({required this.isGlowing, required this.isNight});
 
   @override
   State<_BreathGlow> createState() => _BreathGlowState();
@@ -170,14 +183,16 @@ class _BreathGlowState extends State<_BreathGlow>
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFFD97D).withOpacity(0.4),
+                    color: const Color(
+                      0xFFFFD97D,
+                    ).withValues(alpha: widget.isNight ? 0.4 : 0.2),
                     blurRadius: 12,
                     spreadRadius: 2,
                   ),

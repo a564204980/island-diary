@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -32,84 +31,171 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
           body: Stack(
             children: [
               // 背景装饰
-              _buildBackgroundDecoration(isNight),
+              if (!isNight)
+                Positioned(
+                  top: -100,
+                  right: -50,
+                  child: Container(
+                    width: 300,
+                    height: 300,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          const Color(0xFFFFD97D).withValues(alpha: 0.1),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              if (!isNight)
+                Positioned(
+                  bottom: 100,
+                  left: -80,
+                  child: Container(
+                    width: 250,
+                    height: 250,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          const Color(0xFFEFEBE9).withValues(alpha: 0.3),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
 
               SafeArea(
                 child: Column(
                   children: [
                     _buildAppBar(context, isNight),
-
-                    // 1. 顶部大预览
                     _buildPreviewHero(currentDecoration, isNight),
+                    const SizedBox(height: 8),
 
-                    const SizedBox(height: 32),
-
-                    // 2. 选择列表标题
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFD97D),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            '挑选装扮',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isNight
-                                  ? Colors.white
-                                  : const Color(0xFF3E2723),
-                              fontFamily: 'LXGWWenKai',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // 3. 装扮网格
                     Expanded(
-                      child: GridView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 10,
-                        ),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.85,
-                        ),
-                        itemCount: MascotDecoration.allDecorations.length + 1,
-                        itemBuilder: (context, index) {
-                          if (index == 0) {
-                            // 裸装选项
-                            final bool isSelected = currentDecoration == null;
-                            return _buildDecorationItem(
-                              null,
-                              isSelected,
-                              isNight,
-                            );
-                          }
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 16),
+                            // 2. 选择列表标题
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 22,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Color(0xFFFFE082),
+                                          Color(0xFFFFD54F),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(3),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(
+                                            0xFFFFD97D,
+                                          ).withValues(alpha: 0.3),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    '挑选装扮',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: isNight
+                                          ? Colors.white
+                                          : const Color(0xFF3E2723),
+                                      fontFamily: 'LXGWWenKai',
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    '${MascotDecoration.allDecorations.length + 1} 个选项',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isNight
+                                          ? Colors.white38
+                                          : Colors.black26,
+                                      fontFamily: 'LXGWWenKai',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
 
-                          final deco = MascotDecoration.allDecorations[index - 1];
-                          final bool isSelected = (currentDecoration == deco.path);
+                            const SizedBox(height: 16),
 
-                          return _buildDecorationItem(
-                            deco,
-                            isSelected,
-                            isNight,
-                          );
-                        },
+                            // 3. 装扮网格
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    mainAxisSpacing: 16,
+                                    crossAxisSpacing: 16,
+                                    childAspectRatio: 0.8,
+                                  ),
+                              itemCount:
+                                  MascotDecoration.allDecorations.length + 1,
+                              itemBuilder: (context, index) {
+                                if (index == 0) {
+                                  // 裸装选项
+                                  final bool isSelected =
+                                      currentDecoration == null;
+                                  return _buildDecorationItem(
+                                        null,
+                                        isSelected,
+                                        isNight,
+                                      )
+                                      .animate(delay: (index * 50).ms)
+                                      .fadeIn(duration: 400.ms)
+                                      .moveY(
+                                        begin: 20,
+                                        end: 0,
+                                        curve: Curves.easeOutCubic,
+                                      );
+                                }
+
+                                final deco =
+                                    MascotDecoration.allDecorations[index - 1];
+                                final bool isSelected =
+                                    (currentDecoration == deco.path);
+
+                                return _buildDecorationItem(
+                                      deco,
+                                      isSelected,
+                                      isNight,
+                                    )
+                                    .animate(delay: (index * 50).ms)
+                                    .fadeIn(duration: 400.ms)
+                                    .moveY(
+                                      begin: 20,
+                                      end: 0,
+                                      curve: Curves.easeOutCubic,
+                                    );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -154,51 +240,86 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
   Widget _buildPreviewHero(String? decorationPath, bool isNight) {
     return Container(
       width: double.infinity,
-      height: 240,
+      height: 280,
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      decoration: BoxDecoration(
+        color: isNight
+            ? Colors.white.withValues(alpha: 0.03)
+            : const Color(0xFFF9F8F1).withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: isNight
+              ? Colors.white10
+              : const Color(0xFFEFEBE9).withValues(alpha: 0.5),
+          width: 1,
+        ),
+      ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // 呼吸光晕
-          Container(
-                width: 160,
-                height: 160,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFFD97D).withOpacity(0.15),
-                ),
-              )
-              .animate(onPlay: (c) => c.repeat(reverse: true))
-              .scale(
-                begin: const Offset(0.8, 0.8),
-                end: const Offset(1.1, 1.1),
-                duration: 2000.ms,
-              ),
-
           // 小软本体与装扮
-          StaticSprite(
-            assetPath: 'assets/images/emoji/pedding.png',
-            decorationPath: decorationPath,
-            size: 200,
-          ).animate().slideY(begin: 0.1, end: 0, curve: Curves.easeOutBack),
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child:
+                StaticSprite(
+                      key: ValueKey(decorationPath), // 强制重建以触发动画
+                      assetPath: 'assets/images/emoji/marshmallow.png',
+                      decorationPath: decorationPath,
+                      size: 200,
+                    )
+                    .animate()
+                    .scale(
+                      duration: 400.ms,
+                      curve: Curves.easeOutBack,
+                      begin: const Offset(0.9, 0.9),
+                    )
+                    .fadeIn(duration: 400.ms)
+                    .shimmer(
+                      delay: 800.ms,
+                      duration: 2000.ms,
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+          ),
 
           Positioned(
-            bottom: 20,
+            bottom: 16,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
                 color: isNight
-                    ? Colors.white.withOpacity(0.05)
-                    : Colors.black.withOpacity(0.03),
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : const Color(0xFF3E2723).withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                "当前外观预览",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isNight ? Colors.white38 : Colors.black38,
-                  fontFamily: 'LXGWWenKai',
+                border: Border.all(
+                  color: isNight
+                      ? Colors.white10
+                      : Colors.black.withValues(alpha: 0.05),
+                  width: 1,
                 ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.remove_red_eye_outlined,
+                    size: 14,
+                    color: isNight
+                        ? Colors.white38
+                        : const Color(0xFF3E2723).withValues(alpha: 0.4),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    "当前外观预览",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isNight
+                          ? Colors.white38
+                          : const Color(0xFF3E2723).withValues(alpha: 0.4),
+                      fontFamily: 'LXGWWenKai',
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -222,81 +343,116 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
       },
       child: AnimatedContainer(
         duration: 300.ms,
-        padding: const EdgeInsets.all(16),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFFFD97D).withOpacity(isNight ? 0.2 : 0.4)
-              : (isNight ? Colors.white.withOpacity(0.05) : Colors.white),
-          borderRadius: BorderRadius.circular(24),
+              ? (isNight
+                    ? const Color(0xFFFFD97D).withValues(alpha: 0.15)
+                    : const Color(0xFFFFF9C4))
+              : (isNight ? Colors.white.withValues(alpha: 0.03) : Colors.white),
+          borderRadius: BorderRadius.circular(28),
           border: Border.all(
-            color: isSelected ? const Color(0xFFFFD97D) : Colors.transparent,
-            width: 2,
+            color: isSelected
+                ? const Color(0xFFFFD97D)
+                : (isNight ? Colors.white10 : const Color(0xFFEFEBE9)),
+            width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFFFFD97D).withOpacity(0.3),
+                    color: const Color(
+                      0xFFFFD97D,
+                    ).withValues(alpha: isNight ? 0.2 : 0.4),
+                    blurRadius: 15,
+                    spreadRadius: -2,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isNight ? 0.1 : 0.02),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
-                ]
-              : [],
+                ],
         ),
-        child: Column(
+        child: Stack(
           children: [
-            Expanded(
-              child: deco == null
-                  ? Icon(
-                      Icons.close_rounded,
-                      size: 48,
-                      color: isNight ? Colors.white24 : Colors.black12,
-                    )
-                  : Image.asset(deco.path, fit: BoxFit.contain),
+            Column(
+              children: [
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isNight
+                          ? Colors.white.withValues(alpha: 0.02)
+                          : const Color(0xFFFDFCF7),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: deco == null
+                        ? Center(
+                            child: Icon(
+                              Icons.block_rounded,
+                              size: 40,
+                              color: isNight ? Colors.white24 : Colors.black12,
+                            ),
+                          )
+                        : Image.asset(deco.path, fit: BoxFit.contain)
+                              .animate(target: isSelected ? 1 : 0)
+                              .scale(
+                                duration: 300.ms,
+                                begin: const Offset(1, 1),
+                                end: const Offset(1.1, 1.1),
+                              ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  deco?.name ?? '取消',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isNight ? Colors.white : const Color(0xFF3E2723),
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  deco?.description ?? '回归最初的纯净模样',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isNight ? Colors.white38 : const Color(0xFF8D6E63),
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              deco?.name ?? '裸装',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: isNight ? Colors.white : const Color(0xFF3E2723),
-                fontFamily: 'LXGWWenKai',
+            if (isSelected)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFD97D),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check,
+                    size: 14,
+                    color: Color(0xFF3E2723),
+                  ),
+                ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack),
               ),
-            ),
-            Text(
-              deco?.description ?? '回归最初的纯净模样',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 10,
-                color: isNight ? Colors.white38 : Colors.black38,
-                fontFamily: 'LXGWWenKai',
-              ),
-            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBackgroundDecoration(bool isNight) {
-    return Positioned.fill(
-      child: Stack(
-        children: [
-          Positioned(
-            top: -100,
-            right: -100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(
-                  0xFFFFD97D,
-                ).withOpacity(isNight ? 0.05 : 0.08),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

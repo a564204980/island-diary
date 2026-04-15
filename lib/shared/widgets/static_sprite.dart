@@ -55,8 +55,9 @@ class StaticSprite extends StatelessWidget {
             Builder(
               builder: (context) {
                 final config = MascotDecoration.getByPath(decorationPath);
-                final offset = config?.offset ?? Offset.zero;
-                final scale = config?.scale ?? 1.0;
+                final decoConfig = config?.getConfigForCharacter(assetPath) ?? const MascotDecorationConfig();
+                final offset = decoConfig.offset;
+                final scale = decoConfig.scale;
 
                 return Positioned.fill(
                   child: Transform.translate(

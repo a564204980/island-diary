@@ -188,9 +188,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final double centerY = size.height / 2;
 
     return Matrix4.identity()
-      ..translate(centerX, centerY)
-      ..scale(scale)
-      ..translate(-centerX, -centerY + (size.height * 0.02));
+      ..translate(centerX, centerY, 0.0)
+      ..scale(scale, scale, 1.0)
+      ..translate(-centerX, -centerY + (size.height * 0.02), 0.0);
   }
 
   Future<void> _toggleOrientation() async {
@@ -427,7 +427,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             gradient: RadialGradient(
                               colors: [
                                 _getIslandBottomLightColorForCurrentTime(),
-                                _getIslandBottomLightColorForCurrentTime().withOpacity(0.0),
+                                _getIslandBottomLightColorForCurrentTime().withValues(alpha: 0.0),
                               ],
                               stops: const [0.15, 1.0],
                             ),

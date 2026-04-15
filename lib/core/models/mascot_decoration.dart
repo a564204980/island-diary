@@ -1,21 +1,38 @@
 import 'package:flutter/material.dart';
 
+/// 单个装扮针对不同形象的个性化配置（偏移与缩放）
+class MascotDecorationConfig {
+  final Offset offset;
+  final double scale;
+
+  const MascotDecorationConfig({this.offset = Offset.zero, this.scale = 1.0});
+}
+
 class MascotDecoration {
   final String id;
   final String name;
   final String path;
-  final Offset offset;
-  final double scale;
   final String description;
+
+  /// 默认的配置（如果未针对某个形象进行特殊配置，则使用此默认值）
+  final MascotDecorationConfig defaultConfig;
+
+  /// 针对不同形象（assetPath）的特定配置字典
+  final Map<String, MascotDecorationConfig> characterConfigs;
 
   const MascotDecoration({
     required this.id,
     required this.name,
     required this.path,
-    this.offset = Offset.zero,
-    this.scale = 1.0,
     required this.description,
+    this.defaultConfig = const MascotDecorationConfig(),
+    this.characterConfigs = const {},
   });
+
+  /// 获取指定卡通形象对应的装扮配置
+  MascotDecorationConfig getConfigForCharacter(String characterPath) {
+    return characterConfigs[characterPath] ?? defaultConfig;
+  }
 
   /// 全局饰品注册表
   static const List<MascotDecoration> allDecorations = [
@@ -23,33 +40,392 @@ class MascotDecoration {
       id: 'mask',
       name: '高达头盔',
       path: 'assets/images/emoji/decorate/decorate1.png',
-      offset: Offset(0, -6), // 向上偏移以对齐眼睛
-      scale: 1.1, // 略微放大覆盖侧边
       description: '在未知的丛林中穿梭',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -6), scale: 1.1),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -6),
+          scale: 1.1,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -4),
+          scale: 1.4,
+        ), // 示例：雪团儿的微调
+      },
     ),
     MascotDecoration(
       id: 'glasses',
-      name: '博学眼镜',
+      name: '粉色向阳花',
       path: 'assets/images/emoji/decorate/decorate2.png',
-      offset: Offset(0, -20), // 向下偏移对齐脸颊
-      scale: 1.2, // 缩小避免溢出边缘
-      description: '知识让视线更加清晰',
+      description: '向着阳光而生，收藏每一寸粉色的温柔',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.2),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -20),
+          scale: 1.2,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -54),
+          scale: 1.25,
+        ),
+      },
     ),
     MascotDecoration(
       id: 'flower',
       name: '蝴蝶盔（刀马旦）',
       path: 'assets/images/emoji/decorate/decorate3.png',
-      offset: Offset(0, -28), // 向右上角偏移
-      scale: 1.8, // 放大展现细节
       description: '采下一朵最娇艳的记忆',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -28), scale: 1.8),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -28),
+          scale: 1.8,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -12),
+          scale: 2,
+        ),
+      },
     ),
     MascotDecoration(
       id: 'reindeer',
       name: '麋鹿头饰',
       path: 'assets/images/emoji/decorate/decorate4.png',
-      offset: Offset(0, -20), // 向上偏移以对齐头顶
-      scale: 1.5, // 略微放大展现鹿角细节
       description: '戴上鹿角，奔向冬日的旷野',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.5),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -20),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -22),
+          scale: 1.65,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'tiger',
+      name: '虎头帽',
+      path: 'assets/images/emoji/decorate/decorate5.png',
+      description: '虎虎生威，勇往直前',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.2),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -12),
+          scale: 1.2,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -16),
+          scale: 1.6,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'egret',
+      name: '白鹭帽',
+      path: 'assets/images/emoji/decorate/decorate6.png',
+      description: '云中白鹭，清雅悠然',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -40), scale: 1.0),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -24),
+          scale: 1.34,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'snake_rabbit',
+      name: '蛇年兔子帽',
+      path: 'assets/images/emoji/decorate/decorate7.png',
+      description: '蛇年新春，灵动可爱',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -6), scale: 2.2),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -6),
+          scale: 2.2,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 30),
+          scale: 2.4,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'scholar_hat',
+      name: '状元礼帽',
+      path: 'assets/images/emoji/decorate/decorate8.png',
+      description: '金榜题名，步步高升',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.6),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -20),
+          scale: 1.6,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -24),
+          scale: 2.4,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'panda_hat',
+      name: '熊猫帽',
+      path: 'assets/images/emoji/decorate/decorate9.png',
+      description: '国宝卖萌，憨态可掬',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -18), scale: 1.4),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -18),
+          scale: 1.4,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.2,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'phoenix_crown',
+      name: '如意凤冠',
+      path: 'assets/images/emoji/decorate/decorate10.png',
+      description: '吉祥如意，华贵非凡',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -30), scale: 1.8),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -30),
+          scale: 1.8,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.4,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'cowboy_hat',
+      name: '牛仔帽',
+      path: 'assets/images/emoji/decorate/decorate11.png',
+      description: '荒野镖客，率性而行',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -15), scale: 1.4),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -15),
+          scale: 1.4,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 0),
+          scale: 1.3,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'red_reindeer',
+      name: '红色鹿角',
+      path: 'assets/images/emoji/decorate/decorate12.png',
+      description: '红红火火，灵动可爱',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -22), scale: 1.5),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -22),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -24),
+          scale: 1.50,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'sunflower_hat',
+      name: '向日葵草帽',
+      path: 'assets/images/emoji/decorate/decorate13.png',
+      description: '采撷夏日阳光，满载向阳心意',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.6),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -12),
+          scale: 1.6,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.2,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'lily_hat',
+      name: '铃兰草帽',
+      path: 'assets/images/emoji/decorate/decorate14.png',
+      description: '铃兰花开，捎来清新的微风',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.6),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -12),
+          scale: 1.6,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.2,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'funny_tails',
+      name: '搞怪双马尾发带',
+      path: 'assets/images/emoji/decorate/decorate15.png',
+      description: '古灵精怪，可爱翻倍',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.4),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.4,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -12),
+          scale: 1.2,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'butterfly_wreath',
+      name: '幻彩蝶影花环',
+      path: 'assets/images/emoji/decorate/decorate16.png',
+      description: '蝶舞翩跹，织就梦幻花冠',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.8),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -20),
+          scale: 1.8,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -22),
+          scale: 1.4,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'knit_hat',
+      name: '温暖针织帽',
+      path: 'assets/images/emoji/decorate/decorate17.png',
+      description: '冬日暖阳，织就一份贴心的温度',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -15), scale: 1.4),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -15),
+          scale: 1.4,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -50),
+          scale: 1.3,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'sheep_band',
+      name: '小绵羊发带',
+      path: 'assets/images/emoji/decorate/decorate18.png',
+      description: '软绵绵的质感，治愈每一天',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.5),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -12),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -8),
+          scale: 1.1,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'psyduck_hat_pink',
+      name: '粉色可达鸭帽',
+      path: 'assets/images/emoji/decorate/decorate21.png',
+      description: '呆萌可爱，粉色心情',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -15), scale: 1.4),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -15),
+          scale: 1.4,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.12,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'yellow_duck_hat',
+      name: '可爱粉色发夹怪',
+      path: 'assets/images/emoji/decorate/decorate22.png',
+      description: '藏在发间的粉色小心思，捕捉每一份轻盈的快乐',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, 10), scale: 1.12),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.12,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -54),
+          scale: 1.94,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'chen_yu',
+      name: '沉鱼',
+      path: 'assets/images/emoji/decorate/decorate23.png',
+      description: '西子浣纱，美艳令游鱼也忘却游动而潜入水底',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.5),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -20),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -30),
+          scale: 1.3,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'luo_yan',
+      name: '落雁',
+      path: 'assets/images/emoji/decorate/decorate24.png',
+      description: '昭君出塞，其惊世容颜令南飞的大雁也惊忘落翅，坠于平沙',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -30), scale: 1.3),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -30),
+          scale: 1.3,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -20),
+          scale: 1.3,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'lucky_tiger',
+      name: '好运虎头',
+      path: 'assets/images/emoji/decorate/decorate25.png',
+      description: '虎头虎脑，好运来到！传统虎头帽，守护你的每一天。',
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.3),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.3,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.4,
+        ),
+      },
     ),
   ];
 
