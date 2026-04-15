@@ -165,6 +165,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                         null,
                                         isSelected,
                                         isNight,
+                                        null,
                                       )
                                       .animate(delay: (index * 50).ms)
                                       .fadeIn(duration: 400.ms)
@@ -175,24 +176,42 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                       );
                                 }
 
-                                final deco =
-                                    MascotDecoration.allDecorations[index - 1];
-                                final bool isSelected =
-                                    (currentDecoration == deco.path);
+                                  final deco =
+                                      MascotDecoration.allDecorations[index - 1];
+                                  final bool isSelected =
+                                      (currentDecoration == deco.path);
 
-                                return _buildDecorationItem(
-                                      deco,
-                                      isSelected,
-                                      isNight,
-                                    )
-                                    .animate(delay: (index * 50).ms)
-                                    .fadeIn(duration: 400.ms)
-                                    .moveY(
-                                      begin: 20,
-                                      end: 0,
-                                      curve: Curves.easeOutCubic,
+                                  Widget decoImage = Image.asset(
+                                    deco.path,
+                                    fit: BoxFit.contain,
+                                  ).animate(target: isSelected ? 1 : 0).scale(
+                                    duration: 300.ms,
+                                    begin: const Offset(1, 1),
+                                    end: const Offset(1.1, 1.1),
+                                  );
+
+                                  if (deco.rarity == MascotRarity.legendary) {
+                                    decoImage = (decoImage as Animate).shimmer(
+                                      duration: 2000.ms,
+                                      delay: 500.ms,
+                                      color: Colors.white.withValues(alpha: 0.3),
                                     );
-                              },
+                                  }
+
+                                  return _buildDecorationItem(
+                                        deco,
+                                        isSelected,
+                                        isNight,
+                                        decoImage,
+                                      )
+                                      .animate(delay: (index * 50).ms)
+                                      .fadeIn(duration: 400.ms)
+                                      .moveY(
+                                        begin: 20,
+                                        end: 0,
+                                        curve: Curves.easeOutCubic,
+                                      );
+                                },
                             ),
                           ],
                         ),
@@ -243,15 +262,13 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
       height: 280,
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       decoration: BoxDecoration(
-        color: isNight
-            ? Colors.white.withValues(alpha: 0.03)
-            : const Color(0xFFF9F8F1).withValues(alpha: 0.5),
+        color: isNight ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFFDFCF7),
         borderRadius: BorderRadius.circular(32),
         border: Border.all(
           color: isNight
               ? Colors.white10
-              : const Color(0xFFEFEBE9).withValues(alpha: 0.5),
-          width: 1,
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1.5,
         ),
       ),
       child: Stack(
@@ -274,10 +291,15 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                       begin: const Offset(0.9, 0.9),
                     )
                     .fadeIn(duration: 400.ms)
+                    .then(delay: 500.ms)
                     .shimmer(
-                      delay: 800.ms,
-                      duration: 2000.ms,
-                      color: Colors.white.withValues(alpha: 0.1),
+                      duration: 2500.ms,
+                      color: decorationPath != null &&
+                              MascotDecoration.getByPath(decorationPath)
+                                      ?.rarity ==
+                                  MascotRarity.legendary
+                          ? const Color(0xFFFFD97D).withValues(alpha: 0.3)
+                          : Colors.white.withValues(alpha: 0.1),
                     ),
           ),
 
@@ -332,6 +354,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
     MascotDecoration? deco,
     bool isSelected,
     bool isNight,
+    Widget? animationImage,
   ) {
     return GestureDetector(
       onTap: () {
@@ -348,24 +371,38 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
         decoration: BoxDecoration(
           color: isSelected
               ? (isNight
-                    ? const Color(0xFFFFD97D).withValues(alpha: 0.15)
-                    : const Color(0xFFFFF9C4))
+                    ? const Color(0xFFFFD97D).withValues(alpha: 0.1)
+                    : const Color(0xFFFFFDE7))
               : (isNight ? Colors.white.withValues(alpha: 0.03) : Colors.white),
           borderRadius: BorderRadius.circular(28),
+          gradient: (isSelected && deco?.rarity == MascotRarity.legendary)
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isNight
+                      ? [
+                          const Color(0xFF2A2E50),
+                          const Color(0xFF13131F),
+                        ]
+                      : [
+                          const Color(0xFFFFFDE7),
+                          Colors.white,
+                        ],
+                )
+              : null,
           border: Border.all(
             color: isSelected
-                ? const Color(0xFFFFD97D)
+                ? (deco?.rarity.color ?? const Color(0xFFFFD97D))
                 : (isNight ? Colors.white10 : const Color(0xFFEFEBE9)),
-            width: isSelected ? 2 : 1,
+            width: isSelected ? 2.5 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(
-                      0xFFFFD97D,
-                    ).withValues(alpha: isNight ? 0.2 : 0.4),
-                    blurRadius: 15,
-                    spreadRadius: -2,
+                    color: (deco?.rarity.color ?? const Color(0xFFFFD97D))
+                        .withValues(alpha: isNight ? 0.2 : 0.3),
+                    blurRadius: deco?.rarity == MascotRarity.legendary ? 40 : 20,
+                    spreadRadius: deco?.rarity == MascotRarity.legendary ? -2 : 0,
                     offset: const Offset(0, 8),
                   ),
                 ]
@@ -379,17 +416,31 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
         ),
         child: Stack(
           children: [
+            // 饰品底纹水印
+            if (deco != null)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: Opacity(
+                    opacity: isNight ? 0.05 : 0.08,
+                    child: Transform.scale(
+                      scale: 1.8,
+                      child: Image.asset(
+                        deco.path,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Column(
               children: [
                 Expanded(
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isNight
-                          ? Colors.white.withValues(alpha: 0.02)
-                          : const Color(0xFFFDFCF7),
-                      borderRadius: BorderRadius.circular(20),
+                    decoration: const BoxDecoration(
+                      color: Colors.transparent,
                     ),
                     child: deco == null
                         ? Center(
@@ -399,26 +450,82 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                               color: isNight ? Colors.white24 : Colors.black12,
                             ),
                           )
-                        : Image.asset(deco.path, fit: BoxFit.contain)
-                              .animate(target: isSelected ? 1 : 0)
-                              .scale(
-                                duration: 300.ms,
-                                begin: const Offset(1, 1),
-                                end: const Offset(1.1, 1.1),
-                              ),
+                        : (animationImage ?? Image.asset(deco.path, fit: BoxFit.contain)),
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  deco?.name ?? '取消',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: isNight ? Colors.white : const Color(0xFF3E2723),
-                    fontFamily: 'LXGWWenKai',
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (deco != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 3,
+                        ),
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              deco.rarity.color.withValues(alpha: 0.85),
+                              deco.rarity.color,
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (deco.rarity == MascotRarity.legendary)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 3),
+                                child: Icon(
+                                  Icons.workspace_premium,
+                                  size: 11,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            if (deco.rarity == MascotRarity.epic)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 3),
+                                child: Icon(
+                                  Icons.star_rounded,
+                                  size: 11,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            Text(
+                              deco.rarity.label,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Flexible(
+                      child: Text(
+                        deco?.name ?? '取消',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isNight ? Colors.white : const Color(0xFF3E2723),
+                          fontFamily: 'LXGWWenKai',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -440,14 +547,16 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                 right: 0,
                 child: Container(
                   padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFFD97D),
+                  decoration: BoxDecoration(
+                    color: deco?.rarity.color ?? const Color(0xFFFFD97D),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check,
                     size: 14,
-                    color: Color(0xFF3E2723),
+                    color: deco?.rarity == MascotRarity.legendary
+                        ? const Color(0xFF3E2723)
+                        : Colors.white,
                   ),
                 ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack),
               ),
