@@ -33,9 +33,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
     final bool isNight = userState.isNight;
 
     return Scaffold(
-      backgroundColor: isNight
-          ? const Color(0xFF0D1B2A)
-          : const Color(0xFFE6F3F5),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: !_isInitialized 
           ? const SizedBox.shrink()
           : Stack(

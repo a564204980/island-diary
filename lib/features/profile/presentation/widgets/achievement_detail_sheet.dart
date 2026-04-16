@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
+import 'package:island_diary/features/profile/presentation/pages/mascot_decoration_page.dart';
 
 class AchievementDetailSheet extends StatelessWidget {
   final MascotAchievement achievement;
   final bool isUnlocked;
   final Map<String, int> stats;
+  final String? unlockedAt;
   final bool isNight;
 
   const AchievementDetailSheet({
@@ -14,6 +16,7 @@ class AchievementDetailSheet extends StatelessWidget {
     required this.achievement,
     required this.isUnlocked,
     required this.stats,
+    this.unlockedAt,
     required this.isNight,
   });
 
@@ -24,7 +27,9 @@ class AchievementDetailSheet extends StatelessWidget {
         : null;
     
     final bg = isNight ? const Color(0xFF1A1A2E) : Colors.white;
-    final accent = isUnlocked ? (decoration?.rarity.color ?? Colors.amber) : Colors.grey;
+    final accent = isUnlocked
+        ? (decoration?.rarity.color ?? achievement.condition.themeColor)
+        : Colors.grey;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -63,9 +68,9 @@ class AchievementDetailSheet extends StatelessWidget {
                   colorFilter: isUnlocked
                       ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
                       : const ColorFilter.matrix([0.2,0.2,0.2,0,0, 0.2,0.2,0.2,0,0, 0.2,0.2,0.2,0,0, 0,0,0,1,0]),
-                  child: decoration != null 
+                  child: decoration != null
                       ? Image.asset(decoration.path, width: 80)
-                      : Icon(Icons.stars_rounded, size: 60, color: accent),
+                      : Icon(achievement.condition.icon, size: 60, color: accent),
                 ),
               ),
             ],
@@ -94,16 +99,35 @@ class AchievementDetailSheet extends StatelessWidget {
           ),
           
           const SizedBox(height: 32),
-          if (isUnlocked)
-            _buildStatusBox('已于今日达成此奇迹', Icons.check_circle_rounded, accent)
-          else
+          
+          // 奖励展示
+          if (achievement.rewardTitle != null || achievement.rewardDecorationId != null) ...[
+             _buildRewardSection(decoration, accent),
+             if (isUnlocked && unlockedAt != null) ...[
+               const SizedBox(height: 12),
+               _buildUnlockDateNote(unlockedAt!, accent),
+             ],
+          ],
+
+          const SizedBox(height: 16),
+          
+          if (!isUnlocked)
             _buildProgressBox(stats[achievement.condition.name] ?? 0, achievement.targetValue, accent),
             
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.pop(context);
+                // 只有当有装扮奖励且已解锁时，才会引导跳转
+                if (isUnlocked && achievement.rewardDecorationId != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MascotDecorationPage()),
+                  );
+                }
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: isUnlocked ? accent : Colors.grey.withValues(alpha: 0.2),
                 foregroundColor: Colors.white,
@@ -112,7 +136,9 @@ class AchievementDetailSheet extends StatelessWidget {
                 elevation: 0,
               ),
               child: Text(
-                isUnlocked ? '这就去穿戴奖励' : '继续努力', 
+                !isUnlocked 
+                    ? '继续努力' 
+                    : (achievement.rewardDecorationId != null ? '这就去穿戴奖励' : '我知道了'), 
                 style: const TextStyle(fontWeight: FontWeight.bold)
               ),
             ),
@@ -122,21 +148,125 @@ class AchievementDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBox(String text, IconData icon, Color color) {
+  Widget _buildRewardSection(MascotDecoration? decoration, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '成就奖励',
+            style: TextStyle(
+              fontSize: 12, 
+              color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.4),
+              fontWeight: FontWeight.bold,
+              fontFamily: 'LXGWWenKai'
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              if (achievement.rewardTitle != null)
+                _buildRewardBadge(Icons.workspace_premium_rounded, '称号：${achievement.rewardTitle}', color),
+              if (achievement.rewardTitle != null && achievement.rewardDecorationId != null)
+                const SizedBox(width: 8),
+              if (decoration != null)
+                _buildRewardBadge(Icons.style_rounded, '装扮：${decoration.name}', color),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnlockDateNote(String dateStr, Color color) {
+    String dateText = '';
+    try {
+      final date = DateTime.parse(dateStr);
+      dateText = '于 ${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} 达成此殊荣';
+    } catch (_) {
+      return const SizedBox.shrink();
+    }
+    
+    return Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.event_available_rounded, size: 12, color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.3)),
+          const SizedBox(width: 6),
+          Text(
+            dateText,
+            style: TextStyle(
+              fontSize: 11, 
+              color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.4),
+              fontWeight: FontWeight.w500,
+              fontFamily: 'LXGWWenKai',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRewardBadge(IconData icon, String text, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color, fontFamily: 'LXGWWenKai'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBox(String? unlockedAtStr, IconData icon, Color color) {
+    String dateText = '已达成此奇迹';
+    if (unlockedAtStr != null) {
+      try {
+        final date = DateTime.parse(unlockedAtStr);
+        dateText = '于 ${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} 达成';
+      } catch (_) {}
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1), 
         borderRadius: BorderRadius.circular(16)
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 16, color: color),
           const SizedBox(width: 8),
           Text(
-            text, 
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)
+            dateText, 
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color, fontFamily: 'LXGWWenKai')
           ),
         ],
       ),

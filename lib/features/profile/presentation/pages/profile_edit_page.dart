@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:intl/intl.dart';
+import 'package:island_diary/features/profile/presentation/widgets/title_selection_sheet.dart';
 
 class ProfileEditPage extends StatefulWidget {
   const ProfileEditPage({super.key});
@@ -104,25 +105,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       ),
       body: Stack(
         children: [
-          // 装饰性的光晕，仅在初始化后显示
-          if (_isInitialized)
-            Positioned(
-              top: -100,
-              right: -100,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFF7B5C2E).withValues(alpha: isNight ? 0.1 : 0.05),
-                      const Color(0xFF7B5C2E).withValues(alpha: 0),
-                    ],
-                  ),
-                ),
-              ),
-            ).animate().fadeIn(duration: 800.ms),
+          // 背景保持纯净一致
 
           SafeArea(
             child: ListView(
@@ -179,6 +162,22 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                         icon: Icons.cake_rounded,
                         isNight: isNight,
                         onTap: () => _showBirthdayPicker(context, isNight),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(height: 1, thickness: 0.5, color: Colors.black12),
+                      ),
+                      ValueListenableBuilder<List<String>>(
+                        valueListenable: userState.selectedTitles,
+                        builder: (context, titles, _) {
+                          return _buildPickerItem(
+                            label: '我的称号',
+                            value: titles.isEmpty ? '默认居民' : titles.join('、'),
+                            icon: Icons.workspace_premium_rounded,
+                            isNight: isNight,
+                            onTap: () => _showTitlePicker(context, isNight),
+                          );
+                        },
                       ),
                     ],
                   ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
@@ -432,6 +431,15 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showTitlePicker(BuildContext context, bool isNight) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => TitleSelectionSheet(isNight: isNight),
     );
   }
 

@@ -67,6 +67,7 @@ class _K {
   static const userBirthday = 'user_birthday';
   static const userGender = 'user_gender';
   static const lastBirthdayGiftYear = 'last_birthday_gift_year';
+  static const selectedTitles = 'selected_user_titles_v2';
 }
 
 /// 1. 用户资料与引导模块
@@ -77,6 +78,7 @@ mixin ProfileMixin {
   final ValueNotifier<String> userGender = ValueNotifier<String>('secret');
   final ValueNotifier<bool> hasFinishedOnboarding = ValueNotifier<bool>(false);
   final ValueNotifier<bool> hasSeenRecordGuidance = ValueNotifier<bool>(false);
+  final ValueNotifier<List<String>> selectedTitles = ValueNotifier<List<String>>([]);
   final ValueNotifier<int> vipLevel = ValueNotifier<int>(0);
   final ValueNotifier<bool> isVip = ValueNotifier<bool>(false); // Sync with vipLevel
   final ValueNotifier<DateTime?> vipExpireTime = ValueNotifier<DateTime?>(null);
@@ -114,6 +116,15 @@ mixin ProfileMixin {
 
     hasFinishedOnboarding.value = prefs.getBool(_K.onboarding) ?? false;
     hasSeenRecordGuidance.value = prefs.getBool(_K.recordGuidance) ?? false;
+    final titles = prefs.getStringList(_K.selectedTitles);
+    if (titles != null) {
+      selectedTitles.value = titles;
+    } else {
+      final old = prefs.getString('selected_user_title_v1');
+      if (old != null && old.isNotEmpty) {
+        selectedTitles.value = [old];
+      }
+    }
     // Migration: if old isVip was true but vipLevel is 0, set to level 1
     int level = prefs.getInt(_K.vipLevel) ?? 0;
     bool oldVip = prefs.getBool(_K.isVip) ?? false;
@@ -184,6 +195,21 @@ mixin ProfileMixin {
     userGender.value = gender;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_K.userGender, gender);
+  }
+
+  Future<void> toggleTitle(String title) async {
+    final list = List<String>.from(selectedTitles.value);
+    if (list.contains(title)) {
+      list.remove(title);
+    } else {
+      if (list.length >= 2) {
+        list.removeAt(0); // 超过2个则踢掉最早的
+      }
+      list.add(title);
+    }
+    selectedTitles.value = list;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_K.selectedTitles, list);
   }
 
   /// 检查今天是否可以领取生日礼物

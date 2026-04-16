@@ -581,6 +581,42 @@ class MascotDecoration {
         ),
       },
     ),
+    MascotDecoration(
+      id: 'pink_cherry_dancer',
+      name: '粉樱小花旦',
+      path: 'assets/images/emoji/decorate/decorate34.png',
+      description: '粉樱如雪，旦角点妆。一颦一笑皆是戏，最美不过这春日容颜。',
+      rarity: MascotRarity.rare,
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.5),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -20),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -50),
+          scale: 1.1,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'big_ear_fluffy_hat',
+      name: '大耳绒绒帽',
+      path: 'assets/images/emoji/decorate/decorate35.png',
+      description: '软乎乎的大兔耳朵，包裹住冬日所有的温柔，治愈每一个寒冷的清晨。',
+      rarity: MascotRarity.common,
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -18), scale: 1.5),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -18),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -55),
+          scale: 1.0,
+        ),
+      },
+    ),
   ];
 
   /// 根据路径查找配置

@@ -4,7 +4,9 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/features/profile/presentation/widgets/achievement_detail_sheet.dart';
-import 'dart:ui';
+import 'package:island_diary/features/profile/presentation/widgets/achievement/achievement_header_card.dart';
+import 'package:island_diary/features/profile/presentation/widgets/achievement/achievement_category_strip.dart';
+import 'package:island_diary/features/profile/presentation/widgets/achievement/achievement_medal_cell.dart';
 
 class AchievementPage extends StatefulWidget {
   const AchievementPage({super.key});
@@ -45,330 +47,216 @@ class _AchievementPageState extends State<AchievementPage> {
     final userState = UserState();
     final bool isNight = userState.isNight;
 
-    return Scaffold(
-      backgroundColor: isNight ? const Color(0xFF0D1B2A) : const Color(0xFFE6F3F5),
-      body: Stack(
-        children: [
-          // 背景艺术渐变
-          Positioned(
-            top: -150,
-            left: -150,
-            child: Container(
-              width: 400,
-              height: 400,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: (isNight ? const Color(0xFF311B92) : const Color(0xFFE3F2FD)).withValues(alpha: 0.3),
-              ),
-            ),
-          ),
-          
-          SafeArea(
-            child: Column(
-              children: [
-                _buildAppBar(context, isNight),
-                
-                // 顶部统计概览
-                ListenableBuilder(
-                  listenable: Listenable.merge([userState.unlockedAchievements, userState.achievementPoints]),
-                  builder: (context, _) {
-                    final unlockedCount = userState.unlockedAchievements.value.length;
-                    final totalPoints = userState.achievementPoints.value;
-                    return _buildHeaderOverview(unlockedCount, totalPoints, isNight);
-                  },
+    // 将全局监听逻辑上移，确保进入 CustomScrollView 的元素全是标准的 Sliver 组件
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        userState.unlockedAchievements,
+        userState.achievementPoints,
+        userState.themeMode,
+      ]),
+      builder: (context, _) {
+        final unlockedMap = userState.unlockedAchievements.value;
+        final stats = userState.getAchievementStats();
+
+        // 预过滤列表
+        final filteredList = MascotAchievement.allAchievements
+            .where((a) => _belongsToCategory(a, _activeCategoryIndex))
+            .toList()
+          ..sort((a, b) {
+            final aUnlocked = unlockedMap.containsKey(a.id);
+            final bUnlocked = unlockedMap.containsKey(b.id);
+            if (aUnlocked != bUnlocked) return aUnlocked ? -1 : 1;
+            return b.rewardPoints.compareTo(a.rewardPoints);
+          });
+
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          // 移除这一行，避免背景冲顶导致重叠
+          extendBodyBehindAppBar: false, 
+          appBar: _buildStandardAppBar(context, isNight),
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // 1. 统计概览
+              SliverToBoxAdapter(
+                child: AchievementHeaderCard(
+                  unlockedCount: unlockedMap.length,
+                  totalPoints: userState.achievementPoints.value,
+                  isNight: isNight,
                 ),
+              ),
 
-                // 分类选择器
-                _buildCategorySelector(isNight),
+              // 2. 分类选择器 (吸顶)
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _SliverHeaderDelegate(
+                  height: 64,
+                  child: Container(
+                    // 渐变或背景色，确保吸顶时下方内容不透出
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    alignment: Alignment.center,
+                    child: AchievementCategoryStrip(
+                      categories: _categories,
+                      activeIndex: _activeCategoryIndex,
+                      isNight: isNight,
+                      onCategoryChanged: (index) => setState(() => _activeCategoryIndex = index),
+                    ),
+                  ),
+                ),
+              ),
 
-                // 成就网格
-                Expanded(
-                  child: ListenableBuilder(
-                    listenable: Listenable.merge([userState.unlockedAchievements]),
-                    builder: (context, _) {
-                      final stats = userState.getAchievementStats();
-                      final unlockedMap = userState.unlockedAchievements.value;
-                      
-                      final filteredList = MascotAchievement.allAchievements
-                          .where((a) => _belongsToCategory(a, _activeCategoryIndex))
-                          .toList()
-                        ..sort((a, b) {
-                          final aUnlocked = unlockedMap.containsKey(a.id);
-                          final bUnlocked = unlockedMap.containsKey(b.id);
-                          if (aUnlocked != bUnlocked) return aUnlocked ? -1 : 1;
-                          return b.rewardPoints.compareTo(a.rewardPoints);
-                        });
-
-                      if (filteredList.isEmpty) {
-                        return Center(
-                          child: Text(
-                            '尚未发现此类奇迹',
-                            style: TextStyle(color: isNight ? Colors.white30 : Colors.black26),
-                          ),
-                        );
-                      }
-
-                      return GridView.builder(
-                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
-                        physics: const BouncingScrollPhysics(),
+              // 3. 成就网格
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
+                sliver: filteredList.isEmpty
+                    ? const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Text('尚未发现此类奇迹', style: TextStyle(color: Colors.white24)),
+                        ),
+                      )
+                    : SliverGrid(
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
-                          mainAxisSpacing: 20,
+                          mainAxisSpacing: 24,
                           crossAxisSpacing: 16,
-                          childAspectRatio: 0.72,
+                          childAspectRatio: 0.75,
                         ),
-                        itemCount: filteredList.length,
-                        itemBuilder: (context, index) {
-                          final achievement = filteredList[index];
-                          final isUnlocked = unlockedMap.containsKey(achievement.id);
-                          return _buildMedalView(achievement, isUnlocked, stats, isNight)
-                            .animate(key: ValueKey('${achievement.id}_$_activeCategoryIndex'))
-                            .fadeIn(delay: (index * 30).ms, duration: 400.ms)
-                            .scale(begin: const Offset(0.8, 0.8), curve: Curves.easeOutBack);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAppBar(BuildContext context, bool isNight) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isNight ? Colors.white12 : Colors.white,
-                shape: BoxShape.circle,
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final achievement = filteredList[index];
+                            final isUnlocked = unlockedMap.containsKey(achievement.id);
+                            return AchievementMedalCell(
+                              achievement: achievement,
+                              isUnlocked: isUnlocked,
+                              isNight: isNight,
+                              onTap: () => _showAchievementDetail(context, achievement, isUnlocked, stats, isNight, unlockedMap),
+                            ).animate(key: ValueKey('${achievement.id}_$_activeCategoryIndex'))
+                             .fadeIn(delay: (index * 20).ms, duration: 300.ms)
+                             .scale(begin: const Offset(0.9, 0.9));
+                          },
+                          childCount: filteredList.length,
+                        ),
+                      ),
               ),
-              child: Icon(Icons.close, size: 20, color: isNight ? Colors.white : Colors.black87),
-            ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
           ),
-          Text(
-            '岛屿勋章墙',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              fontFamily: 'LXGWWenKai',
-              color: isNight ? Colors.white : const Color(0xFF1A1A1A),
-            ),
-          ),
-          const SizedBox(width: 40), // 平衡
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildHeaderOverview(int unlocked, int points, bool isNight) {
-    final textColor = isNight ? Colors.white : const Color(0xFF1A1A1A);
-    final total = MascotAchievement.allAchievements.length;
-    final percent = total > 0 ? (unlocked / total * 100).toStringAsFixed(0) : '0';
-    
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildStatItem('已点亮', unlocked.toString(), '勋章', textColor),
-          Container(width: 1, height: 30, color: textColor.withValues(alpha: 0.1)),
-          _buildStatItem('累计', points.toString(), '荣誉', textColor),
-          Container(width: 1, height: 30, color: textColor.withValues(alpha: 0.1)),
-          _buildStatItem('总完成度', '$percent%', '进度', textColor),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value, String unit, Color color) {
-    return Column(
-      children: [
-        Text(label, style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.4))),
-        const SizedBox(height: 4),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color, fontFamily: 'Douyin')),
-            const SizedBox(width: 2),
-            Text(unit, style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.6))),
-          ],
+  PreferredSizeWidget _buildStandardAppBar(BuildContext context, bool isNight) {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: true,
+      leading: IconButton(
+        icon: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          size: 20,
+          color: isNight ? Colors.white70 : Colors.black87,
         ),
-      ],
-    );
-  }
-
-  Widget _buildCategorySelector(bool isNight) {
-    return SizedBox(
-      height: 46,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _categories.length,
-        itemBuilder: (context, index) {
-          final isSelected = _activeCategoryIndex == index;
-          return GestureDetector(
-            onTap: () => setState(() => _activeCategoryIndex = index),
-            child: AnimatedContainer(
-              duration: 300.ms,
-              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              decoration: BoxDecoration(
-                color: isSelected 
-                    ? (isNight ? const Color(0xFFFFF176) : Colors.black) 
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                _categories[index],
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected 
-                      ? (isNight ? Colors.black : Colors.white) 
-                      : (isNight ? Colors.white38 : Colors.black38),
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-            ),
-          );
-        },
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: Text(
+        '岛屿勋章墙',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w900,
+          fontFamily: 'LXGWWenKai',
+          color: isNight ? Colors.white : const Color(0xFF1A1A1A),
+        ),
       ),
     );
   }
 
-  Widget _buildMedalView(MascotAchievement achievement, bool isUnlocked, Map<String, int> stats, bool isNight) {
-    // ✅ 安全查找：找不到时返回 null 而不是抛异常
-    final decoration = achievement.rewardDecorationId != null 
-        ? MascotDecoration.allDecorations.where((d) => d.id == achievement.rewardDecorationId).firstOrNull
-        : null;
-
-    final isHonor = achievement.condition == AchievementCondition.vipLevel;
-    // 颜色兜底：无稀有度时给个柔和的默认色
-    final primaryColor = isHonor 
-        ? const Color(0xFFFFD54F) 
-        : (decoration?.rarity.color ?? const Color(0xFF90CAF9));
-
-    return GestureDetector(
-      onTap: () => _showAchievementDetail(achievement, isUnlocked, stats, isNight),
-      child: Column(
-        children: [
-          Expanded(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // 圆形勋章底盘（小红书风格：简洁圆形容器 + 彩色描边）
-                Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isUnlocked 
-                        ? primaryColor.withValues(alpha: isNight ? 0.18 : 0.10)
-                        : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04)),
-                    border: Border.all(
-                      color: isUnlocked 
-                          ? primaryColor.withValues(alpha: isNight ? 0.5 : 0.35)
-                          : (isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06)),
-                      width: 1.5,
-                    ),
-                    boxShadow: isUnlocked ? [
-                      BoxShadow(
-                        color: primaryColor.withValues(alpha: isHonor ? 0.35 : 0.15),
-                        blurRadius: isHonor ? 18 : 10,
-                        spreadRadius: isHonor ? 2 : 0,
-                      ),
-                    ] : null,
-                  ),
-                ),
-
-                // 扫光波纹（仅荣誉成就）
-                if (isUnlocked && isHonor)
-                  const Positioned.fill(child: SweepLightEffect()),
-
-                // ✅ 勋章图标：unlocked 直接显示，locked 降调处理
-                Padding(
-                  padding: const EdgeInsets.all(14.0),
-                  child: isUnlocked
-                      ? (
-                          decoration != null 
-                              ? Image.asset(decoration.path, fit: BoxFit.contain)
-                              : Icon(Icons.stars_rounded, size: 34, color: primaryColor)
-                        )
-                      : ColorFiltered(
-                          colorFilter: const ColorFilter.matrix([
-                            0.25, 0.25, 0.25, 0, 0,
-                            0.25, 0.25, 0.25, 0, 0,
-                            0.25, 0.25, 0.25, 0, 0,
-                            0, 0, 0, 0.5, 0,
-                          ]),
-                          child: decoration != null 
-                              ? Image.asset(decoration.path, fit: BoxFit.contain)
-                              : Icon(Icons.workspace_premium_rounded, size: 34, color: Colors.grey),
-                        ),
-                ),
-
-                // 锁图标（右下角小角标，小红书风格）
-                if (!isUnlocked)
-                  Positioned(
-                    right: 4,
-                    bottom: 4,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        color: isNight ? const Color(0xFF1A1A2E) : Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.08),
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.lock_rounded, 
-                        size: 10, 
-                        color: isNight ? Colors.white30 : Colors.black26,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            achievement.title,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: isUnlocked ? FontWeight.bold : FontWeight.normal,
-              color: isUnlocked 
-                  ? (isNight ? Colors.white : const Color(0xFF1A1A1A)) 
-                  : (isNight ? Colors.white24 : Colors.black26),
-              fontFamily: 'LXGWWenKai',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAchievementDetail(MascotAchievement a, bool isUnlocked, Map<String, int> stats, bool isNight) {
+  void _showAchievementDetail(BuildContext context, MascotAchievement a, bool isUnlocked, Map<String, int> stats, bool isNight, Map<String, String> unlockedMap) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => AchievementDetailSheet(achievement: a, isUnlocked: isUnlocked, stats: stats, isNight: isNight),
+      builder: (context) => AchievementDetailSheet(
+        achievement: a,
+        isUnlocked: isUnlocked,
+        stats: stats,
+        unlockedAt: unlockedMap[a.id],
+        isNight: isNight,
+      ),
     );
   }
+}
+
+class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double height;
+  final Widget child;
+
+  _SliverHeaderDelegate({required this.height, required this.child});
+
+  @override
+  double get minExtent => height;
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(_SliverHeaderDelegate oldDelegate) => true;
+}
+
+class SweepLightEffect extends StatefulWidget {
+  const SweepLightEffect({super.key});
+  @override
+  State<SweepLightEffect> createState() => _SweepLightEffectState();
+}
+
+class _SweepLightEffectState extends State<SweepLightEffect> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
+  }
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => CustomPaint(
+        painter: SweepPainter(_controller.value),
+      ),
+    );
+  }
+}
+
+class SweepPainter extends CustomPainter {
+  final double progress;
+  SweepPainter(this.progress);
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        stops: [progress - 0.2, progress, progress + 0.2],
+        colors: [
+          Colors.white.withValues(alpha: 0),
+          Colors.white.withValues(alpha: 0.3),
+          Colors.white.withValues(alpha: 0)
+        ],
+      ).createShader(rect);
+    canvas.drawCircle(Offset(size.width / 2, size.height / 2), size.width / 2, paint);
+  }
+  @override
+  bool shouldRepaint(SweepPainter old) => true;
 }
