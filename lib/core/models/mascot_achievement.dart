@@ -11,6 +11,7 @@ enum AchievementCondition {
   uniqueTags,
   activeDays,
   totalMoods,
+  vipLevel,
 }
 
 class MascotAchievement {
@@ -171,7 +172,6 @@ class MascotAchievement {
       description: '记录总数达到 365 篇日记',
       condition: AchievementCondition.totalDiaries,
       targetValue: 365,
-      rewardDecorationId: 'phoenix_crown',
       rewardPoints: 1000,
     ),
     // --- 扩充 34 项新成就 ---
@@ -234,7 +234,6 @@ class MascotAchievement {
       description: '连续 100 天记录日记',
       condition: AchievementCondition.maxStreak,
       targetValue: 100,
-      rewardDecorationId: 'butterfly_wreath',
       rewardPoints: 300,
     ),
     MascotAchievement(
@@ -339,7 +338,6 @@ class MascotAchievement {
       description: '收集齐 25 件以上饰品',
       condition: AchievementCondition.totalDecorationsOwned,
       targetValue: 25,
-      rewardDecorationId: 'mask',
       rewardPoints: 400,
     ),
 
@@ -464,6 +462,35 @@ class MascotAchievement {
       targetValue: 1000,
       rewardDecorationId: 'red_reindeer',
       rewardPoints: 1000,
+    ),
+    
+    // --- 会员身份系列成就 ---
+    MascotAchievement(
+      id: 'vip_level_1',
+      title: '星光初航',
+      description: '入驻星空岛，开启月度拾光之旅',
+      condition: AchievementCondition.vipLevel,
+      targetValue: 1, // 级别 >= 1
+      rewardDecorationId: 'butterfly_wreath',
+      rewardPoints: 10,
+    ),
+    MascotAchievement(
+      id: 'vip_level_2',
+      title: '星河伴侣',
+      description: '点亮年度星河，与海岛长久同行',
+      condition: AchievementCondition.vipLevel,
+      targetValue: 2, // 级别 >= 2
+      rewardDecorationId: 'phoenix_crown',
+      rewardPoints: 50,
+    ),
+    MascotAchievement(
+      id: 'vip_level_3',
+      title: '永恒守望者',
+      description: '刻下永恒印记，成为岛屿的终身守护',
+      condition: AchievementCondition.vipLevel,
+      targetValue: 3, // 级别 == 3
+      rewardDecorationId: 'mask',
+      rewardPoints: 100,
     ),
   ];
 

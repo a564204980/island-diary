@@ -751,7 +751,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     final images = blocks.whereType<ImageBlock>().toList();
     if (images.isEmpty) return const SizedBox.shrink();
 
-    final Color bgColor = DiaryUtils.getPopupBackgroundColor(currentPaperStyle, isNight);
 
     return Container(
       height: 90,
@@ -826,71 +825,4 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     ).animate().slideY(begin: 0.5, end: 0).fadeIn();
   }
 
-  Widget _buildImageGridArea(bool isNight, Color accentColor) {
-    if (isMixedLayout) return const SizedBox.shrink();
-    
-    final images = blocks.whereType<ImageBlock>().toList();
-    if (images.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final double spacing = 8;
-          final double itemSize = (constraints.maxWidth - spacing * 2) / 3;
-
-          return Wrap(
-            spacing: spacing,
-            runSpacing: spacing,
-            children: images.map((img) {
-              final index = blocks.indexOf(img);
-              return Stack(
-                children: [
-                  GestureDetector(
-                    onTap: () => showImagePreview(img),
-                    child: Container(
-                      width: itemSize,
-                      height: itemSize,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: DiaryUtils.buildImage(
-                          img.file.path,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: GestureDetector(
-                      onTap: () => removeImage(index),
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.black45,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.close, color: Colors.white, size: 12),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }).toList().cast<Widget>(),
-          );
-        },
-      ),
-    );
-  }
 }

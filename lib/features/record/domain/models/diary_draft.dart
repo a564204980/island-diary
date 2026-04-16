@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 
 /// 日记草稿模型
 /// 封装了日记编辑过程中的中间状态

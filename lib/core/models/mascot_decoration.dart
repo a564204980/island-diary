@@ -62,8 +62,8 @@ class MascotDecoration {
           scale: 1.1,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -4),
-          scale: 1.4,
+          offset: Offset(0, -14),
+          scale: 1,
         ), // 示例：雪团儿的微调
       },
     ),
@@ -79,8 +79,8 @@ class MascotDecoration {
           scale: 1.2,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -54),
-          scale: 1.25,
+          offset: Offset(0, -74),
+          scale: 0.8,
         ),
       },
     ),
@@ -97,8 +97,8 @@ class MascotDecoration {
           scale: 1.8,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -12),
-          scale: 2,
+          offset: Offset(0, 10),
+          scale: 1.5,
         ),
       },
     ),
@@ -115,8 +115,8 @@ class MascotDecoration {
           scale: 1.5,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -22),
-          scale: 1.65,
+          offset: Offset(5, -62),
+          scale: 1.34,
         ),
       },
     ),
@@ -133,8 +133,8 @@ class MascotDecoration {
           scale: 1.2,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -16),
-          scale: 1.4,
+          offset: Offset(0, -46),
+          scale: 0.9,
         ),
       },
     ),
@@ -151,8 +151,8 @@ class MascotDecoration {
           scale: 1.0,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -24),
-          scale: 1.34,
+          offset: Offset(-2, -34),
+          scale: 1.0,
         ),
       },
     ),
@@ -169,8 +169,8 @@ class MascotDecoration {
           scale: 2.2,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, 30),
-          scale: 2.4,
+          offset: Offset(0, 10),
+          scale: 1.78,
         ),
       },
     ),
@@ -186,8 +186,8 @@ class MascotDecoration {
           scale: 1.6,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, 4),
-          scale: 1.34,
+          offset: Offset(0, -60),
+          scale: 0.7,
         ),
       },
     ),
@@ -203,8 +203,8 @@ class MascotDecoration {
           scale: 1.4,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, 10),
-          scale: 1.2,
+          offset: Offset(0, -40),
+          scale: 0.8,
         ),
       },
     ),
@@ -221,7 +221,7 @@ class MascotDecoration {
           scale: 1.8,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, 10),
+          offset: Offset(2, 10),
           scale: 1.4,
         ),
       },
@@ -239,8 +239,8 @@ class MascotDecoration {
           scale: 1.4,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, 0),
-          scale: 1.3,
+          offset: Offset(-4, -40),
+          scale: 1.1,
         ),
       },
     ),
@@ -256,8 +256,8 @@ class MascotDecoration {
           scale: 1.5,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -24),
-          scale: 1.50,
+          offset: Offset(0, -74),
+          scale: 1.10,
         ),
       },
     ),
@@ -273,8 +273,8 @@ class MascotDecoration {
           scale: 1.6,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -10),
-          scale: 1.2,
+          offset: Offset(0, -40),
+          scale: 1,
         ),
       },
     ),
@@ -291,8 +291,8 @@ class MascotDecoration {
           scale: 1.6,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -10),
-          scale: 1.2,
+          offset: Offset(-4, -50),
+          scale: 1.24,
         ),
       },
     ),
@@ -309,8 +309,8 @@ class MascotDecoration {
           scale: 1.4,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -12),
-          scale: 1.2,
+          offset: Offset(0, -20),
+          scale: 1.14,
         ),
       },
     ),
@@ -327,8 +327,8 @@ class MascotDecoration {
           scale: 1.8,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -22),
-          scale: 1.4,
+          offset: Offset(4, -22),
+          scale: 1.0,
         ),
       },
     ),
@@ -345,8 +345,8 @@ class MascotDecoration {
           scale: 1.4,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -50),
-          scale: 1.3,
+          offset: Offset(0, -74),
+          scale: 0.9,
         ),
       },
     ),
@@ -363,8 +363,8 @@ class MascotDecoration {
           scale: 1.5,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -8),
-          scale: 1.1,
+          offset: Offset(0, -40),
+          scale: 0.8,
         ),
       },
     ),
@@ -380,8 +380,8 @@ class MascotDecoration {
           scale: 1.4,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, 10),
-          scale: 1.12,
+          offset: Offset(0, -40),
+          scale: 0.8,
         ),
       },
     ),
@@ -399,7 +399,7 @@ class MascotDecoration {
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
           offset: Offset(0, -54),
-          scale: 1.94,
+          scale: 1.5,
         ),
       },
     ),
@@ -416,8 +416,8 @@ class MascotDecoration {
           scale: 1.5,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -30),
-          scale: 1.3,
+          offset: Offset(0, -40),
+          scale: 1.2,
         ),
       },
     ),
@@ -434,8 +434,8 @@ class MascotDecoration {
           scale: 1.3,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -20),
-          scale: 1.3,
+          offset: Offset(-2, -20),
+          scale: 1.1,
         ),
       },
     ),
@@ -452,8 +452,8 @@ class MascotDecoration {
           scale: 1.3,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -10),
-          scale: 1.4,
+          offset: Offset(0, -50),
+          scale: 1.2,
         ),
       },
     ),
@@ -471,7 +471,7 @@ class MascotDecoration {
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
           offset: Offset(0, -25),
-          scale: 1.2,
+          scale: 1,
         ),
       },
     ),
@@ -488,7 +488,7 @@ class MascotDecoration {
           scale: 1.4,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, 0),
+          offset: Offset(2, 0),
           scale: 1.2,
         ),
       },
@@ -508,6 +508,76 @@ class MascotDecoration {
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
           offset: Offset(0, 0),
           scale: 1.38,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'sausage_lips',
+      name: '玫红香肠嘴',
+      path: 'assets/images/emoji/decorate/decorate29.png',
+      description: '火热的玫红，性感的轮廓，这是岛上最吸睛的时尚焦点。',
+      rarity: MascotRarity.rare,
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, 30), scale: 0.8),
+      characterConfigs: {
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -50),
+          scale: 1,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'orange_knit_hat',
+      name: '橘色帽子',
+      path: 'assets/images/emoji/decorate/decorate30.png',
+      description: '明亮的橘色，温暖的针织纹理，是冬日里最亮眼的小太阳。',
+      rarity: MascotRarity.rare,
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -15), scale: 1.2),
+      characterConfigs: {
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -65),
+          scale: 0.9,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'purple_knit_hat',
+      name: '紫色帽子',
+      path: 'assets/images/emoji/decorate/decorate31.png',
+      description: '神秘且柔和的紫色，编织出属于小岛冬日的浪漫。',
+      rarity: MascotRarity.rare,
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -15), scale: 1.2),
+      characterConfigs: {
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -65),
+          scale: 0.9,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'party_pig_hat',
+      name: '派对小猪',
+      path: 'assets/images/emoji/decorate/decorate32.png',
+      description: '呆萌的小猪造型，配上俏皮的派对帽，你就是全场最闪耀的主角！',
+      rarity: MascotRarity.rare,
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.5),
+      characterConfigs: {
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 0),
+          scale: 1.0,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'little_monster_hat',
+      name: '小怪兽',
+      path: 'assets/images/emoji/decorate/decorate33.png',
+      description: '并不吓人的小怪兽发箍，顶着闪亮的小皇冠，调皮中带着一丝高贵。',
+      rarity: MascotRarity.common,
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.6),
+      characterConfigs: {
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 0.6,
         ),
       },
     ),

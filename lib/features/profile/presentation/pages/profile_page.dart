@@ -333,139 +333,143 @@ class ProfilePage extends StatelessWidget {
     return Column(
       children: [
         // 第一排 Bento
-        Row(
-          children: [
-            Expanded(flex: 3, child: _buildThemeBento(isNight)),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: GestureDetector(
-                onTap: () {
-                  final isNight = UserState().isNight;
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      opaque: true, // 保持不透明以覆盖底层
-                      barrierColor: isNight
-                          ? Colors.black
-                          : const Color(0xFFFDFCF7),
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          const SecurityCenterPage(),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: child,
-                            );
-                          },
-                    ),
-                  );
-                },
-                child: _buildQuickActionBento(
-                  title: '岛屿安全',
-                  icon: Icons.lock_outline,
-                  color: const Color(0xFF81C784),
-                  isNight: isNight,
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _buildThemeBento(isNight)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    final isNight = UserState().isNight;
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        opaque: true, // 保持不透明以覆盖底层
+                        barrierColor: isNight
+                            ? Colors.black
+                            : const Color(0xFFFDFCF7),
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            const SecurityCenterPage(),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              );
+                            },
+                      ),
+                    );
+                  },
+                  child: _buildQuickActionBento(
+                    title: '岛屿安全',
+                    icon: Icons.lock_outline,
+                    color: const Color(0xFF81C784),
+                    isNight: isNight,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         // 第二排 Bento
-        Row(
-          children: [
-            Expanded(
-              flex: 3,
-              child: GestureDetector(
-                onTap: () {
-                  final isNight = UserState().isNight;
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      opaque: true,
-                      barrierColor: isNight
-                          ? Colors.black
-                          : const Color(0xFFFDFCF7),
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          const MascotDecorationPage(),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: child,
-                        );
-                      },
-                    ),
-                  );
-                },
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    final isNight = UserState().isNight;
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        opaque: true,
+                        barrierColor: isNight
+                            ? Colors.black
+                            : const Color(0xFFFDFCF7),
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            const MascotDecorationPage(),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  child: _buildQuickActionBento(
+                    title: '小软装扮',
+                    icon: Icons.auto_fix_high_rounded,
+                    color: const Color(0xFFFFB74D),
+                    isNight: isNight,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: _buildQuickActionBento(
-                  title: '小软装扮',
-                  icon: Icons.auto_fix_high_rounded,
-                  color: const Color(0xFFFFB74D),
+                  title: '回忆导出',
+                  icon: Icons.ios_share,
+                  color: const Color(0xFF64B5F6),
                   isNight: isNight,
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: _buildQuickActionBento(
-                title: '回忆导出',
-                icon: Icons.ios_share,
-                color: const Color(0xFF64B5F6),
-                isNight: isNight,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         // 第三排 Bento
-        Row(
-          children: [
-            Expanded(
-              flex: 3,
-              child: GestureDetector(
-                onTap: () {
-                  final isNight = UserState().isNight;
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      opaque: true,
-                      barrierColor: isNight
-                          ? Colors.black
-                          : const Color(0xFFFDFCF7),
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          const AchievementPage(),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: child,
-                        );
-                      },
-                    ),
-                  );
-                },
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    final isNight = UserState().isNight;
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        opaque: true,
+                        barrierColor: isNight
+                            ? Colors.black
+                            : const Color(0xFFFDFCF7),
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            const AchievementPage(),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  child: _buildQuickActionBento(
+                    title: '岛屿成就',
+                    icon: Icons.emoji_events_outlined,
+                    color: const Color(0xFFFF7043),
+                    isNight: isNight,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: _buildQuickActionBento(
-                  title: '岛屿成就',
-                  icon: Icons.emoji_events_outlined,
-                  color: const Color(0xFFFF7043),
+                  title: '关于小岛',
+                  icon: Icons.info_outline,
+                  color: const Color(0xFFBA68C8),
                   isNight: isNight,
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: _buildQuickActionBento(
-                title: '关于小岛',
-                icon: Icons.info_outline,
-                color: const Color(0xFFBA68C8),
-                isNight: isNight,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0);

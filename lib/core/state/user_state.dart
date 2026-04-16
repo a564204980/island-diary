@@ -41,7 +41,8 @@ class _K {
   static const statsOrderWeek = 'stats_order_week';
   static const statsOrderMonth = 'stats_order_month';
   static const statsOrderAll = 'stats_order_all';
-  static const isVip = 'is_vip';
+  static const vipLevel = 'vip_level_v2';
+  static const isVip = 'is_vip'; // Keep for migration
   static const isAppLockEnabled = 'is_app_lock_enabled';
   static const appLockPin = 'app_lock_pin';
   static const isBiometricEnabled = 'is_biometric_enabled';
@@ -60,6 +61,7 @@ class _K {
   static const achievementPoints = 'achievement_points';
   static const unlockedAchievementsMap = 'unlocked_achievements_v2';
   static const unlockedAchievements = 'unlocked_achievement_ids';
+  static const vipExpireTime = 'vip_expire_time';
 }
 
 /// 1. 用户资料与引导模块
@@ -67,7 +69,9 @@ mixin ProfileMixin {
   final ValueNotifier<String> userName = ValueNotifier<String>('');
   final ValueNotifier<bool> hasFinishedOnboarding = ValueNotifier<bool>(false);
   final ValueNotifier<bool> hasSeenRecordGuidance = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> isVip = ValueNotifier<bool>(false);
+  final ValueNotifier<int> vipLevel = ValueNotifier<int>(0);
+  final ValueNotifier<bool> isVip = ValueNotifier<bool>(false); // Sync with vipLevel
+  final ValueNotifier<DateTime?> vipExpireTime = ValueNotifier<DateTime?>(null);
   final ValueNotifier<String> themeMode = ValueNotifier<String>('auto');
   DateTime? lastVisitTime;
 
@@ -93,11 +97,43 @@ mixin ProfileMixin {
     userName.value = prefs.getString(_K.userName) ?? '';
     hasFinishedOnboarding.value = prefs.getBool(_K.onboarding) ?? false;
     hasSeenRecordGuidance.value = prefs.getBool(_K.recordGuidance) ?? false;
-    isVip.value = prefs.getBool(_K.isVip) ?? false;
+    // Migration: if old isVip was true but vipLevel is 0, set to level 1
+    int level = prefs.getInt(_K.vipLevel) ?? 0;
+    bool oldVip = prefs.getBool(_K.isVip) ?? false;
+    if (level == 0 && oldVip) level = 1;
+    
+    vipLevel.value = level;
+    isVip.value = level > 0;
+    
     themeMode.value = prefs.getString(_K.themeMode) ?? 'auto';
     final lastVisit = prefs.getString(_K.lastVisit);
     if (lastVisit != null) {
       lastVisitTime = DateTime.parse(lastVisit);
+    }
+
+    final expireStr = prefs.getString(_K.vipExpireTime);
+    if (expireStr != null) {
+      vipExpireTime.value = DateTime.tryParse(expireStr);
+    }
+    
+    // 启动时执行一次过期检测
+    checkVipExpiry(prefs);
+  }
+
+  /// 检查会员是否已过期
+  void checkVipExpiry(SharedPreferences prefs) {
+    if (vipLevel.value == 0 || vipLevel.value == 3) return; // 非会员或终身会员无需检查
+    
+    final expireDate = vipExpireTime.value;
+    if (expireDate != null && DateTime.now().isAfter(expireDate)) {
+      // 已过期，重置状态
+      vipLevel.value = 0;
+      isVip.value = false;
+      vipExpireTime.value = null;
+      prefs.setInt(_K.vipLevel, 0);
+      prefs.setBool(_K.isVip, false);
+      prefs.remove(_K.vipExpireTime);
+      debugPrint('Member status expired and reset.');
     }
   }
 
@@ -110,10 +146,39 @@ mixin ProfileMixin {
     }
   }
 
-  Future<void> setIsVip(bool value) async {
-    isVip.value = value;
+  Future<void> setIsVipLevel(int level) async {
+    final now = DateTime.now();
+    DateTime? newExpire;
+    
+    if (level == 1) { // 月度
+      final currentExpire = (vipExpireTime.value != null && vipExpireTime.value!.isAfter(now)) 
+          ? vipExpireTime.value! : now;
+      newExpire = currentExpire.add(const Duration(days: 30));
+    } else if (level == 2) { // 年度
+      final currentExpire = (vipExpireTime.value != null && vipExpireTime.value!.isAfter(now)) 
+          ? vipExpireTime.value! : now;
+      newExpire = currentExpire.add(const Duration(days: 365));
+    } else if (level == 3) { // 终身
+      newExpire = null; // 终身会员没有过期时间
+    }
+
+    vipLevel.value = level;
+    isVip.value = level > 0;
+    vipExpireTime.value = newExpire;
+    
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_K.isVip, value);
+    await prefs.setInt(_K.vipLevel, level);
+    await prefs.setBool(_K.isVip, level > 0);
+    if (newExpire != null) {
+      await prefs.setString(_K.vipExpireTime, newExpire.toIso8601String());
+    } else {
+      await prefs.remove(_K.vipExpireTime);
+    }
+  }
+
+  // Deprecated: use setIsVipLevel instead
+  Future<void> setIsVip(bool value) async {
+    await setIsVipLevel(value ? 1 : 0);
   }
 
   Future<void> setThemeMode(String mode) async {
@@ -520,6 +585,7 @@ mixin AchievementMixin on DiaryMixin {
     stats[AchievementCondition.totalMoods.name] = diaries.length;
     stats[AchievementCondition.uniqueMoods.name] = diaries.map((e) => e.moodIndex).whereType<int>().toSet().length;
     stats[AchievementCondition.totalDecorationsOwned.name] = ownedDecorationIds.value.length;
+    stats[AchievementCondition.vipLevel.name] = vipLevel.value;
     return stats;
   }
 }

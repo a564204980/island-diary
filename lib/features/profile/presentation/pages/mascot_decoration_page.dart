@@ -4,7 +4,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/static_sprite.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
-import 'dart:typed_data';
+import 'package:island_diary/features/profile/presentation/widgets/achievement_detail_sheet.dart';
 
 class MascotDecorationPage extends StatefulWidget {
   const MascotDecorationPage({super.key});
@@ -55,6 +55,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                   builder: (context, _) => _buildPreviewHero(
                     userState.selectedMascotDecoration.value, 
                     isNight,
+                    userState,
                   ),
                 ),
 
@@ -109,6 +110,16 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                             final currentDecoration = userState.selectedMascotDecoration.value;
                             final ownedIds = userState.ownedDecorationIds.value;
 
+                            // 1. 实现智能排序：已解锁优先
+                            final sortedDecorations = List<MascotDecoration>.from(MascotDecoration.allDecorations)
+                              ..sort((a, b) {
+                                final aOwned = ownedIds.contains(a.id);
+                                final bOwned = ownedIds.contains(b.id);
+                                if (aOwned && !bOwned) return -1;
+                                if (!aOwned && bOwned) return 1;
+                                return 0; // 保持原始相对顺序
+                              });
+
                             return SliverGrid(
                               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
@@ -118,17 +129,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (context, index) {
-                                  if (index == 0) {
-                                    return _DecorationGridItem(
-                                      deco: null,
-                                      isSelected: currentDecoration == null,
-                                      isNight: isNight,
-                                      isOwned: true,
-                                      index: index,
-                                    );
-                                  }
-
-                                  final deco = MascotDecoration.allDecorations[index - 1];
+                                  final deco = sortedDecorations[index];
                                   return _DecorationGridItem(
                                     deco: deco,
                                     isSelected: currentDecoration == deco.path,
@@ -137,7 +138,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                     index: index,
                                   );
                                 },
-                                childCount: MascotDecoration.allDecorations.length + 1,
+                                childCount: sortedDecorations.length,
                               ),
                             );
                           },
@@ -246,7 +247,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
     );
   }
 
-  Widget _buildPreviewHero(String? decorationPath, bool isNight) {
+  Widget _buildPreviewHero(String? decorationPath, bool isNight, UserState userState) {
     return Container(
       width: double.infinity,
       height: 280,
@@ -280,41 +281,88 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                     : Colors.white.withValues(alpha: 0.1),
              ),
           ),
-          _buildPreviewBadge(isNight),
+          _buildPreviewBadge(isNight, userState),
         ],
       ),
     );
   }
 
-  Widget _buildPreviewBadge(bool isNight) {
+  Widget _buildPreviewBadge(bool isNight, UserState userState) {
     return Positioned(
       bottom: 16,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color: isNight ? Colors.white.withValues(alpha: 0.05) : const Color(0xFF3E2723).withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.remove_red_eye_outlined, size: 14, color: isNight ? Colors.white38 : const Color(0xFF3E2723).withValues(alpha: 0.4)),
-            const SizedBox(width: 6),
-            Text(
-              "当前外观预览",
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: isNight ? Colors.white38 : const Color(0xFF3E2723).withValues(alpha: 0.4),
-                fontFamily: 'LXGWWenKai',
+      child: ListenableBuilder(
+        listenable: userState.selectedMascotDecoration,
+        builder: (context, _) {
+          final isDressed = userState.selectedMascotDecoration.value != null;
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. 状态标签
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isNight ? Colors.white.withValues(alpha: 0.05) : const Color(0xFF3E2723).withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.remove_red_eye_outlined, size: 14, color: isNight ? Colors.white38 : const Color(0xFF3E2723).withValues(alpha: 0.4)),
+                    const SizedBox(width: 6),
+                    Text(
+                      "当前外观预览",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: isNight ? Colors.white38 : const Color(0xFF3E2723).withValues(alpha: 0.4),
+                        fontFamily: 'LXGWWenKai',
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
+              
+              // 2. 卸下按钮（仅在穿着时显示）
+              if (isDressed) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => userState.setMascotDecoration(null),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isNight ? const Color(0xFFE57373).withValues(alpha: 0.15) : const Color(0xFFD32F2F).withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isNight ? const Color(0xFFE57373).withValues(alpha: 0.2) : const Color(0xFFD32F2F).withValues(alpha: 0.1),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.close_rounded, size: 14, color: isNight ? const Color(0xFFEF9A9A) : const Color(0xFFC62828)),
+                        const SizedBox(width: 4),
+                        Text(
+                          "卸下",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isNight ? const Color(0xFFEF9A9A) : const Color(0xFFC62828),
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn(duration: 200.ms).scale(begin: const Offset(0.8, 0.8)),
+                ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -365,11 +413,18 @@ class _DecorationGridItem extends StatelessWidget {
   void _handleTap(BuildContext context) {
     if (!isOwned) {
       final achievement = MascotAchievement.getByRewardId(deco?.id ?? '');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('成就锁定：${achievement?.description ?? "尚未达成解锁条件"}', style: const TextStyle(fontFamily: 'LXGWWenKai')),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
+      if (achievement == null) return;
+      
+      final userState = UserState();
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (context) => AchievementDetailSheet(
+          achievement: achievement,
+          isUnlocked: false,
+          stats: userState.getAchievementStats(),
+          isNight: isNight,
         ),
       );
       return;

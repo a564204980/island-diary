@@ -16,19 +16,55 @@ class VipBenefitsPage extends StatefulWidget {
 class _VipBenefitsPageState extends State<VipBenefitsPage> {
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
+  int _selectedTierIndex = 1; // 默认选中全场最实惠的年度
+
+  static const List<_PricingTier> _tiers = [
+    _PricingTier(title: '月度拾光', price: '3.0', numericPrice: 3.0, period: '/月', note: '一杯水的支持'),
+    _PricingTier(title: '年度星河', price: '25.0', numericPrice: 25.0, period: '/年', note: '年度最受欢迎', isPop: true),
+    _PricingTier(title: '永恒印记', price: '68.0', numericPrice: 68.0, period: '终身', note: '一份永恒的契约'),
+  ];
+
+  double _getEffectivePrice(int targetIndex, int currentLevel) {
+    final targetPrice = _tiers[targetIndex].numericPrice;
+    
+    // 如果用户当前没有会员，返回原价
+    if (currentLevel == 0) return targetPrice;
+    
+    // 如果当前档位 <= 当前等级，视为已持有（理论上不应发生购买，仅显示用）
+    if ((targetIndex + 1) <= currentLevel) return 0.0;
+    
+    // 计算已付金额
+    double paidAmount = 0.0;
+    if (currentLevel == 1) {
+      paidAmount = 3.0;
+    } else if (currentLevel == 2) {
+      paidAmount = 25.0;
+    }
+    
+    return math.max(0.0, targetPrice - paidAmount);
+  }
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(() {
-      setState(() {
-        _scrollOffset = _scrollController.offset;
-      });
+    _scrollController.addListener(_onScroll);
+    UserState().vipLevel.addListener(_updateState);
+  }
+
+  void _onScroll() {
+    setState(() {
+      _scrollOffset = _scrollController.offset;
     });
+  }
+
+  void _updateState() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    UserState().vipLevel.removeListener(_updateState);
     _scrollController.dispose();
     super.dispose();
   }
@@ -56,6 +92,22 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white54, size: 20),
+            tooltip: '调试：重置会员状态',
+            onPressed: () async {
+              await userState.setIsVipLevel(0);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('调试：会员状态已重置为非会员'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -93,10 +145,18 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
                 sliver: _buildFloatingIslandGrid(context, isNight, themeColor),
               ),
 
-              // 底部行动
+              // 2. 档位选择区
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                sliver: SliverToBoxAdapter(
+                  child: _buildPricingSection(isNight, themeColor),
+                ),
+              ),
+
+              // 3. 底部行动
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 60, 24, 80),
+                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 80),
                   child: _buildGrandAction(userState, isNight, themeColor),
                 ),
               ),
@@ -249,247 +309,315 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
   Widget _buildFloatingIslandGrid(BuildContext context, bool isNight, Color themeColor) {
     return SliverList(
       delegate: SliverChildListDelegate([
-        _buildFloatingCard(
+        _buildHorizontalBenefitCard(
+          title: '专属装扮',
+          description: '激活不同档位，即赠顶级稀有饰品并永久留存',
+          orbColor: const Color(0xFFFFD54F), // 金金色
+          isNight: isNight,
+        ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.1, end: 0),
+
+        _buildHorizontalBenefitCard(
           title: '审美特权',
-          subtitle: '感官重塑',
-          description: '解锁晨雾氤氲的季节本色主题，每一笔记录都伴随着呼吸感的动态粒子与人文气息的霞鹜字体，重构你的数字避风港。',
+          description: '开启独家季节主题与霞鹜人文字体',
           orbColor: themeColor,
           isNight: isNight,
-        ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
+        ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0),
         
-        const SizedBox(height: 24),
-
-        _buildFloatingCard(
+        _buildHorizontalBenefitCard(
           title: '无限灵感',
-          subtitle: '创作零束缚',
-          description: '解除每日笔记数量限制，单篇日记支持无限张高清图片载入。你的心灵海域，理应承载每一寸想象力。',
+          description: '解锁笔记数量限制，支持无限高清图片',
           orbColor: const Color(0xFFF48FB1),
           isNight: isNight,
-        ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
+        ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.1, end: 0),
         
-        const SizedBox(height: 24),
-        
-        _buildFloatingCard(
+        _buildHorizontalBenefitCard(
           title: '深度洞察',
-          subtitle: '灵感迁徙图谱',
-          description: '以前瞻性的 365 天视角，跨维度剖析情绪与万物荣枯的因果。年度热力图不仅是数据，更是你一年来灵魂生长的痕迹。',
+          description: '365天情绪热力图与灵魂演化分析',
           orbColor: const Color(0xFF64B5F6),
           isNight: isNight,
-        ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1, end: 0),
-        
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: _buildFloatingCard(
-                title: '时空进化',
-                subtitle: '永恒印记',
-                orbColor: const Color(0xFF9575CD),
-                isNight: isNight,
-                isSmall: true,
-              ).animate().fadeIn(delay: 800.ms),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: _buildFloatingCard(
-                title: '仪式导出',
-                subtitle: '纸上栖息',
-                orbColor: const Color(0xFF4DB6AC),
-                isNight: isNight,
-                isSmall: true,
-              ).animate().fadeIn(delay: 1000.ms),
-            ),
-          ],
-        ),
+        ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.1, end: 0),
+
+        _buildHorizontalBenefitCard(
+          title: '仪式导出',
+          description: '支持高精 PDF 打印与精美卡片分享',
+          orbColor: const Color(0xFF4DB6AC),
+          isNight: isNight,
+        ).animate().fadeIn(delay: 500.ms).slideX(begin: 0.1, end: 0),
+
+        _buildHorizontalBenefitCard(
+          title: '同步无界',
+          description: '多端实时云同步，数据端到端加密',
+          orbColor: const Color(0xFF9575CD),
+          isNight: isNight,
+        ).animate().fadeIn(delay: 600.ms).slideX(begin: 0.1, end: 0),
       ]),
     );
   }
 
-  Widget _buildFloatingCard({
+  Widget _buildHorizontalBenefitCard({
     required String title,
-    required String subtitle,
-    String? description,
+    required String description,
     required Color orbColor,
     required bool isNight,
-    bool isSmall = false,
   }) {
     final textColor = isNight ? Colors.white : const Color(0xFF3E2723);
     
     return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isNight ? Colors.white.withValues(alpha: 0.06) : orbColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(36),
+        color: isNight ? Colors.white.withValues(alpha: 0.05) : orbColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isNight ? Colors.white.withValues(alpha: 0.1) : Colors.white,
-          width: 0.5, // 极细边
+          color: isNight ? Colors.white.withValues(alpha: 0.12) : Colors.white,
+          width: 0.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isNight ? 0.3 : 0.05),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
+            color: Colors.black.withValues(alpha: isNight ? 0.2 : 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(36),
+        borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-          child: Stack(
-            children: [
-              // 0.5px 金属扫光边框 (Premium Border)
-              CustomPaint(
-                painter: _NobleBorderPainter(color: orbColor),
-                child: Container(),
-              ),
-              
-              // 大卡片的侧边彩色装饰 (改为磨砂质感)
-              if (!isSmall)
-                Positioned(
-                  left: 0,
-                  top: 32,
-                  bottom: 32,
-                  width: 5,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [orbColor.withValues(alpha: 0), orbColor, orbColor.withValues(alpha: 0)],
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              children: [
+                SoulOrb(color: orbColor, size: 36),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          fontFamily: 'LXGWWenKai',
+                          letterSpacing: 1,
+                        ),
                       ),
-                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(5)),
-                    ),
-                  ).animate(onPlay: (c) => c.repeat(reverse: true))
-                   .shimmer(duration: 4.seconds, color: Colors.white.withValues(alpha: 0.5)),
-                ),
-              
-              Container(
-                padding: EdgeInsets.all(isSmall ? 28 : 36),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      orbColor.withValues(alpha: 0.15),
-                      Colors.transparent,
-                      Colors.white.withValues(alpha: isNight ? 0.02 : 0.05),
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: textColor.withValues(alpha: 0.5),
+                          fontFamily: 'LXGWWenKai',
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                child: isSmall 
-                  ? _buildSmallCardContent(title, subtitle, orbColor, textColor)
-                  : _buildLargeCardContent(title, subtitle, description, orbColor, textColor),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildLargeCardContent(String title, String subtitle, String? description, Color orbColor, Color textColor) {
+
+
+  Widget _buildPricingSection(bool isNight, Color themeColor) {
+    final userState = UserState();
+    final currentLevel = userState.vipLevel.value;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            SoulOrb(color: orbColor, size: 36),
-            _buildCardBadge(subtitle, orbColor),
-          ],
-        ),
-        const SizedBox(height: 36),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: textColor,
-            fontFamily: 'LXGWWenKai',
-            letterSpacing: 1.5,
-          ),
-        ),
-        if (description != null) ...[
-          const SizedBox(height: 18),
-          Text(
-            description,
+        Padding(
+          padding: const EdgeInsets.only(left: 8, bottom: 20),
+          child: Text(
+            '选择你的拾光方案',
             style: TextStyle(
-              fontSize: 13,
-              height: 1.8,
-              color: textColor.withValues(alpha: 0.5),
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: (isNight ? Colors.white : const Color(0xFF3E2723)).withValues(alpha: 0.8),
               fontFamily: 'LXGWWenKai',
+              letterSpacing: 2,
             ),
           ),
-        ],
+        ),
+        ...List.generate(_tiers.length, (index) {
+          final tier = _tiers[index];
+          final isSelected = _selectedTierIndex == index;
+          final effectivePrice = _getEffectivePrice(index, currentLevel);
+          
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedTierIndex = index),
+              child: AnimatedContainer(
+                duration: 400.ms,
+                curve: Curves.easeOutQuint,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? (isNight ? themeColor.withValues(alpha: 0.15) : themeColor.withValues(alpha: 0.1))
+                      : (isNight ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02)),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isSelected ? themeColor : (isNight ? Colors.white12 : Colors.black12),
+                    width: 1.5,
+                  ),
+                  boxShadow: isSelected ? [
+                    BoxShadow(color: themeColor.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 8))
+                  ] : [],
+                ),
+                child: Row(
+                  children: [
+                    // 1. 选中指示器
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected ? themeColor : (isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.1)),
+                          width: 2,
+                        ),
+                      ),
+                      child: AnimatedScale(
+                        duration: 300.ms,
+                        scale: isSelected ? 1.0 : 0.0,
+                        curve: Curves.easeOutBack,
+                        child: Container(
+                          margin: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: themeColor),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    
+                    // 2. 方案信息
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                tier.title,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: isNight ? Colors.white : const Color(0xFF3E2723),
+                                  fontFamily: 'LXGWWenKai',
+                                ),
+                              ),
+                              if (tier.isPop) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: themeColor,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text('推荐', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 2.seconds),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            tier.note,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: (isNight ? Colors.white : const Color(0xFF3E2723)).withValues(alpha: 0.4),
+                              fontFamily: 'LXGWWenKai',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // 3. 价格展示
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (effectivePrice < tier.numericPrice && effectivePrice > 0)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: themeColor.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '补差价升级',
+                              style: TextStyle(
+                                color: themeColor,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'LXGWWenKai',
+                              ),
+                            ),
+                          ),
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '¥',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isNight ? Colors.white : const Color(0xFF3E2723),
+                                ),
+                              ),
+                              TextSpan(
+                                text: effectivePrice <= 0 ? (currentLevel >= (index + 1) ? '已激活' : '0.0') : effectivePrice.toStringAsFixed(1),
+                                style: TextStyle(
+                                  fontSize: effectivePrice <= 0 && currentLevel >= (index + 1) ? 18 : 24,
+                                  fontWeight: FontWeight.w900,
+                                  color: isNight ? Colors.white : const Color(0xFF3E2723),
+                                ),
+                              ),
+                              TextSpan(
+                                text: tier.period,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: (isNight ? Colors.white : const Color(0xFF3E2723)).withValues(alpha: 0.4),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
       ],
-    );
-  }
-
-  Widget _buildSmallCardContent(String title, String subtitle, Color orbColor, Color textColor) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SoulOrb(color: orbColor, size: 42),
-        const SizedBox(height: 24),
-        Text(
-          subtitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            color: textColor,
-            fontFamily: 'LXGWWenKai',
-            letterSpacing: 1,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 11,
-            color: textColor.withValues(alpha: 0.4),
-            letterSpacing: 2,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCardBadge(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color.withValues(alpha: 0.2), color.withValues(alpha: 0.05)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 0.5),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          color: color.withValues(alpha: 0.9),
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1,
-        ),
-      ),
     );
   }
 
   Widget _buildGrandAction(UserState userState, bool isNight, Color themeColor) {
     return ListenableBuilder(
-      listenable: userState.isVip,
+      listenable: userState.vipLevel,
       builder: (context, _) {
         final bool isVip = userState.isVip.value;
         final textColor = isNight ? Colors.white : const Color(0xFF3E2723);
+        final selectedTier = _tiers[_selectedTierIndex];
 
         return Column(
           children: [
             Text(
-              isVip ? '—— 星河拾光之契已经激活 ——' : '开启这扇门，通往更广阔的心灵原野',
+              isVip && userState.vipLevel.value == 3 
+                ? '—— 星河拾光之契已经激活 ——' 
+                : (isVip 
+                    ? '—— 有效期至：${userState.vipExpireTime.value?.toIso8601String().split('T')[0] ?? ''} ——' 
+                    : '开启这扇门，通往更广阔的心灵原野'),
               style: TextStyle(
                 fontSize: 12,
                 color: textColor.withValues(alpha: 0.3),
@@ -499,19 +627,14 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
             ).animate(onPlay: (c) => c.repeat(reverse: true))
              .shimmer(duration: 3.seconds),
             const SizedBox(height: 32),
-            if (!isVip)
+            if (userState.vipLevel.value < (_selectedTierIndex + 1))
               GestureDetector(
-                onTap: () {
-                  userState.setIsVip(true);
-                  ScaffoldMessenger.of(context).showMaterialBanner(
-                    MaterialBanner(
-                      backgroundColor: themeColor,
-                      content: const Text('星辰契约已达成，从此拾光而行', style: TextStyle(color: Colors.white, fontFamily: 'LXGWWenKai')),
-                      actions: [
-                        TextButton(onPressed: () => ScaffoldMessenger.of(context).hideCurrentMaterialBanner(), child: const Text('好的', style: TextStyle(color: Colors.white))),
-                      ],
-                    ),
-                  );
+                onTap: () async {
+                  await userState.setIsVipLevel(_selectedTierIndex + 1);
+                  // 立即触发成就同步（发放专属饰品）
+                  await userState.checkAchievements();
+                  
+                  if (!context.mounted) return;
                 },
                 child: Container(
                   width: double.infinity,
@@ -549,9 +672,9 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
                         ),
                       ),
                       
-                      const Text(
-                        '申领星光计划拾光契约',
-                        style: TextStyle(
+                      Text(
+                        '以 ¥${_getEffectivePrice(_selectedTierIndex, userState.vipLevel.value).toStringAsFixed(1)} ${selectedTier.period == '终身' ? '永久' : '激活'}${userState.vipLevel.value > 0 ? '升级' : ''}${selectedTier.title}',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -564,6 +687,17 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
                 ),
               ).animate(onPlay: (c) => c.repeat(reverse: true))
                .scale(duration: 2.seconds, begin: const Offset(1, 1), end: const Offset(1.03, 1.03), curve: Curves.easeInOutSine),
+            const SizedBox(height: 16),
+            if (!isVip)
+              Text(
+                '一次支持，全岛建设加速中',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: textColor.withValues(alpha: 0.2),
+                  fontFamily: 'LXGWWenKai',
+                  letterSpacing: 1,
+                ),
+              ),
           ],
         );
       },
@@ -800,33 +934,24 @@ class _OrbitingPearlState extends State<_OrbitingPearl> with SingleTickerProvide
   }
 }
 
-class _NobleBorderPainter extends CustomPainter {
-  final Color color;
-  _NobleBorderPainter({required this.color});
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(36));
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Colors.white.withValues(alpha: 0.0),
-          const Color(0xFFFFD4AF).withValues(alpha: 0.5), // 香槟金边缘
-          Colors.white.withValues(alpha: 0.8),
-          color.withValues(alpha: 0.2),
-          Colors.white.withValues(alpha: 0.0),
-        ],
-        stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
-      ).createShader(rect);
-    canvas.drawRRect(rrect, paint);
-  }
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+class _PricingTier {
+  final String title;
+  final String price;
+  final double numericPrice;
+  final String period;
+  final String note;
+  final bool isPop;
+
+  const _PricingTier({
+    required this.title,
+    required this.price,
+    required this.numericPrice,
+    required this.period,
+    required this.note,
+    this.isPop = false,
+  });
 }
+
 
 class _AnimatedMistBlob extends StatelessWidget {
   final Color color;
