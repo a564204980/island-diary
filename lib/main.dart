@@ -33,15 +33,33 @@ class IslandDiaryApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: '岛屿日记',
-      debugShowCheckedModeBanner: false,
-      scrollBehavior: AppScrollBehavior(),
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F172A)),
-        useMaterial3: true,
-        fontFamily: 'LXGWWenKai',
-      ),
+    final userState = UserState();
+    return ListenableBuilder(
+      listenable: userState.themeMode,
+      builder: (context, child) {
+        return MaterialApp(
+          title: '岛屿日记',
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: AppScrollBehavior(),
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF0F172A),
+              brightness: Brightness.light,
+            ),
+            useMaterial3: true,
+            scaffoldBackgroundColor: const Color(0xFFE6F3F5),
+            fontFamily: 'LXGWWenKai',
+          ),
+          darkTheme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF0F172A),
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+            scaffoldBackgroundColor: const Color(0xFF0D1B2A),
+            fontFamily: 'LXGWWenKai',
+          ),
+          themeMode: userState.isNight ? ThemeMode.dark : ThemeMode.light,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -53,7 +71,8 @@ class IslandDiaryApp extends StatelessWidget {
       locale: const Locale('zh', 'CN'),
       builder: (context, child) => SecurityGuard(child: child!),
       home: startWithHome ? const HomePage() : const OnboardingPage(),
+        );
+      },
     );
-
   }
 }

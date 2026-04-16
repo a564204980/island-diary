@@ -14,7 +14,7 @@ class AboutIslandPage extends StatelessWidget {
     final bool isNight = userState.isNight;
 
     return Scaffold(
-      backgroundColor: isNight ? const Color(0xFF0F0F1A) : const Color(0xFFF9FAFB),
+      backgroundColor: isNight ? const Color(0xFF0D1B2A) : const Color(0xFFE6F3F5),
       body: Stack(
         children: [
           // 1. 沉浸式流光背景
@@ -29,7 +29,7 @@ class AboutIslandPage extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: isNight 
-                      ? const Color(0xFF0F0F1A).withValues(alpha: 0.2)
+                      ? const Color(0xFF0D1B2A).withValues(alpha: 0.2)
                       : Colors.white.withValues(alpha: 0.2),
                 ),
               ),

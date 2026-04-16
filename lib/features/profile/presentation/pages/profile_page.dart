@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'dart:math' as math;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/profile/presentation/pages/vip_benefits_page.dart';
@@ -7,10 +8,97 @@ import 'package:island_diary/features/profile/presentation/pages/mascot_decorati
 import 'package:island_diary/features/profile/presentation/pages/security_center_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/achievement_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/about_island_page.dart';
+import 'package:island_diary/features/profile/presentation/pages/profile_edit_page.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/shared/widgets/static_sprite.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import 'dart:io';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+    _checkBirthday();
+  }
+
+  Future<void> _checkBirthday() async {
+    final userState = UserState();
+    final hasGift = await userState.checkAndClaimBirthdayGift();
+    if (hasGift && mounted) {
+      _showBirthdayCelebration(context);
+    }
+  }
+
+  void _showBirthdayCelebration(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cake_rounded, size: 80, color: Color(0xFF7B5C2E))
+                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                  .scale(duration: 1.seconds, begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2))
+                  .rotate(begin: -0.1, end: 0.1),
+              const SizedBox(height: 24),
+              const Text(
+                '生日快乐！',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  fontFamily: 'LXGWWenKai',
+                  decoration: TextDecoration.none,
+                ),
+              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
+              const SizedBox(height: 12),
+              const Text(
+                '您的岛屿专属礼物已存入成就系统',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                  fontFamily: 'LXGWWenKai',
+                  decoration: TextDecoration.none,
+                ),
+              ).animate().fadeIn(delay: 600.ms),
+              const SizedBox(height: 40),
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7B5C2E),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: const Text(
+                    '收下礼物',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      fontFamily: 'LXGWWenKai',
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ),
+              ).animate().fadeIn(delay: 800.ms).scale(),
+            ],
+          ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9)),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +109,8 @@ class ProfilePage extends StatelessWidget {
         userState.themeMode,
         userState.isVip,
         userState.userName,
+        userState.selectedMascotDecoration,
+        userState.customAvatarPath,
       ]),
       builder: (context, child) {
         final bool isNight = userState.isNight;
@@ -47,7 +137,7 @@ class ProfilePage extends StatelessWidget {
                 children: [
                   const SizedBox(height: 20),
                   // 1. 头部区域
-                  _buildProfileHeader(name, isVip, isNight),
+                  _buildProfileHeader(context, name, isVip, isNight),
                   const SizedBox(height: 32),
 
                   // 2. VIP 会员特权卡片
@@ -73,125 +163,353 @@ class ProfilePage extends StatelessWidget {
                 ],
               ),
             ),
+
           ],
         );
       },
     );
   }
 
-  Widget _buildProfileHeader(String name, bool isVip, bool isNight) {
-    return Column(
-      children: [
-        // 头像容器
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            // 底部光环
-            if (isVip)
-              Container(
-                width: 108,
-                height: 108,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFFFFF176).withValues(alpha: 0.5),
-                      const Color(0xFFCE93D8).withValues(alpha: 0.5),
-                      const Color(0xFFFFF176).withValues(alpha: 0.5),
-                    ],
+  Widget _buildProfileHeader(BuildContext context, String name, bool isVip, bool isNight) {
+    final userState = UserState();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. 上层区域：头像与基本信息 (姓名 + 简介)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // 头像区
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 主头像容器
+                  GestureDetector(
+                    onTap: () => _showAvatarPicker(context, isNight),
+                    child: Container(
+                      width: 92,
+                      height: 92,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isNight ? const Color(0xFF1E293B) : Colors.white,
+                        border: Border.all(
+                          color: isVip
+                              ? const Color(0xFFFFF176)
+                              : (isNight ? Colors.white10 : Colors.white),
+                          width: 4.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isNight ? 0.4 : 0.12),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: Center(
+                          child: userState.customAvatarPath.value != null && userState.customAvatarPath.value!.isNotEmpty
+                              ? Image.file(
+                                  File(userState.customAvatarPath.value!),
+                                  fit: BoxFit.cover,
+                                  width: 92,
+                                  height: 92,
+                                )
+                              : StaticSprite(
+                                  assetPath: 'assets/images/emoji/marshmallow.png',
+                                  decorationPath: userState.selectedMascotDecoration.value,
+                                  size: 80,
+                                ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ).animate(onPlay: (c) => c.repeat()).rotate(duration: 4.seconds),
-
-            Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isVip
-                      ? const Color(0xFFFFF176)
-                      : Colors.white.withValues(alpha: 0.2),
-                  width: 3,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isVip
-                        ? const Color(0xFFFFF176).withValues(alpha: 0.3)
-                        : Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 20,
-                    spreadRadius: 2,
+                  // 相机图标
+                  Positioned(
+                    bottom: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: isVip ? const Color(0xFFFFF176) : Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isVip ? Colors.white : Colors.black12,
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.camera_alt_rounded,
+                        size: 11,
+                        color: isVip ? const Color(0xFF7B5C2E) : Colors.black45,
+                      ),
+                    ),
                   ),
                 ],
-                image: const DecorationImage(
-                  image: AssetImage('assets/images/emoji/weixiao.png'),
-                  fit: BoxFit.cover,
+              ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.2, end: 0),
+
+              const SizedBox(width: 20),
+
+              // 昵称与简介
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
+                        color: isNight ? Colors.white : const Color(0xFF333333),
+                        fontFamily: 'LXGWWenKai',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ValueListenableBuilder<String>(
+                      valueListenable: userState.userBio,
+                      builder: (context, bio, _) {
+                        return GestureDetector(
+                          onTap: () {
+                            final isNight = UserState().isNight;
+                            Navigator.push(
+                              context,
+                              PageRouteBuilder(
+                                opaque: true,
+                                barrierColor: isNight ? Colors.black : const Color(0xFFFDFCF7),
+                                pageBuilder: (context, animation, secondaryAnimation) => const ProfileEditPage(),
+                                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                  return FadeTransition(opacity: animation, child: child);
+                                },
+                              ),
+                            );
+                          },
+                          child: Text(
+                            bio.isNotEmpty ? bio : '点击编辑资料，写下你的岛屿简介',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isNight ? Colors.white38 : Colors.black38,
+                              fontFamily: 'LXGWWenKai',
+                              height: 1.4,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // 2. 下层区域：称号标签 (左) 与按钮组 (右)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // 称号标签
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isNight 
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isVip 
+                        ? const Color(0xFFFFF176).withValues(alpha: 0.5) 
+                        : (isNight ? Colors.white10 : Colors.black12),
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isVip ? Icons.verified_user_rounded : Icons.person_pin_circle_rounded,
+                      size: 10,
+                      color: isVip ? const Color(0xFF7B5C2E) : Colors.black38,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isVip ? '岛屿永久居民' : '普通居民',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isVip 
+                            ? (isNight ? const Color(0xFFFFCC80) : const Color(0xFF7B5C2E))
+                            : (isNight ? Colors.white38 : Colors.black38),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
 
-            // VIP 挂件
-            if (isVip)
-              Positioned(
-                bottom: 2,
-                right: 2,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFFF176),
-                    shape: BoxShape.circle,
+              // 按钮组
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      final isNight = UserState().isNight;
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          opaque: true,
+                          barrierColor: isNight ? Colors.black : const Color(0xFFFDFCF7),
+                          pageBuilder: (context, animation, secondaryAnimation) => const ProfileEditPage(),
+                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                            return FadeTransition(opacity: animation, child: child);
+                          },
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isNight ? Colors.white24 : Colors.black12,
+                          width: 0.6,
+                        ),
+                      ),
+                      child: Text(
+                        '编辑资料',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF333333),
+                          fontFamily: 'LXGWWenKai',
+                        ),
+                      ),
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.star,
-                    size: 14,
-                    color: Color(0xFF3E2723),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('设置功能开发中...')),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isNight ? Colors.white24 : Colors.black12,
+                          width: 0.6,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.settings_outlined,
+                        size: 18,
+                        color: isNight ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-          ],
-        ).animate().scale(curve: Curves.easeOutBack, duration: 600.ms),
+            ],
+          ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
+        ],
+      ),
+    );
+  }
 
-        const SizedBox(height: 16),
-
-        // 姓名与称号
-        Column(
+  void _showAvatarPicker(BuildContext context, bool isNight) {
+    final userState = UserState();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: isNight ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              name,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-                color: isNight ? Colors.white : const Color(0xFF3E2723),
-              ),
+            const Text(
+              '修改头像',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-              decoration: BoxDecoration(
-                color: isVip
-                    ? const Color(0xFFFFF176).withValues(alpha: 0.2)
-                    : (isNight
-                          ? Colors.white12
-                          : Colors.black.withValues(alpha: 0.05)),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                isVip ? '岛屿永久居民' : '普通居民',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: isVip
-                      ? (isNight
-                            ? const Color(0xFFFFCC80)
-                            : const Color(0xFF7B5C2E))
-                      : (isNight ? Colors.white38 : Colors.black38),
-                ),
-              ),
+            const SizedBox(height: 24),
+            _buildPickerOption(
+              context,
+              icon: Icons.photo_library_rounded,
+              label: '从相册选择',
+              onTap: () async {
+                Navigator.pop(context);
+                final List<AssetEntity>? result = await AssetPicker.pickAssets(
+                  context,
+                  pickerConfig: const AssetPickerConfig(
+                    maxAssets: 1,
+                    requestType: RequestType.image,
+                  ),
+                );
+                if (result != null && result.isNotEmpty) {
+                  final file = await result.first.file;
+                  if (file != null) {
+                    userState.setCustomAvatarPath(file.path);
+                  }
+                }
+              },
+              isNight: isNight,
             ),
+            _buildPickerOption(
+              context,
+              icon: Icons.camera_alt_rounded,
+              label: '拍照',
+              onTap: () async {
+                Navigator.pop(context);
+                final ImagePicker picker = ImagePicker();
+                final XFile? photo = await picker.pickImage(source: ImageSource.camera);
+                if (photo != null) {
+                  userState.setCustomAvatarPath(photo.path);
+                }
+              },
+              isNight: isNight,
+            ),
+            const SizedBox(height: 16),
           ],
-        ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
-      ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPickerOption(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required bool isNight,
+    bool isDanger = false,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: isDanger ? Colors.redAccent : (isNight ? Colors.white70 : Colors.black54)),
+      title: Text(
+        label,
+        style: TextStyle(
+          color: isDanger ? Colors.redAccent : (isNight ? Colors.white : Colors.black87),
+          fontWeight: isDanger ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      onTap: onTap,
     );
   }
 

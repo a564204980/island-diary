@@ -62,16 +62,25 @@ class _K {
   static const unlockedAchievementsMap = 'unlocked_achievements_v2';
   static const unlockedAchievements = 'unlocked_achievement_ids';
   static const vipExpireTime = 'vip_expire_time';
+  static const customAvatar = 'custom_avatar_path';
+  static const userBio = 'user_bio_v1';
+  static const userBirthday = 'user_birthday';
+  static const userGender = 'user_gender';
+  static const lastBirthdayGiftYear = 'last_birthday_gift_year';
 }
 
 /// 1. 用户资料与引导模块
 mixin ProfileMixin {
   final ValueNotifier<String> userName = ValueNotifier<String>('');
+  final ValueNotifier<String> userBio = ValueNotifier<String>('');
+  final ValueNotifier<DateTime?> userBirthday = ValueNotifier<DateTime?>(null);
+  final ValueNotifier<String> userGender = ValueNotifier<String>('secret');
   final ValueNotifier<bool> hasFinishedOnboarding = ValueNotifier<bool>(false);
   final ValueNotifier<bool> hasSeenRecordGuidance = ValueNotifier<bool>(false);
   final ValueNotifier<int> vipLevel = ValueNotifier<int>(0);
   final ValueNotifier<bool> isVip = ValueNotifier<bool>(false); // Sync with vipLevel
   final ValueNotifier<DateTime?> vipExpireTime = ValueNotifier<DateTime?>(null);
+  final ValueNotifier<String?> customAvatarPath = ValueNotifier<String?>(null);
   final ValueNotifier<String> themeMode = ValueNotifier<String>('auto');
   DateTime? lastVisitTime;
 
@@ -95,6 +104,14 @@ mixin ProfileMixin {
 
   void loadProfile(SharedPreferences prefs) {
     userName.value = prefs.getString(_K.userName) ?? '';
+    userBio.value = prefs.getString(_K.userBio) ?? '';
+    
+    final birthdayStr = prefs.getString(_K.userBirthday);
+    if (birthdayStr != null) {
+      userBirthday.value = DateTime.tryParse(birthdayStr);
+    }
+    userGender.value = prefs.getString(_K.userGender) ?? 'secret';
+
     hasFinishedOnboarding.value = prefs.getBool(_K.onboarding) ?? false;
     hasSeenRecordGuidance.value = prefs.getBool(_K.recordGuidance) ?? false;
     // Migration: if old isVip was true but vipLevel is 0, set to level 1
@@ -115,6 +132,8 @@ mixin ProfileMixin {
     if (expireStr != null) {
       vipExpireTime.value = DateTime.tryParse(expireStr);
     }
+    
+    customAvatarPath.value = prefs.getString(_K.customAvatar);
     
     // 启动时执行一次过期检测
     checkVipExpiry(prefs);
@@ -139,10 +158,62 @@ mixin ProfileMixin {
 
   Future<void> setUserName(String name) async {
     final trimmed = name.trim();
-    if (trimmed.isNotEmpty) {
-      userName.value = trimmed;
+    userName.value = trimmed; // Allow empty
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_K.userName, trimmed);
+  }
+
+  Future<void> setUserBio(String bio) async {
+    final trimmed = bio.trim();
+    userBio.value = trimmed;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_K.userBio, trimmed);
+  }
+
+  Future<void> setUserBirthday(DateTime? birthday) async {
+    userBirthday.value = birthday;
+    final prefs = await SharedPreferences.getInstance();
+    if (birthday != null) {
+      await prefs.setString(_K.userBirthday, birthday.toIso8601String());
+    } else {
+      await prefs.remove(_K.userBirthday);
+    }
+  }
+
+  Future<void> setUserGender(String gender) async {
+    userGender.value = gender;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_K.userGender, gender);
+  }
+
+  /// 检查今天是否可以领取生日礼物
+  Future<bool> checkAndClaimBirthdayGift() async {
+    if (userBirthday.value == null) return false;
+    
+    final now = DateTime.now();
+    final birthday = userBirthday.value!;
+    
+    // 检查月和日是否一致
+    if (now.month == birthday.month && now.day == birthday.day) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_K.userName, trimmed);
+      final lastYear = prefs.getInt(_K.lastBirthdayGiftYear) ?? 0;
+      
+      if (lastYear < now.year) {
+        // 今年还没领过
+        await prefs.setInt(_K.lastBirthdayGiftYear, now.year);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<void> setCustomAvatarPath(String? path) async {
+    customAvatarPath.value = path;
+    final prefs = await SharedPreferences.getInstance();
+    if (path != null) {
+      await prefs.setString(_K.customAvatar, path);
+    } else {
+      await prefs.remove(_K.customAvatar);
     }
   }
 
@@ -689,6 +760,7 @@ class UserState with ProfileMixin, DiaryMixin, DecorationMixin, SecurityMixin, A
     await prefs.clear();
     userName.value = ''; isVip.value = false; isAppLockEnabled.value = false; appLockPin.value = '';
     isBiometricEnabled.value = false; isMistModeEnabled.value = false; destructionCode.value = '';
+    customAvatarPath.value = null;
     savedDiaries.value = []; placedFurniture.value = []; diaryDraft.value = null;
     ownedDecorationIds.value = _defaultOwnedIds;
   }

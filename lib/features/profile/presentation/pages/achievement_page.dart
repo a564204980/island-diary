@@ -46,7 +46,7 @@ class _AchievementPageState extends State<AchievementPage> {
     final bool isNight = userState.isNight;
 
     return Scaffold(
-      backgroundColor: isNight ? const Color(0xFF0F0F1A) : const Color(0xFFF0F2F5),
+      backgroundColor: isNight ? const Color(0xFF0D1B2A) : const Color(0xFFE6F3F5),
       body: Stack(
         children: [
           // 背景艺术渐变
@@ -249,14 +249,16 @@ class _AchievementPageState extends State<AchievementPage> {
   }
 
   Widget _buildMedalView(MascotAchievement achievement, bool isUnlocked, Map<String, int> stats, bool isNight) {
+    // ✅ 安全查找：找不到时返回 null 而不是抛异常
     final decoration = achievement.rewardDecorationId != null 
-        ? MascotDecoration.allDecorations.firstWhere((d) => d.id == achievement.rewardDecorationId)
+        ? MascotDecoration.allDecorations.where((d) => d.id == achievement.rewardDecorationId).firstOrNull
         : null;
 
     final isHonor = achievement.condition == AchievementCondition.vipLevel;
+    // 颜色兜底：无稀有度时给个柔和的默认色
     final primaryColor = isHonor 
         ? const Color(0xFFFFD54F) 
-        : (decoration?.rarity.color ?? (isNight ? Colors.white24 : Colors.black12));
+        : (decoration?.rarity.color ?? const Color(0xFF90CAF9));
 
     return GestureDetector(
       onTap: () => _showAchievementDetail(achievement, isUnlocked, stats, isNight),
@@ -266,74 +268,82 @@ class _AchievementPageState extends State<AchievementPage> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // 勋章底盘
+                // 圆形勋章底盘（小红书风格：简洁圆形容器 + 彩色描边）
                 Container(
+                  width: double.infinity,
+                  height: double.infinity,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      if (isUnlocked && isHonor)
-                        BoxShadow(
-                          color: primaryColor.withValues(alpha: 0.3),
-                          blurRadius: 15,
-                          spreadRadius: 2,
-                        ),
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isUnlocked 
-                              ? primaryColor.withValues(alpha: isNight ? 0.15 : 0.08)
-                              : (isNight ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03)),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isUnlocked ? primaryColor.withValues(alpha: 0.4) : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
+                    color: isUnlocked 
+                        ? primaryColor.withValues(alpha: isNight ? 0.18 : 0.10)
+                        : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04)),
+                    border: Border.all(
+                      color: isUnlocked 
+                          ? primaryColor.withValues(alpha: isNight ? 0.5 : 0.35)
+                          : (isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06)),
+                      width: 1.5,
                     ),
+                    boxShadow: isUnlocked ? [
+                      BoxShadow(
+                        color: primaryColor.withValues(alpha: isHonor ? 0.35 : 0.15),
+                        blurRadius: isHonor ? 18 : 10,
+                        spreadRadius: isHonor ? 2 : 0,
+                      ),
+                    ] : null,
                   ),
                 ),
-                
-                // 扫光波纹 (Honor Only)
+
+                // 扫光波纹（仅荣誉成就）
                 if (isUnlocked && isHonor)
-                  const Positioned.fill(
-                    child: SweepLightEffect(),
-                  ),
+                  const Positioned.fill(child: SweepLightEffect()),
 
-                // 图标
+                // ✅ 勋章图标：unlocked 直接显示，locked 降调处理
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Hero(
-                    tag: 'medal_${achievement.id}',
-                    child: ColorFiltered(
-                      colorFilter: isUnlocked
-                          ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
-                          : const ColorFilter.matrix([
-                              0.2, 0.2, 0.2, 0, 0,
-                              0.2, 0.2, 0.2, 0, 0,
-                              0.2, 0.2, 0.2, 0, 0,
-                              0, 0, 0, 1, 0,
-                            ]),
-                      child: Opacity(
-                        opacity: isUnlocked ? 1.0 : 0.3,
-                        child: decoration != null 
-                            ? Image.asset(decoration.path, fit: BoxFit.contain)
-                            : Icon(Icons.stars_rounded, size: 36, color: primaryColor),
+                  padding: const EdgeInsets.all(14.0),
+                  child: isUnlocked
+                      ? (
+                          decoration != null 
+                              ? Image.asset(decoration.path, fit: BoxFit.contain)
+                              : Icon(Icons.stars_rounded, size: 34, color: primaryColor)
+                        )
+                      : ColorFiltered(
+                          colorFilter: const ColorFilter.matrix([
+                            0.25, 0.25, 0.25, 0, 0,
+                            0.25, 0.25, 0.25, 0, 0,
+                            0.25, 0.25, 0.25, 0, 0,
+                            0, 0, 0, 0.5, 0,
+                          ]),
+                          child: decoration != null 
+                              ? Image.asset(decoration.path, fit: BoxFit.contain)
+                              : Icon(Icons.workspace_premium_rounded, size: 34, color: Colors.grey),
+                        ),
+                ),
+
+                // 锁图标（右下角小角标，小红书风格）
+                if (!isUnlocked)
+                  Positioned(
+                    right: 4,
+                    bottom: 4,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: isNight ? const Color(0xFF1A1A2E) : Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.08),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.lock_rounded, 
+                        size: 10, 
+                        color: isNight ? Colors.white30 : Colors.black26,
                       ),
                     ),
                   ),
-                ),
-
-                if (!isUnlocked)
-                  Icon(Icons.lock_rounded, size: 16, color: isNight ? Colors.white12 : Colors.black12),
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             achievement.title,
             textAlign: TextAlign.center,
@@ -343,7 +353,7 @@ class _AchievementPageState extends State<AchievementPage> {
               fontSize: 11,
               fontWeight: isUnlocked ? FontWeight.bold : FontWeight.normal,
               color: isUnlocked 
-                  ? (isNight ? Colors.white : Colors.black87) 
+                  ? (isNight ? Colors.white : const Color(0xFF1A1A1A)) 
                   : (isNight ? Colors.white24 : Colors.black26),
               fontFamily: 'LXGWWenKai',
             ),

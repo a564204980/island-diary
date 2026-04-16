@@ -34,8 +34,8 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
 
     return Scaffold(
       backgroundColor: isNight
-          ? const Color(0xFF13131F)
-          : const Color(0xFFFDFCF7),
+          ? const Color(0xFF0D1B2A)
+          : const Color(0xFFE6F3F5),
       body: !_isInitialized 
           ? const SizedBox.shrink()
           : Stack(
@@ -168,7 +168,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  const Color(0xFFFFD97D).withValues(alpha: 0.1),
+                  const Color(0xFFB3E5FC).withValues(alpha: 0.2),
                   Colors.transparent,
                 ],
               ),
@@ -185,7 +185,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  const Color(0xFFEFEBE9).withValues(alpha: 0.3),
+                  const Color(0xFFFFFFFF).withValues(alpha: 0.4),
                   Colors.transparent,
                 ],
               ),
@@ -253,10 +253,10 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
       height: 280,
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       decoration: BoxDecoration(
-        color: isNight ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFFDFCF7),
+        color: isNight ? Colors.white.withValues(alpha: 0.03) : Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+          color: isNight ? Colors.white10 : Colors.white.withValues(alpha: 0.9),
           width: 1.5,
         ),
       ),
