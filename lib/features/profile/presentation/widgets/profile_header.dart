@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/features/profile/presentation/pages/profile_edit_page.dart';
+import 'package:island_diary/features/profile/presentation/pages/settings_page.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -133,6 +134,8 @@ class ProfileHeader extends StatelessWidget {
           builder: (context, name, _) {
             return Text(
               name.isEmpty ? '海岛新居民' : name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
@@ -204,7 +207,19 @@ class ProfileHeader extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             _buildActionIcon(
-              onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('设置功能开发中...'))),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    opaque: true,
+                    barrierColor: isNight ? Colors.black : const Color(0xFFFDFCF7),
+                    pageBuilder: (context, animation, secondaryAnimation) => const SettingsPage(),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                  ),
+                );
+              },
               icon: Icons.settings_outlined,
               isNight: isNight,
             ),

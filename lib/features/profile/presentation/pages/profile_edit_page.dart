@@ -49,13 +49,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     await userState.setUserBirthday(_selectedBirthday);
     
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('资料已保存'),
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 1),
-        ),
-      );
       Navigator.pop(context);
     }
   }
@@ -117,27 +110,21 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     title: '基础信息',
                     isNight: isNight,
                     children: [
-                      _buildTextField(
+                      _buildRowTextField(
                         label: '昵称',
                         controller: _nameController,
                         hint: '起一个好听的名字',
                         isNight: isNight,
                       ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Divider(height: 1, thickness: 0.5, color: Colors.black12),
-                      ),
-                      _buildTextField(
-                        label: '简介',
+                      _buildDivider(isNight),
+                      _buildBioField(
                         controller: _bioController,
-                        hint: '向岛民们介绍一下自己吧',
                         isNight: isNight,
-                        maxLines: 3,
                       ),
                     ],
                   ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, end: 0),
                   
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   
                   _buildEditSection(
                     title: '个人属性',
@@ -146,34 +133,25 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       _buildPickerItem(
                         label: '性别',
                         value: _getGenderText(_selectedGender),
-                        icon: _getGenderIcon(_selectedGender),
                         isNight: isNight,
                         onTap: () => _showGenderPicker(context, isNight),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Divider(height: 1, thickness: 0.5, color: Colors.black12),
-                      ),
+                      _buildDivider(isNight),
                       _buildPickerItem(
                         label: '生日',
                         value: _selectedBirthday == null 
                             ? '未设置' 
                             : DateFormat('yyyy年MM月dd日').format(_selectedBirthday!),
-                        icon: Icons.cake_rounded,
                         isNight: isNight,
                         onTap: () => _showBirthdayPicker(context, isNight),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Divider(height: 1, thickness: 0.5, color: Colors.black12),
-                      ),
+                      _buildDivider(isNight),
                       ValueListenableBuilder<List<String>>(
                         valueListenable: userState.selectedTitles,
                         builder: (context, titles, _) {
                           return _buildPickerItem(
                             label: '我的称号',
                             value: titles.isEmpty ? '默认居民' : titles.join('、'),
-                            icon: Icons.workspace_premium_rounded,
                             isNight: isNight,
                             onTap: () => _showTitlePicker(context, isNight),
                           );
@@ -202,133 +180,182 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     );
   }
 
-  Widget _buildEditSection({required String title, required List<Widget> children, required bool isNight}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 10),
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: isNight ? Colors.white38 : Colors.black38,
-              letterSpacing: 1,
-            ),
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.8),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-              width: 0.8,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isNight ? 0.2 : 0.05),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(children: children),
-        ),
-      ],
+  Widget _buildDivider(bool isNight) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16),
+      child: Divider(
+        height: 1, 
+        thickness: 0.5, 
+        color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05)
+      ),
     );
   }
 
-  Widget _buildTextField({
+  Widget _buildRowTextField({
     required String label,
     required TextEditingController controller,
     required String hint,
     required bool isNight,
-    int maxLines = 1,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: isNight ? Colors.white54 : Colors.black54,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        TextField(
-          controller: controller,
-          maxLines: maxLines,
-          style: TextStyle(
-            fontSize: 16,
-            color: isNight ? Colors.white : const Color(0xFF1F2937),
-            fontFamily: 'LXGWWenKai',
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              color: isNight ? Colors.white24 : Colors.black12,
-              fontSize: 15,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                color: isNight ? Colors.white : Colors.black87,
+              ),
             ),
-            border: InputBorder.none,
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 10),
           ),
-        ),
-      ],
+          Expanded(
+            child: TextField(
+              controller: controller,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 15,
+                color: isNight ? Colors.white60 : Colors.black54,
+                fontFamily: 'LXGWWenKai',
+              ),
+              decoration: InputDecoration(
+                hintText: hint,
+                hintStyle: TextStyle(
+                  color: isNight ? Colors.white24 : Colors.black26,
+                  fontSize: 15,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBioField({
+    required TextEditingController controller,
+    required bool isNight,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '简介',
+            style: TextStyle(
+               fontSize: 15,
+               color: isNight ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: controller,
+            maxLines: 4,
+            minLines: 1,
+            style: TextStyle(
+              fontSize: 15,
+              color: isNight ? Colors.white60 : Colors.black54,
+              fontFamily: 'LXGWWenKai',
+              height: 1.5,
+            ),
+            decoration: InputDecoration(
+              hintText: '向岛民们介绍一下自己吧...',
+              hintStyle: TextStyle(
+                color: isNight ? Colors.white24 : Colors.black26,
+                fontSize: 15,
+              ),
+              border: InputBorder.none,
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildPickerItem({
     required String label,
     required String value,
-    required IconData icon,
     required bool isNight,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.05),
-              shape: BoxShape.circle,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                color: isNight ? Colors.white : Colors.black87,
+              ),
             ),
-            child: Icon(icon, size: 16, color: isNight ? Colors.white70 : Colors.black54),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isNight ? Colors.white54 : Colors.black54,
-                    fontWeight: FontWeight.bold,
-                  ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: isNight ? Colors.white60 : Colors.black54,
+                  fontFamily: 'LXGWWenKai',
                 ),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: isNight ? Colors.white : const Color(0xFF1F2937),
-                    fontFamily: 'LXGWWenKai',
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-          Icon(Icons.chevron_right_rounded, color: isNight ? Colors.white24 : Colors.black12),
-        ],
+            const SizedBox(width: 8),
+            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isNight ? Colors.white24 : Colors.black26),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildEditSection({required String title, required List<Widget> children, required bool isNight}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 12, bottom: 8),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              color: isNight ? Colors.white54 : Colors.black54,
+              letterSpacing: 1,
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+              width: 0.5,
+            ),
+            boxShadow: isNight ? null : [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(children: children),
+        ),
+      ],
     );
   }
 
@@ -451,11 +478,4 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     }
   }
 
-  IconData _getGenderIcon(String gender) {
-    switch (gender) {
-      case 'male': return Icons.male_rounded;
-      case 'female': return Icons.female_rounded;
-      default: return Icons.lock_outline_rounded;
-    }
-  }
 }

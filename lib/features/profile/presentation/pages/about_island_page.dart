@@ -18,8 +18,8 @@ class AboutIslandPage extends StatelessWidget {
       body: Stack(
         children: [
           // 1. 沉浸式流光背景
-          const Positioned.fill(
-            child: AboutHeroBackground(),
+          Positioned.fill(
+            child: AboutHeroBackground(isNight: isNight),
           ),
 
           // 2. 模糊覆盖层
@@ -52,8 +52,6 @@ class AboutIslandPage extends StatelessWidget {
                         _buildStoryCard(isNight),
                         const SizedBox(height: 24),
                         _buildFeaturesGrid(isNight),
-                        const SizedBox(height: 40),
-                        _buildLinksSection(context, isNight),
                         const SizedBox(height: 60),
                         _buildFooter(isNight),
                         const SizedBox(height: 40),
@@ -202,152 +200,7 @@ class AboutIslandPage extends StatelessWidget {
     ).animate().fadeIn(delay: 800.ms);
   }
 
-  Widget _buildLinksSection(BuildContext context, bool isNight) {
-    return Column(
-      children: [
-        _buildLinkTile('恢复购买', isNight, showArrow: true, onTap: () {
-          _showActionDialog(context, '恢复购买', '正在连接 App Store，验证您的偏好设置与订阅记录...', isNight, isRestore: true);
-        }),
-        const SizedBox(height: 12),
-        _buildLinkTile('去评分', isNight, onTap: () {
-          _showActionDialog(context, '去评分', '岛屿计划离不开您的支持，我们将带您前往 App Store 留下宝贵的评价。', isNight);
-        }),
-        const SizedBox(height: 12),
-        _buildLinkTile('意见反馈', isNight, onTap: () {
-          _showLegalDialog(context, '意见反馈', LegalText.feedbackInfo, isNight);
-        }),
-        const SizedBox(height: 24), // 分隔符
-        _buildLinkTile('隐私政策', isNight, onTap: () {
-          _showLegalDialog(context, '隐私政策', LegalText.privacyPolicy, isNight);
-        }),
-        const SizedBox(height: 12),
-        _buildLinkTile('用户协议', isNight, onTap: () {
-          _showLegalDialog(context, '用户协议', LegalText.userAgreement, isNight);
-        }),
-      ],
-    ).animate().fadeIn(delay: 1.seconds);
-  }
 
-  Widget _buildLinkTile(
-    String label, 
-    bool isNight, {
-    bool showArrow = true, 
-    bool isDanger = false,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: _glassDecoration(isNight),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: isDanger 
-                    ? const Color(0xFFFF5252) 
-                    : (isNight ? Colors.white70 : Colors.black87),
-                fontWeight: isDanger ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-            if (showArrow)
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: isNight ? Colors.white24 : Colors.black12,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showActionDialog(BuildContext context, String title, String content, bool isNight, {bool isRestore = false}) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        bool isLoading = true;
-        return StatefulBuilder(
-          builder: (context, setState) {
-            // 模拟 1.5 秒的请求过程
-            Future.delayed(const Duration(milliseconds: 1500), () {
-              if (context.mounted && isLoading) {
-                setState(() => isLoading = false);
-              }
-            });
-
-            return AlertDialog(
-              backgroundColor: isNight ? const Color(0xFF1A1A2E) : Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: Text(title, style: TextStyle(color: isNight ? Colors.white : Colors.black87, fontWeight: FontWeight.bold)),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isLoading)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(isNight ? const Color(0xFFCE93D8) : const Color(0xFF7E57C2)),
-                        strokeWidth: 2,
-                      ),
-                    ),
-                  Text(
-                    isLoading ? content : (isRestore ? '您的所有权益（VIP等级、专属饰品）已成功恢复。' : '正在为您跳转至商店...'),
-                    style: TextStyle(color: isNight ? Colors.white70 : Colors.black54, fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-              actions: [
-                if (!isLoading)
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text('好', style: TextStyle(color: isNight ? const Color(0xFFCE93D8) : const Color(0xFF7E57C2))),
-                  ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showLegalDialog(BuildContext context, String title, String content, bool isNight) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isNight ? const Color(0xFF1A1A2E) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(
-          title, 
-          style: TextStyle(
-            color: isNight ? Colors.white : const Color(0xFF1A1A1A),
-            fontWeight: FontWeight.bold,
-          )
-        ),
-        content: SingleChildScrollView(
-          child: Text(
-            content,
-            style: TextStyle(
-              color: isNight ? Colors.white70 : Colors.black87,
-              height: 1.6,
-              fontSize: 14,
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('好', style: TextStyle(color: isNight ? const Color(0xFFCE93D8) : const Color(0xFF7E57C2))),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildFooter(bool isNight) {
     return Column(
@@ -388,7 +241,8 @@ class AboutIslandPage extends StatelessWidget {
 }
 
 class AboutHeroBackground extends StatefulWidget {
-  const AboutHeroBackground({super.key});
+  final bool isNight;
+  const AboutHeroBackground({super.key, required this.isNight});
 
   @override
   State<AboutHeroBackground> createState() => _AboutHeroBackgroundState();
@@ -418,11 +272,12 @@ class _AboutHeroBackgroundState extends State<AboutHeroBackground> with SingleTi
       animation: _controller,
       builder: (context, child) {
         final t = _controller.value;
+        final baseColor = widget.isNight ? const Color(0xFF0F0F1A) : const Color(0xFFE6F3F5);
         return Stack(
           children: [
-            Container(color: const Color(0xFF0F0F1A)),
+            Container(color: baseColor),
             _buildBlurOrb(
-              color: const Color(0xFF7E57C2).withValues(alpha: 0.4),
+              color: const Color(0xFF7E57C2).withValues(alpha: widget.isNight ? 0.4 : 0.15),
               offset: Offset(
                 math.sin(t * 2 * math.pi) * 0.4 + 0.5,
                 math.cos(t * 1.5 * math.pi) * 0.3 + 0.4,
@@ -430,7 +285,7 @@ class _AboutHeroBackgroundState extends State<AboutHeroBackground> with SingleTi
               size: 1.5,
             ),
             _buildBlurOrb(
-              color: const Color(0xFFCE93D8).withValues(alpha: 0.3),
+              color: const Color(0xFFCE93D8).withValues(alpha: widget.isNight ? 0.3 : 0.1),
               offset: Offset(
                 math.cos(t * 1.8 * math.pi) * 0.5 + 0.5,
                 math.sin(t * 2.2 * math.pi) * 0.4 + 0.6,
@@ -438,7 +293,7 @@ class _AboutHeroBackgroundState extends State<AboutHeroBackground> with SingleTi
               size: 1.8,
             ),
             _buildBlurOrb(
-              color: const Color(0xFF42A5F5).withValues(alpha: 0.2),
+              color: const Color(0xFF42A5F5).withValues(alpha: widget.isNight ? 0.2 : 0.1),
               offset: Offset(
                 math.sin(t * 1.2 * math.pi) * 0.6 + 0.5,
                 math.cos(t * 2.5 * math.pi) * 0.5 + 0.5,

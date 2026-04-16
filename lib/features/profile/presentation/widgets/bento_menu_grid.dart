@@ -100,24 +100,23 @@ class BentoMenuGrid extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.palette_outlined,
-                size: 16,
-                color: isNight ? Colors.white38 : Colors.black38,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '主题模式',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isNight ? Colors.white70 : Colors.black54,
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4DB6AC).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.palette_rounded, size: 18, color: Color(0xFF4DB6AC)),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '主题模式',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: isNight ? Colors.white70 : Colors.black87,
+              fontFamily: 'LXGWWenKai',
+            ),
           ),
           const SizedBox(height: 16),
           ValueListenableBuilder<String>(
