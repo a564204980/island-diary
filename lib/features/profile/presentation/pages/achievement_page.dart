@@ -172,6 +172,9 @@ class _AchievementPageState extends State<AchievementPage> {
 
   Widget _buildHeaderOverview(int unlocked, int points, bool isNight) {
     final textColor = isNight ? Colors.white : const Color(0xFF1A1A1A);
+    final total = MascotAchievement.allAchievements.length;
+    final percent = total > 0 ? (unlocked / total * 100).toStringAsFixed(0) : '0';
+    
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Row(
@@ -181,7 +184,7 @@ class _AchievementPageState extends State<AchievementPage> {
           Container(width: 1, height: 30, color: textColor.withValues(alpha: 0.1)),
           _buildStatItem('累计', points.toString(), '荣誉', textColor),
           Container(width: 1, height: 30, color: textColor.withValues(alpha: 0.1)),
-          _buildStatItem('世界排名', 'TOP 1%', '位置', textColor),
+          _buildStatItem('总完成度', '$percent%', '进度', textColor),
         ],
       ),
     );

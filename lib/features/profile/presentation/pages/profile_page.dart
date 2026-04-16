@@ -6,6 +6,7 @@ import 'package:island_diary/features/profile/presentation/pages/vip_benefits_pa
 import 'package:island_diary/features/profile/presentation/pages/mascot_decoration_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/security_center_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/achievement_page.dart';
+import 'package:island_diary/features/profile/presentation/pages/about_island_page.dart';
 import 'package:island_diary/core/state/user_state.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -60,7 +61,7 @@ class ProfilePage extends StatelessWidget {
                   // 4. 底部信息
                   Center(
                     child: Text(
-                      '小岛日记 · 1.0.0',
+                      '岛屿日记 · 1.0.0',
                       style: TextStyle(
                         fontSize: 12,
                         color: isNight ? Colors.white24 : Colors.black26,
@@ -461,11 +462,28 @@ class ProfilePage extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildQuickActionBento(
-                  title: '关于小岛',
-                  icon: Icons.info_outline,
-                  color: const Color(0xFFBA68C8),
-                  isNight: isNight,
+                child: GestureDetector(
+                  onTap: () {
+                    final isNight = UserState().isNight;
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        opaque: true,
+                        barrierColor: isNight ? Colors.black : const Color(0xFFFDFCF7),
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            const AboutIslandPage(),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(opacity: animation, child: child);
+                        },
+                      ),
+                    );
+                  },
+                  child: _buildQuickActionBento(
+                    title: '关于小岛',
+                    icon: Icons.info_outline,
+                    color: const Color(0xFFBA68C8),
+                    isNight: isNight,
+                  ),
                 ),
               ),
             ],
