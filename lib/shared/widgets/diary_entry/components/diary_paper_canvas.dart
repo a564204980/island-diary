@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'diary_painters.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+import 'package:island_diary/features/record/domain/models/diary_draft.dart';
 
 /// 日记信纸容器组件，封装底图与边框效果
 class DiaryPaperCanvas extends StatelessWidget {
@@ -24,7 +25,7 @@ class DiaryPaperCanvas extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: UserState().themeMode,
-      builder: (context, _, __) {
+      builder: (context, _, ___) {
         final bool isNight = UserState().isNight;
         return Container(
           decoration: BoxDecoration(

@@ -7,6 +7,7 @@ import 'package:island_diary/shared/widgets/bottom_nav_bar.dart';
 import 'package:island_diary/features/home/presentation/widgets/floating_clouds.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_success_overlay.dart';
+import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/features/record/presentation/pages/record_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/profile_page.dart';
 import 'package:island_diary/shared/widgets/barrage/mood_barrage_wall.dart';
@@ -243,16 +244,28 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
 
-  Future<void> _showSuccessEffect() async {
-    OverlayEntry? overlayEntry;
-    overlayEntry = OverlayEntry(
-      builder: (context) => DiarySuccessOverlay(
-        onFinished: () {
-          overlayEntry?.remove();
-        },
-      ),
-    );
-    Overlay.of(context).insert(overlayEntry);
+  Future<void> _showSuccessEffect(List<MascotAchievement> achievements) async {
+    if (achievements.isEmpty || !mounted) return;
+    
+    // 目前一次保存通常触发一个或几个成就，我们展示最重要的那个或者第一个
+    final achievement = achievements.first;
+
+    // 使用 WidgetsBinding 确保在渲染周期外安全操作 Overlay
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      
+      OverlayEntry? overlayEntry;
+      overlayEntry = OverlayEntry(
+        builder: (context) => DiarySuccessOverlay(
+          achievement: achievement,
+          onFinished: () {
+            overlayEntry?.remove();
+          },
+        ),
+      );
+      
+      Overlay.of(context).insert(overlayEntry);
+    });
   }
 
   @override

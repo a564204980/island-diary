@@ -11,6 +11,7 @@ import 'package:island_diary/shared/widgets/mood_picker/mood_picker_sheet.dart';
 import 'package:island_diary/core/services/slime_dialogue_service.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
+import 'package:island_diary/core/models/mascot_achievement.dart';
 
 import 'nav_item.dart';
 import 'nav_bar_clipper.dart';
@@ -20,7 +21,7 @@ class BottomNavBar extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
   final bool isNight;
-  final VoidCallback? onSaveSuccess;
+  final Function(List<MascotAchievement>)? onSaveSuccess;
   final bool forceHideDialogue;
 
   const BottomNavBar({
@@ -441,7 +442,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   void _openDiaryEntry(int? moodIndex, double intensity, {String? tag}) {
     UserState().isDiarySheetOpen.value = true;
-    Navigator.push<bool>(
+    Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => DiaryEditorPage(
@@ -450,9 +451,12 @@ class _BottomNavBarState extends State<BottomNavBar> {
           tag: tag,
         ),
       ),
-    ).then((success) {
+    ).then((result) {
       UserState().isDiarySheetOpen.value = false;
-      if (success == true && widget.onSaveSuccess != null) widget.onSaveSuccess!();
+      // 进一步放宽判定条件，确保回调必达
+      if (result is List && result.isNotEmpty && widget.onSaveSuccess != null) {
+        widget.onSaveSuccess!(List<MascotAchievement>.from(result));
+      }
     });
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 单个装扮针对不同形象的个性化配置（偏移与缩放）
+/// 单个装扮针对不同形象的个性化配置
 class MascotDecorationConfig {
   final Offset offset;
   final double scale;
@@ -26,10 +26,10 @@ class MascotDecoration {
   final String description;
   final MascotRarity rarity;
 
-  /// 默认的配置（如果未针对某个形象进行特殊配置，则使用此默认值）
+  /// 默认的配置
   final MascotDecorationConfig defaultConfig;
 
-  /// 针对不同形象（assetPath）的特定配置字典
+  /// 针对不同形象的特定配置字典
   final Map<String, MascotDecorationConfig> characterConfigs;
 
   const MascotDecoration({

@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/profile/presentation/pages/vip_benefits_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/mascot_decoration_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/security_center_page.dart';
+import 'package:island_diary/features/profile/presentation/pages/achievement_page.dart';
 import 'package:island_diary/core/state/user_state.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -202,13 +203,21 @@ class ProfilePage extends StatelessWidget {
           height: 140,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(28),
+            border: !isVip ? Border.all(
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.white.withValues(alpha: 0.6),
+            ) : null,
             boxShadow: [
               BoxShadow(
                 color: isVip
-                    ? const Color(0xFFAB47BC).withValues(alpha: 0.2)
-                    : Colors.black.withValues(alpha: 0.1),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
+                    ? const Color(0xFFAB47BC).withValues(alpha: 0.3)
+                    : (isNight
+                        ? Colors.black.withValues(alpha: 0.3)
+                        : const Color(0xFFB0BEC5).withValues(alpha: 0.2)),
+                blurRadius: 20,
+                spreadRadius: 2,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
@@ -370,10 +379,23 @@ class ProfilePage extends StatelessWidget {
               flex: 3,
               child: GestureDetector(
                 onTap: () {
+                  final isNight = UserState().isNight;
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const MascotDecorationPage(),
+                    PageRouteBuilder(
+                      opaque: true,
+                      barrierColor: isNight
+                          ? Colors.black
+                          : const Color(0xFFFDFCF7),
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          const MascotDecorationPage(),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        );
+                      },
                     ),
                   );
                 },
@@ -402,6 +424,40 @@ class ProfilePage extends StatelessWidget {
         Row(
           children: [
             Expanded(
+              flex: 3,
+              child: GestureDetector(
+                onTap: () {
+                  final isNight = UserState().isNight;
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      opaque: true,
+                      barrierColor: isNight
+                          ? Colors.black
+                          : const Color(0xFFFDFCF7),
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          const AchievementPage(),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                },
+                child: _buildQuickActionBento(
+                  title: '岛屿成就',
+                  icon: Icons.emoji_events_outlined,
+                  color: const Color(0xFFFF7043),
+                  isNight: isNight,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
               child: _buildQuickActionBento(
                 title: '关于小岛',
                 icon: Icons.info_outline,
@@ -530,14 +586,24 @@ class ProfilePage extends StatelessWidget {
   BoxDecoration _bentoDecoration(bool isNight) {
     return BoxDecoration(
       color: isNight
-          ? Colors.white.withValues(alpha: 0.05)
-          : Colors.white.withValues(alpha: 0.4),
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.white.withValues(alpha: 0.85),
       borderRadius: BorderRadius.circular(24),
       border: Border.all(
         color: isNight
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.3),
+            ? Colors.white.withValues(alpha: 0.1)
+            : Colors.white.withValues(alpha: 0.9),
       ),
+      boxShadow: [
+        BoxShadow(
+          color: isNight
+              ? Colors.black.withValues(alpha: 0.3)
+              : const Color(0xFFB0BEC5).withValues(alpha: 0.2), // 柔和偏蓝灰投影
+          blurRadius: 20,
+          spreadRadius: 2,
+          offset: const Offset(0, 8),
+        ),
+      ],
     );
   }
 }
@@ -593,7 +659,10 @@ class _AnimatedGradientState extends State<AnimatedGradient>
                     ]
                   : (widget.isNight
                         ? [const Color(0xFF37474F), const Color(0xFF263238)]
-                        : [const Color(0xFFEEEEEE), const Color(0xFFF5F5F5)]),
+                        : [
+                            Colors.white.withValues(alpha: 0.9),
+                            Colors.white.withValues(alpha: 0.8),
+                          ]),
               stops: widget.isVip
                   ? [
                       0.0,

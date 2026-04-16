@@ -292,12 +292,12 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           isImageGrid: isImageGrid,
           isMixedLayout: isMixedLayout,
         );
-        await UserState().saveDiary();
+        final achievements = await UserState().saveDiary();
+        if (mounted) {
+          Navigator.of(context).pop(achievements);
+        }
       }
 
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
       return true;
     } catch (e) {
       if (mounted) {
