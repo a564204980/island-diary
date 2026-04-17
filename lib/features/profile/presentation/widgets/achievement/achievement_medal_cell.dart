@@ -43,12 +43,16 @@ class AchievementMedalCell extends StatelessWidget {
         : null;
 
     final isHonor = achievement.condition == AchievementCondition.vipLevel;
-    // 使用共享扩展获取主题色，而非 decoration 稀有度色
-    final primaryColor = isHonor
-        ? AchievementCondition.vipLevel.themeColor
-        : (decoration != null
-            ? decoration.rarity.color  // 有实物奖励时，用稀有度色
-            : achievement.condition.themeColor);  // 无实物时用类别主题色
+
+    // 颜色优先级逻辑调整：
+    // 1. 实物奖励：使用装饰品稀有度色 (维持原样)
+    // 2. 称号奖励（无实物）：使用统一的称号品牌色 (Slate Blue)，不再随类别变色
+    // 3. 纯荣誉/名望：使用类别主题色
+    final primaryColor = (decoration != null)
+        ? decoration.rarity.color
+        : (achievement.rewardTitle != null
+            ? const Color(0xFF14B8A6) // 换成用户最喜欢的“审美绿”作为称号统一导向色
+            : achievement.condition.themeColor);
 
     return AspectRatio(
       aspectRatio: 1,
@@ -61,6 +65,12 @@ class AchievementMedalCell extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: _buildMedalIcon(decoration, primaryColor),
+          ),
+          // 右上角添加奖励类型角标
+          Positioned(
+            top: 14,
+            right: 14,
+            child: _buildRewardBadge(primaryColor),
           ),
           if (!isUnlocked) _buildLockIcon(),
         ],
@@ -129,8 +139,13 @@ class AchievementMedalCell extends StatelessWidget {
       if (decoration != null) {
         return Image.asset(decoration.path, fit: BoxFit.contain);
       }
+      
+      // 无饰品，但有称号：显示称号本身的盾牌图标勋章
+      final bool hasTitle = achievement.rewardTitle != null;
+      final icon = hasTitle ? achievement.titleTier.badge : achievement.condition.icon;
+      final gradient = hasTitle ? achievement.titleTier.cardGradient : achievement.condition.gradient;
+
       // 无实物奖励：用渐变图标 + 柔和发光
-      final gradient = achievement.condition.gradient;
       return Stack(
         alignment: Alignment.center,
         children: [
@@ -148,12 +163,25 @@ class AchievementMedalCell extends StatelessWidget {
               ),
             ),
           ),
-          // 渐变图标
-          ShaderMask(
-            blendMode: BlendMode.srcIn,
-            shaderCallback: (bounds) => gradient.createShader(bounds),
-            child: Icon(achievement.condition.icon, size: 30),
-          ),
+          // 渐变图标/明亮图标
+          if (hasTitle)
+            Icon(
+              icon,
+              size: 32,
+              color: Colors.white.withValues(alpha: 0.95),
+              shadows: [
+                Shadow(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  blurRadius: 10,
+                ),
+              ],
+            )
+          else
+            ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => gradient.createShader(bounds),
+              child: Icon(icon, size: 30),
+            ),
         ],
       );
     } else {
@@ -168,7 +196,13 @@ class AchievementMedalCell extends StatelessWidget {
           ]),
           child: decoration != null
               ? Image.asset(decoration.path, fit: BoxFit.contain)
-              : Icon(achievement.condition.icon, size: 30, color: Colors.grey),
+              : Icon(
+                  achievement.rewardTitle != null 
+                    ? achievement.titleTier.badge 
+                    : achievement.condition.icon, 
+                  size: 30, 
+                  color: Colors.grey
+                ),
         ),
       );
     }
@@ -216,6 +250,37 @@ class AchievementMedalCell extends StatelessWidget {
             ? (isNight ? Colors.white : const Color(0xFF1A1A1A))
             : (isNight ? Colors.white24 : Colors.black26),
         fontFamily: 'LXGWWenKai',
+      ),
+    );
+  }
+
+  Widget _buildRewardBadge(Color themeColor) {
+    IconData icon;
+    if (achievement.rewardDecorationId != null) {
+      icon = Icons.redeem_rounded;
+    } else if (achievement.rewardTitle != null) {
+      icon = Icons.workspace_premium_rounded;
+    } else {
+      icon = Icons.stars_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: (isNight ? Colors.black87 : Colors.white).withValues(alpha: isUnlocked ? 0.9 : 0.4),
+        shape: BoxShape.circle,
+        boxShadow: isUnlocked ? [
+          BoxShadow(
+            color: themeColor.withValues(alpha: 0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          )
+        ] : null,
+      ),
+      child: Icon(
+        icon,
+        size: 10,
+        color: isUnlocked ? themeColor : (isNight ? Colors.white12 : Colors.black12),
       ),
     );
   }

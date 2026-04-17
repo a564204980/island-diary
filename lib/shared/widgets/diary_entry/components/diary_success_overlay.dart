@@ -281,6 +281,54 @@ class _DiarySuccessOverlayState extends State<DiarySuccessOverlay>
                     curve: Curves.easeOutBack,
                     begin: const Offset(0.5, 0.5),
                   )
+                else if (widget.achievement.rewardTitle != null)
+                  // 只有称号奖励时，展示称号特有的 Badge
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        widget.achievement.titleTier.badge,
+                        size: 100,
+                        color: widget.achievement.titleTier.color,
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        decoration: BoxDecoration(
+                          gradient: widget.achievement.titleTier.cardGradient,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: widget.achievement.titleTier.color.withValues(alpha: 0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(widget.achievement.titleTier.badge, size: 14, color: Colors.white),
+                            const SizedBox(width: 6),
+                            Text(
+                              widget.achievement.rewardTitle!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'LXGWWenKai',
+                                shadows: [Shadow(color: Colors.black26, blurRadius: 2)],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ).animate().scale(
+                        duration: 800.ms,
+                        curve: Curves.easeOutBack,
+                        begin: const Offset(0.5, 0.5),
+                      )
                 else
                   Icon(
                         Icons.military_tech,
@@ -307,9 +355,15 @@ class _DiarySuccessOverlayState extends State<DiarySuccessOverlay>
   }
 
   Widget _buildSuccessText() {
-    final rewardText = widget.achievement.rewardDecorationId != null
-        ? '获得新饰品：${MascotDecoration.allDecorations.firstWhere((d) => d.id == widget.achievement.rewardDecorationId!).name}'
-        : '点数提高到 ${UserState().achievementPoints.value} 点';
+    String rewardText = '';
+    if (widget.achievement.rewardDecorationId != null) {
+      final decoration = MascotDecoration.allDecorations.firstWhere((d) => d.id == widget.achievement.rewardDecorationId!);
+      rewardText = '获得新饰品：${decoration.name}';
+    } else if (widget.achievement.rewardTitle != null) {
+      rewardText = '获得荣誉称号：${widget.achievement.rewardTitle}';
+    } else {
+      rewardText = '点数提高到 ${UserState().achievementPoints.value} 点';
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [

@@ -600,6 +600,38 @@ mixin AchievementMixin on DiaryMixin {
       }
     }
     ownedDecorationIds.value = prefs.getStringList(_K.ownedDecorations) ?? _defaultOwnedIds;
+
+    // ========================================================================
+    // 【临时调试代码】强制全成就/全勋章解锁，为了方便测试 UI。恢复时请删除以下代码
+    // ========================================================================
+    final _allAchievementIds = MascotAchievement.allAchievements.map((a) => a.id).toList();
+    unlockedAchievements.value = {for (var id in _allAchievementIds) id: DateTime.now().toIso8601String()};
+    ownedDecorationIds.value = MascotDecoration.allDecorations.map((d) => d.id).toList();
+    // ========================================================================
+  }
+
+  /// 同步奖励逻辑：确保所有已达成成就的对应奖励饰品都已加入拥有列表
+  /// 常用于数据模型变更后的补偿（例如给老成就补发新奖励）
+  Future<void> syncAchievementRewards() async {
+    bool needsSync = false;
+    final currentOwned = List<String>.from(ownedDecorationIds.value);
+    final unlockedMap = unlockedAchievements.value;
+    
+    for (var a in MascotAchievement.allAchievements) {
+      if (unlockedMap.containsKey(a.id) && 
+          a.rewardDecorationId != null && 
+          !currentOwned.contains(a.rewardDecorationId!)) {
+        currentOwned.add(a.rewardDecorationId!);
+        needsSync = true;
+      }
+    }
+
+    if (needsSync) {
+      ownedDecorationIds.value = currentOwned;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_K.ownedDecorations, currentOwned);
+      debugPrint('Achievement Rewards Synced: Added missing decoration rewards.');
+    }
   }
 
   List<String> get _defaultOwnedIds {
@@ -778,7 +810,7 @@ class UserState with ProfileMixin, DiaryMixin, DecorationMixin, SecurityMixin, A
     loadSecurity(prefs);
     loadPreference(prefs);
     await loadAchievement(prefs);
-    // 移除启动时的 checkAchievements()，防止后台偷偷解锁消费掉状态
+    await syncAchievementRewards(); // 启动时强制同步一次
   }
 
   Future<void> factoryReset() async {

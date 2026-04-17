@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/features/profile/presentation/pages/mascot_decoration_page.dart';
+import 'package:island_diary/features/profile/presentation/widgets/title_selection_sheet.dart';
 
 class AchievementDetailSheet extends StatelessWidget {
   final MascotAchievement achievement;
@@ -27,8 +28,11 @@ class AchievementDetailSheet extends StatelessWidget {
         : null;
     
     final bg = isNight ? const Color(0xFF1A1A2E) : Colors.white;
+    // 颜色优先级：饰品奖励 > 称号奖励 > 分类主题色
+    final Color titleBrandColor = const Color(0xFF14B8A6); // 统一称号品牌色 (薄荷绿)
     final accent = isUnlocked
-        ? (decoration?.rarity.color ?? achievement.condition.themeColor)
+        ? (decoration?.rarity.color ?? 
+           (achievement.rewardTitle != null ? titleBrandColor : achievement.condition.themeColor))
         : Colors.grey;
 
     return Container(
@@ -111,8 +115,7 @@ class AchievementDetailSheet extends StatelessWidget {
 
           const SizedBox(height: 16),
           
-          if (!isUnlocked)
-            _buildProgressBox(stats[achievement.condition.name] ?? 0, achievement.targetValue, accent),
+          _buildProgressBox(stats[achievement.condition.name] ?? 0, achievement.targetValue, accent, isUnlocked: isUnlocked),
             
           const SizedBox(height: 24),
           SizedBox(
@@ -120,11 +123,26 @@ class AchievementDetailSheet extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                // 只有当有装扮奖励且已解锁时，才会引导跳转
-                if (isUnlocked && achievement.rewardDecorationId != null) {
+                if (!isUnlocked) return;
+
+                // 优先引导去穿戴装扮
+                if (achievement.rewardDecorationId != null) {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const MascotDecorationPage()),
+                    MaterialPageRoute(
+                      builder: (context) => MascotDecorationPage(
+                        initialDecorationId: achievement.rewardDecorationId,
+                      ),
+                    ),
+                  );
+                } 
+                // 如果没有装扮但有称号奖励，则弹名称选择面板
+                else if (achievement.rewardTitle != null) {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => TitleSelectionSheet(isNight: isNight),
                   );
                 }
               },
@@ -138,7 +156,9 @@ class AchievementDetailSheet extends StatelessWidget {
               child: Text(
                 !isUnlocked 
                     ? '继续努力' 
-                    : (achievement.rewardDecorationId != null ? '这就去穿戴奖励' : '我知道了'), 
+                    : (achievement.rewardDecorationId != null 
+                        ? '这就去穿戴奖励' 
+                        : (achievement.rewardTitle != null ? '这就去佩戴称号' : '我知道了')), 
                 style: const TextStyle(fontWeight: FontWeight.bold)
               ),
             ),
@@ -173,7 +193,7 @@ class AchievementDetailSheet extends StatelessWidget {
           Row(
             children: [
               if (achievement.rewardTitle != null)
-                _buildRewardBadge(Icons.workspace_premium_rounded, '称号：${achievement.rewardTitle}', color),
+                _buildRewardBadge(achievement.titleTier.badge, '称号：${achievement.rewardTitle}', const Color(0xFF14B8A6)),
               if (achievement.rewardTitle != null && achievement.rewardDecorationId != null)
                 const SizedBox(width: 8),
               if (decoration != null)
@@ -221,8 +241,9 @@ class AchievementDetailSheet extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: color.withValues(alpha: 0.15), // 稍微加深底色
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.2), width: 1), // 增加描边更有质感
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -234,7 +255,12 @@ class AchievementDetailSheet extends StatelessWidget {
                 text,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color, fontFamily: 'LXGWWenKai'),
+                style: TextStyle(
+                  fontSize: 12, 
+                  fontWeight: FontWeight.bold, 
+                  color: color, 
+                  fontFamily: 'LXGWWenKai'
+                ),
               ),
             ),
           ],
@@ -243,67 +269,53 @@ class AchievementDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBox(String? unlockedAtStr, IconData icon, Color color) {
-    String dateText = '已达成此奇迹';
-    if (unlockedAtStr != null) {
-      try {
-        final date = DateTime.parse(unlockedAtStr);
-        dateText = '于 ${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} 达成';
-      } catch (_) {}
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1), 
-        borderRadius: BorderRadius.circular(16)
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 8),
-          Text(
-            dateText, 
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color, fontFamily: 'LXGWWenKai')
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressBox(int current, int target, Color color) {
+  Widget _buildProgressBox(int current, int target, Color color, {bool isUnlocked = false}) {
     final progress = (current / target.toDouble()).clamp(0.0, 1.0);
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              '解锁进度', 
-              style: TextStyle(
-                fontSize: 12, 
-                color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.3)
-              )
+            Row(
+              children: [
+                Text(
+                  isUnlocked ? '达成要求' : '解锁进度', 
+                  style: TextStyle(
+                    fontSize: 12, 
+                    color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.3),
+                    fontFamily: 'LXGWWenKai',
+                  )
+                ),
+                if (isUnlocked) ...[
+                  const SizedBox(width: 6),
+                  Icon(Icons.check_circle_rounded, size: 14, color: color),
+                ],
+              ],
             ),
             Text(
-              '$current / $target', 
+              isUnlocked ? '目标 $target / 当前 $current' : '$current / $target', 
               style: TextStyle(
                 fontSize: 12, 
                 fontWeight: FontWeight.bold, 
-                color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.6)
+                color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.6),
+                fontFamily: 'LXGWWenKai',
               )
             ),
           ],
         ),
         const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: progress,
-          backgroundColor: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.05),
-          valueColor: AlwaysStoppedAnimation(color.withValues(alpha: 0.5)),
-          borderRadius: BorderRadius.circular(4),
-          minHeight: 6,
+        Stack(
+          children: [
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.05),
+              valueColor: AlwaysStoppedAnimation(color.withValues(alpha: isUnlocked ? 0.8 : 0.5)),
+              borderRadius: BorderRadius.circular(4),
+              minHeight: 6,
+            ),
+            if (isUnlocked)
+              const SweepLightEffect(),
+          ],
         ),
       ],
     );

@@ -16,27 +16,44 @@ class BentoMenuGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 第一排 Bento
+        // 第一部分：1(左大) : 2(右小叠放) 布局
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(child: _buildThemeBento(context)),
+              // 左侧：主题模式 (大)
+              Expanded(flex: 1, child: _buildThemeBento(context)),
               const SizedBox(width: 12),
+              // 右侧：岛屿安全 + 小软的衣帽间 (两个小)
               Expanded(
-                child: _buildMenuActionBento(
-                  context,
-                  title: '岛屿安全',
-                  icon: Icons.lock_outline,
-                  color: const Color(0xFF81C784),
-                  targetPage: const SecurityCenterPage(),
+                flex: 1,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: _buildMenuActionBento(
+                        context,
+                        title: '岛屿安全',
+                        icon: Icons.lock_outline,
+                        color: const Color(0xFF81C784),
+                        targetPage: const SecurityCenterPage(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: _buildQuickActionBento(
+                        title: '回忆导出',
+                        icon: Icons.ios_share,
+                        color: const Color(0xFF64B5F6),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 12),
-        // 第二排 Bento
+        // 第二部分：平行排列
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -44,29 +61,13 @@ class BentoMenuGrid extends StatelessWidget {
               Expanded(
                 child: _buildMenuActionBento(
                   context,
-                  title: '小软装扮',
+                  title: '小软的衣帽间',
                   icon: Icons.auto_fix_high_rounded,
                   color: const Color(0xFFFFB74D),
                   targetPage: const MascotDecorationPage(),
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: _buildQuickActionBento(
-                  title: '回忆导出',
-                  icon: Icons.ios_share,
-                  color: const Color(0xFF64B5F6),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        // 第三排 Bento
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
               Expanded(
                 child: _buildMenuActionBento(
                   context,
@@ -76,18 +77,17 @@ class BentoMenuGrid extends StatelessWidget {
                   targetPage: const AchievementPage(),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildMenuActionBento(
-                  context,
-                  title: '关于小岛',
-                  icon: Icons.info_outline,
-                  color: const Color(0xFFBA68C8),
-                  targetPage: const AboutIslandPage(),
-                ),
-              ),
             ],
           ),
+        ),
+        const SizedBox(height: 12),
+        // 第三部分：关于小岛 (整合后的新入口)
+        _buildMenuActionBento(
+          context,
+          title: '关于小岛',
+          icon: Icons.info_outline,
+          color: const Color(0xFFBA68C8),
+          targetPage: const AboutIslandPage(),
         ),
       ],
     ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0);
@@ -100,23 +100,27 @@ class BentoMenuGrid extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF4DB6AC).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.palette_rounded, size: 18, color: Color(0xFF4DB6AC)),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '主题模式',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: isNight ? Colors.white70 : Colors.black87,
-              fontFamily: 'LXGWWenKai',
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4DB6AC).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.palette_rounded, size: 18, color: Color(0xFF4DB6AC)),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '主题模式',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: isNight ? Colors.white70 : Colors.black87,
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           ValueListenableBuilder<String>(
@@ -204,9 +208,8 @@ class BentoMenuGrid extends StatelessWidget {
   }) {
     return BentoBox(
       isNight: isNight,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(6),
@@ -216,14 +219,16 @@ class BentoMenuGrid extends StatelessWidget {
             ),
             child: Icon(icon, size: 18, color: color),
           ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: isNight ? Colors.white70 : Colors.black87,
-              fontFamily: 'LXGWWenKai',
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: isNight ? Colors.white70 : Colors.black87,
+                fontFamily: 'LXGWWenKai',
+              ),
             ),
           ),
         ],

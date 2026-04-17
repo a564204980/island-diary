@@ -266,6 +266,7 @@ class MascotDecoration {
       name: '向日葵草帽',
       path: 'assets/images/emoji/decorate/decorate13.png',
       description: '采撷夏日阳光，满载向阳心意',
+      rarity: MascotRarity.rare,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.6),
       characterConfigs: {
         'assets/images/emoji/pedding3.png': MascotDecorationConfig(
@@ -355,7 +356,7 @@ class MascotDecoration {
       name: '小绵羊发带',
       path: 'assets/images/emoji/decorate/decorate18.png',
       description: '软绵绵的质感，治愈每一天',
-      rarity: MascotRarity.rare,
+      rarity: MascotRarity.common,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.5),
       characterConfigs: {
         'assets/images/emoji/pedding3.png': MascotDecorationConfig(
@@ -373,6 +374,7 @@ class MascotDecoration {
       name: '粉色可达鸭帽',
       path: 'assets/images/emoji/decorate/decorate21.png',
       description: '呆萌可爱，粉色心情',
+      rarity: MascotRarity.rare,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -15), scale: 1.4),
       characterConfigs: {
         'assets/images/emoji/pedding3.png': MascotDecorationConfig(
@@ -586,7 +588,7 @@ class MascotDecoration {
       name: '粉樱小花旦',
       path: 'assets/images/emoji/decorate/decorate34.png',
       description: '粉樱如雪，旦角点妆。一颦一笑皆是戏，最美不过这春日容颜。',
-      rarity: MascotRarity.rare,
+      rarity: MascotRarity.epic,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.5),
       characterConfigs: {
         'assets/images/emoji/pedding3.png': MascotDecorationConfig(
@@ -594,7 +596,7 @@ class MascotDecoration {
           scale: 1.5,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -50),
+          offset: Offset(0, 0),
           scale: 1.1,
         ),
       },
@@ -604,7 +606,7 @@ class MascotDecoration {
       name: '大耳绒绒帽',
       path: 'assets/images/emoji/decorate/decorate35.png',
       description: '软乎乎的大兔耳朵，包裹住冬日所有的温柔，治愈每一个寒冷的清晨。',
-      rarity: MascotRarity.common,
+      rarity: MascotRarity.rare,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -18), scale: 1.5),
       characterConfigs: {
         'assets/images/emoji/pedding3.png': MascotDecorationConfig(
@@ -612,7 +614,25 @@ class MascotDecoration {
           scale: 1.5,
         ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-          offset: Offset(0, -55),
+          offset: Offset(0, -10),
+          scale: 1.0,
+        ),
+      },
+    ),
+    MascotDecoration(
+      id: 'retro_heart_bow',
+      name: '复古爱心蝴蝶结',
+      path: 'assets/images/emoji/decorate/decorate36.png',
+      description: '旧时光里的红色蝴蝶结，中心嵌着一颗炽热的心，那是岁月赠予的最浪漫的饰章。',
+      rarity: MascotRarity.common,
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.4),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.4,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
           scale: 1.0,
         ),
       },

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
-import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/features/profile/presentation/widgets/achievement_detail_sheet.dart';
 import 'package:island_diary/features/profile/presentation/widgets/achievement/achievement_header_card.dart';
 import 'package:island_diary/features/profile/presentation/widgets/achievement/achievement_category_strip.dart';
@@ -66,7 +65,8 @@ class _AchievementPageState extends State<AchievementPage> {
             final aUnlocked = unlockedMap.containsKey(a.id);
             final bUnlocked = unlockedMap.containsKey(b.id);
             if (aUnlocked != bUnlocked) return aUnlocked ? -1 : 1;
-            return b.rewardPoints.compareTo(a.rewardPoints);
+            // 难度低的（分值小的）排在前面
+            return a.rewardPoints.compareTo(b.rewardPoints);
           });
 
         return Scaffold(

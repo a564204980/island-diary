@@ -53,19 +53,18 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
   @override
   Widget build(BuildContext context) {
     final userState = UserState();
-    const bool isNight = true; // 强制保持夜间模式的高级感，不受全局主题影响
     const themeColor = Color(0xFFCE93D8);
     final season = SoulSeasonLogic.getSeason(userState.savedDiaries.value);
 
     return Scaffold(
-      backgroundColor: isNight ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFF0F172A),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, 
-            color: isNight ? Colors.white70 : const Color(0xFF7E57C2).withValues(alpha: 0.5), 
+          icon: const Icon(Icons.arrow_back_ios_new, 
+            color: Colors.white70, 
             size: 18
           ),
           onPressed: () => Navigator.pop(context),
@@ -92,7 +91,7 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
           // 1. 视彩背景系统
           Positioned.fill(
             child: VipParallaxBackground(
-              isNight: isNight, 
+              isNight: true, 
               season: season, 
               scrollOffset: _scrollOffset
             ),
@@ -110,7 +109,7 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
                   child: Column(
                     children: [
                       const SizedBox(height: 80),
-                      VipHeroSection(isNight: isNight, themeColor: themeColor),
+                      const VipHeroSection(isNight: true, themeColor: themeColor),
                       const SizedBox(height: 60),
                     ],
                   ),
@@ -120,7 +119,7 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
               // 权益列表
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                sliver: VipBenefitList(isNight: isNight, themeColor: themeColor),
+                sliver: VipBenefitList(isNight: true, themeColor: themeColor),
               ),
 
               // 方案选择
@@ -128,7 +127,7 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 sliver: SliverToBoxAdapter(
                   child: VipPricingSection(
-                    isNight: isNight,
+                    isNight: true,
                     themeColor: themeColor,
                     selectedIndex: _selectedTierIndex,
                     onTierSelected: (index) => setState(() => _selectedTierIndex = index),
@@ -142,7 +141,7 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(24, 40, 24, 80),
                   child: VipPurchaseButton(
-                    isNight: isNight,
+                    isNight: true,
                     themeColor: themeColor,
                     selectedIndex: _selectedTierIndex,
                     tiers: _tiers,

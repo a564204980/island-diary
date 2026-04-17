@@ -88,12 +88,28 @@ class TitleSelectionSheet extends StatelessWidget {
             child: ValueListenableBuilder<Map<String, String>>(
               valueListenable: userState.unlockedAchievements,
               builder: (context, unlocked, _) {
-                // 已解锁的排前面，未解锁的排后面
+                // 排序逻辑：
+                // 1. 已解锁的排前面
+                // 2. 已解锁内部：按获得时间（unlockedAt）先后排列
+                // 3. 未解锁内部：按难度（rewardPoints）从小到大排
                 final sorted = [...titleAchievements]
                   ..sort((a, b) {
-                    final aUnlocked = unlocked.containsKey(a.id) ? 0 : 1;
-                    final bUnlocked = unlocked.containsKey(b.id) ? 0 : 1;
-                    return aUnlocked.compareTo(bUnlocked);
+                    final aDateStr = unlocked[a.id];
+                    final bDateStr = unlocked[b.id];
+                    final aUnlocked = aDateStr != null ? 0 : 1;
+                    final bUnlocked = bDateStr != null ? 0 : 1;
+                    
+                    if (aUnlocked != bUnlocked) {
+                      return aUnlocked.compareTo(bUnlocked);
+                    }
+                    
+                    if (aUnlocked == 0) {
+                      // 均为已解锁：按获得时间排序
+                      return aDateStr!.compareTo(bDateStr!);
+                    } else {
+                      // 均为未解锁：按难度排序
+                      return a.rewardPoints.compareTo(b.rewardPoints);
+                    }
                   });
                 return ValueListenableBuilder<List<String>>(
                   valueListenable: userState.selectedTitles,

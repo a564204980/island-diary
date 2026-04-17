@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/core/constants/legal_text.dart';
+
 
 class AboutIslandPage extends StatelessWidget {
   const AboutIslandPage({super.key});
@@ -50,8 +50,55 @@ class AboutIslandPage extends StatelessWidget {
                         _buildHeroSection(isNight),
                         const SizedBox(height: 48),
                         _buildStoryCard(isNight),
-                        const SizedBox(height: 24),
-                        _buildFeaturesGrid(isNight),
+                        const SizedBox(height: 32),
+                        _buildManualSection(
+                          isNight: isNight,
+                          index: 0,
+                          icon: Icons.edit_note_rounded,
+                          title: '随心记录',
+                          color: const Color(0xFF81C784),
+                          content: '记录生活从未如此简单：\n'
+                              '• 点击底部菜单栏上的「小软」即可开始写作。\n'
+                              '• 选择今日心情标签，让记录更有温度。\n'
+                              '• 支持插入多张精美照片，定格精彩瞬间。\n'
+                              '• 所有内容存储在本地，保护您的隐私。',
+                        ),
+                        const SizedBox(height: 16),
+                        _buildManualSection(
+                          isNight: isNight,
+                          index: 1,
+                          icon: Icons.format_paint_rounded,
+                          title: '小软的衣帽间',
+                          color: const Color(0xFFFFB74D),
+                          content: '打造独一无二的私人领地：\n'
+                              '• 在「小软的衣帽间」内，为您的守护灵挑选并更换绝版外观。\n'
+                              '• 想要更别致？点击预览左下角的「更换背景」即可切换小岛氛围。\n'
+                              '• 稀有装扮可以通过达成特定成就免费解锁。',
+                        ),
+                        const SizedBox(height: 16),
+                        _buildManualSection(
+                          isNight: isNight,
+                          index: 2,
+                          icon: Icons.emoji_events_rounded,
+                          title: '成就收集',
+                          color: const Color(0xFFFF7043),
+                          content: '见证您的每一次成长：\n'
+                              '• 在「勋章墙」查看您的荣誉历程。\n'
+                              '• 点击未解锁勋章，查看详细的达成要求。\n'
+                              '• 达成「白金」等级成就即可获得史诗级装扮奖励。',
+                        ),
+                        const SizedBox(height: 16),
+                        _buildManualSection(
+                          isNight: isNight,
+                          index: 3,
+                          icon: Icons.security_rounded,
+                          title: '安全守护',
+                          color: const Color(0xFF64B5F6),
+                          content: '保护您的心灵秘密：\n'
+                              '• 进入「安全中心」开启 FaceID/指纹应用锁。\n'
+                              '• 全文加密存储，无需担心数据泄露。\n'
+                              '• 温馨提示：由于数据不上传云端，请务必开启系统级的备份功能。',
+                        ),
                         const SizedBox(height: 60),
                         _buildFooter(isNight),
                         const SizedBox(height: 40),
@@ -158,46 +205,56 @@ class AboutIslandPage extends StatelessWidget {
     ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1, end: 0);
   }
 
-  Widget _buildFeaturesGrid(bool isNight) {
-    final features = [
-      {'icon': Icons.edit_note_rounded, 'title': '随心记录', 'color': const Color(0xFF81C784)},
-      {'icon': Icons.format_paint_rounded, 'title': '岛屿装扮', 'color': const Color(0xFFFFB74D)},
-      {'icon': Icons.emoji_events_rounded, 'title': '成就收集', 'color': const Color(0xFFFF7043)},
-      {'icon': Icons.security_rounded, 'title': '安全守护', 'color': const Color(0xFF64B5F6)},
-    ];
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 2.2,
-      ),
-      itemCount: features.length,
-      itemBuilder: (context, index) {
-        final f = features[index];
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: _glassDecoration(isNight),
-          child: Row(
+  Widget _buildManualSection({
+    required bool isNight,
+    required int index,
+    required IconData icon,
+    required String title,
+    required Color color,
+    required String content,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: _glassDecoration(isNight),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Icon(f['icon'] as IconData, color: f['color'] as Color, size: 20),
-              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 16),
               Text(
-                f['title'] as String,
+                title,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: isNight ? Colors.white70 : Colors.black87,
+                  color: isNight ? Colors.white : Colors.black87,
+                  fontFamily: 'LXGWWenKai',
                 ),
               ),
             ],
           ),
-        );
-      },
-    ).animate().fadeIn(delay: 800.ms);
+          const SizedBox(height: 16),
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: 14,
+              height: 2.0,
+              color: isNight ? Colors.white70 : Colors.black54,
+              fontFamily: 'LXGWWenKai',
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: (600 + index * 100).ms).slideY(begin: 0.1, end: 0);
   }
 
 
