@@ -67,7 +67,7 @@ extension BentoResilience on _StatisticsPageState {
               _buildBentoHeader(
                 context: context,
                 title: '心灵回响',
-                helpContent: '[[心灵回响]] 见证了您内在的修复力量。它统计了您从 [[低谷状态]] 重新找回 [[平静与喜悦]] 的过程。每一次的回响，都是您灵魂韧性的勋章。',
+                helpContent: '[[心灵回响]] 见证了您内在的修复力量。它统计了您从 [[低谷状态]] 重新找回 [[平静与喜悦]] 的过程。每一次的回响，都是您灵魂韧性的成就。',
                 isNight: isNight,
               ),
               const SizedBox(height: 20),

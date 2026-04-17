@@ -83,8 +83,8 @@ class AboutIslandPage extends StatelessWidget {
                           title: '成就收集',
                           color: const Color(0xFFFF7043),
                           content: '见证您的每一次成长：\n'
-                              '• 在「勋章墙」查看您的荣誉历程。\n'
-                              '• 点击未解锁勋章，查看详细的达成要求。\n'
+                              '• 在「成就墙」查看您的荣誉历程。\n'
+                              '• 点击未解锁成就，查看详细的达成要求。\n'
                               '• 达成「白金」等级成就即可获得史诗级装扮奖励。',
                         ),
                         const SizedBox(height: 16),

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/static_sprite.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
+import 'dart:math' as Math;
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/features/profile/presentation/widgets/achievement_detail_sheet.dart';
 
@@ -17,8 +18,11 @@ class MascotDecorationPage extends StatefulWidget {
 class _MascotDecorationPageState extends State<MascotDecorationPage> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+  final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
   String _searchQuery = '';
   bool _isInitialized = false;
+
+  static const double _searchFlightThreshold = 120.0; // 缩短阈值，让动画在标题消失前就完成
 
   @override
   void initState() {
@@ -34,6 +38,16 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
         }
       }
     });
+
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    final double offset = _scrollController.offset;
+    final double progress = (offset / _searchFlightThreshold).clamp(0.0, 1.0);
+    if (_scrollProgress.value != progress) {
+      _scrollProgress.value = progress;
+    }
   }
 
   void _scrollToTarget() async {
@@ -55,8 +69,8 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
     if (index == -1) return;
 
     // 计算滚动的偏移量
-    // 头部高度：8 (spacer) + ~60 (title row) + 16 (padding)
-    const headerHeight = 68.0;
+    // 内部头部高度：只有滚动区域内的 70 (搜索占位) + 50 (标题行约 50)
+    const headerHeight = 120.0;
 
     final screenWidth = MediaQuery.of(context).size.width;
     final gridWidth = screenWidth - 48; // 左右 padding 24
@@ -75,8 +89,10 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _searchController.dispose();
+    _scrollProgress.dispose();
     super.dispose();
   }
 
@@ -91,16 +107,17 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
           ? const SizedBox.shrink()
           : Stack(
               children: [
-                // 背景装饰
+                // 1. 背景装饰
                 if (!isNight) _buildLightBackground(),
 
+                // 2. 主页面结构
                 SafeArea(
                   child: Column(
                     children: [
                       // --- 固定区域：AppBar ---
                       _buildAppBar(context, isNight),
 
-                      // --- 固定区域：预览区域 (监听所选装扮) ---
+                      // --- 固定区域：预览英雄区域 ---
                       ListenableBuilder(
                         listenable: userState.selectedMascotDecoration,
                         builder: (context, _) => _buildPreviewHero(
@@ -110,28 +127,19 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                         ),
                       ),
 
-                      // --- 滚动区域：装饰列表 ---
+                      // --- 滚动过滤区域 ---
                       Expanded(
                         child: CustomScrollView(
                           controller: _scrollController,
                           physics: const BouncingScrollPhysics(),
                           slivers: [
-                            const SliverToBoxAdapter(
-                              child: SizedBox(height: 12),
-                            ),
+                            // --- 搜索栏占位符 ---
+                            const SliverToBoxAdapter(child: SizedBox(height: 70)),
 
-                            // 1. 搜索栏
-                            _buildSearchBar(isNight),
-
-                            // 2. 标题行
+                            // --- 标题行 (挑选装扮) ---
                             SliverToBoxAdapter(
                               child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  14,
-                                  4,
-                                  14,
-                                  16,
-                                ),
+                                padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
                                 child: Row(
                                   children: [
                                     _buildSectionIndicator(),
@@ -141,9 +149,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                       style: TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
-                                        color: isNight
-                                            ? Colors.white
-                                            : const Color(0xFF3E2723),
+                                        color: isNight ? Colors.white : const Color(0xFF3E2723),
                                         fontFamily: 'LXGWWenKai',
                                         letterSpacing: 0.5,
                                       ),
@@ -153,9 +159,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                       '${userState.ownedDecorationIds.value.length} 个已解锁',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: isNight
-                                            ? Colors.white38
-                                            : Colors.black26,
+                                        color: isNight ? Colors.white38 : Colors.black26,
                                         fontFamily: 'LXGWWenKai',
                                       ),
                                     ),
@@ -164,7 +168,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                               ),
                             ),
 
-                            // 2. 装扮网格 (监听拥有状态与所选状态)
+                            // --- 网格列表 ---
                             SliverPadding(
                               padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
                               sliver: ListenableBuilder(
@@ -173,56 +177,35 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                   userState.ownedDecorationIds,
                                 ]),
                                 builder: (context, _) {
-                                  final currentDecoration =
-                                      userState.selectedMascotDecoration.value;
-                                  final ownedIds =
-                                      userState.ownedDecorationIds.value;
+                                  final currentDecoration = userState.selectedMascotDecoration.value;
+                                  final ownedIds = userState.ownedDecorationIds.value;
 
-                                  // 1. 过滤：已获得 + 搜索关键词
-                                  final displayedDecorations = MascotDecoration
-                                      .allDecorations
-                                      .where((deco) {
-                                        final isOwned = ownedIds.contains(
-                                          deco.id,
-                                        );
-                                        if (!isOwned) return false;
-
-                                        if (_searchQuery.isEmpty) return true;
-                                        final query = _searchQuery
-                                            .toLowerCase();
-                                        return deco.name.toLowerCase().contains(
-                                              query,
-                                            ) ||
-                                            deco.description
-                                                .toLowerCase()
-                                                .contains(query);
-                                      })
-                                      .toList();
+                                  final displayedDecorations = MascotDecoration.allDecorations.where((deco) {
+                                    final isOwned = ownedIds.contains(deco.id);
+                                    if (!isOwned) return false;
+                                    if (_searchQuery.isEmpty) return true;
+                                    final query = _searchQuery.toLowerCase();
+                                    return deco.name.toLowerCase().contains(query) || 
+                                           deco.description.toLowerCase().contains(query);
+                                  }).toList();
 
                                   if (displayedDecorations.isEmpty) {
                                     return SliverFillRemaining(
                                       hasScrollBody: false,
                                       child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           const SizedBox(height: 60),
                                           Icon(
-                                            Icons.search_off_rounded,
-                                            size: 64,
-                                            color: isNight
-                                                ? Colors.white10
-                                                : Colors.black.withValues(
-                                                    alpha: 0.05,
-                                                  ),
+                                            Icons.search_off_rounded, 
+                                            size: 64, 
+                                            color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05)
                                           ),
                                           const SizedBox(height: 16),
                                           Text(
                                             '没有找到相关装扮',
                                             style: TextStyle(
-                                              color: isNight
-                                                  ? Colors.white38
-                                                  : Colors.black26,
+                                              color: isNight ? Colors.white38 : Colors.black26,
                                               fontFamily: 'LXGWWenKai',
                                             ),
                                           ),
@@ -232,28 +215,21 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                   }
 
                                   return SliverGrid(
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: 2,
-                                          mainAxisSpacing: 16,
-                                          crossAxisSpacing: 16,
-                                          childAspectRatio: 0.8,
-                                        ),
-                                    delegate: SliverChildBuilderDelegate((
-                                      context,
-                                      index,
-                                    ) {
+                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      mainAxisSpacing: 16,
+                                      crossAxisSpacing: 16,
+                                      childAspectRatio: 0.8,
+                                    ),
+                                    delegate: SliverChildBuilderDelegate((context, index) {
                                       final deco = displayedDecorations[index];
                                       return _DecorationGridItem(
                                         deco: deco,
-                                        isSelected:
-                                            currentDecoration == deco.path,
+                                        isSelected: currentDecoration == deco.path,
                                         isNight: isNight,
-                                        isOwned: true, // 能出现在列表里的肯定都是已拥有的
+                                        isOwned: true,
                                         index: index,
-                                        shouldHighlight:
-                                            deco.id ==
-                                            widget.initialDecorationId,
+                                        shouldHighlight: deco.id == widget.initialDecorationId,
                                       );
                                     }, childCount: displayedDecorations.length),
                                   );
@@ -266,68 +242,145 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                     ],
                   ),
                 ),
+
+                // 3. 飞行搜索栏 (浮动层)
+                _buildFlyingSearchBar(isNight),
               ],
             ),
     );
   }
 
-  Widget _buildSearchBar(bool isNight) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-        child: Container(
-          height: 46,
-          decoration: BoxDecoration(
-            color: isNight
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(23),
-            border: Border.all(
-              color: isNight
-                  ? Colors.white10
-                  : Colors.black.withValues(alpha: 0.05),
-              width: 1,
-            ),
-          ),
-          child: TextField(
-            controller: _searchController,
-            onChanged: (value) {
-              setState(() => _searchQuery = value);
-            },
-            textAlignVertical: TextAlignVertical.center,
-            style: TextStyle(
-              color: isNight ? Colors.white70 : const Color(0xFF3E2723),
-              fontSize: 14,
-              fontFamily: 'LXGWWenKai',
-            ),
-            decoration: InputDecoration(
-              hintText: '寻找你心仪的装扮...',
-              hintStyle: TextStyle(
-                color: isNight ? Colors.white24 : Colors.black26,
-                fontSize: 14,
+  Widget _buildFlyingSearchBar(bool isNight) {
+    return ValueListenableBuilder<double>(
+      valueListenable: _scrollProgress,
+      builder: (context, progress, child) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final safeAreaTop = MediaQuery.of(context).padding.top;
+        
+        // 起始位置: 页面中段 (SafeAreaTop + AppBar 60 + Hero 300 - ScrollOffset + Margin 12)
+        // 注意：因为 AppBar 和 Hero 现在固定了，它们不随 ScrollOffset 变化，
+        // 但是占位符是在 ScrollView 里的，它会随 ScrollOffset 向上移动。
+        final startY = safeAreaTop + 60.0 + 300.0 + 12.0 - _scrollController.offset;
+        final endY = safeAreaTop + 10.0;
+        
+        final startX = 24.0;
+        final endX = screenWidth - 24.0 - 46.0; // 46 是收缩后的宽度
+        
+        // 使用二次贝塞尔曲线计算飞行路径
+        // P = (1-t)^2 * P0 + 2*(1-t)*t * P1 + t^2 * P2
+        // 我们需要一个中间控制点 P1 来控制弧度
+        // 使用统一的曲线，确保收缩和位移步调一致
+        final t = Curves.easeInOutCubic.transform(progress);
+        final p0 = Offset(startX, startY);
+        final p2 = Offset(endX, endY);
+        // 控制点 P1: 抬高弧度并修正 X 轴偏移，防止“超速”甩出屏幕
+        final p1 = Offset(startX + (endX - startX) * 0.4, startY - 150.0);
+        
+        final currentPos = Offset(
+          Math.pow(1 - t, 2) * p0.dx + 2 * (1 - t) * t * p1.dx + Math.pow(t, 2) * p2.dx,
+          Math.pow(1 - t, 2) * p0.dy + 2 * (1 - t) * t * p1.dy + Math.pow(t, 2) * p2.dy,
+        );
+        
+        // 宽度计算: 使用同样的 t
+        final currentWidth = (screenWidth - 48.0) + (46.0 - (screenWidth - 48.0)) * t;
+        
+        return Positioned(
+          left: currentPos.dx,
+          top: currentPos.dy.clamp(-100.0, 1000.0), // 防止滚出太远
+          child: Opacity(
+            opacity: startY < -50 ? 0 : 1.0, // 完全滑上去后消失，或者你可以让它留在顶部
+            child: Container(
+              width: currentWidth,
+              height: 46,
+              decoration: BoxDecoration(
+                color: isNight 
+                    ? Colors.white.withValues(alpha: progress > 0.8 ? 0.1 : 0.05) 
+                    : Colors.black.withValues(alpha: progress > 0.8 ? 0.08 : 0.03),
+                borderRadius: BorderRadius.circular(23),
+                border: Border.all(
+                  color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                  width: 1,
+                ),
+                boxShadow: progress > 0.9 ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ] : null,
               ),
-              prefixIcon: Icon(
-                Icons.search_rounded,
-                size: 20,
-                color: isNight ? Colors.white24 : Colors.black26,
-              ),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear_rounded, size: 18),
+              child: Stack(
+                alignment: Alignment.centerLeft,
+                children: [
+                  // 搜索图标
+                  Positioned(
+                    left: 13,
+                    child: Icon(
+                      Icons.search_rounded,
+                      size: 20,
                       color: isNight ? Colors.white24 : Colors.black26,
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _searchQuery = '');
-                      },
-                    )
-                  : null,
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  
+                  // 输入框和提示字 (progress 增加时逐渐淡出)
+                  if (progress < 0.9)
+                    Positioned.fill(
+                      left: 44,
+                      child: Opacity(
+                        opacity: (1 - progress * 1.5).clamp(0.0, 1.0),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() => _searchQuery = value);
+                          },
+                          textAlignVertical: TextAlignVertical.center,
+                          style: TextStyle(
+                            color: isNight ? Colors.white70 : const Color(0xFF3E2723),
+                            fontSize: 14,
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                          decoration: InputDecoration(
+                            hintText: '寻找你心仪的装扮...',
+                            hintStyle: TextStyle(
+                              color: isNight ? Colors.white24 : Colors.black26,
+                              fontSize: 14,
+                            ),
+                            suffixIcon: _searchQuery.isNotEmpty 
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear_rounded, size: 18),
+                                  color: isNight ? Colors.white24 : Colors.black26,
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                  },
+                                )
+                              : null,
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  
+                  // 当变为图标时，如果之前有搜索内容，可以点击这个图标清空或重新激活
+                  if (progress >= 0.9)
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(23),
+                        onTap: () {
+                          // 回滚到顶部或展开搜索
+                          _scrollController.animateTo(0, duration: 300.ms, curve: Curves.easeOut);
+                        },
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

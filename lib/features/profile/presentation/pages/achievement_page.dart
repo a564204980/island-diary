@@ -162,7 +162,7 @@ class _AchievementPageState extends State<AchievementPage> {
         onPressed: () => Navigator.pop(context),
       ),
       title: Text(
-        '岛屿勋章墙',
+        '岛屿成就墙',
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w900,

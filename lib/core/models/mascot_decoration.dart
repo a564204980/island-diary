@@ -637,6 +637,24 @@ class MascotDecoration {
         ),
       },
     ),
+    MascotDecoration(
+      id: 'candy_heart_lion',
+      name: '糖心醒狮',
+      path: 'assets/images/emoji/decorate/decorate37.png',
+      description: '甜美糖心遇上威武醒狮，传统与软萌的奇妙碰撞，守护你每一份红火的心意。',
+      rarity: MascotRarity.legendary,
+      defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.4),
+      characterConfigs: {
+        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.4,
+        ),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.5,
+        ),
+      },
+    ),
   ];
 
   /// 根据路径查找配置

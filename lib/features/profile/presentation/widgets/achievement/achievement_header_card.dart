@@ -32,7 +32,7 @@ class AchievementHeaderCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem('已点亮', unlockedCount.toString(), '勋章', textColor),
+          _buildStatItem('已点亮', unlockedCount.toString(), '成就', textColor),
           _buildDivider(textColor),
           _buildStatItem('累计', totalPoints.toString(), '荣誉', textColor),
           _buildDivider(textColor),
