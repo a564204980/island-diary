@@ -37,26 +37,32 @@ class DiaryMomentsHeader extends StatelessWidget {
                   onTap: () => _pickCover(context),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isNight ? const Color(0xFF1A1C1E) : const Color(0xFFF0F0F0),
+                      color: isNight
+                          ? const Color(0xFF1A1C1E)
+                          : const Color(0xFFF0F0F0),
                     ),
                     child: coverPath != null
-                        ? DiaryUtils.buildImage(
-                            coverPath,
-                            fit: BoxFit.cover,
-                          )
+                        ? DiaryUtils.buildImage(coverPath, fit: BoxFit.cover)
                         : Image.asset(
                             'assets/images/note/note_bg1.png',
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              color: isNight ? const Color(0xFF1A1C1E) : const Color(0xFFD4A373).withValues(alpha: 0.1),
-                              child: Center(
-                                child: Icon(
-                                  Icons.landscape_rounded,
-                                  color: isNight ? Colors.white12 : Colors.black12,
-                                  size: 48,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                                  color: isNight
+                                      ? const Color(0xFF1A1C1E)
+                                      : const Color(
+                                          0xFFD4A373,
+                                        ).withValues(alpha: 0.1),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.landscape_rounded,
+                                      color: isNight
+                                          ? Colors.white12
+                                          : Colors.black12,
+                                      size: 48,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
                           ),
                   ),
                 ),
@@ -64,7 +70,9 @@ class DiaryMomentsHeader extends StatelessWidget {
 
               // 底部通透渐变遮罩 (增强内容衔接)
               Positioned(
-                left: 0, right: 0, bottom: isWide ? 60 : 40,
+                left: 0,
+                right: 0,
+                bottom: isWide ? 60 : 40,
                 height: 80,
                 child: Container(
                   decoration: BoxDecoration(
@@ -73,7 +81,9 @@ class DiaryMomentsHeader extends StatelessWidget {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        (isNight ? Colors.black : Colors.white).withValues(alpha: 0.2),
+                        (isNight ? Colors.black : Colors.white).withValues(alpha: 
+                          0.2,
+                        ),
                       ],
                     ),
                   ),
@@ -82,7 +92,9 @@ class DiaryMomentsHeader extends StatelessWidget {
 
               // 顶部阴影遮罩 (增强按钮可见性)
               Positioned(
-                top: 0, left: 0, right: 0,
+                top: 0,
+                left: 0,
+                right: 0,
                 height: 100,
                 child: IgnorePointer(
                   child: Container(

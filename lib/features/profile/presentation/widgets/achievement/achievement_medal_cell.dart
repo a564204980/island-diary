@@ -140,6 +140,11 @@ class AchievementMedalCell extends StatelessWidget {
         return Image.asset(decoration.path, fit: BoxFit.contain);
       }
       
+      // 优先显示指定的勋章图片
+      if (achievement.imagePath != null) {
+        return Image.asset(achievement.imagePath!, fit: BoxFit.contain);
+      }
+      
       // 无饰品，但有称号：显示称号本身的盾牌图标勋章
       final bool hasTitle = achievement.rewardTitle != null;
       final icon = hasTitle ? achievement.titleTier.badge : achievement.condition.icon;

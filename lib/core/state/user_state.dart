@@ -68,6 +68,8 @@ class _K {
   static const userGender = 'user_gender';
   static const lastBirthdayGiftYear = 'last_birthday_gift_year';
   static const selectedTitles = 'selected_user_titles_v2';
+  static const mascotType = 'selected_mascot_type_v1';
+  static const unlockedMascots = 'unlocked_mascot_paths_v1';
 }
 
 /// 1. 用户资料与引导模块
@@ -585,6 +587,7 @@ mixin SecurityMixin {
 /// 5. 成就与统计模块
 mixin AchievementMixin on DiaryMixin {
   final ValueNotifier<List<String>> ownedDecorationIds = ValueNotifier<List<String>>([]);
+  final ValueNotifier<List<String>> unlockedMascotPaths = ValueNotifier<List<String>>([]);
   final ValueNotifier<int> achievementPoints = ValueNotifier<int>(0);
   final ValueNotifier<Map<String, String>> unlockedAchievements = ValueNotifier<Map<String, String>>({});
 
@@ -600,14 +603,7 @@ mixin AchievementMixin on DiaryMixin {
       }
     }
     ownedDecorationIds.value = prefs.getStringList(_K.ownedDecorations) ?? _defaultOwnedIds;
-
-    // ========================================================================
-    // 【临时调试代码】强制全成就/全勋章解锁，为了方便测试 UI。恢复时请删除以下代码
-    // ========================================================================
-    final _allAchievementIds = MascotAchievement.allAchievements.map((a) => a.id).toList();
-    unlockedAchievements.value = {for (var id in _allAchievementIds) id: DateTime.now().toIso8601String()};
-    ownedDecorationIds.value = MascotDecoration.allDecorations.map((d) => d.id).toList();
-    // ========================================================================
+    unlockedMascotPaths.value = prefs.getStringList(_K.unlockedMascots) ?? ['assets/images/emoji/marshmallow2.png'];
   }
 
   /// 同步奖励逻辑：确保所有已达成成就的对应奖励饰品都已加入拥有列表
@@ -616,21 +612,28 @@ mixin AchievementMixin on DiaryMixin {
     bool needsSync = false;
     final currentOwned = List<String>.from(ownedDecorationIds.value);
     final unlockedMap = unlockedAchievements.value;
+    final currentMascots = List<String>.from(unlockedMascotPaths.value);
     
     for (var a in MascotAchievement.allAchievements) {
-      if (unlockedMap.containsKey(a.id) && 
-          a.rewardDecorationId != null && 
-          !currentOwned.contains(a.rewardDecorationId!)) {
-        currentOwned.add(a.rewardDecorationId!);
-        needsSync = true;
+      if (unlockedMap.containsKey(a.id)) {
+        if (a.rewardDecorationId != null && !currentOwned.contains(a.rewardDecorationId!)) {
+          currentOwned.add(a.rewardDecorationId!);
+          needsSync = true;
+        }
+        if (a.rewardMascotPath != null && !currentMascots.contains(a.rewardMascotPath!)) {
+          currentMascots.add(a.rewardMascotPath!);
+          needsSync = true;
+        }
       }
     }
 
     if (needsSync) {
       ownedDecorationIds.value = currentOwned;
+      unlockedMascotPaths.value = currentMascots;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_K.ownedDecorations, currentOwned);
-      debugPrint('Achievement Rewards Synced: Added missing decoration rewards.');
+      await prefs.setStringList(_K.unlockedMascots, currentMascots);
+      debugPrint('Achievement Rewards Synced: Added missing decoration/mascot rewards.');
     }
   }
 
@@ -643,6 +646,7 @@ mixin AchievementMixin on DiaryMixin {
     final stats = getAchievementStats();
     final m = Map<String, String>.from(unlockedAchievements.value);
     final o = List<String>.from(ownedDecorationIds.value);
+    final mf = List<String>.from(unlockedMascotPaths.value);
     int p = 0;
     bool changed = false;
     List<MascotAchievement> newlyUnlocked = [];
@@ -654,6 +658,9 @@ mixin AchievementMixin on DiaryMixin {
         if (a.rewardDecorationId != null && !o.contains(a.rewardDecorationId!)) {
           o.add(a.rewardDecorationId!);
         }
+        if (a.rewardMascotPath != null && !mf.contains(a.rewardMascotPath!)) {
+          mf.add(a.rewardMascotPath!);
+        }
         newlyUnlocked.add(a);
         changed = true;
       }
@@ -661,10 +668,12 @@ mixin AchievementMixin on DiaryMixin {
     if (changed) {
       unlockedAchievements.value = m;
       ownedDecorationIds.value = o;
+      unlockedMascotPaths.value = mf;
       achievementPoints.value += p;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_K.unlockedAchievementsMap, jsonEncode(m));
       await prefs.setStringList(_K.ownedDecorations, o);
+      await prefs.setStringList(_K.unlockedMascots, mf);
       await prefs.setInt(_K.achievementPoints, achievementPoints.value);
     }
     return newlyUnlocked;
@@ -715,6 +724,7 @@ mixin AchievementMixin on DiaryMixin {
     stats[AchievementCondition.uniqueMoods.name] = diaries.map((e) => e.moodIndex).whereType<int>().toSet().length;
     stats[AchievementCondition.totalDecorationsOwned.name] = ownedDecorationIds.value.length;
     stats[AchievementCondition.vipLevel.name] = vipLevel.value;
+    stats[AchievementCondition.isResident.name] = 1; // 只要进入 app 即为入驻
     return stats;
   }
 }
@@ -732,6 +742,7 @@ mixin PreferenceMixin {
   final ValueNotifier<double> preferredFontSize = ValueNotifier<double>(20.0);
   final ValueNotifier<String> preferredFontFamily = ValueNotifier<String>('LXGWWenKai');
   final ValueNotifier<String?> selectedMascotDecoration = ValueNotifier<String?>(null);
+  final ValueNotifier<String> selectedMascotType = ValueNotifier<String>('assets/images/emoji/marshmallow2.png');
 
   void loadPreference(SharedPreferences prefs) {
     momentsCoverPath.value = prefs.getString(_K.momentsCover);
@@ -744,6 +755,7 @@ mixin PreferenceMixin {
     preferredFontSize.value = prefs.getDouble(_K.preferredFontSize) ?? 20.0;
     preferredFontFamily.value = prefs.getString(_K.preferredFontFamily) ?? 'LXGWWenKai';
     selectedMascotDecoration.value = prefs.getString(_K.mascotDecoration);
+    selectedMascotType.value = prefs.getString(_K.mascotType) ?? 'assets/images/emoji/marshmallow2.png';
   }
 
   Future<void> setMomentsCoverPath(String? path) async { momentsCoverPath.value = path; final p = await SharedPreferences.getInstance(); path != null ? await p.setString(_K.momentsCover, path) : await p.remove(_K.momentsCover); }
@@ -793,6 +805,7 @@ mixin PreferenceMixin {
   Future<void> setPreferredFontSize(double s) async { preferredFontSize.value = s; final p = await SharedPreferences.getInstance(); await p.setDouble(_K.preferredFontSize, s); }
   Future<void> setPreferredFontFamily(String f) async { preferredFontFamily.value = f; final p = await SharedPreferences.getInstance(); await p.setString(_K.preferredFontFamily, f); }
   Future<void> setMascotDecoration(String? a) async { selectedMascotDecoration.value = a; final p = await SharedPreferences.getInstance(); a == null ? await p.remove(_K.mascotDecoration) : await p.setString(_K.mascotDecoration, a); }
+  Future<void> setMascotType(String path) async { selectedMascotType.value = path; final p = await SharedPreferences.getInstance(); await p.setString(_K.mascotType, path); }
 }
 
 /// 聚合状态管理类
@@ -821,11 +834,12 @@ class UserState with ProfileMixin, DiaryMixin, DecorationMixin, SecurityMixin, A
     customAvatarPath.value = null;
     savedDiaries.value = []; placedFurniture.value = []; diaryDraft.value = null;
     ownedDecorationIds.value = _defaultOwnedIds;
+    unlockedMascotPaths.value = ['assets/images/emoji/marshmallow2.png'];
   }
 
   void dispose() {
     userName.dispose(); hasFinishedOnboarding.dispose(); hasSeenRecordGuidance.dispose();
     diaryDraft.dispose(); isSlimeInBottomMenu.dispose(); selectedMascotDecoration.dispose();
-    ownedDecorationIds.dispose(); unlockedAchievements.dispose(); achievementPoints.dispose();
+    ownedDecorationIds.dispose(); unlockedMascotPaths.dispose(); unlockedAchievements.dispose(); achievementPoints.dispose();
   }
 }

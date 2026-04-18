@@ -16,7 +16,8 @@ class DecorationPage extends StatefulWidget {
   State<DecorationPage> createState() => _DecorationPageState();
 }
 
-class _DecorationPageState extends State<DecorationPage> with TickerProviderStateMixin {
+class _DecorationPageState extends State<DecorationPage>
+    with TickerProviderStateMixin {
   late DecorationController _controller;
   final GlobalKey _gridKey = GlobalKey();
   final GlobalKey _repaintKey = GlobalKey();
@@ -36,20 +37,31 @@ class _DecorationPageState extends State<DecorationPage> with TickerProviderStat
     _controller.addListener(_onControllerUpdate);
 
     // 强制横屏并进入沉浸模式
-    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-    _zoomAnimationController = AnimationController(vsync: this, duration: const Duration(milliseconds: 250));
+    _zoomAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
     _zoomAnimationController!.addListener(() {
       if (_zoomAnimationController!.isAnimating) {
-        final double t = CurvedAnimation(parent: _zoomAnimationController!, curve: Curves.easeOutCubic).value;
-        _controller.currentScale = _zoomStartScale + (_zoomEndScale - _zoomStartScale) * t;
+        final double t = CurvedAnimation(
+          parent: _zoomAnimationController!,
+          curve: Curves.easeOutCubic,
+        ).value;
+        _controller.currentScale =
+            _zoomStartScale + (_zoomEndScale - _zoomStartScale) * t;
         _controller.updateInteracting(true);
       }
     });
 
     _zoomAnimationController!.addStatusListener((status) {
-      if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
+      if (status == AnimationStatus.completed ||
+          status == AnimationStatus.dismissed) {
         if (mounted) _controller.updateInteracting(false);
       }
     });
@@ -92,7 +104,8 @@ class _DecorationPageState extends State<DecorationPage> with TickerProviderStat
           DecorationOverlayUI(
             controller: _controller,
             isTrayExpanded: _isTrayExpanded,
-            onToggleTray: () => setState(() => _isTrayExpanded = !_isTrayExpanded),
+            onToggleTray: () =>
+                setState(() => _isTrayExpanded = !_isTrayExpanded),
             onZoom: _handleZoom,
             onClearAll: _handleClearAll,
             onBack: _handleBack,
@@ -107,8 +120,7 @@ class _DecorationPageState extends State<DecorationPage> with TickerProviderStat
             ),
 
           // 资源加载遮罩
-          if (_controller.isInitializing)
-            _buildLoadingOverlay(),
+          if (_controller.isInitializing) _buildLoadingOverlay(),
         ],
       ),
     );
@@ -137,13 +149,15 @@ class _DecorationPageState extends State<DecorationPage> with TickerProviderStat
                 child: LinearProgressIndicator(
                   value: _controller.loadingProgress,
                   backgroundColor: Colors.transparent,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white70),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Colors.white70,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              '正在搬运家具元件... ${( (_controller.loadingProgress * 100).toInt() )}%',
+              '正在搬运家具元件... ${((_controller.loadingProgress * 100).toInt())}%',
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 14,
@@ -176,10 +190,25 @@ class _DecorationPageState extends State<DecorationPage> with TickerProviderStat
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.grey[900],
         title: const Text('一键清除', style: TextStyle(color: Colors.white)),
-        content: const Text('确定要清除房间内所有已摆放的家具吗？', style: TextStyle(color: Colors.white70)),
+        content: const Text(
+          '确定要清除房间内所有已摆放的家具吗？',
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消', style: TextStyle(color: Colors.white38))),
-          TextButton(onPressed: () { _controller.clearAll(); Navigator.pop(ctx); }, child: const Text('确定清除', style: TextStyle(color: Colors.redAccent))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消', style: TextStyle(color: Colors.white38)),
+          ),
+          TextButton(
+            onPressed: () {
+              _controller.clearAll();
+              Navigator.pop(ctx);
+            },
+            child: const Text(
+              '确定清除',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
         ],
       ),
     );
@@ -191,12 +220,16 @@ class _DecorationPageState extends State<DecorationPage> with TickerProviderStat
       _controller.selectFurniture(null);
       await Future.delayed(const Duration(milliseconds: 50));
 
-      final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      final boundary =
+          _repaintKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
       if (boundary == null) return null;
 
       final ui.Image image = await boundary.toImage(pixelRatio: 0.8);
-      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      
+      final ByteData? byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+
       _controller.updateCapturing(false);
       return byteData?.buffer.asUint8List();
     } catch (e) {

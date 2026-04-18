@@ -47,12 +47,21 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
 
       _filteredDiaries = widget.allDiaries.where((d) {
         // 时间过滤
-        if (_selectedFilterIdx == 1) { // 最近30天
-          if (now.difference(d.dateTime).inDays > 30) return false;
-        } else if (_selectedFilterIdx == 2) { // 本月
-          if (d.dateTime.year != now.year || d.dateTime.month != now.month) return false;
-        } else if (_selectedFilterIdx == 3) { // 今年
-          if (d.dateTime.year != now.year) return false;
+        if (_selectedFilterIdx == 1) {
+          // 最近30天
+          if (now.difference(d.dateTime).inDays > 30) {
+            return false;
+          }
+        } else if (_selectedFilterIdx == 2) {
+          // 本月
+          if (d.dateTime.year != now.year || d.dateTime.month != now.month) {
+            return false;
+          }
+        } else if (_selectedFilterIdx == 3) {
+          // 今年
+          if (d.dateTime.year != now.year) {
+            return false;
+          }
         }
 
         // 心情过滤
@@ -67,37 +76,67 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
 
   Future<void> _handleConfirmExport() async {
     if (_filteredDiaries.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("选定的时间范围内没有日记可以导出哦~")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("选定的时间范围内没有日记可以导出哦~")));
       return;
     }
 
     setState(() => _isGenerating = true);
-    final userName = UserState().userName.value.isNotEmpty ? UserState().userName.value : "旅人";
-    
+    final userName = UserState().userName.value.isNotEmpty
+        ? UserState().userName.value
+        : "旅人";
+
     try {
-      await ExportService.exportToPdf(_filteredDiaries, "岛屿日记 · 岁月成书", userName, theme: _selectedTheme, includeBackground: _includeBackground);
+      await ExportService.exportToPdf(
+        _filteredDiaries,
+        "岛屿日记 · 岁月成书",
+        userName,
+        theme: _selectedTheme,
+        includeBackground: _includeBackground,
+      );
     } catch (e) {
       if (mounted) {
         if (e == 'PRINT_SERVICE_NOT_FOUND') {
           try {
-            final bytes = await ExportService.generatePdfBytes(_filteredDiaries, "岛屿日记 · 岁月成书", userName, theme: _selectedTheme, includeBackground: _includeBackground);
+            final bytes = await ExportService.generatePdfBytes(
+              _filteredDiaries,
+              "岛屿日记 · 岁月成书",
+              userName,
+              theme: _selectedTheme,
+              includeBackground: _includeBackground,
+            );
             if (bytes != null) {
-              final fileName = 'isle_diary_book_${DateTime.now().millisecondsSinceEpoch}.pdf';
-              final path = await DiaryUtils.saveDataToTempFile(bytes, fileName: fileName);
+              final fileName =
+                  'isle_diary_book_${DateTime.now().millisecondsSinceEpoch}.pdf';
+              final path = await DiaryUtils.saveDataToTempFile(
+                bytes,
+                fileName: fileName,
+              );
               if (path != null) {
-                await Share.shareXFiles([XFile(path)], text: '这是我的岛屿日记书 ✨');
+                await SharePlus.instance.share(
+                  ShareParams(
+                    files: [XFile(path)],
+                    text: '这是我的岛屿日记书 ✨',
+                  ),
+                );
               }
             }
           } catch (shareError) {
-             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('导出与分享均失败: $shareError'), backgroundColor: Colors.redAccent),
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('导出与分享均失败: $shareError'),
+                backgroundColor: Colors.redAccent,
+              ),
             );
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('导出失败: $e'), backgroundColor: Colors.redAccent),
+            SnackBar(
+              content: Text('导出失败: $e'),
+              backgroundColor: Colors.redAccent,
+            ),
           );
         }
       }
@@ -109,10 +148,15 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
     }
   }
 
-  Widget _buildFilterChip(int index, String label, IconData iconData, Color textColor) {
+  Widget _buildFilterChip(
+    int index,
+    String label,
+    IconData iconData,
+    Color textColor,
+  ) {
     final isSelected = _selectedFilterIdx == index;
     final isNight = UserState().isNight;
-    
+
     return GestureDetector(
       onTap: () => _updateFilter(timeIndex: index),
       child: AnimatedContainer(
@@ -120,22 +164,26 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? const Color(0xFFD4A373) 
-              : (isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04)),
+          color: isSelected
+              ? const Color(0xFFD4A373)
+              : (isNight
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.04)),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected 
-                ? const Color(0xFFD4A373) 
-                : (isNight ? Colors.white10 : Colors.black.withOpacity(0.05)),
+            color: isSelected
+                ? const Color(0xFFD4A373)
+                : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
           ),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: const Color(0xFFD4A373).withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            )
-          ] : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFD4A373).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -143,7 +191,7 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
             Icon(
               iconData,
               size: 16,
-              color: isSelected ? Colors.white : textColor.withOpacity(0.5),
+              color: isSelected ? Colors.white : textColor.withValues(alpha: 0.5),
             ),
             const SizedBox(width: 6),
             Text(
@@ -152,7 +200,7 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontFamily: 'LXGWWenKai',
-                color: isSelected ? Colors.white : textColor.withOpacity(0.8),
+                color: isSelected ? Colors.white : textColor.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -190,13 +238,13 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.close, color: textColor.withOpacity(0.5)),
+                  icon: Icon(Icons.close, color: textColor.withValues(alpha: 0.5)),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
           ),
-          
+
           // Date Filter Action
           SizedBox(
             width: double.infinity,
@@ -207,16 +255,36 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
                 children: [
-                  _buildFilterChip(0, "全部时光", Icons.all_inclusive_rounded, textColor),
-                  _buildFilterChip(1, "最近30天", Icons.timelapse_rounded, textColor),
-                  _buildFilterChip(2, "本月记录", Icons.calendar_month_rounded, textColor),
-                  _buildFilterChip(3, "今年拾起", Icons.auto_awesome_rounded, textColor),
+                  _buildFilterChip(
+                    0,
+                    "全部时光",
+                    Icons.all_inclusive_rounded,
+                    textColor,
+                  ),
+                  _buildFilterChip(
+                    1,
+                    "最近30天",
+                    Icons.timelapse_rounded,
+                    textColor,
+                  ),
+                  _buildFilterChip(
+                    2,
+                    "本月记录",
+                    Icons.calendar_month_rounded,
+                    textColor,
+                  ),
+                  _buildFilterChip(
+                    3,
+                    "今年拾起",
+                    Icons.auto_awesome_rounded,
+                    textColor,
+                  ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Mood Filter Action
           SizedBox(
             width: double.infinity,
@@ -229,7 +297,12 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
                 children: [
                   _buildMoodChip(-1, "全部心情", textColor),
                   for (int i = 0; i < kMoods.length; i++)
-                    _buildMoodChip(i, kMoods[i].label, textColor, iconPath: kMoods[i].iconPath),
+                    _buildMoodChip(
+                      i,
+                      kMoods[i].label,
+                      textColor,
+                      iconPath: kMoods[i].iconPath,
+                    ),
                 ],
               ),
             ),
@@ -246,8 +319,18 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
                 children: [
-                  _buildThemeChip(PdfThemeType.classic, "经典手账", Icons.menu_book_rounded, textColor),
-                  _buildThemeChip(PdfThemeType.minimalist, "极简纯白", Icons.article_rounded, textColor),
+                  _buildThemeChip(
+                    PdfThemeType.classic,
+                    "经典手账",
+                    Icons.menu_book_rounded,
+                    textColor,
+                  ),
+                  _buildThemeChip(
+                    PdfThemeType.minimalist,
+                    "极简纯白",
+                    Icons.article_rounded,
+                    textColor,
+                  ),
                   const SizedBox(width: 8),
                   _buildBackgroundToggle(textColor),
                 ],
@@ -255,7 +338,7 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
@@ -265,7 +348,7 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
                   style: TextStyle(
                     fontSize: 13,
                     fontFamily: 'LXGWWenKai',
-                    color: textColor.withOpacity(0.6),
+                    color: textColor.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -278,46 +361,67 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 24),
               decoration: BoxDecoration(
-                color: isNight ? Colors.black26 : Colors.black.withOpacity(0.02),
+                color: isNight
+                    ? Colors.black26
+                    : Colors.black.withValues(alpha: 0.02),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isNight ? Colors.white10 : Colors.black.withOpacity(0.05),
+                  color: isNight
+                      ? Colors.white10
+                      : Colors.black.withValues(alpha: 0.05),
                 ),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: _filteredDiaries.isEmpty 
-                  ? Center(
-                      child: Text(
-                        "预览为空",
-                        style: TextStyle(color: textColor.withOpacity(0.4), fontFamily: 'LXGWWenKai'),
+                child: _filteredDiaries.isEmpty
+                    ? Center(
+                        child: Text(
+                          "预览为空",
+                          style: TextStyle(
+                            color: textColor.withValues(alpha: 0.4),
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                        ),
+                      )
+                    : PdfPreview(
+                        key: ValueKey(_previewRevision),
+                        build: (format) async {
+                          // 强制让出主线程一瞬间，确保 UI 先刷新出 Loading 动画
+                          await Future.delayed(
+                            const Duration(milliseconds: 100),
+                          );
+
+                          final userName = UserState().userName.value.isNotEmpty
+                              ? UserState().userName.value
+                              : "旅人";
+                          final bytes = await ExportService.generatePdfBytes(
+                            _filteredDiaries,
+                            "岛屿日记 · 岁月成书",
+                            userName,
+                            theme: _selectedTheme,
+                            includeBackground: _includeBackground,
+                          );
+                          return bytes ?? Uint8List(0);
+                        },
+                        canChangePageFormat: false,
+                        canChangeOrientation: false,
+                        canDebug: false,
+                        allowPrinting: false, // 隐藏自带的打印按钮
+                        allowSharing: false, // 隐藏自带的分享按钮
+                        useActions: false, // 完全隐藏自带操作栏，由我们自己的按钮接管
+                        initialPageFormat: PdfPageFormat.a4,
+                        pdfFileName: "diary_preview.pdf",
+                        loadingWidget: Center(
+                          child: CircularProgressIndicator(
+                            color: const Color(0xFFD4A373),
+                          ),
+                        ),
+                        scrollViewDecoration: BoxDecoration(
+                          color: isNight
+                              ? Colors.black26
+                              : Colors.black.withValues(alpha: 0.02),
+                        ),
                       ),
-                    )
-                  : PdfPreview(
-                      key: ValueKey(_previewRevision),
-                      build: (format) async {
-                        // 强制让出主线程一瞬间，确保 UI 先刷新出 Loading 动画
-                        await Future.delayed(const Duration(milliseconds: 100));
-                        
-                        final userName = UserState().userName.value.isNotEmpty ? UserState().userName.value : "旅人";
-                        final bytes = await ExportService.generatePdfBytes(_filteredDiaries, "岛屿日记 · 岁月成书", userName, theme: _selectedTheme, includeBackground: _includeBackground);
-                        return bytes ?? Uint8List(0);
-                      },
-                      canChangePageFormat: false,
-                      canChangeOrientation: false,
-                      canDebug: false,
-                      allowPrinting: false,  // 隐藏自带的打印按钮
-                      allowSharing: false,   // 隐藏自带的分享按钮
-                      useActions: false,     // 完全隐藏自带操作栏，由我们自己的按钮接管
-                      initialPageFormat: PdfPageFormat.a4,
-                      pdfFileName: "diary_preview.pdf",
-                      loadingWidget: Center(
-                        child: CircularProgressIndicator(color: const Color(0xFFD4A373)),
-                      ),
-                      scrollViewDecoration: BoxDecoration(
-                        color: isNight ? Colors.black26 : Colors.black.withOpacity(0.02),
-                      ),
-                    ),
               ),
             ),
           ),
@@ -330,28 +434,37 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: (_isGenerating || _filteredDiaries.isEmpty) ? null : _handleConfirmExport,
+                onPressed: (_isGenerating || _filteredDiaries.isEmpty)
+                    ? null
+                    : _handleConfirmExport,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD4A373),
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  disabledBackgroundColor: const Color(0xFFD4A373).withOpacity(0.4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  disabledBackgroundColor: const Color(
+                    0xFFD4A373,
+                  ).withValues(alpha: 0.4),
                 ),
                 child: _isGenerating
-                  ? const SizedBox(
-                      width: 20, 
-                      height: 20, 
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
-                    )
-                  : const Text(
-                      "确认并导出 PDF", 
-                      style: TextStyle(
-                        fontSize: 16, 
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'LXGWWenKai',
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
-                    ),
+                    : const Text(
+                        "确认并导出 PDF",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'LXGWWenKai',
+                        ),
+                      ),
               ),
             ),
           ),
@@ -360,10 +473,15 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
     );
   }
 
-  Widget _buildMoodChip(int index, String label, Color textColor, {String? iconPath}) {
+  Widget _buildMoodChip(
+    int index,
+    String label,
+    Color textColor, {
+    String? iconPath,
+  }) {
     final isSelected = (_selectedMoodIdx ?? -1) == index;
     final isNight = UserState().isNight;
-    
+
     return GestureDetector(
       onTap: () => _updateFilter(moodIndex: index),
       child: AnimatedContainer(
@@ -371,22 +489,26 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? const Color(0xFFD4A373) 
-              : (isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04)),
+          color: isSelected
+              ? const Color(0xFFD4A373)
+              : (isNight
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.04)),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected 
-                ? const Color(0xFFD4A373) 
-                : (isNight ? Colors.white10 : Colors.black.withOpacity(0.05)),
+            color: isSelected
+                ? const Color(0xFFD4A373)
+                : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
           ),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: const Color(0xFFD4A373).withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            )
-          ] : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFD4A373).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -398,7 +520,7 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
               Icon(
                 Icons.mood_rounded,
                 size: 16,
-                color: isSelected ? Colors.white : textColor.withOpacity(0.5),
+                color: isSelected ? Colors.white : textColor.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 6),
             ],
@@ -408,7 +530,7 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontFamily: 'LXGWWenKai',
-                color: isSelected ? Colors.white : textColor.withOpacity(0.8),
+                color: isSelected ? Colors.white : textColor.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -417,10 +539,15 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
     );
   }
 
-  Widget _buildThemeChip(PdfThemeType type, String label, IconData iconData, Color textColor) {
+  Widget _buildThemeChip(
+    PdfThemeType type,
+    String label,
+    IconData iconData,
+    Color textColor,
+  ) {
     final isSelected = _selectedTheme == type;
     final isNight = UserState().isNight;
-    
+
     return GestureDetector(
       onTap: () => setState(() {
         _selectedTheme = type;
@@ -431,22 +558,26 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? const Color(0xFFD4A373) 
-              : (isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04)),
+          color: isSelected
+              ? const Color(0xFFD4A373)
+              : (isNight
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.04)),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected 
-                ? const Color(0xFFD4A373) 
-                : (isNight ? Colors.white10 : Colors.black.withOpacity(0.05)),
+            color: isSelected
+                ? const Color(0xFFD4A373)
+                : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
           ),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: const Color(0xFFD4A373).withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            )
-          ] : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFD4A373).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -454,7 +585,7 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
             Icon(
               iconData,
               size: 16,
-              color: isSelected ? Colors.white : textColor.withOpacity(0.5),
+              color: isSelected ? Colors.white : textColor.withValues(alpha: 0.5),
             ),
             const SizedBox(width: 6),
             Text(
@@ -463,7 +594,7 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontFamily: 'LXGWWenKai',
-                color: isSelected ? Colors.white : textColor.withOpacity(0.8),
+                color: isSelected ? Colors.white : textColor.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -474,7 +605,7 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
 
   Widget _buildBackgroundToggle(Color textColor) {
     final isNight = UserState().isNight;
-    
+
     return GestureDetector(
       onTap: () => setState(() {
         _includeBackground = !_includeBackground;
@@ -484,14 +615,16 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: _includeBackground 
-              ? const Color(0xFFD4A373) 
-              : (isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04)),
+          color: _includeBackground
+              ? const Color(0xFFD4A373)
+              : (isNight
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.04)),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: _includeBackground 
-                ? const Color(0xFFD4A373) 
-                : (isNight ? Colors.white10 : Colors.black.withOpacity(0.05)),
+            color: _includeBackground
+                ? const Color(0xFFD4A373)
+                : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
           ),
         ),
         child: Row(
@@ -500,16 +633,22 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
             Icon(
               _includeBackground ? Icons.image_rounded : Icons.image_outlined,
               size: 16,
-              color: _includeBackground ? Colors.white : textColor.withOpacity(0.5),
+              color: _includeBackground
+                  ? Colors.white
+                  : textColor.withValues(alpha: 0.5),
             ),
             const SizedBox(width: 6),
             Text(
               "包含背景",
               style: TextStyle(
                 fontSize: 13,
-                fontWeight: _includeBackground ? FontWeight.bold : FontWeight.normal,
+                fontWeight: _includeBackground
+                    ? FontWeight.bold
+                    : FontWeight.normal,
                 fontFamily: 'LXGWWenKai',
-                color: _includeBackground ? Colors.white : textColor.withOpacity(0.8),
+                color: _includeBackground
+                    ? Colors.white
+                    : textColor.withValues(alpha: 0.8),
               ),
             ),
           ],

@@ -18,7 +18,7 @@ class VipBenefitList extends StatelessWidget {
       delegate: SliverChildListDelegate([
         _buildHorizontalBenefitCard(
           title: '专属装扮',
-          description: '激活不同档位，即赠顶级稀有饰品并永久留存',
+          description: '激活不同档位，即赠顶级稀有饰品及首发专属形象',
           orbColor: const Color(0xFFFFD54F),
           isNight: isNight,
         ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.1, end: 0),

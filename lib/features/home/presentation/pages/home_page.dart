@@ -81,6 +81,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     
     // 监听日记变化，实时更新分组
     UserState().savedDiaries.addListener(_groupEntriesByDate);
+    
+    // 首次进入首页时检测成就（用于解锁“星河初航”等入驻成就）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        UserState().checkAchievements();
+      }
+    });
   }
 
   void _groupEntriesByDate() {
@@ -189,9 +196,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final double centerY = size.height / 2;
 
     return Matrix4.identity()
-      ..translate(centerX, centerY, 0.0)
-      ..scale(scale, scale, 1.0)
-      ..translate(-centerX, -centerY + (size.height * 0.02), 0.0);
+      ..translateByDouble(centerX, centerY, 0.0, 1.0)
+      ..scaleByDouble(scale, scale, 1.0, 1.0)
+      ..translateByDouble(-centerX, -centerY + (size.height * 0.02), 0.0, 1.0);
   }
 
   Future<void> _toggleOrientation() async {

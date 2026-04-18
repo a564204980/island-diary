@@ -27,9 +27,7 @@ class DiaryShareCardBuilder extends StatelessWidget {
       child: Container(
         width: 375,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        decoration: const BoxDecoration(
-          color: Color(0xFFFDF9F0),
-        ),
+        decoration: const BoxDecoration(color: Color(0xFFFDF9F0)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,7 +73,7 @@ class DiaryShareCardBuilder extends StatelessWidget {
           width: 60,
           height: 3,
           decoration: BoxDecoration(
-            color: const Color(0xFFD4A373).withOpacity(0.3),
+            color: const Color(0xFFD4A373).withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(1.5),
           ),
         ),
@@ -85,7 +83,9 @@ class DiaryShareCardBuilder extends StatelessWidget {
 
   Widget _buildDayContent() {
     if (entries.isEmpty) {
-      return const Center(child: Text("这一天没有记录哦", style: TextStyle(fontFamily: 'LXGWWenKai')));
+      return const Center(
+        child: Text("这一天没有记录哦", style: TextStyle(fontFamily: 'LXGWWenKai')),
+      );
     }
 
     return Column(
@@ -95,9 +95,9 @@ class DiaryShareCardBuilder extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 20),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFD4A373).withOpacity(0.1)),
+            border: Border.all(color: const Color(0xFFD4A373).withValues(alpha: 0.1)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,13 +116,18 @@ class DiaryShareCardBuilder extends StatelessWidget {
                   ),
                   const Spacer(),
                   if (entry.tag != null && entry.tag!.isNotEmpty)
-                    _buildTag(entry.tag!, mood.glowColor ?? const Color(0xFFD4A373)),
+                    _buildTag(
+                      entry.tag!,
+                      mood.glowColor ?? const Color(0xFFD4A373),
+                    ),
                 ],
               ),
               const SizedBox(height: 12),
               RichText(
                 text: TextSpan(
-                  children: EmojiMapping.parseText(entry.content.trim()).map((chunk) {
+                  children: EmojiMapping.parseText(entry.content.trim()).map((
+                    chunk,
+                  ) {
                     if (chunk.isEmoji) {
                       return WidgetSpan(
                         alignment: PlaceholderAlignment.middle,
@@ -155,13 +160,15 @@ class DiaryShareCardBuilder extends StatelessWidget {
                   runSpacing: 8,
                   children: entry.blocks
                       .where((b) => b['type'] == 'image')
-                      .map((b) => DiaryUtils.buildImage(
-                            b['path'],
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                            borderRadius: BorderRadius.circular(8),
-                          ))
+                      .map(
+                        (b) => DiaryUtils.buildImage(
+                          b['path'],
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      )
                       .toList(),
                 ),
               ],
@@ -183,7 +190,7 @@ class DiaryShareCardBuilder extends StatelessWidget {
       moodStats[entry.moodIndex] = (moodStats[entry.moodIndex] ?? 0) + 1;
     }
 
-    // 按入选次数排序
+    // 按照入选次数排序
     final sortedMoods = moodStats.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -199,7 +206,7 @@ class DiaryShareCardBuilder extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 32),
-        // 2. 心情分布
+        // 2. 心情关键词
         const Text(
           "心情关键词",
           style: TextStyle(
@@ -218,25 +225,31 @@ class DiaryShareCardBuilder extends StatelessWidget {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: (mood.glowColor ?? const Color(0xFFD4A373)).withOpacity(0.1),
+                color: (mood.glowColor ?? const Color(0xFFD4A373)).withValues(
+                  alpha: 0.1,
+                ),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: (mood.glowColor ?? const Color(0xFFD4A373)).withOpacity(0.2)),
+                border: Border.all(
+                  color: (mood.glowColor ?? const Color(0xFFD4A373))
+                      .withValues(alpha: 0.2),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                   Image.asset(mood.iconPath ?? '', width: 16, height: 16),
-                   const SizedBox(width: 6),
-                   Text(
-                     "${mood.label} ${e.value}",
-                     style: TextStyle(
-                       fontSize: 13,
-                       color: (mood.glowColor ?? const Color(0xFF5D4037)).withOpacity(0.8),
-                       fontFamily: 'LXGWWenKai',
-                       fontFamilyFallback: const ['Nishiki'],
-                       fontWeight: FontWeight.w600,
-                     ),
-                   ),
+                  Image.asset(mood.iconPath ?? '', width: 16, height: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    "${mood.label} ${e.value}",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: (mood.glowColor ?? const Color(0xFF5D4037))
+                          .withValues(alpha: 0.8),
+                      fontFamily: 'LXGWWenKai',
+                      fontFamilyFallback: const ['Nishiki'],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             );
@@ -248,12 +261,16 @@ class DiaryShareCardBuilder extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFFD4A373).withOpacity(0.05),
+            color: const Color(0xFFD4A373).withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             children: [
-              const Icon(Icons.format_quote_rounded, color: Color(0xFFD4A373), size: 32),
+              const Icon(
+                Icons.format_quote_rounded,
+                color: Color(0xFFD4A373),
+                size: 32,
+              ),
               const SizedBox(height: 12),
               const Text(
                 "每一个普通的日子，都因为记录而变得闪亮。愿你在接下来的日子里，依然心有所期，行有所向。",
@@ -288,7 +305,11 @@ class DiaryShareCardBuilder extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: Colors.black26, fontFamily: 'LXGWWenKai'),
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.black26,
+            fontFamily: 'LXGWWenKai',
+          ),
         ),
       ],
     );
@@ -306,15 +327,15 @@ class DiaryShareCardBuilder extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         "#$tag",
         style: TextStyle(
-          fontSize: 10, 
-          color: color.withOpacity(0.8), 
-          fontWeight: FontWeight.bold, 
+          fontSize: 10,
+          color: color.withValues(alpha: 0.8),
+          fontWeight: FontWeight.bold,
           fontFamily: 'LXGWWenKai',
           fontFamilyFallback: const ['Nishiki'],
         ),
@@ -340,7 +361,11 @@ class DiaryShareCardBuilder extends StatelessWidget {
             ),
             Text(
               "用记录治愈生活",
-              style: TextStyle(fontSize: 10, color: Colors.black12, fontFamily: 'LXGWWenKai'),
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.black12,
+                fontFamily: 'LXGWWenKai',
+              ),
             ),
           ],
         ),
@@ -350,26 +375,30 @@ class DiaryShareCardBuilder extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: const Color(0xFFD4A373).withOpacity(0.1),
+            color: const Color(0xFFD4A373).withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.eco_rounded, color: Color(0xFFD4A373), size: 18),
+          child: const Icon(
+            Icons.eco_rounded,
+            color: Color(0xFFD4A373),
+            size: 18,
+          ),
         ),
       ],
     );
   }
- 
+
   Widget _buildBookContent() {
     if (entries.isEmpty) {
       return const Center(
-          child:
-              Text("还没有任何记录哦", style: TextStyle(fontFamily: 'LXGWWenKai')));
+        child: Text("还没有任何记录哦", style: TextStyle(fontFamily: 'LXGWWenKai')),
+      );
     }
- 
+
     // 按日期倒序排列
     final sortedEntries = List<DiaryEntry>.from(entries)
       ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
- 
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -395,14 +424,14 @@ class DiaryShareCardBuilder extends StatelessWidget {
       ],
     );
   }
- 
+
   Widget _buildBookEntryItem(DiaryEntry entry) {
     final mood = kMoods[entry.moodIndex.clamp(0, kMoods.length - 1)];
     final dateStr =
         "${entry.dateTime.year}/${entry.dateTime.month}/${entry.dateTime.day}";
     final timeStr =
         "${entry.dateTime.hour.toString().padLeft(2, '0')}:${entry.dateTime.minute.toString().padLeft(2, '0')}";
- 
+
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       child: IntrinsicHeight(
@@ -433,7 +462,7 @@ class DiaryShareCardBuilder extends StatelessWidget {
                 Expanded(
                   child: Container(
                     width: 1,
-                    color: const Color(0xFFD4A373).withOpacity(0.2),
+                    color: const Color(0xFFD4A373).withValues(alpha: 0.2),
                   ),
                 ),
               ],
@@ -453,45 +482,51 @@ class DiaryShareCardBuilder extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           color: (mood.glowColor ?? const Color(0xFFD4A373))
-                              .withOpacity(0.7),
+                              .withValues(alpha: 0.7),
                           fontFamily: 'LXGWWenKai',
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       if (entry.tag != null && entry.tag!.isNotEmpty) ...[
                         const SizedBox(width: 8),
-                        _buildTag(entry.tag!,
-                            mood.glowColor ?? const Color(0xFFD4A373)),
+                        _buildTag(
+                          entry.tag!,
+                          mood.glowColor ?? const Color(0xFFD4A373),
+                        ),
                       ],
                     ],
                   ),
                   const SizedBox(height: 8),
                   RichText(
                     text: TextSpan(
-                      children: EmojiMapping.parseText(entry.content.trim()).map((chunk) {
-                        if (chunk.isEmoji) {
-                          return WidgetSpan(
-                            alignment: PlaceholderAlignment.middle,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 2),
-                              child: Image.asset(
-                                chunk.emojiPath!,
-                                width: 14,
-                                height: 14,
+                      children: EmojiMapping.parseText(entry.content.trim())
+                          .map((chunk) {
+                            if (chunk.isEmoji) {
+                              return WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 2,
+                                  ),
+                                  child: Image.asset(
+                                    chunk.emojiPath!,
+                                    width: 14,
+                                    height: 14,
+                                  ),
+                                ),
+                              );
+                            }
+                            return TextSpan(
+                              text: chunk.text,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                height: 1.5,
+                                color: Color(0xFF5D4037),
+                                fontFamily: 'LXGWWenKai',
                               ),
-                            ),
-                          );
-                        }
-                        return TextSpan(
-                          text: chunk.text,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            height: 1.5,
-                            color: Color(0xFF5D4037),
-                            fontFamily: 'LXGWWenKai',
-                          ),
-                        );
-                      }).toList(),
+                            );
+                          })
+                          .toList(),
                     ),
                   ),
                   if (entry.blocks.any((b) => b['type'] == 'image')) ...[
@@ -501,13 +536,15 @@ class DiaryShareCardBuilder extends StatelessWidget {
                       runSpacing: 6,
                       children: entry.blocks
                           .where((b) => b['type'] == 'image')
-                          .map((b) => DiaryUtils.buildImage(
-                                b['path'],
-                                width: 50,
-                                height: 50,
-                                fit: BoxFit.cover,
-                                borderRadius: BorderRadius.circular(6),
-                              ))
+                          .map(
+                            (b) => DiaryUtils.buildImage(
+                              b['path'],
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          )
                           .toList(),
                     ),
                   ],
@@ -536,7 +573,7 @@ class DiaryShareCardBuilder extends StatelessWidget {
               width: 2,
               height: 12,
               decoration: BoxDecoration(
-                color: const Color(0xFFD4A373).withOpacity(0.5),
+                color: const Color(0xFFD4A373).withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
@@ -553,52 +590,64 @@ class DiaryShareCardBuilder extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        ...entry.replies.map((reply) => Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: EdgeInsets.all(compact ? 8 : 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFFD4A373).withOpacity(0.04),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              RichText(
-                text: TextSpan(
-                  children: EmojiMapping.parseText(reply.content.trim()).map((chunk) {
-                    if (chunk.isEmoji) {
-                      return WidgetSpan(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 1),
-                          child: Image.asset(chunk.emojiPath!, width: 14, height: 14),
-                        ),
-                      );
-                    }
-                    return TextSpan(
-                      text: chunk.text,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF5D4037),
-                        fontFamily: 'LXGWWenKai',
-                        height: 1.4,
+        ...entry.replies
+            .map(
+              (reply) => Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: EdgeInsets.all(compact ? 8 : 10),
+                decoration: BoxDecoration(
+                  color: Color(0xFFD4A373).withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                        children: EmojiMapping.parseText(reply.content.trim())
+                            .map((chunk) {
+                              if (chunk.isEmoji) {
+                                return WidgetSpan(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 1,
+                                    ),
+                                    child: Image.asset(
+                                      chunk.emojiPath!,
+                                      width: 14,
+                                      height: 14,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return TextSpan(
+                                text: chunk.text,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF5D4037),
+                                  fontFamily: 'LXGWWenKai',
+                                  height: 1.4,
+                                ),
+                              );
+                            })
+                            .toList(),
                       ),
-                    );
-                  }).toList(),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "${reply.dateTime.year}/${reply.dateTime.month}/${reply.dateTime.day} ${reply.dateTime.hour.toString().padLeft(2, '0')}:${reply.dateTime.minute.toString().padLeft(2, '0')}",
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.black12,
+                        fontFamily: 'LXGWWenKai',
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                "${reply.dateTime.year}/${reply.dateTime.month}/${reply.dateTime.day} ${reply.dateTime.hour.toString().padLeft(2, '0')}:${reply.dateTime.minute.toString().padLeft(2, '0')}",
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Colors.black12,
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-            ],
-          ),
-        )).toList(),
+            )
+            .toList(),
       ],
     );
   }

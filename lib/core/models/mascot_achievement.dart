@@ -103,6 +103,7 @@ enum AchievementCondition {
   activeDays,
   totalMoods,
   vipLevel,
+  isResident,
 }
 
 class MascotAchievement {
@@ -113,7 +114,9 @@ class MascotAchievement {
   final int targetValue;
   final String? rewardDecorationId;
   final String? rewardTitle;
+  final String? rewardMascotPath;
   final int rewardPoints;
+  final String? imagePath;
 
   const MascotAchievement({
     required this.id,
@@ -123,7 +126,9 @@ class MascotAchievement {
     required this.targetValue,
     this.rewardDecorationId,
     this.rewardTitle,
+    this.rewardMascotPath,
     this.rewardPoints = 10,
+    this.imagePath,
   });
 
   /// 检查是否满足成就条件
@@ -161,6 +166,16 @@ class MascotAchievement {
       targetValue: 7,
       rewardTitle: '旅岛信使',
       rewardPoints: 30,
+    ),
+    MascotAchievement(
+      id: 'lingxi_unlock',
+      title: '林间灵光',
+      description: '累计记录 14 篇日记',
+      condition: AchievementCondition.totalDiaries,
+      targetValue: 14,
+      rewardMascotPath: 'assets/images/emoji/marshmallow3.png',
+      rewardTitle: '灵犀之友',
+      rewardPoints: 50,
     ),
     MascotAchievement(
       id: 'month_milestone',
@@ -301,6 +316,16 @@ class MascotAchievement {
       targetValue: 50,
       rewardTitle: '灵感捕手',
       rewardPoints: 50,
+    ),
+    MascotAchievement(
+      id: 'yunzhi_unlock',
+      title: '云端织梦',
+      description: '累计记录 60 篇日记',
+      condition: AchievementCondition.totalDiaries,
+      targetValue: 60,
+      rewardMascotPath: 'assets/images/emoji/marshmallow.png',
+      rewardTitle: '织梦大师',
+      rewardPoints: 120,
     ),
     MascotAchievement(
       id: 'diaries_100',
@@ -602,10 +627,11 @@ class MascotAchievement {
       id: 'vip_level_1',
       title: '星河初航',
       description: '入驻星空岛，开启月度拾光之旅',
-      condition: AchievementCondition.vipLevel,
+      condition: AchievementCondition.isResident,
       targetValue: 1,
       rewardTitle: '星海指引',
       rewardPoints: 10,
+      imagePath: 'assets/images/emoji/medal/medal1.png',
     ),
     MascotAchievement(
       id: 'vip_level_2',
@@ -667,6 +693,8 @@ extension AchievementConditionStyle on AchievementCondition {
         return const Color(0xFF10B981); // 翠绿
       case AchievementCondition.vipLevel:
         return const Color(0xFFFFB300); // 荣耀金
+      case AchievementCondition.isResident:
+        return const Color(0xFF6366F1); // 入驻蓝紫 (Indigo)
       case AchievementCondition.totalDecorationsOwned:
         return const Color(0xFF14B8A6); // 青色（与详情页 amber fallback 统一换为此色）
     }
@@ -723,6 +751,11 @@ extension AchievementConditionStyle on AchievementCondition {
           begin: Alignment.topLeft, end: Alignment.bottomRight,
           colors: [Color(0xFFFFD54F), Color(0xFFFF8F00)],
         );
+      case AchievementCondition.isResident:
+        return const LinearGradient(
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: [Color(0xFF818CF8), Color(0xFF6366F1)],
+        );
       case AchievementCondition.totalDecorationsOwned:
         return const LinearGradient(
           begin: Alignment.topLeft, end: Alignment.bottomRight,
@@ -758,6 +791,8 @@ extension AchievementConditionStyle on AchievementCondition {
         return Icons.sell_rounded;
       case AchievementCondition.vipLevel:
         return Icons.workspace_premium_rounded;
+      case AchievementCondition.isResident:
+        return Icons.rocket_launch_rounded;
       case AchievementCondition.totalDecorationsOwned:
         return Icons.diamond_rounded;
     }

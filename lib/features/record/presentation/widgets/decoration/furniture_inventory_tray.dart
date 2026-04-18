@@ -34,7 +34,8 @@ class FurnitureInventoryTray extends StatelessWidget {
     final filteredItems = availableItems.where((item) {
       bool matchCat = item.category == selectedCategory;
       bool matchSub =
-          selectedSubCategory == null || item.subCategory == selectedSubCategory;
+          selectedSubCategory == null ||
+          item.subCategory == selectedSubCategory;
       return matchCat && matchSub;
     }).toList();
 
@@ -42,12 +43,12 @@ class FurnitureInventoryTray extends StatelessWidget {
       width: 280,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.85),
+        color: Colors.black.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 20,
             offset: const Offset(-10, 0),
           ),
@@ -57,31 +58,36 @@ class FurnitureInventoryTray extends StatelessWidget {
         borderRadius: BorderRadius.circular(32),
         child: Row(
           children: [
-            // 一级分类侧边栏
+            // 涓€绾у垎绫讳晶杈规爮
             _buildCategorySidebar(categories),
-            // 右侧内容区
+            // 鍙充晶鍐呭鍖?
             Expanded(
               child: Column(
                 children: [
-                  // 二级分类选择器
+                  // 浜岀骇鍒嗙被閫夋嫨鍣?
                   _buildSubCategorySelector(subCategories),
-                  // 物品网格
+                  // 鐗╁搧缃戞牸
                   Expanded(
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
                       child: GridView.builder(
-                        key: ValueKey("${selectedCategory}_$selectedSubCategory"),
+                        key: ValueKey(
+                          "${selectedCategory}_$selectedSubCategory",
+                        ),
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.75,
-                        ),
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 0.75,
+                            ),
                         itemCount: filteredItems.length,
                         itemBuilder: (context, index) {
-                          return _buildFurnitureCard(filteredItems[index], index);
+                          return _buildFurnitureCard(
+                            filteredItems[index],
+                            index,
+                          );
                         },
                       ),
                     ),
@@ -99,7 +105,7 @@ class FurnitureInventoryTray extends StatelessWidget {
     return Container(
       width: 65,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         border: const Border(right: BorderSide(color: Colors.white10)),
       ),
       child: ListView.builder(
@@ -116,8 +122,7 @@ class FurnitureInventoryTray extends StatelessWidget {
               decoration: BoxDecoration(
                 border: isSelected
                     ? const Border(
-                        right:
-                            BorderSide(color: Colors.blueAccent, width: 3),
+                        right: BorderSide(color: Colors.blueAccent, width: 3),
                       )
                     : null,
               ),
@@ -135,8 +140,9 @@ class FurnitureInventoryTray extends StatelessWidget {
                     style: TextStyle(
                       color: isSelected ? Colors.white : Colors.white30,
                       fontSize: 10,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -160,7 +166,7 @@ class FurnitureInventoryTray extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final isAll = index == 0;
-          final subCat = isAll ? '全部' : subCategories[index - 1];
+          final subCat = isAll ? '鍏ㄩ儴' : subCategories[index - 1];
           final isSelected = isAll
               ? selectedSubCategory == null
               : subCat == selectedSubCategory;
@@ -176,21 +182,20 @@ class FurnitureInventoryTray extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? Colors.blueAccent.withOpacity(0.15)
-                      : Colors.white.withOpacity(0.03),
+                      ? Colors.blueAccent.withValues(alpha: 0.15)
+                      : Colors.white.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected
-                        ? Colors.blueAccent.withOpacity(0.4)
-                        : Colors.white.withOpacity(0.08),
+                        ? Colors.blueAccent.withValues(alpha: 0.4)
+                        : Colors.white.withValues(alpha: 0.08),
                   ),
                 ),
                 child: Text(
                   subCat,
                   style: TextStyle(
                     fontSize: 11,
-                    color:
-                        isSelected ? Colors.white : Colors.white38,
+                    color: isSelected ? Colors.white : Colors.white38,
                     fontWeight: isSelected
                         ? FontWeight.bold
                         : FontWeight.normal,
@@ -206,22 +211,20 @@ class FurnitureInventoryTray extends StatelessWidget {
 
   Widget _buildFurnitureCard(FurnitureItem item, int index) {
     final bool isOutOfStock = item.quantity <= 0;
-    
-    // 手风琴阶梯式进场动画
+
+    // 鎵嬮鐞撮樁姊紡杩涘満鍔ㄧ敾
     return TweenAnimationBuilder<double>(
       key: ValueKey("${item.id}_${selectedCategory}_$index"),
       tween: Tween<double>(begin: 0.0, end: 1.0),
       duration: Duration(milliseconds: 400 + (index * 40).clamp(0, 400)),
       curve: Curves.easeOutCubic,
       builder: (context, value, child) {
-        // 使用 Curves.easeOutBack 模拟物理回弹，产生手风琴展开的质感
-        final double slideOffset = 60 * (1.0 - Curves.easeOutBack.transform(value));
+        // 浣跨敤 Curves.easeOutBack 妯℃嫙鐗╃悊鍥炲脊锛屼骇鐢熸墜椋庣惔灞曞紑鐨勮川鎰?
+        final double slideOffset =
+            60 * (1.0 - Curves.easeOutBack.transform(value));
         return Transform.translate(
           offset: Offset(slideOffset, 0),
-          child: Opacity(
-            opacity: value.clamp(0.0, 1.0),
-            child: child,
-          ),
+          child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
         );
       },
       child: LongPressDraggable<FurnitureItem>(
@@ -234,7 +237,10 @@ class FurnitureInventoryTray extends StatelessWidget {
         data: item,
         maxSimultaneousDrags: isOutOfStock ? 0 : 1,
         feedback: const SizedBox.shrink(),
-        childWhenDragging: Opacity(opacity: 0.3, child: _buildCardContent(item)),
+        childWhenDragging: Opacity(
+          opacity: 0.3,
+          child: _buildCardContent(item),
+        ),
         child: Opacity(
           opacity: isOutOfStock ? 0.4 : 1.0,
           child: _buildCardContent(item),
@@ -253,9 +259,9 @@ class FurnitureInventoryTray extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.04),
+                color: Colors.white.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
               child: Center(
                 child: Padding(
@@ -310,17 +316,17 @@ class FurnitureInventoryTray extends StatelessWidget {
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
-      case '地板':
+      case '鍦版澘':
         return Icons.grid_view_rounded;
-      case '墙壁':
+      case '澧欏':
         return Icons.view_quilt_rounded;
-      case '厨房':
+      case '鍘ㄦ埧':
         return Icons.kitchen;
-      case '卧室':
+      case '鍗у':
         return Icons.bed;
-      case '客厅':
+      case '瀹㈠巺':
         return Icons.chair;
-      case '装饰':
+      case '瑁呴グ':
         return Icons.palette;
       default:
         return Icons.category;

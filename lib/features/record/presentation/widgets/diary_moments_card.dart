@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// Analysis Flush: 强制刷新库摘要以解决 Bad state 错误
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
@@ -200,9 +201,7 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
   Widget build(BuildContext context) {
     final textStyle = TextStyle(
       fontSize: 15.0,
-      color: widget.isNight
-          ? Colors.white70
-          : Colors.black.withValues(alpha: 0.85),
+      color: widget.isNight ? Colors.white70 : Colors.black.withValues(alpha: 0.85),
       height: 1.5,
       fontFamily: 'LXGWWenKai',
     );
@@ -356,9 +355,7 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
                             size: 20,
                             color: widget.isNight
                                 ? Colors.white30
-                                : const Color(
-                                    0xFF576B95,
-                                  ).withValues(alpha: 0.6),
+                                : const Color(0xFF576B95).withValues(alpha: 0.6),
                           ),
                         ),
                       ),

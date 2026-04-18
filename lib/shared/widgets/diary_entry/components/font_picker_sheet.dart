@@ -70,12 +70,12 @@ class DiaryFontPickerSheet extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? const Color(0xFF8B5E3C)
-                        : Colors.white.withOpacity(0.5),
+                        : Colors.white.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: const Color(
                         0xFF8B5E3C,
-                      ).withOpacity(isSelected ? 1.0 : 0.2),
+                      ).withValues(alpha: isSelected ? 1.0 : 0.2),
                       width: 1.5,
                     ),
                   ),

@@ -32,7 +32,7 @@ class IslandAlert extends StatelessWidget {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'IslandAlert',
-      barrierColor: Colors.black.withOpacity(0.15),
+      barrierColor: Colors.black.withValues(alpha: 0.15),
       transitionDuration: withAnimation
           ? const Duration(milliseconds: 400)
           : Duration.zero,
@@ -56,6 +56,7 @@ class IslandAlert extends StatelessWidget {
 
     // 默认 3 秒后自动关闭
     Future.delayed(duration, () {
+      if (!context.mounted) return;
       if (!isPopped && Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
       }
@@ -77,15 +78,15 @@ class IslandAlert extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(40),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
+                    color: Colors.black.withValues(alpha: 0.12),
                     blurRadius: 30,
                     spreadRadius: -10,
                     offset: const Offset(0, 15),

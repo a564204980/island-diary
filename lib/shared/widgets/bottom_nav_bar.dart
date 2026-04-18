@@ -74,8 +74,10 @@ class _BottomNavBarState extends State<BottomNavBar> {
     precacheImage(const AssetImage('assets/images/paper2.png'), context);
 
     for (var mood in kMoods) {
-      if (mood.imagePath != null) precacheImage(AssetImage(mood.imagePath!), context);
-      if (mood.iconPath != null) precacheImage(AssetImage(mood.iconPath!), context);
+      final img = mood.imagePath;
+      if (img != null) precacheImage(AssetImage(img), context);
+      final icon = mood.iconPath;
+      if (icon != null) precacheImage(AssetImage(icon), context);
     }
   }
 
@@ -158,7 +160,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 clipper: const NavBarClipper(notchRadius: notchRadius, barRadius: barRadius),
                 child: _buildBlurBody(
                   child: Center(
-                    child: Container(
+                    child: SizedBox(
                       width: barMaxWidth * 0.88,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -183,7 +185,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
   }
 
   Widget _buildBlurBody({Widget? child}) {
-    return Container(
+    return SizedBox(
       height: barHeight,
       width: double.infinity,
       child: Stack(
@@ -312,7 +314,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
     return MultiValueListenableBuilder(
       listenables: [_isIdleNotifier, _showDialogueNotifier, _isMoodPickerOpenNotifier, _dialogueTextNotifier],
       builder: (context, values, _) {
-        final isIdle = values[0] as bool;
         final showDialogue = values[1] as bool;
         final isMoodPickerOpen = values[2] as bool;
         final dialogue = values[3] as String;
@@ -454,8 +455,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
     ).then((result) {
       UserState().isDiarySheetOpen.value = false;
       // 进一步放宽判定条件，确保回调必达
-      if (result is List && result.isNotEmpty && widget.onSaveSuccess != null) {
-        widget.onSaveSuccess!(List<MascotAchievement>.from(result));
+      if (result is List && result.isNotEmpty) {
+        widget.onSaveSuccess?.call(List<MascotAchievement>.from(result));
       }
     });
   }

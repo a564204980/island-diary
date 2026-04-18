@@ -57,14 +57,26 @@ class MascotDecoration {
       rarity: MascotRarity.legendary,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -6), scale: 1.1),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -6),
-          scale: 1.1,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
           offset: Offset(0, -14),
           scale: 1,
-        ), // 示例：雪团儿的微调
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -14),
+          scale: 1,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -14),
+          scale: 1,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+          offset: Offset(0, -14),
+          scale: 1,
+        ),
+        'assets/images/emoji/marshmallow5.png': MascotDecorationConfig(
+          offset: Offset(0, -14),
+          scale: 1,
+        ),
       },
     ),
     MascotDecoration(
@@ -74,11 +86,19 @@ class MascotDecoration {
       description: '向着阳光而生，收藏每一寸粉色的温柔',
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.2),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -20),
-          scale: 1.2,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -74),
+          scale: 0.8,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -74),
+          scale: 0.8,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -74),
+          scale: 0.8,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -74),
           scale: 0.8,
         ),
@@ -92,11 +112,19 @@ class MascotDecoration {
       rarity: MascotRarity.epic,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -28), scale: 1.8),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -28),
-          scale: 1.8,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, 10),
           scale: 1.5,
         ),
@@ -110,13 +138,21 @@ class MascotDecoration {
       rarity: MascotRarity.rare,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.5),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -20),
-          scale: 1.5,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
           offset: Offset(5, -62),
           scale: 1.34,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(5, -62),
+          scale: 1.34,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(5, -62),
+          scale: 1.34,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+          offset: Offset(5, -70),
+          scale: 1.32,
         ),
       },
     ),
@@ -128,11 +164,19 @@ class MascotDecoration {
       rarity: MascotRarity.rare,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.2),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -12),
-          scale: 1.2,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -46),
+          scale: 0.9,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -46),
+          scale: 0.9,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -46),
+          scale: 0.9,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -46),
           scale: 0.9,
         ),
@@ -146,11 +190,19 @@ class MascotDecoration {
       rarity: MascotRarity.epic,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -40), scale: 1.0),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -40),
+        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(-2, -34),
           scale: 1.0,
         ),
-        'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(-2, -34),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(-2, -34),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(-2, -34),
           scale: 1.0,
         ),
@@ -164,11 +216,19 @@ class MascotDecoration {
       rarity: MascotRarity.epic,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -6), scale: 2.2),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -6),
-          scale: 2.2,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.78,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.78,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.78,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, 10),
           scale: 1.78,
         ),
@@ -181,11 +241,19 @@ class MascotDecoration {
       description: '刷个666，好运常驻！这顶带有魔力的帽子能为你带来无限顺遂。',
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.6),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -20),
-          scale: 1.6,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -60),
+          scale: 0.7,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -60),
+          scale: 0.54,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -60),
+          scale: 0.7,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -60),
           scale: 0.7,
         ),
@@ -198,13 +266,21 @@ class MascotDecoration {
       description: '国宝卖萌，憨态可掬',
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -18), scale: 1.4),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -18),
-          scale: 1.4,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
           offset: Offset(0, -40),
-          scale: 0.8,
+          scale: 0.78,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 0.7,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 0.78,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 0.78,
         ),
       },
     ),
@@ -216,11 +292,19 @@ class MascotDecoration {
       rarity: MascotRarity.legendary,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -30), scale: 1.8),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -30),
-          scale: 1.8,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(2, 10),
+          scale: 1.4,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(2, 10),
+          scale: 1.4,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(2, 10),
+          scale: 1.4,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(2, 10),
           scale: 1.4,
         ),
@@ -234,13 +318,21 @@ class MascotDecoration {
       rarity: MascotRarity.rare,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -15), scale: 1.4),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -15),
-          scale: 1.4,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
           offset: Offset(-4, -40),
           scale: 1.1,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(-4, -40),
+          scale: 1,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(-4, -40),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+          offset: Offset(-4, -40),
+          scale: 1.0,
         ),
       },
     ),
@@ -251,13 +343,21 @@ class MascotDecoration {
       description: '红红火火，灵动可爱',
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -22), scale: 1.5),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -22),
-          scale: 1.5,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
           offset: Offset(0, -74),
           scale: 1.10,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -74),
+          scale: 0.86,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -74),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+          offset: Offset(0, -74),
+          scale: 1.0,
         ),
       },
     ),
@@ -269,11 +369,19 @@ class MascotDecoration {
       rarity: MascotRarity.rare,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.6),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -12),
-          scale: 1.6,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 1,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 1,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 1,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -40),
           scale: 1,
         ),
@@ -287,11 +395,19 @@ class MascotDecoration {
       rarity: MascotRarity.epic,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.6),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -12),
-          scale: 1.6,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(-4, -50),
+          scale: 1.24,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(-4, -50),
+          scale: 1.24,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(-4, -50),
+          scale: 1.24,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(-4, -50),
           scale: 1.24,
         ),
@@ -305,11 +421,19 @@ class MascotDecoration {
       rarity: MascotRarity.epic,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.4),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -10),
-          scale: 1.4,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -20),
+          scale: 1.14,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -20),
+          scale: 1.14,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -20),
+          scale: 1.14,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -20),
           scale: 1.14,
         ),
@@ -323,11 +447,19 @@ class MascotDecoration {
       rarity: MascotRarity.epic,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.8),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -20),
-          scale: 1.8,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(4, -22),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(4, -22),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(4, -22),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(4, -22),
           scale: 1.0,
         ),
@@ -341,11 +473,19 @@ class MascotDecoration {
       rarity: MascotRarity.rare,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -15), scale: 1.4),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -15),
-          scale: 1.4,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -74),
+          scale: 0.9,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -74),
+          scale: 0.84,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -74),
+          scale: 0.9,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -74),
           scale: 0.9,
         ),
@@ -359,11 +499,19 @@ class MascotDecoration {
       rarity: MascotRarity.common,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.5),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -12),
-          scale: 1.5,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 0.8,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 0.8,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 0.8,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -40),
           scale: 0.8,
         ),
@@ -377,11 +525,19 @@ class MascotDecoration {
       rarity: MascotRarity.rare,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -15), scale: 1.4),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -15),
-          scale: 1.4,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 0.8,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -30),
+          scale: 0.8,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 0.8,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -40),
           scale: 0.8,
         ),
@@ -395,11 +551,19 @@ class MascotDecoration {
       rarity: MascotRarity.legendary,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, 10), scale: 1.12),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, 10),
-          scale: 1.12,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -54),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -54),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -54),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -54),
           scale: 1.5,
         ),
@@ -413,11 +577,19 @@ class MascotDecoration {
       rarity: MascotRarity.legendary,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.5),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -20),
-          scale: 1.5,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 1.2,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 1.2,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 1.2,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -40),
           scale: 1.2,
         ),
@@ -431,11 +603,19 @@ class MascotDecoration {
       rarity: MascotRarity.legendary,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -30), scale: 1.3),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -30),
-          scale: 1.3,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(-2, -20),
+          scale: 1.1,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(-2, -20),
+          scale: 1.1,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(-2, -20),
+          scale: 1.1,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(-2, -20),
           scale: 1.1,
         ),
@@ -449,11 +629,19 @@ class MascotDecoration {
       rarity: MascotRarity.legendary,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.3),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -10),
-          scale: 1.3,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -50),
+          scale: 1.2,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -50),
+          scale: 1.2,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -50),
+          scale: 1.2,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -50),
           scale: 1.2,
         ),
@@ -467,11 +655,19 @@ class MascotDecoration {
       rarity: MascotRarity.epic,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.5),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, 0),
-          scale: 1.5,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -25),
+          scale: 1,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -25),
+          scale: 1,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -25),
+          scale: 1,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -25),
           scale: 1,
         ),
@@ -485,11 +681,19 @@ class MascotDecoration {
       rarity: MascotRarity.legendary,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.4),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -10),
-          scale: 1.4,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(2, 0),
+          scale: 1.2,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(2, 0),
+          scale: 1.2,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(2, 0),
+          scale: 1.2,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(2, 0),
           scale: 1.2,
         ),
@@ -503,11 +707,19 @@ class MascotDecoration {
       rarity: MascotRarity.legendary,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.4),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -10),
-          scale: 1.4,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 0),
+          scale: 1.38,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, 0),
+          scale: 1.38,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, 0),
+          scale: 1.38,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, 0),
           scale: 1.38,
         ),
@@ -525,6 +737,18 @@ class MascotDecoration {
           offset: Offset(0, -50),
           scale: 1,
         ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -50),
+          scale: 1,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -50),
+          scale: 1,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+          offset: Offset(0, -50),
+          scale: 1,
+        ),
       },
     ),
     MascotDecoration(
@@ -536,6 +760,18 @@ class MascotDecoration {
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -15), scale: 1.2),
       characterConfigs: {
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -65),
+          scale: 0.9,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -65),
+          scale: 0.82,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -65),
+          scale: 0.9,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -65),
           scale: 0.9,
         ),
@@ -553,6 +789,18 @@ class MascotDecoration {
           offset: Offset(0, -65),
           scale: 0.9,
         ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -65),
+          scale: 0.82,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -65),
+          scale: 0.9,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+          offset: Offset(0, -65),
+          scale: 0.9,
+        ),
       },
     ),
     MascotDecoration(
@@ -564,6 +812,18 @@ class MascotDecoration {
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.5),
       characterConfigs: {
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 0),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, 0),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, 0),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, 0),
           scale: 1.0,
         ),
@@ -581,6 +841,18 @@ class MascotDecoration {
           offset: Offset(0, -40),
           scale: 0.6,
         ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 0.6,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 0.6,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+          offset: Offset(0, -40),
+          scale: 0.6,
+        ),
       },
     ),
     MascotDecoration(
@@ -591,11 +863,19 @@ class MascotDecoration {
       rarity: MascotRarity.epic,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.5),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -20),
-          scale: 1.5,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 0),
+          scale: 1.1,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, 0),
+          scale: 1.1,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, 0),
+          scale: 1.1,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, 0),
           scale: 1.1,
         ),
@@ -609,11 +889,19 @@ class MascotDecoration {
       rarity: MascotRarity.rare,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -18), scale: 1.5),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -18),
-          scale: 1.5,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -10),
           scale: 1.0,
         ),
@@ -627,11 +915,19 @@ class MascotDecoration {
       rarity: MascotRarity.common,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.4),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -10),
-          scale: 1.4,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, 10),
+          scale: 1.0,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, 10),
           scale: 1.0,
         ),
@@ -645,11 +941,19 @@ class MascotDecoration {
       rarity: MascotRarity.legendary,
       defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.4),
       characterConfigs: {
-        'assets/images/emoji/pedding3.png': MascotDecorationConfig(
-          offset: Offset(0, -10),
-          scale: 1.4,
-        ),
         'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+          offset: Offset(0, -10),
+          scale: 1.5,
+        ),
+        'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
           offset: Offset(0, -10),
           scale: 1.5,
         ),

@@ -42,7 +42,11 @@ class StaticSprite extends StatelessWidget {
                     child: SizedBox(
                       width: size * frameCount,
                       height: size,
-                      child: Image.asset(assetPath, fit: BoxFit.fill),
+                      child: Image.asset(
+                        assetPath,
+                        fit: BoxFit.fill,
+                        gaplessPlayback: true,
+                      ),
                     ),
                   );
                 },
@@ -69,6 +73,7 @@ class StaticSprite extends StatelessWidget {
                       child: Image.asset(
                         decorationPath!,
                         fit: BoxFit.contain,
+                        gaplessPlayback: true,
                       ),
                     ),
                   ),

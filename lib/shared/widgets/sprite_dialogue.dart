@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:island_diary/shared/widgets/typewriter_text.dart';
 
 /// 手绘风格对话气泡，集成打字机效果与点击交互
@@ -87,15 +86,15 @@ class _HandDrawnBubblePainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.fill
       ..color = isNight
-          ? const Color(0xFF2A2A3A).withOpacity(0.85)
-          : const Color(0xFFFFFDF5).withOpacity(0.92);
+          ? const Color(0xFF2A2A3A).withValues(alpha: 0.85)
+          : const Color(0xFFFFFDF5).withValues(alpha: 0.92);
 
     final borderPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.3
       ..strokeCap = StrokeCap.round
       ..color = isNight
-          ? const Color(0xFF8B7355).withOpacity(0.7)
+          ? const Color(0xFF8B7355).withValues(alpha: 0.7)
           : const Color(0xFF9E896A); // 稍微加深一点对比
 
     final path = Path();
@@ -112,7 +111,7 @@ class _HandDrawnBubblePainter extends CustomPainter {
     if (!isNight) {
       canvas.drawShadow(
         path.shift(const Offset(0, 1.5)),
-        Colors.black.withOpacity(0.1),
+        Colors.black.withValues(alpha: 0.1),
         3,
         true,
       );
@@ -139,7 +138,7 @@ class _HandDrawnBubblePainter extends CustomPainter {
       secondPath,
       borderPaint
         ..strokeWidth = 0.8
-        ..color = borderPaint.color.withOpacity(0.25),
+        ..color = borderPaint.color.withValues(alpha: 0.25),
     );
   }
 

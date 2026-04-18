@@ -15,11 +15,12 @@ class _FurniturePathClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant _FurniturePathClipper oldClipper) => true;
 }
 
-/// 家具拖拽热区遮罩组件，提供选中后的透明交互层。
+/// 瀹跺叿鎷栨嫿鐑尯閬僵缁勪欢锛屾彁渚涢€変腑鍚庣殑閫忔槑浜や簰灞傘€?
 class FurnitureDragOverlay extends StatelessWidget {
   final PlacedFurniture pf;
   final IsometricCoordinateConverter converter;
-  final Function(FurnitureItem item, int rotation, (int, int) cell) onDragStarted;
+  final Function(FurnitureItem item, int rotation, (int, int) cell)
+  onDragStarted;
   final VoidCallback onDragCanceled;
 
   const FurnitureDragOverlay({
@@ -59,7 +60,10 @@ class FurnitureDragOverlay extends StatelessWidget {
       double maxY = pts.map((p) => p.dy).reduce(math.max);
 
       final localPath = Path()
-        ..addPolygon(pts.map((p) => Offset(p.dx - minX, p.dy - minY)).toList(), true);
+        ..addPolygon(
+          pts.map((p) => Offset(p.dx - minX, p.dy - minY)).toList(),
+          true,
+        );
 
       return Positioned(
         left: minX,
@@ -74,7 +78,8 @@ class FurnitureDragOverlay extends StatelessWidget {
             dragAnchorStrategy: pointerDragAnchorStrategy,
             data: pf.item,
             feedback: const SizedBox.shrink(),
-            onDragStarted: () => onDragStarted(pf.item, pf.rotation, (pf.r, pf.c)),
+            onDragStarted: () =>
+                onDragStarted(pf.item, pf.rotation, (pf.r, pf.c)),
             onDraggableCanceled: (_, __) => onDragCanceled(),
             child: Container(color: Colors.transparent),
           ),
@@ -89,12 +94,23 @@ class FurnitureDragOverlay extends StatelessWidget {
       gh = pf.item.gridW;
     }
 
-    // 计算中心定位点
-    final pt = converter.getScreenPoint(pf.r + gw / 2.0, pf.c + gh / 2.0, pf.z); // Added pf.z here for accuracy
+    // 璁＄畻涓績瀹氫綅鐐?
+    final pt = converter.getScreenPoint(
+      pf.r + gw / 2.0,
+      pf.c + gh / 2.0,
+      pf.z,
+    ); // Added pf.z here for accuracy
 
-    // 计算视觉尺寸，用于确定点击热区 (与 getFurnitureRect 逻辑同步)
-    final double visualW = converter.estimateVisualWidth(gw, gh, pf.r + gw / 2.0, pf.c + gh / 2.0, pf.item.visualScale);
-    final double spriteH = visualW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
+    // 璁＄畻瑙嗚灏哄锛岀敤浜庣‘瀹氱偣鍑荤儹鍖?(涓?getFurnitureRect 閫昏緫鍚屾)
+    final double visualW = converter.estimateVisualWidth(
+      gw,
+      gh,
+      pf.r + gw / 2.0,
+      pf.c + gh / 2.0,
+      pf.item.visualScale,
+    );
+    final double spriteH =
+        visualW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
     final double verticalOffset = visualW / 4.0;
     final double overlayH = spriteH + 60;
 

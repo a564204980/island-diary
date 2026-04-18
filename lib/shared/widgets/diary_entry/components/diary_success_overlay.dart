@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
 import 'dart:math' as math;
-import 'package:island_diary/shared/widgets/static_sprite.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
-import 'package:flutter/foundation.dart';
 
 enum ParticleType { circle, star, diamond, ring }
 

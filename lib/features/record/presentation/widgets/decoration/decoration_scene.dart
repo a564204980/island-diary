@@ -31,8 +31,10 @@ class DecorationScene extends StatelessWidget {
     double baseScale = screenH / imgH;
     if (imgW * baseScale < screenW) baseScale = screenW / imgW;
 
-    final double w = imgW * baseScale * kSceneScaleFactor * controller.currentScale;
-    final double h = imgH * baseScale * kSceneScaleFactor * controller.currentScale;
+    final double w =
+        imgW * baseScale * kSceneScaleFactor * controller.currentScale;
+    final double h =
+        imgH * baseScale * kSceneScaleFactor * controller.currentScale;
 
     // 使用统一的坐标转换工具，确保点击检测与绘制逻辑一致
     final double tw = w / 28;
@@ -56,175 +58,233 @@ class DecorationScene extends StatelessWidget {
             child: Container(
               alignment: Alignment.center,
               child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onPanStart: (_) => controller.updateInteracting(true),
-        onPanUpdate: (details) {
-          // 只要不是正在长按搬运家具，就允许平移场景
-          if (!controller.isLongPressDragging) {
-            controller.updateSceneOffset(details.delta);
-          }
-        },
-        onPanEnd: (_) => controller.updateInteracting(false),
-        onTapUp: (details) {
-          // 单击选择家具或单元格
-          final hit = controller.findVisualHit(
-            (gridKey.currentContext?.findRenderObject() as RenderBox).globalToLocal(details.globalPosition),
-            converter,
-          );
-          controller.selectFurniture(hit);
-        },
-        onLongPressStart: (details) {
-          // 长按开始搬动家具
-          if (controller.draggingItem != null) return;
-          final hit = controller.findVisualHit(
-            (gridKey.currentContext?.findRenderObject() as RenderBox).globalToLocal(details.globalPosition),
-            converter,
-          );
-          if (hit != null) {
-            HapticFeedback.mediumImpact();
-            controller.originalFurnitureData = hit;
-            controller.draggingOriginalPF = hit;
-            controller.draggingItem = hit.item;
-            controller.draggingRotation = hit.rotation;
-            controller.ghostCell = (hit.r, hit.c);
-            controller.ghostZ = hit.z;
-            controller.isLongPressDragging = true;
-            controller.updateInteracting(true);
-            controller.selectFurniture(null);
-            
-            // 关键：立即执行一次带 isFirstFrame 的位置更新来校准偏移量
-            controller.updateDragPosition(
-              (gridKey.currentContext?.findRenderObject() as RenderBox).globalToLocal(details.globalPosition),
-              converter,
-              isFirstFrame: true,
-            );
-          } else {
-            // 如果没点中家具，则尝试选中格子
-            final cell = converter.getGridCell((gridKey.currentContext?.findRenderObject() as RenderBox).globalToLocal(details.globalPosition));
-            controller.selectCell(cell);
-          }
-        },
-        onLongPressMoveUpdate: (details) {
-          if (controller.isLongPressDragging) {
-            controller.updateDragPosition(
-              (gridKey.currentContext?.findRenderObject() as RenderBox).globalToLocal(details.globalPosition),
-              converter,
-            );
-          }
-        },
-        onLongPressEnd: (details) {
-          if (controller.isLongPressDragging) {
-            final bool hasMoved = controller.originalFurnitureData == null || 
-              (controller.ghostCell?.$1 != controller.originalFurnitureData!.r || 
-               controller.ghostCell?.$2 != controller.originalFurnitureData!.c || 
-               controller.ghostZ != controller.originalFurnitureData!.z || 
-               controller.draggingRotation != controller.originalFurnitureData!.rotation);
+                behavior: HitTestBehavior.opaque,
+                onPanStart: (_) => controller.updateInteracting(true),
+                onPanUpdate: (details) {
+                  // 只要不是正在长按搬运家具，就允许平移场景
+                  if (!controller.isLongPressDragging) {
+                    controller.updateSceneOffset(details.delta);
+                  }
+                },
+                onPanEnd: (_) => controller.updateInteracting(false),
+                onTapUp: (details) {
+                  // 单击选择家具或单元格
+                  final hit = controller.findVisualHit(
+                    (gridKey.currentContext?.findRenderObject() as RenderBox)
+                        .globalToLocal(details.globalPosition),
+                    converter,
+                  );
+                  controller.selectFurniture(hit);
+                },
+                onLongPressStart: (details) {
+                  // 长按开始搬运家具
+                  if (controller.draggingItem != null) return;
+                  final hit = controller.findVisualHit(
+                    (gridKey.currentContext?.findRenderObject() as RenderBox)
+                        .globalToLocal(details.globalPosition),
+                    converter,
+                  );
+                  if (hit != null) {
+                    HapticFeedback.mediumImpact();
+                    controller.originalFurnitureData = hit;
+                    controller.draggingOriginalPF = hit;
+                    controller.draggingItem = hit.item;
+                    controller.draggingRotation = hit.rotation;
+                    controller.ghostCell = (hit.r, hit.c);
+                    controller.ghostZ = hit.z;
+                    controller.isLongPressDragging = true;
+                    controller.updateInteracting(true);
+                    controller.selectFurniture(null);
 
-            if (controller.ghostCell != null && 
-                (!hasMoved || controller.isAreaAvailable(controller.draggingItem!, controller.ghostCell!.$1, controller.ghostCell!.$2, controller.draggingRotation, converter, z: controller.ghostZ, exclude: controller.draggingOriginalPF))) {
-              controller.placeFurniture(controller.draggingItem!, r: controller.ghostCell!.$1, c: controller.ghostCell!.$2, z: controller.ghostZ, rotation: controller.draggingRotation);
-            } else {
-              controller.cancelDragging();
-            }
-          }
-        },
-        child: RepaintBoundary(
-          key: repaintKey,
-          child: Transform.translate(
-            offset: controller.sceneOffset,
-            child: SizedBox(
-              key: gridKey,
-              width: w,
-              height: h,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // 1. 核心绘制层
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: IsometricGridPainter(
-                        rows: kGridRows,
-                        cols: kGridCols,
-                        fullWidth: w,
-                        fullHeight: h,
-                        centerYFactor: centerYFactor,
-                        selectedCell: controller.selectedCell,
-                        placedItems: controller.placedFurniture,
-                        selectedFurniture: controller.selectedFurniture,
-                        isCapturing: controller.isCapturingSnapshot,
-                        showGrid: controller.showGrid,
-                        isInteracting: controller.isInteracting,
-                        currentScale: controller.currentScale,
-                        ghostItem: controller.draggingItem != null && controller.ghostCell != null
-                            ? (
-                                controller.draggingItem!,
-                                controller.ghostCell,
-                                controller.draggingRotation,
-                                controller.isAreaAvailable(
-                                  controller.draggingItem!,
-                                  controller.ghostCell!.$1,
-                                  controller.ghostCell!.$2,
-                                  controller.draggingRotation,
-                                  converter,
-                                  z: controller.ghostZ,
-                                  exclude: controller.draggingOriginalPF,
-                                ),
-                                controller.ghostZ,
-                              )
-                            : null,
-                        draggingOriginalPF: controller.draggingOriginalPF,
-                        bouncingItem: controller.bouncingFurniture,
-                        bounceScale: controller.bounceScale,
-                        wallColorLeft: controller.wallColorLeft,
-                        wallColorRight: controller.wallColorRight,
+                    // 关键：立即执行一次带 isFirstFrame 的位置更新来校准偏移量
+                    controller.updateDragPosition(
+                      (gridKey.currentContext?.findRenderObject() as RenderBox)
+                          .globalToLocal(details.globalPosition),
+                      converter,
+                      isFirstFrame: true,
+                    );
+                  } else {
+                    // 如果没点中家具，则尝试选中格子
+                    final cell = converter.getGridCell(
+                      (gridKey.currentContext?.findRenderObject() as RenderBox)
+                          .globalToLocal(details.globalPosition),
+                    );
+                    controller.selectCell(cell);
+                  }
+                },
+                onLongPressMoveUpdate: (details) {
+                  if (controller.isLongPressDragging) {
+                    controller.updateDragPosition(
+                      (gridKey.currentContext?.findRenderObject() as RenderBox)
+                          .globalToLocal(details.globalPosition),
+                      converter,
+                    );
+                  }
+                },
+                onLongPressEnd: (details) {
+                  if (controller.isLongPressDragging) {
+                    final bool hasMoved =
+                        controller.originalFurnitureData == null ||
+                        (controller.ghostCell?.$1 !=
+                                controller.originalFurnitureData!.r ||
+                            controller.ghostCell?.$2 !=
+                                controller.originalFurnitureData!.c ||
+                            controller.ghostZ !=
+                                controller.originalFurnitureData!.z ||
+                            controller.draggingRotation !=
+                                controller.originalFurnitureData!.rotation);
+
+                    if (controller.ghostCell != null &&
+                        (!hasMoved ||
+                            controller.isAreaAvailable(
+                              controller.draggingItem!,
+                              controller.ghostCell!.$1,
+                              controller.ghostCell!.$2,
+                              controller.draggingRotation,
+                              converter,
+                              z: controller.ghostZ,
+                              exclude: controller.draggingOriginalPF,
+                            ))) {
+                      controller.placeFurniture(
+                        controller.draggingItem!,
+                        r: controller.ghostCell!.$1,
+                        c: controller.ghostCell!.$2,
+                        z: controller.ghostZ,
+                        rotation: controller.draggingRotation,
+                      );
+                    } else {
+                      controller.cancelDragging();
+                    }
+                  }
+                },
+                child: RepaintBoundary(
+                  key: repaintKey,
+                  child: Transform.translate(
+                    offset: controller.sceneOffset,
+                    child: SizedBox(
+                      key: gridKey,
+                      width: w,
+                      height: h,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // 1. 核心绘制层
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: IsometricGridPainter(
+                                rows: kGridRows,
+                                cols: kGridCols,
+                                fullWidth: w,
+                                fullHeight: h,
+                                centerYFactor: centerYFactor,
+                                selectedCell: controller.selectedCell,
+                                placedItems: controller.placedFurniture,
+                                selectedFurniture: controller.selectedFurniture,
+                                isCapturing: controller.isCapturingSnapshot,
+                                showGrid: controller.showGrid,
+                                isInteracting: controller.isInteracting,
+                                currentScale: controller.currentScale,
+                                ghostItem:
+                                    controller.draggingItem != null &&
+                                        controller.ghostCell != null
+                                    ? (
+                                        controller.draggingItem!,
+                                        controller.ghostCell,
+                                        controller.draggingRotation,
+                                        controller.isAreaAvailable(
+                                          controller.draggingItem!,
+                                          controller.ghostCell!.$1,
+                                          controller.ghostCell!.$2,
+                                          controller.draggingRotation,
+                                          converter,
+                                          z: controller.ghostZ,
+                                          exclude:
+                                              controller.draggingOriginalPF,
+                                        ),
+                                        controller.ghostZ,
+                                      )
+                                    : null,
+                                draggingOriginalPF:
+                                    controller.draggingOriginalPF,
+                                bouncingItem: controller.bouncingFurniture,
+                                bounceScale: controller.bounceScale,
+                                wallColorLeft: controller.wallColorLeft,
+                                wallColorRight: controller.wallColorRight,
+                              ),
+                            ),
+                          ),
+
+                          // 2. 交互感知层 (DragTarget)
+                          Positioned.fill(
+                            child: DragTarget<FurnitureItem>(
+                              onMove: (details) =>
+                                  controller.updateDragPosition(
+                                    (gridKey.currentContext?.findRenderObject()
+                                            as RenderBox)
+                                        .globalToLocal(details.offset),
+                                    converter,
+                                  ),
+                              onAcceptWithDetails: (details) {
+                                final item = details.data;
+                                controller.updateInteracting(false);
+                                if (controller.ghostCell != null &&
+                                    item.quantity > 0) {
+                                  if (controller.isAreaAvailable(
+                                    item,
+                                    controller.ghostCell!.$1,
+                                    controller.ghostCell!.$2,
+                                    controller.draggingRotation,
+                                    converter,
+                                    z: controller.ghostZ,
+                                    exclude: controller.draggingOriginalPF,
+                                  )) {
+                                    controller.placeFurniture(
+                                      item,
+                                      r: controller.ghostCell!.$1,
+                                      c: controller.ghostCell!.$2,
+                                      z: controller.ghostZ,
+                                      rotation: controller.draggingRotation,
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('该区域无法放置家具'),
+                                        duration: Duration(seconds: 1),
+                                      ),
+                                    );
+                                    controller.cancelDragging();
+                                  }
+                                }
+                              },
+                              onLeave: (_) => controller.selectCell(null),
+                              builder: (context, _, __) =>
+                                  const SizedBox.shrink(),
+                            ),
+                          ),
+
+                          // 3. 编辑工具栏与拖拽 Overlay
+                          if (controller.selectedFurniture != null)
+                            FurnitureDragOverlay(
+                              pf: controller.selectedFurniture!,
+                              converter: converter,
+                              onDragStarted: (item, rot, cell) {
+                                controller.draggingItem = item;
+                                controller.draggingRotation = rot;
+                                controller.ghostCell = cell;
+                                controller.ghostZ =
+                                    controller.selectedFurniture?.z ?? 0.0;
+                                controller.draggingOriginalPF =
+                                    controller.selectedFurniture;
+                                controller.selectFurniture(null);
+                              },
+                              onDragCanceled: controller.cancelDragging,
+                            ),
+                        ],
                       ),
                     ),
                   ),
-
-                  // 2. 交互感知层 (DragTarget)
-                  Positioned.fill(
-                    child: DragTarget<FurnitureItem>(
-                      onMove: (details) => controller.updateDragPosition(
-                        (gridKey.currentContext?.findRenderObject() as RenderBox).globalToLocal(details.offset),
-                        converter,
-                      ),
-                      onAccept: (FurnitureItem item) {
-                        controller.updateInteracting(false);
-                        if (controller.ghostCell != null && item.quantity > 0) {
-                          if (controller.isAreaAvailable(item, controller.ghostCell!.$1, controller.ghostCell!.$2, controller.draggingRotation, converter, z: controller.ghostZ, exclude: controller.draggingOriginalPF)) {
-                            controller.placeFurniture(item, r: controller.ghostCell!.$1, c: controller.ghostCell!.$2, z: controller.ghostZ, rotation: controller.draggingRotation);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('该区域无法放置家具'), duration: Duration(seconds: 1)));
-                            controller.cancelDragging();
-                          }
-                        }
-                      },
-                      onLeave: (_) => controller.selectCell(null),
-                      builder: (context, _, __) => const SizedBox.shrink(),
-                    ),
-                  ),
-
-                  // 3. 编辑工具栏与拖拽 Overlay
-                  if (controller.selectedFurniture != null)
-                    FurnitureDragOverlay(
-                      pf: controller.selectedFurniture!,
-                      converter: converter,
-                      onDragStarted: (item, rot, cell) {
-                        controller.draggingItem = item;
-                        controller.draggingRotation = rot;
-                        controller.ghostCell = cell;
-                        controller.ghostZ = controller.selectedFurniture?.z ?? 0.0;
-                        controller.draggingOriginalPF = controller.selectedFurniture;
-                        controller.selectFurniture(null);
-                      },
-                      onDragCanceled: controller.cancelDragging,
-                    ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ),
-      ),
             ),
           ),
           if (controller.selectedFurniture != null)
@@ -236,7 +296,8 @@ class DecorationScene extends StatelessWidget {
                 screenH / 2 - (h / 2) + controller.sceneOffset.dy,
               ),
               onRotate: () => controller.rotateFurniture(converter),
-              onDelete: () => controller.deleteFurniture(controller.selectedFurniture!),
+              onDelete: () =>
+                  controller.deleteFurniture(controller.selectedFurniture!),
               onFillAll: () => {},
             ),
         ],
@@ -245,7 +306,8 @@ class DecorationScene extends StatelessWidget {
   }
 
   double _getGridCenterYFactor(BuildContext context) {
-    bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    bool isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     return isLandscape ? 0.35 : 0.42;
   }
 }

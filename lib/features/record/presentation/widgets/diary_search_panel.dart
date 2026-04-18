@@ -47,7 +47,7 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(widget.isNight ? 0.5 : 0.1),
+            color: Colors.black.withValues(alpha: widget.isNight ? 0.5 : 0.1),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -69,42 +69,54 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
               ),
             ),
           ),
-          
+
           // 搜索输入框
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: widget.isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+              color: widget.isNight
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: widget.isNight ? Colors.white10 : Colors.black.withOpacity(0.05),
+                color: widget.isNight
+                    ? Colors.white10
+                    : Colors.black.withValues(alpha: 0.05),
               ),
             ),
             child: TextField(
               controller: _controller,
               onSubmitted: (_) => _handleSearch(),
               textInputAction: TextInputAction.search,
+              onChanged: (_) => setState(() {}),
               style: TextStyle(color: textColor, fontFamily: 'LXGWWenKai'),
               decoration: InputDecoration(
                 hintText: "寻找某段回忆...",
-                hintStyle: TextStyle(color: hintColor, fontFamily: 'LXGWWenKai'),
+                hintStyle: TextStyle(
+                  color: hintColor,
+                  fontFamily: 'LXGWWenKai',
+                ),
                 border: InputBorder.none,
                 icon: Icon(Icons.search_rounded, color: hintColor, size: 20),
-                suffixIcon: _controller.text.isNotEmpty 
-                  ? IconButton(
-                      icon: Icon(Icons.clear_rounded, color: hintColor, size: 18),
-                      onPressed: () {
-                        setState(() {
-                          _controller.clear();
-                        });
-                        _handleSearch();
-                      },
-                    )
-                  : null,
+                suffixIcon: _controller.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear_rounded,
+                          color: hintColor,
+                          size: 18,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _controller.clear();
+                          });
+                          _handleSearch();
+                        },
+                      )
+                    : null,
               ),
             ),
           ),
-          
+
           const SizedBox(height: 20),
 
           // 日期筛选
@@ -132,14 +144,14 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                     "清除日期",
                     style: TextStyle(
                       fontSize: 12,
-                      color: const Color(0xFFD4A373).withOpacity(0.8),
+                      color: const Color(0xFFD4A373).withValues(alpha: 0.8),
                       fontFamily: 'LXGWWenKai',
                     ),
                   ),
                 ),
             ],
           ),
-          
+
           const SizedBox(height: 12),
 
           GestureDetector(
@@ -155,8 +167,12 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                       colorScheme: ColorScheme.light(
                         primary: const Color(0xFFD4A373),
                         onPrimary: Colors.white,
-                        surface: widget.isNight ? const Color(0xFF2C2E30) : Colors.white,
-                        onSurface: widget.isNight ? Colors.white70 : Colors.black87,
+                        surface: widget.isNight
+                            ? const Color(0xFF2C2E30)
+                            : Colors.white,
+                        onSurface: widget.isNight
+                            ? Colors.white70
+                            : Colors.black87,
                       ),
                       textButtonTheme: TextButtonThemeData(
                         style: TextButton.styleFrom(
@@ -178,12 +194,16 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: widget.isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                color: widget.isNight
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.03),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: _selectedDate != null 
-                    ? const Color(0xFFD4A373).withOpacity(0.5)
-                    : (widget.isNight ? Colors.white10 : Colors.black.withOpacity(0.05)),
+                  color: _selectedDate != null
+                      ? const Color(0xFFD4A373).withValues(alpha: 0.5)
+                      : (widget.isNight
+                            ? Colors.white10
+                            : Colors.black.withValues(alpha: 0.05)),
                 ),
               ),
               child: Row(
@@ -191,13 +211,15 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                   Icon(
                     Icons.calendar_today_rounded,
                     size: 18,
-                    color: _selectedDate != null ? const Color(0xFFD4A373) : hintColor,
+                    color: _selectedDate != null
+                        ? const Color(0xFFD4A373)
+                        : hintColor,
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    _selectedDate == null 
-                      ? "选择日期..." 
-                      : "${_selectedDate!.year}年${_selectedDate!.month}月${_selectedDate!.day}日",
+                    _selectedDate == null
+                        ? "选择日期..."
+                        : "${_selectedDate!.year}年${_selectedDate!.month}月${_selectedDate!.day}日",
                     style: TextStyle(
                       color: _selectedDate != null ? textColor : hintColor,
                       fontSize: 14,
@@ -208,12 +230,12 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // 心情筛选标题
           Text(
-            "按心情筛选建议内容",
+            "按心情筛选",
             style: TextStyle(
               fontSize: 13,
               color: hintColor,
@@ -221,9 +243,9 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // 心情图标列表
           SizedBox(
             height: 50,
@@ -233,7 +255,7 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
               itemBuilder: (context, index) {
                 final mood = kMoods[index];
                 final isSelected = _selectedMoodIndex == index;
-                
+
                 return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -246,14 +268,14 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                     margin: const EdgeInsets.only(right: 12),
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isSelected 
-                        ? (mood.glowColor ?? Colors.amber).withOpacity(0.2)
-                        : Colors.transparent,
+                      color: isSelected
+                          ? (mood.glowColor ?? Colors.amber).withValues(alpha: 0.2)
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isSelected 
-                          ? (mood.glowColor ?? Colors.amber).withOpacity(0.5)
-                          : Colors.transparent,
+                        color: isSelected
+                            ? (mood.glowColor ?? Colors.amber).withValues(alpha: 0.5)
+                            : Colors.transparent,
                         width: 1.5,
                       ),
                     ),
@@ -270,8 +292,8 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
               },
             ),
           ),
-          
-          const SizedBox(height: 10),
+
+          const SizedBox(height: 32),
         ],
       ),
     );

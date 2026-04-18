@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/models/placed_furniture.dart';
 import '../../utils/isometric_coordinate_utils.dart';
 
-/// 家具操作工具栏组件，包含旋转和删除功能。
+/// 瀹跺叿鎿嶄綔宸ュ叿鏍忕粍浠讹紝鍖呭惈鏃嬭浆鍜屽垹闄ゅ姛鑳姐€?
 class DecorationToolbar extends StatelessWidget {
   final PlacedFurniture pf;
   final IsometricCoordinateConverter converter;
@@ -31,18 +31,22 @@ class DecorationToolbar extends StatelessWidget {
       gh = pf.item.gridW;
     }
 
-    // 2. 基准点定位 (Anchor Point)
+    // 2. 鍩哄噯鐐瑰畾浣?(Anchor Point)
     final double centerR;
     final double centerC;
     final double wallZ;
 
-    // 确定当前是否为镜像状态 (与 IsometricGridPainter.isFlipped 逻辑一致)
+    // 纭畾褰撳墠鏄惁涓洪暅鍍忕姸鎬?(涓?IsometricGridPainter.isFlipped 閫昏緫涓€鑷?
     final bool isFlipped = pf.rotation == 1;
-    final double vScale = isFlipped ? (pf.item.flippedVisualScale ?? pf.item.visualScale) : pf.item.visualScale;
-    final Offset vOffset = isFlipped ? (pf.item.flippedVisualOffset ?? pf.item.visualOffset) : pf.item.visualOffset;
+    final double vScale = isFlipped
+        ? (pf.item.flippedVisualScale ?? pf.item.visualScale)
+        : pf.item.visualScale;
+    final Offset vOffset = isFlipped
+        ? (pf.item.flippedVisualOffset ?? pf.item.visualOffset)
+        : pf.item.visualOffset;
 
     if (pf.item.isWall) {
-      wallZ = pf.z + pf.item.gridH.toDouble(); // 物品实际顶端 = 底部高度 + 自身高度
+      wallZ = pf.z + pf.item.gridH.toDouble(); // 鐗╁搧瀹為檯椤剁 = 搴曢儴楂樺害 + 鑷韩楂樺害
       if (pf.rotation % 2 == 0) {
         centerR = pf.r + pf.item.gridW / 2.0;
         centerC = pf.c.toDouble();
@@ -53,41 +57,54 @@ class DecorationToolbar extends StatelessWidget {
     } else {
       centerR = pf.r + gw / 2.0;
       centerC = pf.c + gh / 2.0;
-      wallZ = pf.z; // 合理支持地面家具的 Z 轴
+      wallZ = pf.z; // 鍚堢悊鏀寔鍦伴潰瀹跺叿鐨?Z 杞?
     }
 
     final pt = converter.getScreenPoint(centerR, centerC, wallZ);
 
-    // 3. 计算对齐与偏移
+    // 3. 璁＄畻瀵归綈涓庡亸绉?
     final double s = converter.getTaperScale(centerR, centerC);
     final double visualW;
     final double spriteH;
     final double finalTop;
 
     if (pf.item.isWall) {
-      // 墙壁物品：计算贴图显示的视觉宽度
+      // 澧欏鐗╁搧锛氳绠楄创鍥炬樉绀虹殑瑙嗚瀹藉害
       visualW = (pf.item.gridW * converter.tw / 2) * s * vScale;
       spriteH = visualW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
       final basePt = converter.getScreenPoint(centerR, centerC, pf.z);
-      // 锚定在贴图顶部，固定 10% 贴图高度的空隙。
-      // 注意：Painter 中墙面有 33.0 的偏移，此处也必须加上以保持同步
+      // 閿氬畾鍦ㄨ创鍥鹃《閮紝鍥哄畾 10% 璐村浘楂樺害鐨勭┖闅欍€?
+      // 娉ㄦ剰锛歅ainter 涓闈㈡湁 33.0 鐨勫亸绉伙紝姝ゅ涔熷繀椤诲姞涓婁互淇濇寔鍚屾
       const double wallBasePadding = 33.0;
-      finalTop = basePt.dy + wallBasePadding + vOffset.dy - spriteH * (1.1 + pf.item.toolbarOffset.dy);
+      finalTop =
+          basePt.dy +
+          wallBasePadding +
+          vOffset.dy -
+          spriteH * (1.1 + pf.item.toolbarOffset.dy);
     } else {
-      // 地面家具：计算贴图显示的视觉宽度
-      // 修正：以前用 pf.item.gridW 是固定的，这会导致旋转后对于长方形家具估算错误
+      // 鍦伴潰瀹跺叿锛氳绠楄创鍥炬樉绀虹殑瑙嗚瀹藉害
+      // 淇锛氫互鍓嶇敤 pf.item.gridW 鏄浐瀹氱殑锛岃繖浼氬鑷存棆杞悗瀵逛簬闀挎柟褰㈠鍏蜂及绠楅敊璇?
       visualW = converter.estimateVisualWidth(gw, gh, centerR, centerC, vScale);
       spriteH = visualW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
-      // 家具的 pt.dy 是底角中心点，通过高度补偿 verticalOffset 修正到菱形中心，再减去贴图高度
+      // 瀹跺叿鐨?pt.dy 鏄簳瑙掍腑蹇冪偣锛岄€氳繃楂樺害琛ュ伩 verticalOffset 淇鍒拌彵褰腑蹇冿紝鍐嶅噺鍘昏创鍥鹃珮搴?
       final double verticalOffset = visualW / 4.0;
-      // 这里的 1.1 表示在顶部上方保留 10% 的空隙
-      finalTop = pt.dy + verticalOffset + vOffset.dy - spriteH * (1.1 + pf.item.toolbarOffset.dy);
+      // 杩欓噷鐨?1.1 琛ㄧず鍦ㄩ《閮ㄤ笂鏂逛繚鐣?10% 鐨勭┖闅?
+      finalTop =
+          pt.dy +
+          verticalOffset +
+          vOffset.dy -
+          spriteH * (1.1 + pf.item.toolbarOffset.dy);
     }
 
     final isNight = Theme.of(context).brightness == Brightness.dark;
 
     return Positioned(
-      left: pt.dx - 55 + vOffset.dx + (pf.item.toolbarOffset.dx * visualW) + layoutOffset.dx,
+      left:
+          pt.dx -
+          55 +
+          vOffset.dx +
+          (pf.item.toolbarOffset.dx * visualW) +
+          layoutOffset.dx,
       top: finalTop + layoutOffset.dy,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
@@ -96,20 +113,22 @@ class DecorationToolbar extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
             decoration: BoxDecoration(
-              color: isNight 
-                ? Colors.black.withOpacity(0.5) 
-                : Colors.white.withOpacity(0.7),
+              color: isNight
+                  ? Colors.black.withValues(alpha: 0.5)
+                  : Colors.white.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
-                color: isNight ? Colors.white12 : Colors.black.withOpacity(0.08),
+                color: isNight
+                    ? Colors.white12
+                    : Colors.black.withValues(alpha: 0.08),
                 width: 1.0,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
-                )
+                ),
               ],
             ),
             child: Row(
@@ -147,7 +166,7 @@ class DecorationToolbar extends StatelessWidget {
       width: 1,
       height: 18,
       margin: const EdgeInsets.symmetric(horizontal: 4),
-      color: isNight ? Colors.white12 : Colors.black.withOpacity(0.06),
+      color: isNight ? Colors.white12 : Colors.black.withValues(alpha: 0.06),
     );
   }
 }

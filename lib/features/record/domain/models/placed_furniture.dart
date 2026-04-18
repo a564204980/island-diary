@@ -4,8 +4,8 @@ class PlacedFurniture {
   final FurnitureItem item;
   int r;
   int c;
-  double z; // 高度坐标 (默认 0)
-  int rotation; // 0, 1, 2, 3 (0°, 90°, 180°, 270°)
+  double z; // 楂樺害鍧愭爣 (榛樿 0)
+  int rotation; // 0, 1, 2, 3 (0掳, 90掳, 180掳, 270掳)
 
   PlacedFurniture({
     required this.item,
@@ -16,13 +16,7 @@ class PlacedFurniture {
   });
 
   Map<String, dynamic> toMap() {
-    return {
-      'item': item.toMap(),
-      'r': r,
-      'c': c,
-      'z': z,
-      'rotation': rotation,
-    };
+    return {'item': item.toMap(), 'r': r, 'c': c, 'z': z, 'rotation': rotation};
   }
 
   factory PlacedFurniture.fromMap(Map<String, dynamic> map) {

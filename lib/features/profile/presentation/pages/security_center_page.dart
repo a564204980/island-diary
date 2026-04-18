@@ -74,23 +74,28 @@ class _SecurityCenterPageState extends State<SecurityCenterPage> {
                 ),
               
               SafeArea(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    const SizedBox(height: 20),
-                    // 2. 圣洁棱镜核心
-                    _buildSacredCore(isEnabled, isNight),
-                    const SizedBox(height: 60),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        const SizedBox(height: 20),
+                        // 2. 圣洁棱镜核心
+                        _buildSacredCore(isEnabled, isNight),
+                        const SizedBox(height: 60),
 
-                    // 3. 玻璃触感 BentoGrid
-                    _buildPremiumBentoGrid(context, userState, isNight),
-                    
-                    const SizedBox(height: 40),
-                    // 4. 底部图腾
-                    _buildBottomTotem(isEnabled, isNight),
-                    const SizedBox(height: 40),
-                  ],
+                        // 3. 玻璃触感 BentoGrid
+                        _buildPremiumBentoGrid(context, userState, isNight),
+                        
+                        const SizedBox(height: 40),
+                        // 4. 底部图腾
+                        _buildBottomTotem(isEnabled, isNight),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],

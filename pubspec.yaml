@@ -113,6 +113,7 @@ flutter:
     - assets/images/emoji/wechat/animal/
     - assets/images/emoji/wechat/blessing/
     - assets/images/emoji/wechat/other/
+    - assets/images/emoji/medal/
     - assets/audio/
     - assets/fonts/
 

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -50,7 +49,9 @@ class _MoodPosterWidgetState extends State<MoodPosterWidget> {
       final file = await File('${tempDir.path}/soul_poster_${DateTime.now().millisecondsSinceEpoch}.png').create();
       await file.writeAsBytes(buffer);
 
-      await Share.shareXFiles([XFile(file.path)], text: '分享我在岛屿上的情绪洞察 ✨');
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path)], text: '分享我在岛屿上的情绪洞察 ✨'),
+      );
     } catch (e) {
       debugPrint('Error sharing poster: $e');
     }
@@ -73,7 +74,7 @@ class _MoodPosterWidgetState extends State<MoodPosterWidget> {
     final topTags = sortedTags.take(3).map((e) => e.key).toList();
 
     return Scaffold(
-      backgroundColor: Colors.black.withOpacity(0.85),
+      backgroundColor: Colors.black.withValues(alpha: 0.85),
       body: Stack(
         children: [
           Center(
@@ -100,7 +101,7 @@ class _MoodPosterWidgetState extends State<MoodPosterWidget> {
                         padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: season.accentColor.withOpacity(0.1),
+                          color: season.accentColor.withValues(alpha: 0.1),
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                         ),
                         child: Column(
@@ -191,7 +192,7 @@ class _MoodPosterWidgetState extends State<MoodPosterWidget> {
                                 children: topTags.map((tag) => Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: season.accentColor.withOpacity(0.5)),
+                                    border: Border.all(color: season.accentColor.withValues(alpha: 0.5)),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
@@ -209,7 +210,7 @@ class _MoodPosterWidgetState extends State<MoodPosterWidget> {
                         padding: const EdgeInsets.all(32),
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          border: Border(top: BorderSide(color: season.accentColor.withOpacity(0.1))),
+                          border: Border(top: BorderSide(color: season.accentColor.withValues(alpha: 0.1))),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -234,7 +235,7 @@ class _MoodPosterWidgetState extends State<MoodPosterWidget> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w900,
-                                        color: season.accentColor.withOpacity(0.5),
+                                        color: season.accentColor.withValues(alpha: 0.5),
                                       ),
                                     ),
                                   ],
@@ -246,10 +247,10 @@ class _MoodPosterWidgetState extends State<MoodPosterWidget> {
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                border: Border.all(color: season.accentColor.withOpacity(0.2)),
+                                border: Border.all(color: season.accentColor.withValues(alpha: 0.2)),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Icon(CupertinoIcons.qrcode, size: 24, color: season.accentColor.withOpacity(0.3)),
+                              child: Icon(CupertinoIcons.qrcode, size: 24, color: season.accentColor.withValues(alpha: 0.3)),
                             ),
                           ],
                         ),

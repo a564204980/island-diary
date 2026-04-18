@@ -68,26 +68,43 @@ class DecorationOverlayUI extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: Icon(controller.showGrid ? Icons.grid_on : Icons.grid_off, color: Colors.white70),
+                    icon: Icon(
+                      controller.showGrid ? Icons.grid_on : Icons.grid_off,
+                      color: Colors.white70,
+                    ),
                     onPressed: controller.toggleGrid,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_sweep, color: Colors.redAccent, size: 24),
+                    icon: const Icon(
+                      Icons.delete_sweep,
+                      color: Colors.redAccent,
+                      size: 24,
+                    ),
                     onPressed: onClearAll,
                     tooltip: '一键清除',
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // 3. 垂直缩放栏
               Container(
-                decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(
+                  color: Colors.black26,
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
                   children: [
                     IconButton(
-                      icon: Icon(Icons.add, color: controller.selectedFurniture != null ? Colors.white24 : Colors.white70), 
-                      onPressed: controller.selectedFurniture != null ? null : () => onZoom(0.2), 
+                      icon: Icon(
+                        Icons.add,
+                        color: controller.selectedFurniture != null
+                            ? Colors.white24
+                            : Colors.white70,
+                      ),
+                      onPressed: controller.selectedFurniture != null
+                          ? null
+                          : () => onZoom(0.2),
                       tooltip: '放大',
                     ),
                     Padding(
@@ -95,22 +112,48 @@ class DecorationOverlayUI extends StatelessWidget {
                       child: Text(
                         '${(controller.currentScale * 100).toInt()}%',
                         style: TextStyle(
-                          color: controller.selectedFurniture != null ? Colors.white24 : Colors.white70, 
-                          fontSize: 10, 
+                          color: controller.selectedFurniture != null
+                              ? Colors.white24
+                              : Colors.white70,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    const Divider(color: Colors.white10, height: 1, indent: 8, endIndent: 8),
+                    const Divider(
+                      color: Colors.white10,
+                      height: 1,
+                      indent: 8,
+                      endIndent: 8,
+                    ),
                     IconButton(
-                      icon: Icon(Icons.remove, color: controller.selectedFurniture != null ? Colors.white24 : Colors.white70), 
-                      onPressed: controller.selectedFurniture != null ? null : () => onZoom(-0.2), 
+                      icon: Icon(
+                        Icons.remove,
+                        color: controller.selectedFurniture != null
+                            ? Colors.white24
+                            : Colors.white70,
+                      ),
+                      onPressed: controller.selectedFurniture != null
+                          ? null
+                          : () => onZoom(-0.2),
                       tooltip: '缩小',
                     ),
-                    const Divider(color: Colors.white10, height: 1, indent: 8, endIndent: 8),
+                    const Divider(
+                      color: Colors.white10,
+                      height: 1,
+                      indent: 8,
+                      endIndent: 8,
+                    ),
                     IconButton(
-                      icon: Icon(Icons.brush_rounded, color: controller.selectedFurniture != null ? Colors.white24 : Colors.white70),
-                      onPressed: controller.selectedFurniture != null ? null : onShowPaint,
+                      icon: Icon(
+                        Icons.brush_rounded,
+                        color: controller.selectedFurniture != null
+                            ? Colors.white24
+                            : Colors.white70,
+                      ),
+                      onPressed: controller.selectedFurniture != null
+                          ? null
+                          : onShowPaint,
                       tooltip: '粉刷墙面',
                     ),
                   ],
@@ -130,12 +173,12 @@ class DecorationOverlayUI extends StatelessWidget {
         width: 32,
         height: 60,
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.7),
+          color: Colors.black.withValues(alpha: 0.7),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(16),
             bottomLeft: Radius.circular(16),
           ),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: Icon(
           isTrayExpanded ? Icons.chevron_right : Icons.chevron_left,

@@ -8,28 +8,34 @@ class FurnitureSprite extends StatefulWidget {
   final FurnitureItem item;
   const FurnitureSprite({super.key, required this.item});
 
-  static Future<void> precacheItem(FurnitureItem item, BuildContext context) async {
+  static Future<void> precacheItem(
+    FurnitureItem item,
+    BuildContext context,
+  ) async {
     final ImageStream stream = AssetImage(
       item.imagePath,
     ).resolve(createLocalImageConfiguration(context));
     final Completer<void> completer = Completer();
-    
+
     ImageStreamListener? listener;
-    listener = ImageStreamListener((ImageInfo info, bool _) async {
-      await SpritePainter.cacheImage(item.imagePath, info.image);
-      if (!completer.isCompleted) {
-        completer.complete();
-      }
-      // 成功后移除监听，防止内存泄露
-      if (listener != null) {
-        stream.removeListener(listener);
-      }
-    }, onError: (exception, stackTrace) {
-      debugPrint('Failed to precache furniture: ${item.imagePath}');
-      if (!completer.isCompleted) {
-        completer.complete();
-      }
-    });
+    listener = ImageStreamListener(
+      (ImageInfo info, bool _) async {
+        await SpritePainter.cacheImage(item.imagePath, info.image);
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+        // 成功后移除监听，防止内存泄漏
+        if (listener != null) {
+          stream.removeListener(listener);
+        }
+      },
+      onError: (exception, stackTrace) {
+        debugPrint('Failed to precache furniture: ${item.imagePath}');
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+      },
+    );
 
     stream.addListener(listener);
     return completer.future;
@@ -72,7 +78,7 @@ class _FurnitureSpriteState extends State<FurnitureSprite> {
   @override
   void didUpdateWidget(covariant FurnitureSprite oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.item.id != oldWidget.item.id || 
+    if (widget.item.id != oldWidget.item.id ||
         widget.item.imagePath != oldWidget.item.imagePath) {
       _loadImage();
     }

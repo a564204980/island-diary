@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
-/// 日记条目模型，用于持久化存储
+/// 鏃ヨ鏉＄洰妯″瀷锛岀敤浜庢寔涔呭寲瀛樺偍
 class DiaryEntry {
   final String id;
   final DateTime dateTime;
@@ -9,17 +9,17 @@ class DiaryEntry {
   final double intensity;
   final String content;
   final String? tag;
-  final List<Map<String, dynamic>> blocks; // 结构化分块数据
+  final List<Map<String, dynamic>> blocks; // 缁撴瀯鍖栧垎鍧楁暟鎹?
   final String? weather;
   final String? temp;
   final String? location;
   final String? customDate;
   final String? customTime;
-  final List<DiaryReply> replies; // 自我回复/回响列表
-  final String paperStyle; // 信纸样式
-  final bool isImageGrid; // 是否开启图片九宫格
-  final bool isMixedLayout; // 是否开启图文混排
-  final bool isLiked; // 是否已点赞（朋友圈模式交互）
+  final List<DiaryReply> replies; // 鑷垜鍥炲/鍥炲搷鍒楄〃
+  final String paperStyle; // 淇＄焊鏍峰紡
+  final bool isImageGrid; // 鏄惁寮€鍚浘鐗囦節瀹牸
+  final bool isMixedLayout; // 鏄惁寮€鍚浘鏂囨贩鎺?
+  final bool isLiked; // 鏄惁宸茬偣璧烇紙鏈嬪弸鍦堟ā寮忎氦浜掞級
 
   DiaryEntry({
     String? id,
@@ -39,8 +39,8 @@ class DiaryEntry {
     this.isImageGrid = false,
     this.isMixedLayout = false,
     this.isLiked = false,
-  })  : id = id ?? const Uuid().v4(),
-        replies = replies ?? [];
+  }) : id = id ?? const Uuid().v4(),
+       replies = replies ?? [];
 
   Map<String, dynamic> toMap() {
     return {
@@ -80,7 +80,8 @@ class DiaryEntry {
       customTime: map['customTime'],
       replies: map['replies'] != null
           ? List<DiaryReply>.from(
-              (map['replies'] as List).map((x) => DiaryReply.fromMap(x)))
+              (map['replies'] as List).map((x) => DiaryReply.fromMap(x)),
+            )
           : [],
       paperStyle: map['paperStyle'] ?? 'note1',
       isImageGrid: map['isImageGrid'] ?? false,
@@ -95,17 +96,14 @@ class DiaryEntry {
       DiaryEntry.fromMap(jsonDecode(source));
 }
 
-/// 自我回复/回响模型
+/// 鑷垜鍥炲/鍥炲搷妯″瀷
 class DiaryReply {
   final String id;
   final String content;
   final DateTime dateTime;
 
-  DiaryReply({
-    String? id,
-    required this.content,
-    required this.dateTime,
-  }) : id = id ?? const Uuid().v4();
+  DiaryReply({String? id, required this.content, required this.dateTime})
+    : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toMap() {
     return {

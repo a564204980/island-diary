@@ -14,83 +14,157 @@ class BentoMenuGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // 第一部分：1(左大) : 2(右小叠放) 布局
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isWide = constraints.maxWidth > 600;
+
+        if (isWide) {
+          // iPad / 宽屏模式：采用更紧凑的三列布局
+          return Column(
             children: [
-              // 左侧：主题模式 (大)
-              Expanded(flex: 1, child: _buildThemeBento(context)),
-              const SizedBox(width: 12),
-              // 右侧：岛屿安全 + 小软的衣帽间 (两个小)
-              Expanded(
-                flex: 1,
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: _buildMenuActionBento(
-                        context,
-                        title: '岛屿安全',
-                        icon: Icons.lock_outline,
-                        color: const Color(0xFF81C784),
-                        targetPage: const SecurityCenterPage(),
-                      ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildThemeBento(context)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMenuActionBento(
+                      context,
+                      title: '岛屿安全',
+                      icon: Icons.lock_outline,
+                      color: const Color(0xFF81C784),
+                      targetPage: const SecurityCenterPage(),
                     ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: _buildQuickActionBento(
-                        title: '回忆导出',
-                        icon: Icons.ios_share,
-                        color: const Color(0xFF64B5F6),
-                      ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildQuickActionBento(
+                      title: '回忆导出',
+                      icon: Icons.ios_share,
+                      color: const Color(0xFF64B5F6),
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildMenuActionBento(
+                      context,
+                      title: '小软的衣帽间',
+                      icon: Icons.auto_fix_high_rounded,
+                      color: const Color(0xFFFFB74D),
+                      targetPage: const MascotDecorationPage(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMenuActionBento(
+                      context,
+                      title: '岛屿成就',
+                      icon: Icons.emoji_events_outlined,
+                      color: const Color(0xFFFF7043),
+                      targetPage: const AchievementPage(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMenuActionBento(
+                      context,
+                      title: '关于小岛',
+                      icon: Icons.info_outline,
+                      color: const Color(0xFFBA68C8),
+                      targetPage: const AboutIslandPage(),
+                    ),
+                  ),
+                ],
               ),
             ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        // 第二部分：平行排列
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _buildMenuActionBento(
-                  context,
-                  title: '小软的衣帽间',
-                  icon: Icons.auto_fix_high_rounded,
-                  color: const Color(0xFFFFB74D),
-                  targetPage: const MascotDecorationPage(),
-                ),
+          ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0);
+        }
+
+        // 默认手机模式布局
+        return Column(
+          children: [
+            // 第一部分：1(左大) : 2(右小叠放) 布局
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 左侧：主题模式 (大)
+                  Expanded(flex: 1, child: _buildThemeBento(context)),
+                  const SizedBox(width: 12),
+                  // 右侧：岛屿安全 + 小软的衣帽间 (两个小)
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: _buildMenuActionBento(
+                            context,
+                            title: '岛屿安全',
+                            icon: Icons.lock_outline,
+                            color: const Color(0xFF81C784),
+                            targetPage: const SecurityCenterPage(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: _buildQuickActionBento(
+                            title: '回忆导出',
+                            icon: Icons.ios_share,
+                            color: const Color(0xFF64B5F6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildMenuActionBento(
-                  context,
-                  title: '岛屿成就',
-                  icon: Icons.emoji_events_outlined,
-                  color: const Color(0xFFFF7043),
-                  targetPage: const AchievementPage(),
-                ),
+            ),
+            const SizedBox(height: 12),
+            // 第二部分：平行排列
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _buildMenuActionBento(
+                      context,
+                      title: '小软的衣帽间',
+                      icon: Icons.auto_fix_high_rounded,
+                      color: const Color(0xFFFFB74D),
+                      targetPage: const MascotDecorationPage(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMenuActionBento(
+                      context,
+                      title: '岛屿成就',
+                      icon: Icons.emoji_events_outlined,
+                      color: const Color(0xFFFF7043),
+                      targetPage: const AchievementPage(),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        // 第三部分：关于小岛 (整合后的新入口)
-        _buildMenuActionBento(
-          context,
-          title: '关于小岛',
-          icon: Icons.info_outline,
-          color: const Color(0xFFBA68C8),
-          targetPage: const AboutIslandPage(),
-        ),
-      ],
-    ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0);
+            ),
+            const SizedBox(height: 12),
+            // 第三部分：关于小岛 (整合后的新入口)
+            _buildMenuActionBento(
+              context,
+              title: '关于小岛',
+              icon: Icons.info_outline,
+              color: const Color(0xFFBA68C8),
+              targetPage: const AboutIslandPage(),
+            ),
+          ],
+        ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0);
+      },
+    );
   }
 
   Widget _buildThemeBento(BuildContext context) {

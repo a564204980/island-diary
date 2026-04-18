@@ -15,9 +15,10 @@ class WallColorPickerOverlay extends StatefulWidget {
   State<WallColorPickerOverlay> createState() => _WallColorPickerOverlayState();
 }
 
-class _WallColorPickerOverlayState extends State<WallColorPickerOverlay> with SingleTickerProviderStateMixin {
+class _WallColorPickerOverlayState extends State<WallColorPickerOverlay>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   final List<Color> _presetColors = [
     const Color(0xFFDEDCCE), // 默认暖沙
     const Color(0xFFF5F5DC), // 奶油白
@@ -52,12 +53,12 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay> with Si
           width: 400,
           height: 220,
           decoration: BoxDecoration(
-            color: const Color(0xFF2C2C26).withOpacity(0.95),
+            color: const Color(0xFF2C2C26).withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: Colors.white10, width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -72,25 +73,26 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay> with Si
                 dividerColor: Colors.transparent,
                 indicatorColor: Colors.white70,
                 indicatorSize: TabBarIndicatorSize.label,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  letterSpacing: 1,
+                ),
                 tabs: const [
                   Tab(text: '左墙上色'),
                   Tab(text: '右墙上色'),
                 ],
               ),
-              
+
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
-                  children: [
-                    _buildColorGrid(true),
-                    _buildColorGrid(false),
-                  ],
+                  children: [_buildColorGrid(true), _buildColorGrid(false)],
                 ),
               ),
-              
+
               const Divider(color: Colors.white10, height: 1),
-              
+
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Row(
@@ -98,7 +100,13 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay> with Si
                   children: [
                     TextButton(
                       onPressed: widget.onClose,
-                      child: const Text('完成', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        '完成',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -111,8 +119,10 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay> with Si
   }
 
   Widget _buildColorGrid(bool isLeft) {
-    final currentColor = isLeft ? widget.controller.wallColorLeft : widget.controller.wallColorRight;
-    
+    final currentColor = isLeft
+        ? widget.controller.wallColorLeft
+        : widget.controller.wallColorRight;
+
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -125,7 +135,7 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay> with Si
       itemBuilder: (context, index) {
         final color = _presetColors[index];
         final bool isSelected = currentColor.value == color.value;
-        
+
         return GestureDetector(
           onTap: () {
             widget.controller.setWallColor(isLeft, color);
@@ -140,13 +150,17 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay> with Si
                 width: 2.5,
               ),
               boxShadow: [
-                if (isSelected) 
-                  BoxShadow(color: color.withOpacity(0.4), blurRadius: 8, spreadRadius: 1),
+                if (isSelected)
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
               ],
             ),
-            child: isSelected 
-              ? const Icon(Icons.check, color: Colors.black54, size: 16)
-              : null,
+            child: isSelected
+                ? const Icon(Icons.check, color: Colors.black54, size: 16)
+                : null,
           ),
         );
       },

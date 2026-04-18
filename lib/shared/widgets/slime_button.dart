@@ -11,7 +11,7 @@ class SlimeButton extends StatefulWidget {
   final VoidCallback? onTap;
 
   // 静态外观属性
-  final String assetPath;
+  final String? assetPath;
   final double spriteSize;
   final bool showSlime; // 控制角色显隐，而不影响底座
 
@@ -20,8 +20,7 @@ class SlimeButton extends StatefulWidget {
     this.isNight = false,
     this.isGlowing = false,
     this.onTap,
-    this.assetPath =
-        'assets/images/emoji/marshmallow.png', // 默认改为 marshmallow.png
+    this.assetPath,
     this.spriteSize = 58.0,
     this.showSlime = true,
   });
@@ -101,14 +100,17 @@ class _SlimeButtonState extends State<SlimeButton> {
                     duration: const Duration(milliseconds: 400),
                     opacity: widget.showSlime ? 1.0 : 0.0,
                     child: ListenableBuilder(
-                      listenable: UserState().selectedMascotDecoration,
+                      listenable: Listenable.merge([
+                        UserState().selectedMascotDecoration,
+                        UserState().selectedMascotType,
+                      ]),
                       builder: (context, _) {
                         return StaticSprite(
-                          assetPath: widget.assetPath,
+                          assetPath: widget.assetPath ?? UserState().selectedMascotType.value,
                           decorationPath:
                               UserState().selectedMascotDecoration.value,
                           size: widget.spriteSize,
-                          frameCount: widget.assetPath.contains('weixiao.png')
+                          frameCount: (widget.assetPath ?? UserState().selectedMascotType.value).contains('weixiao.png')
                               ? 9
                               : 1,
                         );

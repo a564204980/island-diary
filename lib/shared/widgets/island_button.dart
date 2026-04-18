@@ -78,7 +78,7 @@ class _IslandButtonState extends State<IslandButton>
         child: CustomPaint(
           painter: _HandDrawnCapsulePainter(
             backgroundColor:
-                widget.backgroundColor ?? Colors.white.withOpacity(0.38),
+                widget.backgroundColor ?? Colors.white.withValues(alpha: 0.38),
             useHandDrawn: widget.useHandDrawn,
           ),
           child: Container(
@@ -180,7 +180,7 @@ class _HandDrawnCapsulePainter extends CustomPainter {
         sketchPath,
         borderPaint
           ..strokeWidth = 0.8
-          ..color = borderPaint.color.withOpacity(0.25),
+          ..color = borderPaint.color.withValues(alpha: 0.25),
       );
     }
   }

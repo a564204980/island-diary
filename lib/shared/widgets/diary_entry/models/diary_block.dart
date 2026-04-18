@@ -99,8 +99,8 @@ class TextAttribute {
   Map<String, dynamic> toMap() => {
     'start': start,
     'end': end,
-    if (color != null) 'color': color!.value,
-    if (backgroundColor != null) 'backgroundColor': backgroundColor!.value,
+    if (color != null) 'color': color!.toARGB32(),
+    if (backgroundColor != null) 'backgroundColor': backgroundColor!.toARGB32(),
     if (fontSize != null) 'fontSize': fontSize,
   };
 
@@ -122,7 +122,7 @@ class DiaryTextEditingController extends TextEditingController {
   late List<TextAttribute> attributes;
 
   DiaryTextEditingController({
-    String? text,
+    super.text,
     Color? baseColor,
     double? baseFontSize,
     String? baseFontFamily,
@@ -133,8 +133,7 @@ class DiaryTextEditingController extends TextEditingController {
                ? const Color(0xFFE0C097)
                : const Color(0xFF5D4037)),
        baseFontSize = baseFontSize ?? 20.0,
-       baseFontFamily = baseFontFamily ?? 'LXGWWenKai',
-       super(text: text) {
+       baseFontFamily = baseFontFamily ?? 'LXGWWenKai' {
     this.attributes = attributes ?? [];
   }
 
@@ -335,7 +334,7 @@ class DiaryTextEditingController extends TextEditingController {
     required bool withComposing,
     bool hideMarkdownSymbols = false,
   }) {
-    final textContent = this.text;
+    final textContent = text;
     if (textContent.isEmpty) return TextSpan(style: style, text: textContent);
 
     final TextStyle rootStyle =
@@ -408,7 +407,7 @@ class DiaryTextEditingController extends TextEditingController {
           selection.start <= match.end;
 
       final currentSymbolStyle = baseSymbolStyle.copyWith(
-        color: baseSymbolStyle.color!.withOpacity(
+        color: baseSymbolStyle.color!.withValues(alpha: 
           hideMarkdownSymbols ? 0 : (isFocused ? 0.3 : 0),
         ),
         fontSize: (hideMarkdownSymbols || !isFocused) ? 0.01 : baseFontSize,
@@ -451,7 +450,7 @@ class DiaryTextEditingController extends TextEditingController {
           selection.start >= match.start &&
           selection.start <= match.end;
       final currentSymbolStyle = baseSymbolStyle.copyWith(
-        color: baseSymbolStyle.color!.withOpacity(
+        color: baseSymbolStyle.color!.withValues(alpha: 
           hideMarkdownSymbols ? 0 : (isFocused ? 0.3 : 0),
         ),
         fontSize: (hideMarkdownSymbols || !isFocused) ? 0.01 : baseFontSize,
@@ -492,7 +491,7 @@ class DiaryTextEditingController extends TextEditingController {
           selection.start >= match.start &&
           selection.start <= match.end;
       final currentSymbolStyle = baseSymbolStyle.copyWith(
-        color: baseSymbolStyle.color!.withOpacity(
+        color: baseSymbolStyle.color!.withValues(alpha: 
           hideMarkdownSymbols ? 0 : (isFocused ? 0.3 : 0),
         ),
         fontSize: (hideMarkdownSymbols || !isFocused) ? 0.01 : baseFontSize,
@@ -559,7 +558,7 @@ class DiaryTextEditingController extends TextEditingController {
             selection.start <= symbolEnd;
 
         final currentSymbolStyle = TextStyle(
-          color: headerColor.withOpacity(
+          color: headerColor.withValues(alpha: 
             hideMarkdownSymbols ? 0 : (isSymbolFocused ? 0.3 : 0),
           ),
           fontSize: (hideMarkdownSymbols || !isSymbolFocused)

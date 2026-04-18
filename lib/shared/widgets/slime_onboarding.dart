@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/slime_button.dart';
 import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
@@ -107,7 +106,7 @@ class _SlimeOnboardingState extends State<SlimeOnboarding> {
                 opacity: _maskOpacity,
                 duration: const Duration(milliseconds: 600),
                 curve: Curves.easeInOut,
-                child: Container(color: Colors.black.withOpacity(0.55)),
+                child: Container(color: Colors.black.withValues(alpha: 0.55)),
               ),
             ),
           ),

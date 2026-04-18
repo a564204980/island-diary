@@ -22,50 +22,55 @@ class MomentsInteractionPopover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 42, 
-      decoration: BoxDecoration(
-        color: isNight 
-            ? const Color(0xFF26241E).withValues(alpha: 0.98) 
-            : const Color(0xFF5D4037).withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+          height: 42,
+          decoration: BoxDecoration(
+            color: isNight
+                ? const Color(0xFF26241E).withValues(alpha: 0.98)
+                : const Color(0xFF5D4037).withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildItem(
-            icon: isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            label: isLiked ? '取消' : '赞',
-            onTap: onLike,
-            iconColor: isLiked ? const Color(0xFFF35555) : Colors.white,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildItem(
+                icon: isLiked
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                label: isLiked ? '取消' : '赞',
+                onTap: onLike,
+                iconColor: isLiked ? const Color(0xFFF35555) : Colors.white,
+              ),
+              _buildDivider(),
+              _buildItem(
+                icon: Icons.chat_bubble_outline_rounded,
+                label: '回应',
+                onTap: onComment,
+              ),
+              _buildDivider(),
+              _buildItem(
+                icon: Icons.edit_note_rounded,
+                label: '编辑',
+                onTap: onEdit,
+              ),
+              _buildDivider(),
+              _buildItem(
+                icon: Icons.delete_outline_rounded,
+                label: '删除',
+                onTap: onDelete,
+              ),
+            ],
           ),
-          _buildDivider(),
-          _buildItem(
-            icon: Icons.chat_bubble_outline_rounded,
-            label: '回响',
-            onTap: onComment,
-          ),
-          _buildDivider(),
-          _buildItem(
-            icon: Icons.edit_note_rounded,
-            label: '编辑',
-            onTap: onEdit,
-          ),
-          _buildDivider(),
-          _buildItem(
-            icon: Icons.delete_outline_rounded,
-            label: '删除',
-            onTap: onDelete,
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 150.ms).moveX(begin: 20, end: 0, curve: Curves.easeOut);
+        )
+        .animate()
+        .fadeIn(duration: 150.ms)
+        .moveX(begin: 20, end: 0, curve: Curves.easeOut);
   }
 
   Widget _buildItem({

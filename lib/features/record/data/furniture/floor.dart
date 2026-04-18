@@ -100,7 +100,7 @@ final List<FurnitureItem> floorItems = [
   ),
   FurnitureItem(
     id: 'floor_9',
-    name: '浪漫花甸',
+    name: '浪漫花田',
     imagePath: 'assets/images/decoration/floors/floor9.png',
     category: '地板',
     subCategory: '材质',
@@ -148,7 +148,7 @@ final List<FurnitureItem> floorItems = [
   ),
   FurnitureItem(
     id: 'floor_14',
-    name: '晨晖暖木',
+    name: '晨曦暖木',
     imagePath: 'assets/images/decoration/floors/floor14.png',
     category: '地板',
     subCategory: '木质',
@@ -196,7 +196,7 @@ final List<FurnitureItem> floorItems = [
   ),
   FurnitureItem(
     id: 'floor_19',
-    name: '午后红茶',
+    name: '下午红茶',
     imagePath: 'assets/images/decoration/floors/floor19.png',
     category: '地板',
     subCategory: '材质',

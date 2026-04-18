@@ -81,11 +81,15 @@ class FurnitureItem {
       'vRotationZ': visualRotationZ,
       'vPivot': {'x': visualPivot.dx, 'y': visualPivot.dy},
       'fvScale': flippedVisualScale,
-      'fvOffset': flippedVisualOffset != null ? {'x': flippedVisualOffset!.dx, 'y': flippedVisualOffset!.dy} : null,
+      'fvOffset': flippedVisualOffset != null
+          ? {'x': flippedVisualOffset!.dx, 'y': flippedVisualOffset!.dy}
+          : null,
       'fvRotationX': flippedVisualRotationX,
       'fvRotationY': flippedVisualRotationY,
       'fvRotationZ': flippedVisualRotationZ,
-      'fvPivot': flippedVisualPivot != null ? {'x': flippedVisualPivot!.dx, 'y': flippedVisualPivot!.dy} : null,
+      'fvPivot': flippedVisualPivot != null
+          ? {'x': flippedVisualPivot!.dx, 'y': flippedVisualPivot!.dy}
+          : null,
       'toolbarOffset': {'x': toolbarOffset.dx, 'y': toolbarOffset.dy},
     };
   }
@@ -150,7 +154,8 @@ class FurnitureItem {
     );
   }
 
-  bool get isFloor => category.contains('地板') || id.toLowerCase().startsWith('floor');
+  bool get isFloor =>
+      category.contains('地板') || id.toLowerCase().startsWith('floor');
   bool get isWall =>
       category.contains('墙') ||
       id.toLowerCase().contains('wall') ||

@@ -6,7 +6,7 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 
-/// 日历格网面板 V6：动效同步版
+/// 日历网格面板 V6：动效同步版
 class DiaryCalendarPanel extends StatefulWidget {
   final bool isNight;
   final Function(DateTime) onDateSelected;
@@ -36,8 +36,10 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
     // 监听滚动，如果滚动到底部附近，再慢慢加载更前面的月份
     _scrollController.addListener(() {
       if (!mounted) return;
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 800) {
-        if (_loadedMonths < 36) { // 总共大约看3年 (36个月)
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 800) {
+        if (_loadedMonths < 36) {
+          // 总共大约看 3 年 (36个月)
           setState(() {
             // 每次追加加载 4 个月
             _loadedMonths = (_loadedMonths + 4).clamp(0, 36);
@@ -71,7 +73,10 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
               earliest = d.dateTime;
             }
           }
-          final monthDiff = (_now.year - earliest.year) * 12 + (_now.month - earliest.month) + 1;
+          final monthDiff =
+              (_now.year - earliest.year) * 12 +
+              (_now.month - earliest.month) +
+              1;
           // 最多展示到最早记录的那个月（且至少展示当月）
           maxMonths = monthDiff > 0 ? monthDiff : 1;
         }
@@ -88,7 +93,9 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
             final bool isWide = constraints.maxWidth > 700;
             final int crossAxisCount = isWide ? 2 : 1;
 
-            final int calculatedItemCount = _loadedMonths < maxMonths ? _loadedMonths : maxMonths;
+            final int calculatedItemCount = _loadedMonths < maxMonths
+                ? _loadedMonths
+                : maxMonths;
 
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -168,153 +175,170 @@ class _MonthSection extends StatelessWidget {
     final int emptySlotsBefore = firstDayWeekday - 1;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 24, left: 4, right: 4),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isNight ? const Color(0xFF232527) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isNight ? 0.45 : 0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 8),
-          ),
-        ],
-        border: Border.all(
-          color: isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-          width: 0.5,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 20, left: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "${month.year}年${month.month}月",
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                    fontFamily: 'LXGWWenKai',
-                    color: isNight ? Colors.white.withOpacity(0.9) : const Color(0xFF2C2E30),
-                  ),
-                ),
-                if (onShareMonth != null)
-                  GestureDetector(
-                    onTap: () => onShareMonth!(month),
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: Icon(
-                        Icons.ios_share_rounded,
-                        size: 19,
-                        color: isNight 
-                          ? Colors.white24 
-                          : Colors.black.withOpacity(0.12),
-                      ),
-                    ),
-                  ),
-              ],
+          margin: const EdgeInsets.only(bottom: 24, left: 4, right: 4),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isNight ? const Color(0xFF232527) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isNight ? 0.45 : 0.12),
+                blurRadius: 10,
+                offset: const Offset(0, 8),
+              ),
+            ],
+            border: Border.all(
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.03),
+              width: 0.5,
             ),
           ),
-
-          if (showWeekdayHeader) ...[
-            _buildInternalWeekRow(isNight),
-            const SizedBox(height: 12),
-          ],
-
-          Builder(
-            builder: (context) {
-              // 局部聚合：将该月的数据按“天数(int)”分组，O(K) 极速操作
-              final Map<int, List<DiaryEntry>> dayMap = {};
-              final Set<int> activeDaysSet = {};
-              int totalWords = 0;
-              
-              for (var entry in monthDiaries) {
-                final d = entry.dateTime.day;
-                dayMap.putIfAbsent(d, () => []).add(entry);
-                activeDaysSet.add(d);
-                totalWords += entry.content.length;
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  GridView.builder(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 7,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      childAspectRatio: 0.82,
-                    ),
-                    itemCount: daysInMonth + emptySlotsBefore,
-                    itemBuilder: (context, index) {
-                      if (index < emptySlotsBefore) return const SizedBox.shrink();
-
-                      final int day = index - emptySlotsBefore + 1;
-                      final entries = dayMap[day];
-                      final bool isToday = DateTime.now().year == month.year &&
-                          DateTime.now().month == month.month &&
-                          DateTime.now().day == day;
-
-                      return _CalendarDayCell(
-                        date: DateTime(month.year, month.month, day),
-                        entries: entries,
-                        isToday: isToday,
-                        isNight: isNight,
-                        onTap: () => onDateSelected(DateTime(month.year, month.month, day)),
-                      );
-                    },
-                  ),
-
-                  if (monthDiaries.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 18, right: 4),
-                      child: Text(
-                        "${activeDaysSet.length}天 | ${monthDiaries.length}篇 | ${totalWords}字",
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: isNight ? Colors.white24 : Colors.black.withOpacity(0.12),
-                          fontFamily: 'LXGWWenKai',
-                        ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20, left: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "${month.year}年${month.month}月",
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'LXGWWenKai',
+                        color: isNight
+                            ? Colors.white.withValues(alpha: 0.9)
+                            : const Color(0xFF2C2E30),
                       ),
                     ),
-                ],
-              );
-            },
+                    if (onShareMonth != null)
+                      GestureDetector(
+                        onTap: () => onShareMonth!(month),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Icon(
+                            Icons.ios_share_rounded,
+                            size: 19,
+                            color: isNight
+                                ? Colors.white24
+                                : Colors.black.withValues(alpha: 0.12),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              if (showWeekdayHeader) ...[
+                _buildInternalWeekRow(isNight),
+                const SizedBox(height: 12),
+              ],
+
+              Builder(
+                builder: (context) {
+                  // 局部聚合：将该月的数据按“天数 (int)”分组，O(K) 极速操作
+                  final Map<int, List<DiaryEntry>> dayMap = {};
+                  final Set<int> activeDaysSet = {};
+                  int totalWords = 0;
+
+                  for (var entry in monthDiaries) {
+                    final d = entry.dateTime.day;
+                    dayMap.putIfAbsent(d, () => []).add(entry);
+                    activeDaysSet.add(d);
+                    totalWords += entry.content.length;
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      GridView.builder(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 7,
+                              mainAxisSpacing: 10,
+                              crossAxisSpacing: 10,
+                              childAspectRatio: 0.82,
+                            ),
+                        itemCount: daysInMonth + emptySlotsBefore,
+                        itemBuilder: (context, index) {
+                          if (index < emptySlotsBefore)
+                            return const SizedBox.shrink();
+
+                          final int day = index - emptySlotsBefore + 1;
+                          final entries = dayMap[day];
+                          final bool isToday =
+                              DateTime.now().year == month.year &&
+                              DateTime.now().month == month.month &&
+                              DateTime.now().day == day;
+
+                          return _CalendarDayCell(
+                            date: DateTime(month.year, month.month, day),
+                            entries: entries,
+                            isToday: isToday,
+                            isNight: isNight,
+                            onTap: () => onDateSelected(
+                              DateTime(month.year, month.month, day),
+                            ),
+                          );
+                        },
+                      ),
+
+                      if (monthDiaries.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 18, right: 4),
+                          child: Text(
+                            "${activeDaysSet.length}天 | ${monthDiaries.length}篇 | ${totalWords}字",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: isNight
+                                  ? Colors.white24
+                                  : Colors.black.withValues(alpha: 0.12),
+                              fontFamily: 'LXGWWenKai',
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ],
           ),
-        ],
-      ),
-    )
-    .animate()
-    // 动画明显提速，进场更干脆，不拖泥带水
-    .fadeIn(delay: ((index % 2) * 40).ms, duration: 200.ms)
-    .moveX(begin: 8, end: 0); 
+        )
+        .animate()
+        // 动画明显提速，进场更干脆，不拖泥带水
+        .fadeIn(delay: ((index % 2) * 40).ms, duration: 200.ms)
+        .moveX(begin: 8, end: 0);
   }
 
   Widget _buildInternalWeekRow(bool isNight) {
     final List<String> weekDays = ["一", "二", "三", "四", "五", "六", "日"];
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: weekDays.map((d) => Expanded(
-        child: Center(
-          child: Text(
-            d,
-            style: TextStyle(
-              fontSize: 12, // 内部表头稍小一点
-              fontWeight: FontWeight.w800,
-              color: isNight ? Colors.white24 : Colors.black.withOpacity(0.12),
-              fontFamily: 'LXGWWenKai',
+      children: weekDays
+          .map(
+            (d) => Expanded(
+              child: Center(
+                child: Text(
+                  d,
+                  style: TextStyle(
+                    fontSize: 12, // 内部表头稍小一点
+                    fontWeight: FontWeight.w800,
+                    color: isNight
+                        ? Colors.white24
+                        : Colors.black.withValues(alpha: 0.12),
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      )).toList(),
+          )
+          .toList(),
     );
   }
 }
@@ -336,8 +360,24 @@ class _CalendarDayCell extends StatelessWidget {
 
   // 节日白名单：仅显示核心重要节日，精简视觉噪音
   static const Set<String> _importantFests = {
-    '元旦', '除夕', '春节', '元宵节', '清明', '劳动节', '端午节', '中秋节', '国庆节',
-    '情人节', '妇女节', '儿童节', '教师节', '圣诞节', '冬至', '七夕', '重阳', '腊八',
+    '元旦',
+    '除夕',
+    '春节',
+    '元宵节',
+    '清明',
+    '劳动节',
+    '端午节',
+    '中秋节',
+    '国庆节',
+    '情人节',
+    '妇女节',
+    '儿童节',
+    '教师节',
+    '圣诞节',
+    '冬至',
+    '七夕',
+    '重阳',
+    '腊八',
   };
 
   @override
@@ -363,16 +403,22 @@ class _CalendarDayCell extends StatelessWidget {
     String lunarStr = '';
     final lunar = Lunar.fromDate(date);
     final solar = Solar.fromDate(date);
-    
+
     final solarFests = solar.getFestivals();
     final lunarFests = lunar.getFestivals();
     final jieQi = lunar.getJieQi();
-    
+
     // 检查是否包含重要节日 (支持部分匹配，如 "国庆节" 匹配 "国庆假期")
     String? importantFest;
-    for (final f in [...solarFests, ...lunarFests, if (jieQi.isNotEmpty) jieQi]) {
+    for (final f in [
+      ...solarFests,
+      ...lunarFests,
+      if (jieQi.isNotEmpty) jieQi,
+    ]) {
       if (_importantFests.any((important) => f.contains(important))) {
-        importantFest = _importantFests.firstWhere((important) => f.contains(important));
+        importantFest = _importantFests.firstWhere(
+          (important) => f.contains(important),
+        );
         break;
       }
     }
@@ -391,16 +437,20 @@ class _CalendarDayCell extends StatelessWidget {
       fontSize: 17,
       fontWeight: FontWeight.w900,
       fontFamily: 'LXGWWenKai',
-      color: hasEntry 
-          ? Colors.white 
-          : (isNight ? Colors.white.withOpacity(0.85) : const Color(0xFF2C2E30)),
-      shadows: hasEntry ? [
-        const Shadow(
-          blurRadius: 4,
-          color: Colors.black87,
-          offset: Offset(0, 1.5),
-        )
-      ] : null,
+      color: hasEntry
+          ? Colors.white
+          : (isNight
+                ? Colors.white.withValues(alpha: 0.85)
+                : const Color(0xFF2C2E30)),
+      shadows: hasEntry
+          ? [
+              const Shadow(
+                blurRadius: 4,
+                color: Colors.black87,
+                offset: Offset(0, 1.5),
+              ),
+            ]
+          : null,
     );
 
     final Color lunarColor = (importantFest != null)
@@ -412,13 +462,15 @@ class _CalendarDayCell extends StatelessWidget {
       fontWeight: FontWeight.w600,
       fontFamily: 'LXGWWenKai',
       color: hasEntry ? Colors.white70 : lunarColor,
-      shadows: hasEntry ? [
-        const Shadow(
-          blurRadius: 3,
-          color: Colors.black54,
-          offset: Offset(0, 1),
-        )
-      ] : null,
+      shadows: hasEntry
+          ? [
+              const Shadow(
+                blurRadius: 3,
+                color: Colors.black54,
+                offset: Offset(0, 1),
+              ),
+            ]
+          : null,
       height: 1.1,
     );
 
@@ -427,24 +479,38 @@ class _CalendarDayCell extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: isToday 
-              ? const Color(0xFFD4A373).withOpacity(isNight ? 0.3 : 0.1)
-              : (hasEntry 
-                  ? (isNight ? const Color(0xFF3B3E42) : Colors.white)
-                  : (isNight ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.008))),
+          color: isToday
+              ? const Color(0xFFD4A373).withValues(alpha: isNight ? 0.3 : 0.1)
+              : (hasEntry
+                    ? (isNight ? const Color(0xFF3B3E42) : Colors.white)
+                    : (isNight
+                          ? Colors.white.withValues(alpha: 0.02)
+                          : Colors.black.withValues(alpha: 0.008))),
           borderRadius: BorderRadius.circular(10),
-          border: isToday 
+          border: isToday
               ? Border.all(color: const Color(0xFFD4A373), width: 2.2)
-              : (hasEntry 
-                  ? Border.all(color: isNight ? Colors.white12 : Colors.black.withOpacity(0.12), width: 1.0)
-                  : Border.all(color: isNight ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03), width: 0.5)),
-          boxShadow: hasEntry ? [
-            BoxShadow(
-              color: Colors.black.withOpacity(isNight ? 0.45 : 0.08),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            )
-          ] : null,
+              : (hasEntry
+                    ? Border.all(
+                        color: isNight
+                            ? Colors.white12
+                            : Colors.black.withValues(alpha: 0.12),
+                        width: 1.0,
+                      )
+                    : Border.all(
+                        color: isNight
+                            ? Colors.white.withValues(alpha: 0.04)
+                            : Colors.black.withValues(alpha: 0.03),
+                        width: 0.5,
+                      )),
+          boxShadow: hasEntry
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isNight ? 0.45 : 0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -457,7 +523,7 @@ class _CalendarDayCell extends StatelessWidget {
                   borderRadius: BorderRadius.circular(0),
                 ),
               ),
-            
+
             if (thumbPath == null && moodIdx != null)
               Center(
                 child: Padding(
@@ -473,9 +539,7 @@ class _CalendarDayCell extends StatelessWidget {
 
             if (hasEntry)
               Positioned.fill(
-                child: Container(
-                  color: Colors.black.withOpacity(0.12),
-                ),
+                child: Container(color: Colors.black.withValues(alpha: 0.12)),
               ),
 
             Center(

@@ -20,8 +20,11 @@ class DiaryTimeline extends StatelessWidget {
   Widget build(BuildContext context) {
     if (replies.isEmpty) return const SizedBox.shrink();
 
-    final effectiveInkColor = inkColor ?? (isNight ? Colors.white70 : const Color(0xFF5D4037));
-    final effectiveAccentColor = accentColor ?? (isNight ? const Color(0xFFD4A373) : const Color(0xFF8B5E3C));
+    final effectiveInkColor =
+        inkColor ?? (isNight ? Colors.white70 : const Color(0xFF5D4037));
+    final effectiveAccentColor =
+        accentColor ??
+        (isNight ? const Color(0xFFD4A373) : const Color(0xFF8B5E3C));
 
     final lineColor = effectiveInkColor.withValues(alpha: 0.1);
     final tickColor = effectiveAccentColor.withValues(alpha: 0.2);

@@ -63,12 +63,12 @@ class _HandDrawnAudioPlayerState extends State<HandDrawnAudioPlayer> {
         color: const Color(0xFFFDF7E9),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF8B5E3C).withOpacity(0.3),
+          color: const Color(0xFF8B5E3C).withValues(alpha: 0.3),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF8B5E3C).withOpacity(0.1),
+            color: const Color(0xFF8B5E3C).withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -87,7 +87,7 @@ class _HandDrawnAudioPlayerState extends State<HandDrawnAudioPlayer> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8B5E3C).withOpacity(0.3),
+                    color: const Color(0xFF8B5E3C).withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -127,7 +127,7 @@ class _HandDrawnAudioPlayerState extends State<HandDrawnAudioPlayer> {
                       height: 4,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF8B5E3C).withOpacity(0.1),
+                        color: const Color(0xFF8B5E3C).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),

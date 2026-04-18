@@ -6,6 +6,7 @@ import 'package:island_diary/features/profile/presentation/widgets/achievement_d
 import 'package:island_diary/features/profile/presentation/widgets/achievement/achievement_header_card.dart';
 import 'package:island_diary/features/profile/presentation/widgets/achievement/achievement_category_strip.dart';
 import 'package:island_diary/features/profile/presentation/widgets/achievement/achievement_medal_cell.dart';
+import 'package:island_diary/features/profile/presentation/pages/mascot_decoration_page.dart';
 
 class AchievementPage extends StatefulWidget {
   const AchievementPage({super.key});
@@ -74,74 +75,84 @@ class _AchievementPageState extends State<AchievementPage> {
           // 移除这一行，避免背景冲顶导致重叠
           extendBodyBehindAppBar: false, 
           appBar: _buildStandardAppBar(context, isNight),
-          body: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // 1. 统计概览
-              SliverToBoxAdapter(
-                child: AchievementHeaderCard(
-                  unlockedCount: unlockedMap.length,
-                  totalPoints: userState.achievementPoints.value,
-                  isNight: isNight,
-                ),
-              ),
-
-              // 2. 分类选择器 (吸顶)
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _SliverHeaderDelegate(
-                  height: 64,
-                  child: Container(
-                    // 渐变或背景色，确保吸顶时下方内容不透出
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    alignment: Alignment.center,
-                    child: AchievementCategoryStrip(
-                      categories: _categories,
-                      activeIndex: _activeCategoryIndex,
-                      isNight: isNight,
-                      onCategoryChanged: (index) => setState(() => _activeCategoryIndex = index),
-                    ),
-                  ),
-                ),
-              ),
-
-              // 3. 成就网格
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
-                sliver: filteredList.isEmpty
-                    ? const SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Center(
-                          child: Text('尚未发现此类奇迹', style: TextStyle(color: Colors.white24)),
-                        ),
-                      )
-                    : SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 24,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.75,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final achievement = filteredList[index];
-                            final isUnlocked = unlockedMap.containsKey(achievement.id);
-                            return AchievementMedalCell(
-                              achievement: achievement,
-                              isUnlocked: isUnlocked,
-                              isNight: isNight,
-                              onTap: () => _showAchievementDetail(context, achievement, isUnlocked, stats, isNight, unlockedMap),
-                            ).animate(key: ValueKey('${achievement.id}_$_activeCategoryIndex'))
-                             .fadeIn(delay: (index * 20).ms, duration: 300.ms)
-                             .scale(begin: const Offset(0.9, 0.9));
-                          },
-                          childCount: filteredList.length,
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final bool isWide = constraints.maxWidth > 600;
+                  return CustomScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    slivers: [
+                      // 1. 统计概览
+                      SliverToBoxAdapter(
+                        child: AchievementHeaderCard(
+                          unlockedCount: unlockedMap.length,
+                          totalPoints: userState.achievementPoints.value,
+                          isNight: isNight,
                         ),
                       ),
-              ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
+                      // 2. 分类选择器 (吸顶)
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _SliverHeaderDelegate(
+                          height: 64,
+                          child: Container(
+                            // 渐变或背景色，确保吸顶时下方内容不透出
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                            alignment: Alignment.center,
+                            child: AchievementCategoryStrip(
+                              categories: _categories,
+                              activeIndex: _activeCategoryIndex,
+                              isNight: isNight,
+                              onCategoryChanged: (index) => setState(() => _activeCategoryIndex = index),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // 3. 成就网格
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
+                        sliver: filteredList.isEmpty
+                            ? const SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: Center(
+                                  child: Text('尚未发现此类奇迹', style: TextStyle(color: Colors.white24)),
+                                ),
+                              )
+                            : SliverGrid(
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: isWide ? 4 : 3,
+                                  mainAxisSpacing: 24,
+                                  crossAxisSpacing: 16,
+                                  childAspectRatio: isWide ? 0.8 : 0.75,
+                                ),
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final achievement = filteredList[index];
+                                    final isUnlocked = unlockedMap.containsKey(achievement.id);
+                                    return AchievementMedalCell(
+                                      achievement: achievement,
+                                      isUnlocked: isUnlocked,
+                                      isNight: isNight,
+                                      onTap: () => _showAchievementDetail(context, achievement, isUnlocked, stats, isNight, unlockedMap),
+                                    ).animate(key: ValueKey('${achievement.id}_$_activeCategoryIndex'))
+                                     .fadeIn(delay: (index * 20).ms, duration: 300.ms)
+                                     .scale(begin: const Offset(0.9, 0.9));
+                                  },
+                                  childCount: filteredList.length,
+                                ),
+                              ),
+                      ),
+
+                      const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                    ],
+                  );
+                },
+              ),
+            ),
           ),
         );
       },
@@ -184,6 +195,14 @@ class _AchievementPageState extends State<AchievementPage> {
         stats: stats,
         unlockedAt: unlockedMap[a.id],
         isNight: isNight,
+        onGoWear: (id) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MascotDecorationPage(initialDecorationId: id),
+            ),
+          );
+        },
       ),
     );
   }

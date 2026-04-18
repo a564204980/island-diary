@@ -78,7 +78,7 @@ final List<FurnitureItem> decorationItems = [
   ),
   FurnitureItem(
     id: 'basket_1',
-    name: '精美收纳篮 1',
+    name: '精美收纳筐 1',
     imagePath: 'assets/images/decoration/shelving/basket1.png',
     category: '装饰',
     subCategory: '饰品',
@@ -150,7 +150,7 @@ final List<FurnitureItem> decorationItems = [
   ),
   FurnitureItem(
     id: 'laundry_basket_1',
-    name: '精美洗衣篮 1',
+    name: '精美洗衣筐 1',
     imagePath: 'assets/images/decoration/homeDecor/laundryBasket1.png',
     category: '装饰',
     subCategory: '饰品',
@@ -243,7 +243,7 @@ final List<FurnitureItem> decorationItems = [
   ),
   FurnitureItem(
     id: 'basket_2',
-    name: '精美收纳篮 2',
+    name: '精美收纳筐 2',
     imagePath: 'assets/images/decoration/shelving/basket2.png',
     category: '装饰',
     subCategory: '饰品',

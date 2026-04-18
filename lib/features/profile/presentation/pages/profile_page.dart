@@ -112,7 +112,10 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
 
             SafeArea(
-              child: ListView(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 physics: const BouncingScrollPhysics(),
                 children: [
@@ -140,8 +143,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
-          ],
-        );
+          ),
+        ),
+      ],
+    );
       },
     );
   }

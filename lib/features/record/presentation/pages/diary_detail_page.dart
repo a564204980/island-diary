@@ -1,3 +1,5 @@
+import 'dart:ui';
+// Analysis Flush: 强制刷新库摘要以解决 Bad state 错误
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
@@ -53,7 +55,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("🏮", style: TextStyle(fontSize: 32)),
+              const Text("🏝️", style: TextStyle(fontSize: 32)),
               const SizedBox(height: 16),
               Text(
                 "确定要抹去这段回忆吗？",
@@ -139,17 +141,23 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     });
   }
 
-  bool get _effectiveIsNight => widget.isNight && !_currentEntry.paperStyle.startsWith('note');
+  bool get _effectiveIsNight =>
+      widget.isNight && !_currentEntry.paperStyle.startsWith('note');
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = _effectiveIsNight ? const Color(0xFF13131F) : const Color(0xFFF7F2E9);
+    final bgColor = _effectiveIsNight
+        ? const Color(0xFF13131F)
+        : const Color(0xFFF7F2E9);
     final mood = kMoods[_currentEntry.moodIndex.clamp(0, kMoods.length - 1)];
     final baseGlowColor = mood.glowColor ?? const Color(0xFFD4A373);
     final accentColor = _effectiveIsNight
         ? baseGlowColor
         : Color.lerp(baseGlowColor, Colors.black, 0.45)!;
-    final inkColor = DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight);
+    final inkColor = DiaryUtils.getInkColor(
+      _currentEntry.paperStyle,
+      _effectiveIsNight,
+    );
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -165,8 +173,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     child: Image.asset(
                       'assets/images/note/${_currentEntry.paperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7', 'note8', 'note9'].contains(_currentEntry.paperStyle) ? '.png' : '.jpg'}',
                       fit: BoxFit.cover,
-                      color: _effectiveIsNight ? Colors.black.withValues(alpha: 0.3) : null,
-                      colorBlendMode: _effectiveIsNight ? BlendMode.darken : null,
+                      color: _effectiveIsNight
+                          ? Colors.black.withValues(alpha: 0.3)
+                          : null,
+                      colorBlendMode: _effectiveIsNight
+                          ? BlendMode.darken
+                          : null,
                     ),
                   ),
                 Positioned.fill(
@@ -184,36 +196,41 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           Positioned.fill(
             child: SafeArea(
               bottom: false,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(
-                  24,
-                  16,
-                  24,
-                  120,
-                ), // 调整顶部边距配合 SafeArea
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-                    const SizedBox(height: 20),
-                    _buildRichTextView(),
-                    const SizedBox(height: 12),
-                    _buildImagesView(),
-                    const SizedBox(height: 48),
-                    DiaryTimeline(
-                      replies: _currentEntry.replies,
-                      isNight: _effectiveIsNight,
-                      inkColor: inkColor,
-                      accentColor: accentColor,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(
+                      24,
+                      16,
+                      24,
+                      120,
+                    ), // 调整顶部边距配合 SafeArea
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(),
+                        const SizedBox(height: 20),
+                        _buildRichTextView(),
+                        const SizedBox(height: 12),
+                        _buildImagesView(),
+                        const SizedBox(height: 48),
+                        DiaryTimeline(
+                          replies: _currentEntry.replies,
+                          isNight: _effectiveIsNight,
+                          inkColor: inkColor,
+                          accentColor: accentColor,
+                        ),
+                        DiaryReplies(
+                          replies: _currentEntry.replies,
+                          isNight: _effectiveIsNight,
+                          inkColor: inkColor,
+                          accentColor: accentColor,
+                        ),
+                      ],
                     ),
-                    DiaryReplies(
-                      replies: _currentEntry.replies,
-                      isNight: _effectiveIsNight,
-                      inkColor: inkColor,
-                      accentColor: accentColor,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -226,9 +243,15 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
 
   Widget _buildFloatingActions(bool isNight) {
     // 获取基于信纸的动态墨水色和背景色
-    final Color inkColor = DiaryUtils.getInkColor(_currentEntry.paperStyle, isNight);
-    final Color paperBaseColor = DiaryUtils.getPaperBaseColor(_currentEntry.paperStyle, isNight);
-    
+    final Color inkColor = DiaryUtils.getInkColor(
+      _currentEntry.paperStyle,
+      isNight,
+    );
+    final Color paperBaseColor = DiaryUtils.getPaperBaseColor(
+      _currentEntry.paperStyle,
+      isNight,
+    );
+
     // 图标主色使用墨水色，非活跃状态略带透明
     final iconColor = inkColor.withValues(alpha: 0.9);
     // 悬浮条背景跟随信纸基色，但在 note 系列背景下保持较高的不透明度以防背景干扰
@@ -247,10 +270,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           decoration: BoxDecoration(
             color: barBgColor,
             borderRadius: BorderRadius.circular(27),
-            border: Border.all(
-              color: inkColor.withValues(alpha: 0.1),
-              width: 0.5,
-            ),
+            border: Border.all(color: inkColor.withValues(alpha: 0.1), width: 0.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.08),
@@ -274,7 +294,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 icon: Icons.chat_bubble_outline_rounded,
                 color: iconColor,
                 onTap: _showReplySheet,
-                label: "回响",
+                label: "回应",
                 iconSize: 24,
                 width: 40,
               ),
@@ -330,7 +350,6 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     }
   }
 
-
   Widget _buildActionButton({
     required IconData icon,
     required Color color,
@@ -377,7 +396,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               style: TextStyle(
                 fontSize: 60,
                 fontWeight: FontWeight.bold,
-                color: DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight),
+                color: DiaryUtils.getInkColor(
+                  _currentEntry.paperStyle,
+                  _effectiveIsNight,
+                ),
                 fontFamily: 'LXGWWenKai',
                 letterSpacing: -1,
               ),
@@ -387,7 +409,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w500,
-                color: DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withValues(alpha: 0.7),
+                color: DiaryUtils.getInkColor(
+                  _currentEntry.paperStyle,
+                  _effectiveIsNight,
+                ).withValues(alpha: 0.7),
                 fontFamily: 'LXGWWenKai',
               ),
             ),
@@ -400,7 +425,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           style: TextStyle(
             fontSize: 16,
             fontStyle: FontStyle.italic,
-            color: DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withValues(alpha: 0.6),
+            color: DiaryUtils.getInkColor(
+              _currentEntry.paperStyle,
+              _effectiveIsNight,
+            ).withValues(alpha: 0.6),
             fontFamily: 'LXGWWenKai',
           ),
         ),
@@ -410,8 +438,14 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           size: const Size(double.infinity, 2),
           painter: HandDrawnLinePainter(
             color: _effectiveIsNight
-                ? DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withValues(alpha: 0.1)
-                : DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight).withValues(alpha: 0.3),
+                ? DiaryUtils.getInkColor(
+                    _currentEntry.paperStyle,
+                    _effectiveIsNight,
+                  ).withValues(alpha: 0.1)
+                : DiaryUtils.getInkColor(
+                    _currentEntry.paperStyle,
+                    _effectiveIsNight,
+                  ).withValues(alpha: 0.3),
             strokeWidth: 1.5,
           ),
         ),
@@ -435,7 +469,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   Hero(
                     tag: 'mood_${_currentEntry.id}',
                     child: Image.asset(
-                      (_currentEntry.tag != null && _currentEntry.tag!.isNotEmpty)
+                      (_currentEntry.tag != null &&
+                              _currentEntry.tag!.isNotEmpty)
                           ? 'assets/images/icons/custom.png'
                           : (mood.iconPath ?? 'assets/images/icons/sun.png'),
                       width: 14,
@@ -607,7 +642,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     final textStyle = TextStyle(
       fontSize: 18,
       height: 1.8,
-      color: DiaryUtils.getInkColor(_currentEntry.paperStyle, _effectiveIsNight),
+      color: DiaryUtils.getInkColor(
+        _currentEntry.paperStyle,
+        _effectiveIsNight,
+      ),
       fontFamily: 'LXGWWenKai',
     );
 
@@ -693,7 +731,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: DiaryUtils.buildImage(path, fit: BoxFit.contain), 
+              child: DiaryUtils.buildImage(path, fit: BoxFit.contain),
             ),
           ),
         );

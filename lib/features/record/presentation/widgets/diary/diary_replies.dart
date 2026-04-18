@@ -20,11 +20,12 @@ class DiaryReplies extends StatelessWidget {
   Widget build(BuildContext context) {
     if (replies.isEmpty) return const SizedBox.shrink();
 
-    final effectiveAccentColor = accentColor ?? (isNight
-        ? const Color(0xFFD4A373)
-        : const Color(0xFF8B5E3C));
-    
-    final effectiveInkColor = inkColor ?? (isNight ? Colors.white70 : const Color(0xFF5D4037));
+    final effectiveAccentColor =
+        accentColor ??
+        (isNight ? const Color(0xFFD4A373) : const Color(0xFF8B5E3C));
+
+    final effectiveInkColor =
+        inkColor ?? (isNight ? Colors.white70 : const Color(0xFF5D4037));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -56,19 +57,16 @@ class DiaryReplies extends StatelessWidget {
         ...replies.map(
           (reply) => Container(
             margin: const EdgeInsets.only(bottom: 20),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: isNight
-                  ? Colors.white.withOpacity(0.05)
-                  : Colors.black.withOpacity(0.03),
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isNight
                     ? Colors.white10
-                    : Colors.black.withOpacity(0.05),
+                    : Colors.black.withValues(alpha: 0.05),
               ),
             ),
             child: Column(
@@ -88,7 +86,9 @@ class DiaryReplies extends StatelessWidget {
                   "${reply.dateTime.year}/${reply.dateTime.month}/${reply.dateTime.day} ${reply.dateTime.hour.toString().padLeft(2, '0')}:${reply.dateTime.minute.toString().padLeft(2, '0')}",
                   style: TextStyle(
                     fontSize: 12,
-                    color: isNight ? Colors.white24 : Colors.black26,
+                    color: (isNight ? Colors.white : Colors.black).withValues(
+                      alpha: 0.3,
+                    ),
                     fontFamily: 'LXGWWenKai',
                   ),
                 ),

@@ -4,7 +4,7 @@ import '../../domain/models/furniture_item.dart';
 final List<FurnitureItem> kitchenItems = [
   FurnitureItem(
     id: 'cabinet_1',
-    name: '简约橱柜 1',
+    name: '简约橱架 1',
     imagePath: 'assets/images/decoration/furniture/cabinet1.png',
     category: '厨房',
     subCategory: '家具',

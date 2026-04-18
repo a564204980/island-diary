@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
-import 'package:island_diary/features/profile/presentation/pages/mascot_decoration_page.dart';
 import 'package:island_diary/features/profile/presentation/widgets/title_selection_sheet.dart';
 
 class AchievementDetailSheet extends StatelessWidget {
@@ -11,6 +10,7 @@ class AchievementDetailSheet extends StatelessWidget {
   final Map<String, int> stats;
   final String? unlockedAt;
   final bool isNight;
+  final Function(String decorationId)? onGoWear;
 
   const AchievementDetailSheet({
     super.key,
@@ -19,20 +19,25 @@ class AchievementDetailSheet extends StatelessWidget {
     required this.stats,
     this.unlockedAt,
     required this.isNight,
+    this.onGoWear,
   });
 
   @override
   Widget build(BuildContext context) {
-    final decoration = achievement.rewardDecorationId != null 
-        ? MascotDecoration.allDecorations.firstWhere((d) => d.id == achievement.rewardDecorationId)
+    final decoration = achievement.rewardDecorationId != null
+        ? MascotDecoration.allDecorations.firstWhere(
+            (d) => d.id == achievement.rewardDecorationId,
+          )
         : null;
-    
+
     final bg = isNight ? const Color(0xFF1A1A2E) : Colors.white;
     // 颜色优先级：饰品奖励 > 称号奖励 > 分类主题色
     final Color titleBrandColor = const Color(0xFF14B8A6); // 统一称号品牌色 (薄荷绿)
     final accent = isUnlocked
-        ? (decoration?.rarity.color ?? 
-           (achievement.rewardTitle != null ? titleBrandColor : achievement.condition.themeColor))
+        ? (decoration?.rarity.color ??
+              (achievement.rewardTitle != null
+                  ? titleBrandColor
+                  : achievement.condition.themeColor))
         : Colors.grey;
 
     return Container(
@@ -45,15 +50,15 @@ class AchievementDetailSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40, 
-            height: 4, 
+            width: 40,
+            height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.2), 
-              borderRadius: BorderRadius.circular(2)
-            )
+              color: Colors.grey.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
           const SizedBox(height: 24),
-          
+
           // 图标预览
           Stack(
             alignment: Alignment.center,
@@ -70,24 +75,54 @@ class AchievementDetailSheet extends StatelessWidget {
                 tag: 'medal_${achievement.id}',
                 child: ColorFiltered(
                   colorFilter: isUnlocked
-                      ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
-                      : const ColorFilter.matrix([0.2,0.2,0.2,0,0, 0.2,0.2,0.2,0,0, 0.2,0.2,0.2,0,0, 0,0,0,1,0]),
+                      ? const ColorFilter.mode(
+                          Colors.transparent,
+                          BlendMode.multiply,
+                        )
+                      : const ColorFilter.matrix([
+                          0.2,
+                          0.2,
+                          0.2,
+                          0,
+                          0,
+                          0.2,
+                          0.2,
+                          0.2,
+                          0,
+                          0,
+                          0.2,
+                          0.2,
+                          0.2,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          1,
+                          0,
+                        ]),
                   child: decoration != null
                       ? Image.asset(decoration.path, width: 80)
-                      : Icon(achievement.condition.icon, size: 60, color: accent),
+                      : (achievement.imagePath != null
+                            ? Image.asset(achievement.imagePath!, width: 80)
+                            : Icon(
+                                achievement.condition.icon,
+                                size: 60,
+                                color: accent,
+                              )),
                 ),
               ),
             ],
           ),
-          
+
           const SizedBox(height: 20),
           Text(
             achievement.title,
             style: TextStyle(
-              fontSize: 24, 
-              fontWeight: FontWeight.w900, 
-              color: isNight ? Colors.white : Colors.black, 
-              fontFamily: 'Douyin'
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: isNight ? Colors.white : Colors.black,
+              fontFamily: 'Douyin',
             ),
           ),
           const SizedBox(height: 12),
@@ -95,28 +130,36 @@ class AchievementDetailSheet extends StatelessWidget {
             achievement.description,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 14, 
-              color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.5), 
-              height: 1.6, 
-              fontFamily: 'LXGWWenKai'
+              fontSize: 14,
+              color: (isNight ? Colors.white : Colors.black).withValues(
+                alpha: 0.5,
+              ),
+              height: 1.6,
+              fontFamily: 'LXGWWenKai',
             ),
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // 奖励展示
-          if (achievement.rewardTitle != null || achievement.rewardDecorationId != null) ...[
-             _buildRewardSection(decoration, accent),
-             if (isUnlocked && unlockedAt != null) ...[
-               const SizedBox(height: 12),
-               _buildUnlockDateNote(unlockedAt!, accent),
-             ],
+          if (achievement.rewardTitle != null ||
+              achievement.rewardDecorationId != null) ...[
+            _buildRewardSection(decoration, accent),
+            if (isUnlocked && unlockedAt != null) ...[
+              const SizedBox(height: 12),
+              _buildUnlockDateNote(unlockedAt!, accent),
+            ],
           ],
 
           const SizedBox(height: 16),
-          
-          _buildProgressBox(stats[achievement.condition.name] ?? 0, achievement.targetValue, accent, isUnlocked: isUnlocked),
-            
+
+          _buildProgressBox(
+            stats[achievement.condition.name] ?? 0,
+            achievement.targetValue,
+            accent,
+            isUnlocked: isUnlocked,
+          ),
+
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -127,15 +170,15 @@ class AchievementDetailSheet extends StatelessWidget {
 
                 // 优先引导去穿戴装扮
                 if (achievement.rewardDecorationId != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MascotDecorationPage(
-                        initialDecorationId: achievement.rewardDecorationId,
-                      ),
-                    ),
-                  );
-                } 
+                  if (onGoWear != null) {
+                    onGoWear!(achievement.rewardDecorationId!);
+                  } else {
+                    // 如果外部没传回调（比如已经在装扮页了），则不进行额外跳转，或仅关闭当前弹窗
+                    debugPrint(
+                      'AchievementDetailSheet: onGoWear callback not provided.',
+                    );
+                  }
+                }
                 // 如果没有装扮但有称号奖励，则弹名称选择面板
                 else if (achievement.rewardTitle != null) {
                   showModalBottomSheet(
@@ -147,19 +190,25 @@ class AchievementDetailSheet extends StatelessWidget {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: isUnlocked ? accent : Colors.grey.withValues(alpha: 0.2),
+                backgroundColor: isUnlocked
+                    ? accent
+                    : Colors.grey.withValues(alpha: 0.2),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 elevation: 0,
               ),
               child: Text(
-                !isUnlocked 
-                    ? '继续努力' 
-                    : (achievement.rewardDecorationId != null 
-                        ? '这就去穿戴奖励' 
-                        : (achievement.rewardTitle != null ? '这就去佩戴称号' : '我知道了')), 
-                style: const TextStyle(fontWeight: FontWeight.bold)
+                !isUnlocked
+                    ? '继续努力'
+                    : (achievement.rewardDecorationId != null
+                          ? '这就去穿戴奖励'
+                          : (achievement.rewardTitle != null
+                                ? '这就去佩戴称号'
+                                : '我知道了')),
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -183,21 +232,32 @@ class AchievementDetailSheet extends StatelessWidget {
           Text(
             '成就奖励',
             style: TextStyle(
-              fontSize: 12, 
-              color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.4),
+              fontSize: 12,
+              color: (isNight ? Colors.white : Colors.black).withValues(
+                alpha: 0.4,
+              ),
               fontWeight: FontWeight.bold,
-              fontFamily: 'LXGWWenKai'
+              fontFamily: 'LXGWWenKai',
             ),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               if (achievement.rewardTitle != null)
-                _buildRewardBadge(achievement.titleTier.badge, '称号：${achievement.rewardTitle}', const Color(0xFF14B8A6)),
-              if (achievement.rewardTitle != null && achievement.rewardDecorationId != null)
+                _buildRewardBadge(
+                  achievement.titleTier.badge,
+                  '称号：${achievement.rewardTitle}',
+                  const Color(0xFF14B8A6),
+                ),
+              if (achievement.rewardTitle != null &&
+                  achievement.rewardDecorationId != null)
                 const SizedBox(width: 8),
               if (decoration != null)
-                _buildRewardBadge(Icons.style_rounded, '装扮：${decoration.name}', color),
+                _buildRewardBadge(
+                  Icons.style_rounded,
+                  '装扮：${decoration.name}',
+                  color,
+                ),
             ],
           ),
         ],
@@ -209,24 +269,33 @@ class AchievementDetailSheet extends StatelessWidget {
     String dateText = '';
     try {
       final date = DateTime.parse(dateStr);
-      dateText = '于 ${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} 达成此殊荣';
+      dateText =
+          '于 ${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} 达成此殊荣';
     } catch (_) {
       return const SizedBox.shrink();
     }
-    
+
     return Container(
       alignment: Alignment.centerRight,
       padding: const EdgeInsets.only(right: 8),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.event_available_rounded, size: 12, color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.3)),
+          Icon(
+            Icons.event_available_rounded,
+            size: 12,
+            color: (isNight ? Colors.white : Colors.black).withValues(
+              alpha: 0.3,
+            ),
+          ),
           const SizedBox(width: 6),
           Text(
             dateText,
             style: TextStyle(
-              fontSize: 11, 
-              color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.4),
+              fontSize: 11,
+              color: (isNight ? Colors.white : Colors.black).withValues(
+                alpha: 0.4,
+              ),
               fontWeight: FontWeight.w500,
               fontFamily: 'LXGWWenKai',
             ),
@@ -243,7 +312,10 @@ class AchievementDetailSheet extends StatelessWidget {
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.15), // 稍微加深底色
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.2), width: 1), // 增加描边更有质感
+          border: Border.all(
+            color: color.withValues(alpha: 0.2),
+            width: 1,
+          ), // 增加描边更有质感
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -256,10 +328,10 @@ class AchievementDetailSheet extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12, 
-                  fontWeight: FontWeight.bold, 
-                  color: color, 
-                  fontFamily: 'LXGWWenKai'
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                  fontFamily: 'LXGWWenKai',
                 ),
               ),
             ),
@@ -269,7 +341,12 @@ class AchievementDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressBox(int current, int target, Color color, {bool isUnlocked = false}) {
+  Widget _buildProgressBox(
+    int current,
+    int target,
+    Color color, {
+    bool isUnlocked = false,
+  }) {
     final progress = (current / target.toDouble()).clamp(0.0, 1.0);
     return Column(
       children: [
@@ -279,12 +356,14 @@ class AchievementDetailSheet extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  isUnlocked ? '达成要求' : '解锁进度', 
+                  isUnlocked ? '达成要求' : '解锁进度',
                   style: TextStyle(
-                    fontSize: 12, 
-                    color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.3),
+                    fontSize: 12,
+                    color: (isNight ? Colors.white : Colors.black).withValues(
+                      alpha: 0.3,
+                    ),
                     fontFamily: 'LXGWWenKai',
-                  )
+                  ),
                 ),
                 if (isUnlocked) ...[
                   const SizedBox(width: 6),
@@ -293,13 +372,15 @@ class AchievementDetailSheet extends StatelessWidget {
               ],
             ),
             Text(
-              isUnlocked ? '目标 $target / 当前 $current' : '$current / $target', 
+              isUnlocked ? '目标 $target / 当前 $current' : '$current / $target',
               style: TextStyle(
-                fontSize: 12, 
-                fontWeight: FontWeight.bold, 
-                color: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.6),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: (isNight ? Colors.white : Colors.black).withValues(
+                  alpha: 0.6,
+                ),
                 fontFamily: 'LXGWWenKai',
-              )
+              ),
             ),
           ],
         ),
@@ -308,13 +389,15 @@ class AchievementDetailSheet extends StatelessWidget {
           children: [
             LinearProgressIndicator(
               value: progress,
-              backgroundColor: (isNight ? Colors.white : Colors.black).withValues(alpha: 0.05),
-              valueColor: AlwaysStoppedAnimation(color.withValues(alpha: isUnlocked ? 0.8 : 0.5)),
+              backgroundColor: (isNight ? Colors.white : Colors.black)
+                  .withValues(alpha: 0.05),
+              valueColor: AlwaysStoppedAnimation(
+                color.withValues(alpha: isUnlocked ? 0.8 : 0.5),
+              ),
               borderRadius: BorderRadius.circular(4),
               minHeight: 6,
             ),
-            if (isUnlocked)
-              const SweepLightEffect(),
+            if (isUnlocked) const SweepLightEffect(),
           ],
         ),
       ],
@@ -328,25 +411,28 @@ class SweepLightEffect extends StatefulWidget {
   State<SweepLightEffect> createState() => _SweepLightEffectState();
 }
 
-class _SweepLightEffectState extends State<SweepLightEffect> with SingleTickerProviderStateMixin {
+class _SweepLightEffectState extends State<SweepLightEffect>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: 3.seconds)..repeat();
+    _controller = AnimationController(vsync: this, duration: 3.seconds)
+      ..repeat();
   }
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, _) => CustomPaint(
-        painter: SweepPainter(_controller.value),
-      ),
+      builder: (context, _) =>
+          CustomPaint(painter: SweepPainter(_controller.value)),
     );
   }
 }
@@ -363,13 +449,18 @@ class SweepPainter extends CustomPainter {
         end: Alignment.bottomRight,
         stops: [progress - 0.2, progress, progress + 0.2],
         colors: [
-          Colors.white.withValues(alpha: 0), 
-          Colors.white.withValues(alpha: 0.3), 
-          Colors.white.withValues(alpha: 0)
+          Colors.white.withValues(alpha: 0),
+          Colors.white.withValues(alpha: 0.3),
+          Colors.white.withValues(alpha: 0),
         ],
       ).createShader(rect);
-    canvas.drawCircle(Offset(size.width/2, size.height/2), size.width/2, paint);
+    canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2),
+      size.width / 2,
+      paint,
+    );
   }
+
   @override
   bool shouldRepaint(SweepPainter old) => true;
 }

@@ -23,7 +23,7 @@ class _RecordPageState extends State<RecordPage>
   late final ValueNotifier<double> _scrollOffsetNotifier;
   double _aspectRatio = 1.0;
 
-  // 跳跃动画相关
+  // 跳动动画相关
   late AnimationController _jumpController;
   late Animation<double> _jumpAnimation;
   bool _isJumpStarted = false;
@@ -168,7 +168,7 @@ class _RecordPageState extends State<RecordPage>
 
                         if (snapshot != null) {
                           // 如果有快照，我们尝试让它“缩小并完整显示”
-                          // 首先尝试按高度缩放至 0.4
+                          // 首先尝试按高度缩放到 0.4
                           double targetH = constraints.maxHeight * 0.4;
                           double targetW = targetH * _aspectRatio;
 
@@ -369,7 +369,8 @@ class _RecordPageState extends State<RecordPage>
                     builder: (context, _) {
                       return StaticSprite(
                         assetPath: 'assets/images/emoji/pedding.png',
-                        decorationPath: UserState().selectedMascotDecoration.value,
+                        decorationPath:
+                            UserState().selectedMascotDecoration.value,
                         size: 42.0,
                       );
                     },
@@ -427,10 +428,10 @@ class _RecordPageState extends State<RecordPage>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.4),
+                color: Colors.white.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   width: 0.5,
                 ),
               ),
@@ -480,7 +481,7 @@ class _RecordPageState extends State<RecordPage>
       context: context,
       barrierDismissible: true,
       barrierLabel: 'HistoryTimeline',
-      barrierColor: Colors.black.withOpacity(0.4),
+      barrierColor: Colors.black.withValues(alpha: 0.4),
       transitionDuration: const Duration(milliseconds: 600),
       pageBuilder: (context, anim1, anim2) {
         return DiaryHistoryOverlay(onClose: () => Navigator.pop(context));
