@@ -365,14 +365,15 @@ class _RecordPageState extends State<RecordPage>
                 child: Transform.scale(
                   scale: slimeScale,
                   child: ListenableBuilder(
-                    listenable: UserState().selectedMascotDecoration,
+                    listenable: Listenable.merge([
+                      UserState().selectedMascotDecoration,
+                      UserState().selectedGlassesDecoration,
+                    ]),
                     builder: (context, _) {
-                      return StaticSprite(
-                        assetPath: 'assets/images/emoji/pedding.png',
-                        decorationPath:
-                            UserState().selectedMascotDecoration.value,
-                        size: 42.0,
-                      );
+                        return StaticSprite(
+                          assetPath: 'assets/images/emoji/pedding.png',
+                          size: 42.0,
+                        );
                     },
                   ),
                 ),

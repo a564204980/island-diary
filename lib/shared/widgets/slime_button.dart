@@ -102,13 +102,12 @@ class _SlimeButtonState extends State<SlimeButton> {
                     child: ListenableBuilder(
                       listenable: Listenable.merge([
                         UserState().selectedMascotDecoration,
+                        UserState().selectedGlassesDecoration,
                         UserState().selectedMascotType,
                       ]),
                       builder: (context, _) {
                         return StaticSprite(
                           assetPath: widget.assetPath ?? UserState().selectedMascotType.value,
-                          decorationPath:
-                              UserState().selectedMascotDecoration.value,
                           size: widget.spriteSize,
                           frameCount: (widget.assetPath ?? UserState().selectedMascotType.value).contains('weixiao.png')
                               ? 9

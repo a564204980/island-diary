@@ -17,27 +17,32 @@ enum TitleTier {
     switch (this) {
       case TitleTier.bronze:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFFFFF8F0), Color(0xFFF5E6D3)],
         );
       case TitleTier.silver:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFFF8FAFC), Color(0xFFE2E8F0)],
         );
       case TitleTier.gold:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
         );
       case TitleTier.platinum:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFFECFDF5), Color(0xFFCCFBF1)],
         );
       case TitleTier.diamond:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFFEDE9FE), Color(0xFFDDD6FE)],
         );
     }
@@ -49,11 +54,16 @@ enum TitleTier {
   /// 等级徽标图标
   IconData get badge {
     switch (this) {
-      case TitleTier.bronze:  return Icons.workspace_premium_rounded;
-      case TitleTier.silver:  return Icons.star_rounded;
-      case TitleTier.gold:    return Icons.emoji_events_rounded;
-      case TitleTier.platinum: return Icons.diamond_rounded;
-      case TitleTier.diamond: return Icons.auto_awesome_rounded;
+      case TitleTier.bronze:
+        return Icons.workspace_premium_rounded;
+      case TitleTier.silver:
+        return Icons.star_rounded;
+      case TitleTier.gold:
+        return Icons.emoji_events_rounded;
+      case TitleTier.platinum:
+        return Icons.diamond_rounded;
+      case TitleTier.diamond:
+        return Icons.auto_awesome_rounded;
     }
   }
 
@@ -62,27 +72,32 @@ enum TitleTier {
     switch (this) {
       case TitleTier.bronze:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFF8EA0B2), Color(0xFF546778)],
         );
       case TitleTier.silver:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFFD4924B), Color(0xFF8B5E35)],
         );
       case TitleTier.gold:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFFFFCA28), Color(0xFFD46B00)],
         );
       case TitleTier.platinum:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFF2DD4BF), Color(0xFF0D9488)],
         );
       case TitleTier.diamond:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFF818CF8), Color(0xFFB845F5)],
         );
     }
@@ -117,6 +132,7 @@ class MascotAchievement {
   final String? rewardMascotPath;
   final int rewardPoints;
   final String? imagePath;
+  final double medalScale;
 
   const MascotAchievement({
     required this.id,
@@ -129,6 +145,7 @@ class MascotAchievement {
     this.rewardMascotPath,
     this.rewardPoints = 10,
     this.imagePath,
+    this.medalScale = 1.0,
   });
 
   /// 检查是否满足成就条件
@@ -142,7 +159,7 @@ class MascotAchievement {
     if (rewardPoints >= 800) return TitleTier.diamond;
     if (rewardPoints >= 401) return TitleTier.platinum;
     if (rewardPoints >= 151) return TitleTier.gold;
-    if (rewardPoints >= 51)  return TitleTier.silver;
+    if (rewardPoints >= 51) return TitleTier.silver;
     return TitleTier.bronze;
   }
 
@@ -195,6 +212,8 @@ class MascotAchievement {
       targetValue: 3,
       rewardTitle: '点点微光',
       rewardPoints: 20,
+      imagePath: 'assets/images/emoji/medal/medal3.png',
+      medalScale: 1.7,
     ),
     MascotAchievement(
       id: 'fifteen_days_streak',
@@ -502,6 +521,8 @@ class MascotAchievement {
       targetValue: 1,
       rewardTitle: '瞬间留白',
       rewardPoints: 10,
+      imagePath: 'assets/images/emoji/medal/medal2.png',
+      medalScale: 1.12,
     ),
     MascotAchievement(
       id: 'photo_10',
@@ -566,6 +587,8 @@ class MascotAchievement {
       targetValue: 10,
       rewardTitle: '海岛寄旅',
       rewardPoints: 20,
+      imagePath: 'assets/images/emoji/medal/medal4.png',
+      medalScale: 1.6,
     ),
     MascotAchievement(
       id: 'active_50',
@@ -632,6 +655,7 @@ class MascotAchievement {
       rewardTitle: '星海指引',
       rewardPoints: 10,
       imagePath: 'assets/images/emoji/medal/medal1.png',
+      medalScale: 1.0,
     ),
     MascotAchievement(
       id: 'vip_level_2',
@@ -651,6 +675,77 @@ class MascotAchievement {
       targetValue: 3,
       rewardDecorationId: 'mask',
       rewardTitle: '永恒注脚',
+      rewardPoints: 100,
+    ),
+    // --- 新增：眼镜系列成就 ---
+    MascotAchievement(
+      id: 'glasses_kitty_collection',
+      title: '萌系视界',
+      description: '累计活跃达到 3 天，开启粉色视界',
+      condition: AchievementCondition.activeDays,
+      targetValue: 3,
+      rewardDecorationId: 'glasses_kitty',
+      rewardTitle: '猫耳观察员',
+      rewardPoints: 30,
+    ),
+    MascotAchievement(
+      id: 'glasses_reindeer_logic',
+      title: '林间跃动',
+      description: '累计记录 15 篇日记，捕捉野性直觉',
+      condition: AchievementCondition.totalDiaries,
+      targetValue: 15,
+      rewardDecorationId: 'glasses_reindeer',
+      rewardTitle: '通灵鹿语',
+      rewardPoints: 50,
+    ),
+    MascotAchievement(
+      id: 'glasses_heart_passion',
+      title: '炽热节拍',
+      description: '累计记录 20 篇图文日记，镌刻热烈心动',
+      condition: AchievementCondition.photoDiaries,
+      targetValue: 20,
+      rewardDecorationId: 'glasses_heart',
+      rewardTitle: '热恋观察家',
+      rewardPoints: 80,
+    ),
+    MascotAchievement(
+      id: 'glasses_cupcake_sweet',
+      title: '甜点美学',
+      description: '连续记录 5 天日记，品味生活甘美',
+      condition: AchievementCondition.maxStreak,
+      targetValue: 5,
+      rewardDecorationId: 'glasses_cupcake',
+      rewardTitle: '糖份侦探',
+      rewardPoints: 40,
+    ),
+    MascotAchievement(
+      id: 'glasses_pixel_geek',
+      title: '极客视界',
+      description: '累计字数达到 10000 字，洞察数字脉络',
+      condition: AchievementCondition.totalWords,
+      targetValue: 10000,
+      rewardDecorationId: 'glasses_pixel',
+      rewardTitle: '比特筑梦人',
+      rewardPoints: 200,
+    ),
+    MascotAchievement(
+      id: 'glasses_star_gazer',
+      title: '星愿观测',
+      description: '在深夜 0:00 - 4:00 记录 10 篇日记',
+      condition: AchievementCondition.nightDiaries,
+      targetValue: 10,
+      rewardDecorationId: 'glasses_star',
+      rewardTitle: '追星信使',
+      rewardPoints: 60,
+    ),
+    MascotAchievement(
+      id: 'glasses_bear_polar',
+      title: '极地冰心',
+      description: '入驻小岛成为高级居民 (VIP 2 级奖励)',
+      condition: AchievementCondition.vipLevel,
+      targetValue: 2,
+      rewardDecorationId: 'glasses_bear',
+      rewardTitle: '冰原守望者',
       rewardPoints: 100,
     ),
   ];
@@ -706,59 +801,70 @@ extension AchievementConditionStyle on AchievementCondition {
       case AchievementCondition.totalDiaries:
       case AchievementCondition.activeDays:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFF38BDF8), Color(0xFF34D399)],
         );
       case AchievementCondition.maxStreak:
         return const LinearGradient(
-          begin: Alignment.topCenter, end: Alignment.bottomCenter,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [Color(0xFFFBBF24), Color(0xFFEF4444)],
         );
       case AchievementCondition.uniqueMoods:
       case AchievementCondition.totalMoods:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFFF472B6), Color(0xFFA855F7)],
         );
       case AchievementCondition.totalWords:
       case AchievementCondition.maxSingleWords:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFF6366F1), Color(0xFF22D3EE)],
         );
       case AchievementCondition.morningDiaries:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFFFDE68A), Color(0xFFF59E0B)],
         );
       case AchievementCondition.nightDiaries:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFFA5B4FC), Color(0xFF6366F1)],
         );
       case AchievementCondition.photoDiaries:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFFFDA4AF), Color(0xFFF97316)],
         );
       case AchievementCondition.uniqueTags:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFF4ADE80), Color(0xFF14B8A6)],
         );
       case AchievementCondition.vipLevel:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFFFFD54F), Color(0xFFFF8F00)],
         );
       case AchievementCondition.isResident:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFF818CF8), Color(0xFF6366F1)],
         );
       case AchievementCondition.totalDecorationsOwned:
         return const LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Color(0xFF2DD4BF), Color(0xFF14B8A6)],
         );
     }

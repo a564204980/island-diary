@@ -5,59 +5,78 @@ import 'package:flutter_animate/flutter_animate.dart';
 class VipBenefitList extends StatelessWidget {
   final bool isNight;
   final Color themeColor;
+  final bool isWide;
 
   const VipBenefitList({
     super.key,
     required this.isNight,
-    required this.themeColor
+    required this.themeColor,
+    this.isWide = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final items = [
+      _buildHorizontalBenefitCard(
+        title: '专属装扮',
+        description: '激活不同档位，即赠顶级稀有饰品及首发专属形象',
+        orbColor: const Color(0xFFFFD54F),
+        isNight: isNight,
+      ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.1, end: 0),
+
+      _buildHorizontalBenefitCard(
+        title: '审美特权',
+        description: '开启独家季节主题与霞鹜人文字体',
+        orbColor: themeColor,
+        isNight: isNight,
+      ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0),
+      
+      _buildHorizontalBenefitCard(
+        title: '无限灵感',
+        description: '解锁笔记数量限制，支持无限高清图片',
+        orbColor: const Color(0xFFF48FB1),
+        isNight: isNight,
+      ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.1, end: 0),
+      
+      _buildHorizontalBenefitCard(
+        title: '深度洞察',
+        description: '365天情绪热力图与灵魂演化分析',
+        orbColor: const Color(0xFF64B5F6),
+        isNight: isNight,
+      ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.1, end: 0),
+
+      _buildHorizontalBenefitCard(
+        title: '仪式导出',
+        description: '支持高精 PDF 打印与精美卡片分享',
+        orbColor: const Color(0xFF4DB6AC),
+        isNight: isNight,
+      ).animate().fadeIn(delay: 500.ms).slideX(begin: 0.1, end: 0),
+
+      _buildHorizontalBenefitCard(
+        title: '同步无界',
+        description: '多端实时云同步，数据端到端加密',
+        orbColor: const Color(0xFF9575CD),
+        isNight: isNight,
+      ).animate().fadeIn(delay: 600.ms).slideX(begin: 0.1, end: 0),
+    ];
+
+    if (isWide) {
+      return SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 16,
+          mainAxisExtent: 96,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => items[index],
+          childCount: items.length,
+        ),
+      );
+    }
+
     return SliverList(
-      delegate: SliverChildListDelegate([
-        _buildHorizontalBenefitCard(
-          title: '专属装扮',
-          description: '激活不同档位，即赠顶级稀有饰品及首发专属形象',
-          orbColor: const Color(0xFFFFD54F),
-          isNight: isNight,
-        ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.1, end: 0),
-
-        _buildHorizontalBenefitCard(
-          title: '审美特权',
-          description: '开启独家季节主题与霞鹜人文字体',
-          orbColor: themeColor,
-          isNight: isNight,
-        ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0),
-        
-        _buildHorizontalBenefitCard(
-          title: '无限灵感',
-          description: '解锁笔记数量限制，支持无限高清图片',
-          orbColor: const Color(0xFFF48FB1),
-          isNight: isNight,
-        ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.1, end: 0),
-        
-        _buildHorizontalBenefitCard(
-          title: '深度洞察',
-          description: '365天情绪热力图与灵魂演化分析',
-          orbColor: const Color(0xFF64B5F6),
-          isNight: isNight,
-        ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.1, end: 0),
-
-        _buildHorizontalBenefitCard(
-          title: '仪式导出',
-          description: '支持高精 PDF 打印与精美卡片分享',
-          orbColor: const Color(0xFF4DB6AC),
-          isNight: isNight,
-        ).animate().fadeIn(delay: 500.ms).slideX(begin: 0.1, end: 0),
-
-        _buildHorizontalBenefitCard(
-          title: '同步无界',
-          description: '多端实时云同步，数据端到端加密',
-          orbColor: const Color(0xFF9575CD),
-          isNight: isNight,
-        ).animate().fadeIn(delay: 600.ms).slideX(begin: 0.1, end: 0),
-      ]),
+      delegate: SliverChildListDelegate(items),
     );
   }
 

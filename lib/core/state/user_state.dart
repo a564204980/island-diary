@@ -70,6 +70,9 @@ class _K {
   static const selectedTitles = 'selected_user_titles_v2';
   static const mascotType = 'selected_mascot_type_v1';
   static const unlockedMascots = 'unlocked_mascot_paths_v1';
+  static const isGlassesOverlayEnabled = 'is_glasses_overlay_enabled_v1';
+  static const isGlassesAboveHat = 'is_glasses_above_hat_v1';
+  static const selectedGlassesDecoration = 'selected_glasses_decoration_v1';
 }
 
 /// 1. 用户资料与引导模块
@@ -603,6 +606,19 @@ mixin AchievementMixin on DiaryMixin {
       }
     }
     ownedDecorationIds.value = prefs.getStringList(_K.ownedDecorations) ?? _defaultOwnedIds;
+    // 强制同步新增的眼镜：满足“全部解锁”需求
+    final current = List<String>.from(ownedDecorationIds.value);
+    bool added = false;
+    for (var d in MascotDecoration.allDecorations) {
+      if (d.category == MascotDecorationCategory.glasses && !current.contains(d.id)) {
+        current.add(d.id);
+        added = true;
+      }
+    }
+    if (added) {
+      ownedDecorationIds.value = current;
+      prefs.setStringList(_K.ownedDecorations, current);
+    }
     unlockedMascotPaths.value = prefs.getStringList(_K.unlockedMascots) ?? ['assets/images/emoji/marshmallow2.png'];
   }
 
@@ -614,6 +630,14 @@ mixin AchievementMixin on DiaryMixin {
     final unlockedMap = unlockedAchievements.value;
     final currentMascots = List<String>.from(unlockedMascotPaths.value);
     
+    // 强制解锁所有眼镜（满足用户特殊要求）
+    for (var d in MascotDecoration.allDecorations) {
+      if (d.category == MascotDecorationCategory.glasses && !currentOwned.contains(d.id)) {
+        currentOwned.add(d.id);
+        needsSync = true;
+      }
+    }
+
     for (var a in MascotAchievement.allAchievements) {
       if (unlockedMap.containsKey(a.id)) {
         if (a.rewardDecorationId != null && !currentOwned.contains(a.rewardDecorationId!)) {
@@ -633,13 +657,18 @@ mixin AchievementMixin on DiaryMixin {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_K.ownedDecorations, currentOwned);
       await prefs.setStringList(_K.unlockedMascots, currentMascots);
-      debugPrint('Achievement Rewards Synced: Added missing decoration/mascot rewards.');
+      debugPrint('Decoration Rewards Synced: Unlocked glasses and rewards.');
     }
   }
 
   List<String> get _defaultOwnedIds {
     final rewards = MascotAchievement.allAchievements.map((a) => a.rewardDecorationId).whereType<String>().toSet();
-    return MascotDecoration.allDecorations.map((d) => d.id).where((id) => !rewards.contains(id)).toList();
+    return MascotDecoration.allDecorations.map((d) => d.id).where((id) {
+      final deco = MascotDecoration.allDecorations.where((de) => de.id == id).firstOrNull;
+      if (deco == null) return false;
+      // 眼镜全解锁，或者非成就奖励物品
+      return deco.category == MascotDecorationCategory.glasses || !rewards.contains(id);
+    }).toList();
   }
 
   Future<List<MascotAchievement>> checkAchievements() async {
@@ -677,6 +706,45 @@ mixin AchievementMixin on DiaryMixin {
       await prefs.setInt(_K.achievementPoints, achievementPoints.value);
     }
     return newlyUnlocked;
+  }
+
+  /// [DEBUG] 一键解锁所有饰品、成就与会员权限 (仅供测试使用)
+  Future<void> unlockAllForTesting() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now().toIso8601String();
+
+    // 1. 解锁所有饰品 (动态覆盖分片库)
+    final allDecoIds = MascotDecoration.allDecorations.map((d) => d.id).toList();
+    ownedDecorationIds.value = allDecoIds;
+    await prefs.setStringList(_K.ownedDecorations, allDecoIds);
+    debugPrint('DEBUG: [Mascot] Total ${allDecoIds.length} decorations unlocked.');
+
+    // 2. 解锁所有皮肤 (云织系列)
+    final allMascots = [
+      'assets/images/emoji/marshmallow.png',
+      'assets/images/emoji/marshmallow2.png',
+      'assets/images/emoji/marshmallow3.png',
+      'assets/images/emoji/marshmallow4.png',
+    ];
+    unlockedMascotPaths.value = allMascots;
+    await prefs.setStringList(_K.unlockedMascots, allMascots);
+
+    // 3. 解锁所有成就并累计点数
+    final allAchievementsMap = <String, String>{};
+    int totalPoints = 0;
+    for (var a in MascotAchievement.allAchievements) {
+      allAchievementsMap[a.id] = now;
+      totalPoints += a.rewardPoints;
+    }
+    unlockedAchievements.value = allAchievementsMap;
+    achievementPoints.value = totalPoints;
+    await prefs.setString(_K.unlockedAchievementsMap, jsonEncode(allAchievementsMap));
+    await prefs.setInt(_K.achievementPoints, totalPoints);
+
+    // 4. 解锁终身会员
+    await setIsVipLevel(3);
+
+    debugPrint('Debug: All items, achievements and VIP unlocked for testing.');
   }
 
   Map<String, int> getAchievementStats() {
@@ -742,6 +810,11 @@ mixin PreferenceMixin {
   final ValueNotifier<double> preferredFontSize = ValueNotifier<double>(20.0);
   final ValueNotifier<String> preferredFontFamily = ValueNotifier<String>('LXGWWenKai');
   final ValueNotifier<String?> selectedMascotDecoration = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> selectedGlassesDecoration = ValueNotifier<String?>(null);
+  final ValueNotifier<bool> isGlassesOverlayEnabled = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> isGlassesAboveHat = ValueNotifier<bool>(true);
+  // 新增：记录最后一次交互是否为眼镜类饰品
+  bool _lastInteractedIsGlasses = false;
   final ValueNotifier<String> selectedMascotType = ValueNotifier<String>('assets/images/emoji/marshmallow2.png');
 
   void loadPreference(SharedPreferences prefs) {
@@ -755,6 +828,9 @@ mixin PreferenceMixin {
     preferredFontSize.value = prefs.getDouble(_K.preferredFontSize) ?? 20.0;
     preferredFontFamily.value = prefs.getString(_K.preferredFontFamily) ?? 'LXGWWenKai';
     selectedMascotDecoration.value = prefs.getString(_K.mascotDecoration);
+    selectedGlassesDecoration.value = prefs.getString(_K.selectedGlassesDecoration);
+    isGlassesOverlayEnabled.value = prefs.getBool(_K.isGlassesOverlayEnabled) ?? false;
+    isGlassesAboveHat.value = prefs.getBool(_K.isGlassesAboveHat) ?? true;
     selectedMascotType.value = prefs.getString(_K.mascotType) ?? 'assets/images/emoji/marshmallow2.png';
   }
 
@@ -804,7 +880,42 @@ mixin PreferenceMixin {
   Future<void> setPreferredPaperStyle(String s) async { preferredPaperStyle.value = s; final p = await SharedPreferences.getInstance(); await p.setString(_K.preferredPaperStyle, s); }
   Future<void> setPreferredFontSize(double s) async { preferredFontSize.value = s; final p = await SharedPreferences.getInstance(); await p.setDouble(_K.preferredFontSize, s); }
   Future<void> setPreferredFontFamily(String f) async { preferredFontFamily.value = f; final p = await SharedPreferences.getInstance(); await p.setString(_K.preferredFontFamily, f); }
-  Future<void> setMascotDecoration(String? a) async { selectedMascotDecoration.value = a; final p = await SharedPreferences.getInstance(); a == null ? await p.remove(_K.mascotDecoration) : await p.setString(_K.mascotDecoration, a); }
+  Future<void> setMascotDecoration(String? a) async { 
+    selectedMascotDecoration.value = a; 
+    _lastInteractedIsGlasses = false; 
+    final p = await SharedPreferences.getInstance(); 
+    a == null ? await p.remove(_K.mascotDecoration) : await p.setString(_K.mascotDecoration, a); 
+  }
+  Future<void> setSelectedGlassesDecoration(String? a) async { 
+    selectedGlassesDecoration.value = a; 
+    _lastInteractedIsGlasses = true; 
+    final p = await SharedPreferences.getInstance(); 
+    a == null ? await p.remove(_K.selectedGlassesDecoration) : await p.setString(_K.selectedGlassesDecoration, a); 
+  }
+  Future<void> setGlassesOverlayEnabled(bool enabled) async { 
+    if (isGlassesOverlayEnabled.value && !enabled) {
+      // 正在关闭叠戴模式：解决可能的“二合一”冲突
+      if (selectedGlassesDecoration.value != null) {
+        if (_lastInteractedIsGlasses) {
+          // 最后操作的是眼镜 -> 将其路径赋给主槽位（互斥逻辑）
+          final path = selectedGlassesDecoration.value;
+          await setSelectedGlassesDecoration(null); // 先清空眼镜槽位
+          await setMascotDecoration(path); // 填入主槽位
+        } else {
+          // 最后操作的是主饰品 -> 仅清空物理眼镜层
+          await setSelectedGlassesDecoration(null);
+        }
+      }
+    }
+    isGlassesOverlayEnabled.value = enabled; 
+    final p = await SharedPreferences.getInstance(); 
+    await p.setBool(_K.isGlassesOverlayEnabled, enabled); 
+  }
+  Future<void> setGlassesAboveHat(bool enabled) async { 
+    isGlassesAboveHat.value = enabled; 
+    final p = await SharedPreferences.getInstance(); 
+    await p.setBool(_K.isGlassesAboveHat, enabled); 
+  }
   Future<void> setMascotType(String path) async { selectedMascotType.value = path; final p = await SharedPreferences.getInstance(); await p.setString(_K.mascotType, path); }
 }
 

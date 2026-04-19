@@ -98,81 +98,84 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       ),
       body: Stack(
         children: [
-          // 背景保持纯净一致
-
-          SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              physics: const BouncingScrollPhysics(),
-              children: [
-                if (_isInitialized) ...[
-                  _buildEditSection(
-                    title: '基础信息',
-                    isNight: isNight,
-                    children: [
-                      _buildRowTextField(
-                        label: '昵称',
-                        controller: _nameController,
-                        hint: '起一个好听的名字',
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: SafeArea(
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    if (_isInitialized) ...[
+                      _buildEditSection(
+                        title: '基础信息',
                         isNight: isNight,
-                      ),
-                      _buildDivider(isNight),
-                      _buildBioField(
-                        controller: _bioController,
-                        isNight: isNight,
-                      ),
-                    ],
-                  ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, end: 0),
-                  
-                  const SizedBox(height: 24),
-                  
-                  _buildEditSection(
-                    title: '个人属性',
-                    isNight: isNight,
-                    children: [
-                      _buildPickerItem(
-                        label: '性别',
-                        value: _getGenderText(_selectedGender),
-                        isNight: isNight,
-                        onTap: () => _showGenderPicker(context, isNight),
-                      ),
-                      _buildDivider(isNight),
-                      _buildPickerItem(
-                        label: '生日',
-                        value: _selectedBirthday == null 
-                            ? '未设置' 
-                            : DateFormat('yyyy年MM月dd日').format(_selectedBirthday!),
-                        isNight: isNight,
-                        onTap: () => _showBirthdayPicker(context, isNight),
-                      ),
-                      _buildDivider(isNight),
-                      ValueListenableBuilder<List<String>>(
-                        valueListenable: userState.selectedTitles,
-                        builder: (context, titles, _) {
-                          return _buildPickerItem(
-                            label: '我的称号',
-                            value: titles.isEmpty ? '默认居民' : titles.join('、'),
+                        children: [
+                          _buildRowTextField(
+                            label: '昵称',
+                            controller: _nameController,
+                            hint: '起一个好听的名字',
                             isNight: isNight,
-                            onTap: () => _showTitlePicker(context, isNight),
-                          );
-                        },
-                      ),
-                    ],
-                  ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
+                          ),
+                          _buildDivider(isNight),
+                          _buildBioField(
+                            controller: _bioController,
+                            isNight: isNight,
+                          ),
+                        ],
+                      ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, end: 0),
+                      
+                      const SizedBox(height: 24),
+                      
+                      _buildEditSection(
+                        title: '个人属性',
+                        isNight: isNight,
+                        children: [
+                          _buildPickerItem(
+                            label: '性别',
+                            value: _getGenderText(_selectedGender),
+                            isNight: isNight,
+                            onTap: () => _showGenderPicker(context, isNight),
+                          ),
+                          _buildDivider(isNight),
+                          _buildPickerItem(
+                            label: '生日',
+                            value: _selectedBirthday == null 
+                                ? '未设置' 
+                                : DateFormat('yyyy年MM月dd日').format(_selectedBirthday!),
+                            isNight: isNight,
+                            onTap: () => _showBirthdayPicker(context, isNight),
+                          ),
+                          _buildDivider(isNight),
+                          ValueListenableBuilder<List<String>>(
+                            valueListenable: userState.selectedTitles,
+                            builder: (context, titles, _) {
+                              return _buildPickerItem(
+                                label: '我的称号',
+                                value: titles.isEmpty ? '默认居民' : titles.join('、'),
+                                isNight: isNight,
+                                onTap: () => _showTitlePicker(context, isNight),
+                              );
+                            },
+                          ),
+                        ],
+                      ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
 
-                  const SizedBox(height: 40),
-                  
-                  Text(
-                    '设置生日后，在岛屿的每一年生日当天都将收到一份特别的礼物。',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isNight ? Colors.white24 : Colors.black26,
-                      fontFamily: 'LXGWWenKai',
-                    ),
-                  ).animate().fadeIn(delay: 400.ms),
-                ],
-              ],
+                      const SizedBox(height: 40),
+                      
+                      Text(
+                        '设置生日后，在岛屿的每一年生日当天都将收到一份特别的礼物。',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isNight ? Colors.white24 : Colors.black26,
+                          fontFamily: 'LXGWWenKai',
+                        ),
+                      ).animate().fadeIn(delay: 400.ms),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         ],

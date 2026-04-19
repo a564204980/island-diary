@@ -20,9 +20,28 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
   int _selectedTierIndex = 1;
 
   static const List<PricingTier> _tiers = [
-    PricingTier(title: '月度拾光', price: '3.0', numericPrice: 3.0, period: '/月', note: '一杯水的支持'),
-    PricingTier(title: '年度星河', price: '25.0', numericPrice: 25.0, period: '/年', note: '年度最受欢迎', isPop: true),
-    PricingTier(title: '永恒印记', price: '68.0', numericPrice: 68.0, period: '终身', note: '一份永恒的契约'),
+    PricingTier(
+      title: '月度拾光',
+      price: '3.0',
+      numericPrice: 3.0,
+      period: '/月',
+      note: '一杯水的支持',
+    ),
+    PricingTier(
+      title: '年度星河',
+      price: '25.0',
+      numericPrice: 25.0,
+      period: '/年',
+      note: '年度最受欢迎',
+      isPop: true,
+    ),
+    PricingTier(
+      title: '永恒印记',
+      price: '68.0',
+      numericPrice: 68.0,
+      period: '终身',
+      note: '一份永恒的契约',
+    ),
   ];
 
   @override
@@ -63,15 +82,20 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, 
-            color: Colors.white70, 
-            size: 18
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white70,
+            size: 20,
           ),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white54, size: 20),
+            icon: const Icon(
+              Icons.refresh_rounded,
+              color: Colors.white54,
+              size: 20,
+            ),
             tooltip: '调试：重置会员状态',
             onPressed: () async {
               await userState.setIsVipLevel(0);
@@ -91,64 +115,82 @@ class _VipBenefitsPageState extends State<VipBenefitsPage> {
           // 1. 视彩背景系统
           Positioned.fill(
             child: VipParallaxBackground(
-              isNight: true, 
-              season: season, 
-              scrollOffset: _scrollOffset
+              isNight: true,
+              season: season,
+              scrollOffset: _scrollOffset,
             ),
           ),
 
           // 2. 主滚动区域
-          CustomScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // Hero Section
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 80),
-                      const VipHeroSection(isNight: true, themeColor: themeColor),
-                      const SizedBox(height: 60),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final bool isWide = constraints.maxWidth > 600;
+                  return CustomScrollView(
+                    controller: _scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    slivers: [
+                      // Hero Section
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 80),
+                              const VipHeroSection(
+                                isNight: true,
+                                themeColor: themeColor,
+                              ),
+                              const SizedBox(height: 60),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // 权益列表
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        sliver: VipBenefitList(
+                          isNight: true,
+                          themeColor: themeColor,
+                          isWide: isWide,
+                        ),
+                      ),
+
+                      // 方案选择
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        sliver: SliverToBoxAdapter(
+                          child: VipPricingSection(
+                            isNight: true,
+                            themeColor: themeColor,
+                            selectedIndex: _selectedTierIndex,
+                            onTierSelected: (index) =>
+                                setState(() => _selectedTierIndex = index),
+                            tiers: _tiers,
+                          ),
+                        ),
+                      ),
+
+                      // 底部按钮
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 40, 24, 80),
+                          child: VipPurchaseButton(
+                            isNight: true,
+                            themeColor: themeColor,
+                            selectedIndex: _selectedTierIndex,
+                            tiers: _tiers,
+                          ),
+                        ),
+                      ),
                     ],
-                  ),
-                ),
+                  );
+                },
               ),
-
-              // 权益列表
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                sliver: VipBenefitList(isNight: true, themeColor: themeColor),
-              ),
-
-              // 方案选择
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                sliver: SliverToBoxAdapter(
-                  child: VipPricingSection(
-                    isNight: true,
-                    themeColor: themeColor,
-                    selectedIndex: _selectedTierIndex,
-                    onTierSelected: (index) => setState(() => _selectedTierIndex = index),
-                    tiers: _tiers,
-                  ),
-                ),
-              ),
-
-              // 底部按钮
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 80),
-                  child: VipPurchaseButton(
-                    isNight: true,
-                    themeColor: themeColor,
-                    selectedIndex: _selectedTierIndex,
-                    tiers: _tiers,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),

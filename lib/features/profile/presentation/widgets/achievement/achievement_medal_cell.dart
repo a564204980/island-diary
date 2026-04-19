@@ -63,8 +63,15 @@ class AchievementMedalCell extends StatelessWidget {
           if (isUnlocked && isHonor)
             const Positioned.fill(child: SweepLightEffect()),
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: _buildMedalIcon(decoration, primaryColor),
+            padding: const EdgeInsets.all(10.0),
+            child: ClipOval(
+              child: Transform.scale(
+                scale: achievement.medalScale,
+                child: Center(
+                  child: _buildMedalIcon(decoration, primaryColor),
+                ),
+              ),
+            ),
           ),
           // 右上角添加奖励类型角标
           Positioned(
@@ -109,8 +116,8 @@ class AchievementMedalCell extends StatelessWidget {
         // 内环（稍浓）
         Center(
           child: FractionallySizedBox(
-            widthFactor: 0.82,
-            heightFactor: 0.82,
+            widthFactor: 0.9,
+            heightFactor: 0.9,
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -136,12 +143,12 @@ class AchievementMedalCell extends StatelessWidget {
 
   Widget _buildMedalIcon(MascotDecoration? decoration, Color color) {
     if (isUnlocked) {
-      if (decoration != null) {
+      if (decoration != null && decoration.path.isNotEmpty) {
         return Image.asset(decoration.path, fit: BoxFit.contain);
       }
       
       // 优先显示指定的勋章图片
-      if (achievement.imagePath != null) {
+      if (achievement.imagePath != null && achievement.imagePath!.isNotEmpty) {
         return Image.asset(achievement.imagePath!, fit: BoxFit.contain);
       }
       

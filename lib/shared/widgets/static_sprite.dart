@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 /// 极简的静态精灵展示组件
 /// 支持展示单张图片，或序列帧图片中的指定某一帧（默认第一帧）
 class StaticSprite extends StatelessWidget {
   final String assetPath;
-  final String? decorationPath; // 新增：装扮路径
   final double size;
   final int frameCount;
   final int frameIndex;
@@ -13,7 +13,6 @@ class StaticSprite extends StatelessWidget {
   const StaticSprite({
     super.key,
     required this.assetPath,
-    this.decorationPath,
     this.size = 48.0,
     this.frameCount = 1,
     this.frameIndex = 0,
@@ -21,6 +20,7 @@ class StaticSprite extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userState = UserState();
     return SizedBox(
       width: size,
       height: size,
@@ -54,34 +54,61 @@ class StaticSprite extends StatelessWidget {
             ),
           ),
 
-          // 2. 装扮叠加层
-          if (decorationPath != null)
-            Builder(
-              builder: (context) {
-                final config = MascotDecoration.getByPath(decorationPath);
-                final decoConfig = config?.getConfigForCharacter(assetPath) ?? const MascotDecorationConfig();
-                final offset = decoConfig.offset;
-                final scale = decoConfig.scale;
+          // 2. 动态装扮图层 (响应全局状态)
+          Positioned.fill(
+            child: ListenableBuilder(
+            listenable: Listenable.merge([
+              userState.selectedMascotDecoration,
+              userState.selectedGlassesDecoration,
+              userState.isGlassesAboveHat,
+            ]),
+            builder: (context, _) {
+              final String? decoPath = userState.selectedMascotDecoration.value;
+              final String? glsPath = userState.selectedGlassesDecoration.value;
+              final bool isGlassesAbove = userState.isGlassesAboveHat.value;
 
-                return Positioned.fill(
-                  child: Transform.translate(
-                    // 将 Offset 与当前 size 挂钩，实现等比例位移
-                    // 基准值设为 200 (即预览页的 size)，确保用户在预览页调好的位置在全站同步
-                    offset: offset * (size / 200.0),
-                    child: Transform.scale(
-                      scale: scale,
-                      child: Image.asset(
-                        decorationPath!,
-                        fit: BoxFit.contain,
-                        gaplessPlayback: true,
-                      ),
-                    ),
-                  ),
-                );
-              },
+              final hatLayer = decoPath != null
+                  ? _buildDecorationLayer(decoPath, assetPath, size)
+                  : const SizedBox.shrink();
+              final glassesLayer = glsPath != null
+                  ? _buildDecorationLayer(glsPath, assetPath, size)
+                  : const SizedBox.shrink();
+
+              return Stack(
+                children: isGlassesAbove 
+                  ? [hatLayer, glassesLayer] // 眼镜盖住帽子
+                  : [glassesLayer, hatLayer], // 帽子盖住眼镜
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+  Widget _buildDecorationLayer(String path, String mascotPath, double size) {
+    return Builder(
+      builder: (context) {
+        final config = MascotDecoration.getByPath(path);
+        final decoConfig = config?.getConfigForCharacter(mascotPath) ?? const MascotDecorationConfig();
+        final offset = decoConfig.offset;
+        final scale = decoConfig.scale;
+
+        return Positioned.fill(
+          child: Transform.translate(
+            offset: offset * (size / 200.0),
+            child: Transform.scale(
+              scale: scale,
+              child: Image.asset(
+                path,
+                fit: BoxFit.contain,
+                gaplessPlayback: true,
+              ),
             ),
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 }

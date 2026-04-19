@@ -186,11 +186,13 @@ class HandDrawnToolbarPainter extends CustomPainter {
   final Color color;
   final Color borderColor;
   final bool shadowOnly;
+  final bool showSideBorders;
 
   HandDrawnToolbarPainter({
     required this.color,
     required this.borderColor,
     this.shadowOnly = false,
+    this.showSideBorders = false,
   });
 
   @override
@@ -230,10 +232,15 @@ class HandDrawnToolbarPainter extends CustomPainter {
     }
 
     path.close();
-    
+
     // 1. 绘制阴影 (仅在 shadowOnly 为 true 时，或普通绘制的第一步)
     if (shadowOnly) {
-      canvas.drawShadow(path.shift(const Offset(0, 4)), Colors.black.withValues(alpha: 0.15), 10.0, true);
+      canvas.drawShadow(
+        path.shift(const Offset(0, 4)),
+        Colors.black.withValues(alpha: 0.15),
+        10.0,
+        true,
+      );
       return;
     }
 
@@ -243,26 +250,53 @@ class HandDrawnToolbarPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     canvas.drawPath(path, paint);
 
-    // 3. 绘制顶部分隔线条 (加粗，但减弱透明度以达到轻盈感)
+    // 3. 绘制边框线条 (加粗，但减弱透明度以达到轻盈感)
     final linePaint = Paint()
       ..color = borderColor.withValues(alpha: 0.25)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.2;
 
-    final linePath = Path();
-    linePath.moveTo(0, 5);
+    // A. 顶部线条
+    final topPath = Path();
+    topPath.moveTo(0, 5);
     for (double i = 0; i <= w; i += 30) {
-      linePath.lineTo(i, 3.0 + (i % 60 == 0 ? 2.0 : -0.5));
+      topPath.lineTo(i, 3.0 + (i % 60 == 0 ? 2.0 : -0.5));
     }
-    linePath.lineTo(w, 3.0);
-    canvas.drawPath(linePath, linePaint);
+    topPath.lineTo(w, 3.0);
+    canvas.drawPath(topPath, linePaint);
+
+    // B. 侧边线条 (仅在宽屏/iPad 模式下显示)
+    if (showSideBorders) {
+      // 左侧
+      final leftPath = Path();
+      leftPath.moveTo(2, 5);
+      step = 0;
+      for (double y = 0; y <= h; y += 20) {
+        final double currentY = y > h ? h : y;
+        leftPath.lineTo(1.0 + (step % 2 == 0 ? 2.0 : -0.5), currentY);
+        step++;
+      }
+      canvas.drawPath(leftPath, linePaint);
+
+      // 右侧
+      final rightPath = Path();
+      rightPath.moveTo(w - 2, 5);
+      step = 0;
+      for (double y = 0; y <= h; y += 20) {
+        final double currentY = y > h ? h : y;
+        rightPath.lineTo(w - 1.0 - (step % 2 == 0 ? 2.0 : -0.5), currentY);
+        step++;
+      }
+      canvas.drawPath(rightPath, linePaint);
+    }
   }
 
   @override
   bool shouldRepaint(covariant HandDrawnToolbarPainter oldDelegate) =>
       oldDelegate.color != color ||
       oldDelegate.borderColor != borderColor ||
-      oldDelegate.shadowOnly != shadowOnly;
+      oldDelegate.shadowOnly != shadowOnly ||
+      oldDelegate.showSideBorders != showSideBorders;
 }
 
 /// 日记信纸背景绘制总调度

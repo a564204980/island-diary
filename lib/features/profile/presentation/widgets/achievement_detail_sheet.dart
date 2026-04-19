@@ -25,9 +25,9 @@ class AchievementDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final decoration = achievement.rewardDecorationId != null
-        ? MascotDecoration.allDecorations.firstWhere(
-            (d) => d.id == achievement.rewardDecorationId,
-          )
+        ? MascotDecoration.allDecorations
+            .where((d) => d.id == achievement.rewardDecorationId)
+            .firstOrNull
         : null;
 
     final bg = isNight ? const Color(0xFF1A1A2E) : Colors.white;

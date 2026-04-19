@@ -206,15 +206,9 @@ class _DiarySuccessOverlayState extends State<DiarySuccessOverlay>
   Widget _buildRewardDisplay() {
     final rewardId = widget.achievement.rewardDecorationId;
     final decoration = rewardId != null
-        ? MascotDecoration.allDecorations.firstWhere(
-            (d) => d.id == rewardId,
-            orElse: () => const MascotDecoration(
-              id: '',
-              name: '',
-              path: '',
-              description: '',
-            ),
-          )
+        ? MascotDecoration.allDecorations
+            .where((d) => d.id == rewardId)
+            .firstOrNull
         : null;
     final bool isItem = decoration != null && decoration.path.isNotEmpty;
 
@@ -355,8 +349,10 @@ class _DiarySuccessOverlayState extends State<DiarySuccessOverlay>
   Widget _buildSuccessText() {
     String rewardText = '';
     if (widget.achievement.rewardDecorationId != null) {
-      final decoration = MascotDecoration.allDecorations.firstWhere((d) => d.id == widget.achievement.rewardDecorationId!);
-      rewardText = '获得新饰品：${decoration.name}';
+      final decoration = MascotDecoration.allDecorations
+          .where((d) => d.id == widget.achievement.rewardDecorationId!)
+          .firstOrNull;
+      rewardText = '获得新饰品：${decoration?.name ?? "未知物品"}';
     } else if (widget.achievement.rewardTitle != null) {
       rewardText = '获得荣誉称号：${widget.achievement.rewardTitle}';
     } else {

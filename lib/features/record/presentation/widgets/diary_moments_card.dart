@@ -239,11 +239,13 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
             ),
             child: Center(
               child: ListenableBuilder(
-                listenable: UserState().selectedMascotDecoration,
+                listenable: Listenable.merge([
+                  UserState().selectedMascotDecoration,
+                  UserState().selectedGlassesDecoration,
+                ]),
                 builder: (context, _) {
                   return StaticSprite(
                     assetPath: _getMoodAnimation(widget.entry.moodIndex),
-                    decorationPath: UserState().selectedMascotDecoration.value,
                     size: isWide ? 42.0 : 36.0,
                   );
                 },

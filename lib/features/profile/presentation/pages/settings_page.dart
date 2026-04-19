@@ -35,56 +35,79 @@ class SettingsPage extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
             ),
           ),
-          body: ListView(
-            padding: const EdgeInsets.all(20),
-            physics: const BouncingScrollPhysics(),
-            children: [
-              _buildSection(
-                title: '偏好与数据',
-                isNight: isNight,
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                physics: const BouncingScrollPhysics(),
                 children: [
-                  _buildListTile('回忆导出', Icons.ios_share_rounded, isNight, onTap: () {
-                    _showToast(context, '回忆导出功能正在紧锣密鼓开发中');
-                  }),
-                  _buildDivider(isNight),
-                  _buildListTile('恢复购买', Icons.shopping_cart_checkout_rounded, isNight, onTap: () {
-                    _showActionDialog(context, '恢复购买', '正在连接 App Store，验证您的偏好设置与订阅记录...', isNight, isRestore: true);
-                  }),
-                ],
-              ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, end: 0),
-              
-              const SizedBox(height: 24),
-              
-              _buildSection(
-                title: '支持与反馈',
-                isNight: isNight,
-                children: [
-                  _buildListTile('去评分', Icons.star_border_rounded, isNight, onTap: () {
-                    _showActionDialog(context, '去评分', '岛屿计划离不开您的支持，我们将带您前往 App Store 留下宝贵的评价。', isNight);
-                  }),
-                  _buildDivider(isNight),
-                  _buildListTile('意见反馈', Icons.chat_bubble_outline_rounded, isNight, onTap: () {
-                    _showLegalDialog(context, '意见反馈', LegalText.feedbackInfo, isNight);
-                  }),
-                ],
-              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
-              
-              const SizedBox(height: 24),
+                  _buildSection(
+                    title: '偏好与数据',
+                    isNight: isNight,
+                    children: [
+                      _buildListTile('回忆导出', Icons.ios_share_rounded, isNight, onTap: () {
+                        _showToast(context, '回忆导出功能正在紧锣密鼓开发中');
+                      }),
+                      _buildDivider(isNight),
+                      _buildListTile('恢复购买', Icons.shopping_cart_checkout_rounded, isNight, onTap: () {
+                        _showActionDialog(context, '恢复购买', '正在连接 App Store，验证您的偏好设置与订阅记录...', isNight, isRestore: true);
+                      }),
+                    ],
+                  ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, end: 0),
+                  
+                  const SizedBox(height: 24),
+                  
+                  _buildSection(
+                    title: '支持与反馈',
+                    isNight: isNight,
+                    children: [
+                      _buildListTile('去评分', Icons.star_border_rounded, isNight, onTap: () {
+                        _showActionDialog(context, '去评分', '岛屿计划离不开您的支持，我们将带您前往 App Store 留下宝贵的评价。', isNight);
+                      }),
+                      _buildDivider(isNight),
+                      _buildListTile('意见反馈', Icons.chat_bubble_outline_rounded, isNight, onTap: () {
+                        _showLegalDialog(context, '意见反馈', LegalText.feedbackInfo, isNight);
+                      }),
+                    ],
+                  ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
+                  
+                  const SizedBox(height: 24),
 
-              _buildSection(
-                title: '法律条款',
-                isNight: isNight,
-                children: [
-                  _buildListTile('隐私政策', Icons.privacy_tip_outlined, isNight, onTap: () {
-                    _showLegalDialog(context, '隐私政策', LegalText.privacyPolicy, isNight);
-                  }),
-                  _buildDivider(isNight),
-                  _buildListTile('用户协议', Icons.gavel_rounded, isNight, onTap: () {
-                    _showLegalDialog(context, '用户协议', LegalText.userAgreement, isNight);
-                  }),
+                  _buildSection(
+                    title: '法律条款',
+                    isNight: isNight,
+                    children: [
+                      _buildListTile('隐私政策', Icons.privacy_tip_outlined, isNight, onTap: () {
+                        _showLegalDialog(context, '隐私政策', LegalText.privacyPolicy, isNight);
+                      }),
+                      _buildDivider(isNight),
+                      _buildListTile('用户协议', Icons.gavel_rounded, isNight, onTap: () {
+                        _showLegalDialog(context, '用户协议', LegalText.userAgreement, isNight);
+                      }),
+                    ],
+                  ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1, end: 0),
+
+                  const SizedBox(height: 24),
+
+                  _buildSection(
+                    title: '实验室',
+                    isNight: isNight,
+                    children: [
+                      _buildListTile(
+                        '开发调试：一键解锁',
+                        Icons.bug_report_rounded,
+                        isNight,
+                        onTap: () {
+                          UserState().unlockAllForTesting();
+                          _showToast(context, '已触发全量解锁测试模式');
+                        },
+                      ),
+                    ],
+                  ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
                 ],
-              ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1, end: 0),
-            ],
+              ),
+            ),
           ),
         );
       },
