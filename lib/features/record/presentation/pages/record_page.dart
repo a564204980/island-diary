@@ -28,10 +28,12 @@ class _RecordPageState extends State<RecordPage>
   late Animation<double> _jumpAnimation;
   bool _isJumpStarted = false;
   bool _showDeskDialogue = false; // 控制桌面气泡显示
+  String _deskDialogueText = ""; // 气泡显示的文本内容
   bool _showBookHint = false; // 控制书籍互动提示显示
   Timer? _jumpTimer;
   Timer? _dialogueTimer; // 处理落地后的延迟
   Timer? _bookHintTimer; // 控制书籍提示出现的时机
+  Timer? _thoughtTimer; // AI 台词自动消失定时器
 
   @override
   void initState() {
@@ -126,7 +128,7 @@ class _RecordPageState extends State<RecordPage>
   void dispose() {
     _jumpTimer?.cancel();
     _dialogueTimer?.cancel();
-    _bookHintTimer?.cancel();
+    _thoughtTimer?.cancel();
     _jumpController.dispose();
     _scrollController.dispose();
     _scrollOffsetNotifier.dispose();
@@ -463,7 +465,7 @@ class _RecordPageState extends State<RecordPage>
       top: deskY - 130,
       child:
           SpriteDialogue(
-                text: "点点旁边的书，看看我为你准备了什么",
+                text: _deskDialogueText.isEmpty ? "点点旁边的书，看看我为你准备了什么" : _deskDialogueText,
                 useTypewriter: true,
                 onNext: () => setState(() => _showDeskDialogue = false),
               )

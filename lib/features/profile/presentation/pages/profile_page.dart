@@ -1,9 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/widgets/profile_header.dart';
 import 'package:island_diary/features/profile/presentation/widgets/premium_bento_card.dart';
 import 'package:island_diary/features/profile/presentation/widgets/bento_menu_grid.dart';
+import 'dart:async';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -17,6 +19,11 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     _checkBirthday();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> _checkBirthday() async {
@@ -103,7 +110,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
         return Stack(
           children: [
-            // 背景模糊 (保留原有层级结构)
+            // 背景模糊
             Positioned.fill(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -116,37 +123,24 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 800),
                   child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  const SizedBox(height: 20),
-                  
-                  // 1. 头部区域 (组件化)
-                  ProfileHeader(isNight: isNight, isVip: isVip),
-                  
-                  const SizedBox(height: 32),
-
-                  // 2. VIP 会员特权卡片 (组件化)
-                  PremiumBentoCard(isVip: isVip, isNight: isNight),
-                  
-                  const SizedBox(height: 24),
-
-                  // 3. 功能矩阵 (Bento Style) (组件化)
-                  BentoMenuGrid(isNight: isNight),
-
-                  const SizedBox(height: 32),
-                  
-                  // 4. 底部信息
-                  _buildFooter(isNight),
-                  
-                  const SizedBox(height: 40),
-                ],
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      const SizedBox(height: 20),
+                      ProfileHeader(isNight: isNight, isVip: isVip),
+                      const SizedBox(height: 32),
+                      PremiumBentoCard(isVip: isVip, isNight: isNight),
+                      const SizedBox(height: 24),
+                      BentoMenuGrid(isNight: isNight),
+                      const SizedBox(height: 32),
+                      _buildFooter(isNight),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-      ],
-    );
+          ],
+        );
       },
     );
   }

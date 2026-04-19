@@ -11,6 +11,7 @@ import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/features/record/presentation/pages/record_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/profile_page.dart';
 import 'package:island_diary/shared/widgets/barrage/mood_barrage_wall.dart';
+import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 import 'package:island_diary/features/statistics/presentation/pages/statistics_page.dart';
@@ -33,6 +34,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Timer? _timeChecker;
   late String _currentBgPath;
   bool _isLandscape = false; // 是否全屏横屏模式
+  bool _showGlobalDialogue = false; 
+  String _globalDialogueText = "";
+  Timer? _thoughtTimer;
 
   // 弹幕相关
   List<Map<DateTime, List<DiaryEntry>>> _groupedEntries = [];
@@ -88,6 +92,30 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         UserState().checkAchievements();
       }
     });
+
+    // 监听 AI 想法
+    UserState().mascotThought.addListener(_onThoughtChanged);
+  }
+
+  void _onThoughtChanged() {
+    final thought = UserState().mascotThought.value;
+    if (thought != null && thought.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _globalDialogueText = thought;
+          _showGlobalDialogue = true;
+        });
+        
+        // 10秒后自动消失
+        _thoughtTimer?.cancel();
+        _thoughtTimer = Timer(const Duration(seconds: 10), () {
+          if (mounted) {
+            setState(() => _showGlobalDialogue = false);
+            UserState().mascotThought.value = null; // 清空状态
+          }
+        });
+      }
+    }
   }
 
   void _groupEntriesByDate() {
@@ -180,7 +208,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void dispose() {
     UserState().savedDiaries.removeListener(_groupEntriesByDate);
+    UserState().mascotThought.removeListener(_onThoughtChanged);
     _timeChecker?.cancel();
+    _thoughtTimer?.cancel();
     _floatController.dispose();
     _zoomAnimationController.dispose();
     _transformationController.dispose();
@@ -376,6 +406,33 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   },
                 ),
               ),
+
+              // 全局气泡：位于导航栏上方
+              if (_showGlobalDialogue)
+                Positioned(
+                  left: 20,
+                  right: 20,
+                  bottom: _isLandscape ? 40 : (MediaQuery.of(context).size.width > 600 ? 150 : 130),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: SpriteDialogue(
+                        text: _globalDialogueText,
+                        useTypewriter: true,
+                        onNext: () {
+                          setState(() => _showGlobalDialogue = false);
+                        },
+                      )
+                      .animate()
+                      .fade(duration: 400.ms)
+                      .scale(
+                        begin: const Offset(0.8, 0.8),
+                        duration: 400.ms,
+                        curve: Curves.easeOutBack,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         );

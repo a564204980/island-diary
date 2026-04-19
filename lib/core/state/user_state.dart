@@ -7,6 +7,8 @@ import 'package:island_diary/features/record/domain/models/placed_furniture.dart
 import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';
+import 'package:island_diary/core/services/ai_service.dart';
+import 'package:island_diary/core/models/mascot_event.dart';
 import 'dart:typed_data';
 
 /// 存贮键常量池
@@ -73,6 +75,7 @@ class _K {
   static const isGlassesOverlayEnabled = 'is_glasses_overlay_enabled_v1';
   static const isGlassesAboveHat = 'is_glasses_above_hat_v1';
   static const selectedGlassesDecoration = 'selected_glasses_decoration_v1';
+  static const deepseekApiKey = 'deepseek_api_key_v1';
 }
 
 /// 1. 用户资料与引导模块
@@ -89,7 +92,10 @@ mixin ProfileMixin {
   final ValueNotifier<DateTime?> vipExpireTime = ValueNotifier<DateTime?>(null);
   final ValueNotifier<String?> customAvatarPath = ValueNotifier<String?>(null);
   final ValueNotifier<String> themeMode = ValueNotifier<String>('auto');
+  final ValueNotifier<String> deepseekApiKey = ValueNotifier<String>('sk-9860dceeff9240c4a497fb6fb7739d95');
+  final ValueNotifier<String?> mascotThought = ValueNotifier<String?>(null);
   DateTime? lastVisitTime;
+  MascotEvent? _pendingDecorationEvent;
 
   bool get isNight {
     if (themeMode.value == 'light') {
@@ -139,6 +145,7 @@ mixin ProfileMixin {
     isVip.value = level > 0;
     
     themeMode.value = prefs.getString(_K.themeMode) ?? 'auto';
+    deepseekApiKey.value = prefs.getString(_K.deepseekApiKey) ?? 'sk-9860dceeff9240c4a497fb6fb7739d95';
     final lastVisit = prefs.getString(_K.lastVisit);
     if (lastVisit != null) {
       lastVisitTime = DateTime.parse(lastVisit);
@@ -309,6 +316,56 @@ mixin ProfileMixin {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_K.lastVisit, now.toIso8601String());
   }
+
+  Future<void> setDeepseekApiKey(String key) async {
+    deepseekApiKey.value = key;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_K.deepseekApiKey, key);
+  }
+
+  /// 内部方法：触发小软的情感反应
+  Future<void> notifyMascotEvent(MascotEvent event) async {
+    // 换装相关的事件改为“挂起”模式，等到用户离开页面时再统一清算
+    if (event.type == MascotEventType.decorationChanged) {
+      debugPrint("AI_EVENT: 记录装扮变更事件 -> ${event.type}，等待退出时清算...");
+      _pendingDecorationEvent = event;
+      return;
+    }
+
+    // 其他即时类事件直接执行
+    _executeMascotEvent(event);
+  }
+
+  /// 强制清算积压的装扮变更事件（通常在离开换装页时调用）
+  void flushMascotEvent() {
+    if (_pendingDecorationEvent != null) {
+      debugPrint("AI_EVENT: 正在清算装扮变更事件...");
+      _executeMascotEvent(_pendingDecorationEvent!);
+      _pendingDecorationEvent = null;
+    }
+  }
+
+  /// 真正的执行逻辑
+  Future<void> _executeMascotEvent(MascotEvent event) async {
+    debugPrint("AI_EVENT: 正在发送请求 -> ${event.type}");
+    
+    // 获取当前真实的形象路径
+    String path = 'assets/images/emoji/marshmallow2.png';
+    if (this is UserState) {
+      path = (this as UserState).selectedMascotType.value;
+    }
+
+    // 异步获取不阻塞主线程
+    try {
+      final reply = await AIService().triggerEventReply(path, deepseekApiKey.value, event);
+      debugPrint("AI_EVENT: AI 最终回复 -> $reply");
+      if (reply.isNotEmpty) {
+        mascotThought.value = reply;
+      }
+    } catch (e) {
+      debugPrint("AI_EVENT: 请求执行失败 -> $e");
+    }
+  }
 }
 
 /// 2. 日记与草稿管理模块
@@ -392,8 +449,6 @@ mixin DiaryMixin on ProfileMixin {
     for (var key in [_K.draftContent, _K.draftBlocks, _K.draftMood, _K.draftIntensity, _K.draftTag, _K.draftWeather, _K.draftTemp, _K.draftLocation, _K.draftCustomDate, _K.draftCustomTime, _K.draftDateTime, _K.draftPaperStyle, _K.draftIsImageGrid, _K.draftIsMixedLayout]) { await sp.remove(key); }
   }
 
-  static bool _debugForceClearOnce = false;
-
   Future<List<MascotAchievement>> saveDiary() async {
     final draft = diaryDraft.value;
     if (draft == null) {
@@ -419,9 +474,23 @@ mixin DiaryMixin on ProfileMixin {
     await _saveDiariesToStorage();
     await clearDraft();
 
+    // --- AI 情感感应点 ---
+    notifyMascotEvent(MascotEvent(
+      type: MascotEventType.diarySaved,
+      description: "心情：${draft.moodIndex}, 内容摘要：${draft.content.length > 20 ? draft.content.substring(0, 20) : draft.content}",
+      metadata: {'moodIndex': draft.moodIndex},
+    ));
+
     // 检查是否有新成就达成
     if (this is AchievementMixin) {
-      return await (this as AchievementMixin).checkAchievements();
+      final newAchievements = await (this as AchievementMixin).checkAchievements();
+      if (newAchievements.isNotEmpty) {
+        notifyMascotEvent(MascotEvent(
+          type: MascotEventType.achievementUnlocked,
+          description: newAchievements.map((e) => e.title).join('、'),
+        ));
+      }
+      return newAchievements;
     }
     return [];
   }
@@ -535,7 +604,7 @@ mixin DecorationMixin {
 }
 
 /// 4. 安全保障模块
-mixin SecurityMixin {
+mixin SecurityMixin on ProfileMixin {
   final ValueNotifier<bool> isAppLockEnabled = ValueNotifier<bool>(false);
   final ValueNotifier<String> appLockPin = ValueNotifier<String>('');
   final ValueNotifier<bool> isBiometricEnabled = ValueNotifier<bool>(false);
@@ -588,7 +657,7 @@ mixin SecurityMixin {
 }
 
 /// 5. 成就与统计模块
-mixin AchievementMixin on DiaryMixin {
+mixin AchievementMixin on ProfileMixin, DiaryMixin {
   final ValueNotifier<List<String>> ownedDecorationIds = ValueNotifier<List<String>>([]);
   final ValueNotifier<List<String>> unlockedMascotPaths = ValueNotifier<List<String>>([]);
   final ValueNotifier<int> achievementPoints = ValueNotifier<int>(0);
@@ -798,7 +867,7 @@ mixin AchievementMixin on DiaryMixin {
 }
 
 /// 6. 用户偏好与个性化模块
-mixin PreferenceMixin {
+mixin PreferenceMixin on ProfileMixin {
   final ValueNotifier<String?> momentsCoverPath = ValueNotifier<String?>(null);
   final ValueNotifier<int> diaryLayoutMode = ValueNotifier<int>(0);
   final ValueNotifier<bool> isSlimeInBottomMenu = ValueNotifier<bool>(true);
@@ -880,17 +949,34 @@ mixin PreferenceMixin {
   Future<void> setPreferredPaperStyle(String s) async { preferredPaperStyle.value = s; final p = await SharedPreferences.getInstance(); await p.setString(_K.preferredPaperStyle, s); }
   Future<void> setPreferredFontSize(double s) async { preferredFontSize.value = s; final p = await SharedPreferences.getInstance(); await p.setDouble(_K.preferredFontSize, s); }
   Future<void> setPreferredFontFamily(String f) async { preferredFontFamily.value = f; final p = await SharedPreferences.getInstance(); await p.setString(_K.preferredFontFamily, f); }
-  Future<void> setMascotDecoration(String? a) async { 
+
+  Future<void> setMascotDecoration(String? a) async {
     selectedMascotDecoration.value = a; 
     _lastInteractedIsGlasses = false; 
     final p = await SharedPreferences.getInstance(); 
     a == null ? await p.remove(_K.mascotDecoration) : await p.setString(_K.mascotDecoration, a); 
+
+    if (a != null) {
+      final deco = MascotDecoration.getByPath(a);
+      notifyMascotEvent(MascotEvent(
+        type: MascotEventType.decorationChanged,
+        description: "戴上了${deco?.name ?? '新饰品'}",
+      ));
+    }
   }
-  Future<void> setSelectedGlassesDecoration(String? a) async { 
+  Future<void> setSelectedGlassesDecoration(String? a) async {
     selectedGlassesDecoration.value = a; 
     _lastInteractedIsGlasses = true; 
     final p = await SharedPreferences.getInstance(); 
     a == null ? await p.remove(_K.selectedGlassesDecoration) : await p.setString(_K.selectedGlassesDecoration, a); 
+
+    if (a != null) {
+      final deco = MascotDecoration.getByPath(a);
+      notifyMascotEvent(MascotEvent(
+        type: MascotEventType.decorationChanged,
+        description: "戴上了${deco?.name ?? '新眼镜'}",
+      ));
+    }
   }
   Future<void> setGlassesOverlayEnabled(bool enabled) async { 
     if (isGlassesOverlayEnabled.value && !enabled) {

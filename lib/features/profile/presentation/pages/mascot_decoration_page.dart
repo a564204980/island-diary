@@ -35,6 +35,17 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
   @override
   void initState() {
     super.initState();
+
+    // 如果指定了初始 ID，则尝试自动匹配其分类
+    if (widget.initialDecorationId != null) {
+      final targetDeco = MascotDecoration.allDecorations.where(
+        (d) => d.id == widget.initialDecorationId
+      ).firstOrNull;
+      if (targetDeco != null) {
+        _selectedCategory = targetDeco.category;
+      }
+    }
+
     Future.delayed(const Duration(milliseconds: 50), () {
       if (mounted) {
         setState(() => _isInitialized = true);
@@ -107,161 +118,167 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
     final userState = UserState();
     final bool isNight = userState.isNight;
 
-    return Scaffold(
-      backgroundColor: isNight
-          ? const Color(0xFF0D1B2A)
-          : const Color(0xFFE6F3F5),
-      extendBodyBehindAppBar: false,
-      appBar: _buildStandardAppBar(context, isNight),
-      body: !_isInitialized
-          ? const SizedBox.shrink()
-          : Stack(
-              children: [
-                // 1. 背景装饰
-                if (!isNight) _buildLightBackground(),
-
-                // 2. 核心交互区域 (应用 800px 宽度限制)
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    return Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 800),
-                        child: Column(
-                          children: [
-                            // --- 固定区域：预览英雄区域 ---
-                            ListenableBuilder(
-                              listenable: Listenable.merge([
-                                userState.selectedMascotDecoration,
-                                userState.selectedGlassesDecoration,
-                                userState.selectedMascotType,
-                              ]),
-                              builder: (context, _) => MascotPreviewHero(
-                                decorationPath: userState.selectedMascotDecoration.value,
-                                mascotType: userState.selectedMascotType.value,
-                                isNight: isNight,
-                                userState: userState,
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          userState.flushMascotEvent();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: isNight
+            ? const Color(0xFF0D1B2A)
+            : const Color(0xFFE6F3F5),
+        extendBodyBehindAppBar: false,
+        appBar: _buildStandardAppBar(context, isNight),
+        body: !_isInitialized
+            ? const SizedBox.shrink()
+            : Stack(
+                children: [
+                  // 1. 背景装饰
+                  if (!isNight) _buildLightBackground(),
+  
+                  // 2. 核心交互区域 (应用 800px 宽度限制)
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 800),
+                          child: Column(
+                            children: [
+                              // --- 固定区域：预览英雄区域 ---
+                              ListenableBuilder(
+                                listenable: Listenable.merge([
+                                  userState.selectedMascotDecoration,
+                                  userState.selectedGlassesDecoration,
+                                  userState.selectedMascotType,
+                                ]),
+                                builder: (context, _) => MascotPreviewHero(
+                                  mascotType: userState.selectedMascotType.value,
+                                  isNight: isNight,
+                                  userState: userState,
+                                ),
                               ),
-                            ),
-
-                            // --- 固定搜索栏 ---
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 6,
+  
+                              // --- 固定搜索栏 ---
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 6,
+                                ),
+                                child: _buildSearchBar(isNight),
                               ),
-                              child: _buildSearchBar(isNight),
-                            ),
-
-                            // --- 滚动过滤区域 ---
-                            Expanded(
-                              child: CustomScrollView(
-                                controller: _scrollController,
-                                physics: const BouncingScrollPhysics(),
-                                slivers: [
-                                  // --- 标题与分类区域 ---
-                                  SliverToBoxAdapter(
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              _buildSectionIndicator(),
-                                              const SizedBox(width: 12),
-                                              Text(
-                                                _searchQuery.isEmpty ? '挑选装扮' : '搜索结果',
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isNight ? Colors.white : const Color(0xFF3E2723),
-                                                  fontFamily: 'LXGWWenKai',
-                                                  letterSpacing: 0.5,
+  
+                              // --- 滚动过滤区域 ---
+                              Expanded(
+                                child: CustomScrollView(
+                                  controller: _scrollController,
+                                  physics: const BouncingScrollPhysics(),
+                                  slivers: [
+                                    // --- 标题与分类区域 ---
+                                    SliverToBoxAdapter(
+                                      child: Padding(
+                                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                _buildSectionIndicator(),
+                                                const SizedBox(width: 12),
+                                                Text(
+                                                  _searchQuery.isEmpty ? '挑选装扮' : '搜索结果',
+                                                  style: TextStyle(
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: isNight ? Colors.white : const Color(0xFF3E2723),
+                                                    fontFamily: 'LXGWWenKai',
+                                                    letterSpacing: 0.5,
+                                                  ),
                                                 ),
-                                              ),
-                                              const Spacer(),
-                                              Text(
-                                                '${userState.ownedDecorationIds.value.length} 个已解锁',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: isNight ? Colors.white38 : Colors.black26,
-                                                  fontFamily: 'LXGWWenKai',
+                                                const Spacer(),
+                                                Text(
+                                                  '${userState.ownedDecorationIds.value.length} 个已解锁',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: isNight ? Colors.white38 : Colors.black26,
+                                                    fontFamily: 'LXGWWenKai',
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 16),
-                                          _buildCategoryFilters(isNight),
-                                        ],
+                                              ],
+                                            ),
+                                            const SizedBox(height: 16),
+                                            _buildCategoryFilters(isNight),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-
-                                  // --- 网格列表 ---
-                                  SliverPadding(
-                                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                                    sliver: ListenableBuilder(
-                                      listenable: Listenable.merge([
-                                        userState.selectedMascotDecoration,
-                                        userState.selectedGlassesDecoration,
-                                        userState.isGlassesOverlayEnabled,
-                                        userState.selectedMascotType,
-                                        userState.ownedDecorationIds,
-                                      ]),
-                                      builder: (context, _) {
-                                        final currentDecoration = userState.selectedMascotDecoration.value;
-                                        final currentGlasses = userState.selectedGlassesDecoration.value;
-                                        final isOverlay = userState.isGlassesOverlayEnabled.value;
-                                        final ownedIds = userState.ownedDecorationIds.value;
-                                        final displayedDecorations = _getFilteredDecorations(ownedIds);
-
-                                        if (displayedDecorations.isEmpty) {
-                                          return _buildEmptyState(isNight);
-                                        }
-
-                                        return SliverGrid(
-                                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: constraints.maxWidth > 600 ? 3 : 2,
-                                            mainAxisSpacing: 16,
-                                            crossAxisSpacing: 16,
-                                            childAspectRatio: constraints.maxWidth > 600 ? 0.75 : 0.8,
-                                          ),
-                                          delegate: SliverChildBuilderDelegate(
-                                            (context, index) {
-                                              final deco = displayedDecorations[index];
-                                              final bool isGlasses = deco.category == MascotDecorationCategory.glasses;
-                                              // 判定逻辑：如果是眼镜且处于叠戴模式，检查眼镜槽位；否则检查基础槽位
-                                              final bool isSelected = (isOverlay && isGlasses) 
-                                                  ? currentGlasses == deco.path
-                                                  : currentDecoration == deco.path;
-
-                                              return DecorationGridItem(
-                                                deco: deco,
-                                                isSelected: isSelected,
-                                                isNight: isNight,
-                                                isOwned: ownedIds.contains(deco.id),
-                                                index: index,
-                                                shouldHighlight: deco.id == widget.initialDecorationId,
-                                                shouldAnimate: true,
-                                              );
-                                            },
-                                            childCount: displayedDecorations.length,
-                                          ),
-                                        );
-                                      },
+  
+                                    // --- 网格列表 ---
+                                    SliverPadding(
+                                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                                      sliver: ListenableBuilder(
+                                        listenable: Listenable.merge([
+                                          userState.selectedMascotDecoration,
+                                          userState.selectedGlassesDecoration,
+                                          userState.isGlassesOverlayEnabled,
+                                          userState.selectedMascotType,
+                                          userState.ownedDecorationIds,
+                                        ]),
+                                        builder: (context, _) {
+                                          final currentDecoration = userState.selectedMascotDecoration.value;
+                                          final currentGlasses = userState.selectedGlassesDecoration.value;
+                                          final isOverlay = userState.isGlassesOverlayEnabled.value;
+                                          final ownedIds = userState.ownedDecorationIds.value;
+                                          final displayedDecorations = _getFilteredDecorations(ownedIds);
+  
+                                          if (displayedDecorations.isEmpty) {
+                                            return _buildEmptyState(isNight);
+                                          }
+  
+                                          return SliverGrid(
+                                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                              crossAxisCount: constraints.maxWidth > 600 ? 3 : 2,
+                                              mainAxisSpacing: 16,
+                                              crossAxisSpacing: 16,
+                                              childAspectRatio: constraints.maxWidth > 600 ? 0.75 : 0.8,
+                                            ),
+                                            delegate: SliverChildBuilderDelegate(
+                                              (context, index) {
+                                                final deco = displayedDecorations[index];
+                                                final bool isGlasses = deco.category == MascotDecorationCategory.glasses;
+                                                // 判定逻辑：如果是眼镜且处于叠戴模式，检查眼镜槽位；否则检查基础槽位
+                                                final bool isSelected = (isOverlay && isGlasses) 
+                                                    ? currentGlasses == deco.path
+                                                    : currentDecoration == deco.path;
+  
+                                                return DecorationGridItem(
+                                                  deco: deco,
+                                                  isSelected: isSelected,
+                                                  isNight: isNight,
+                                                  isOwned: ownedIds.contains(deco.id),
+                                                  index: index,
+                                                  shouldHighlight: deco.id == widget.initialDecorationId,
+                                                  shouldAnimate: true,
+                                                );
+                                              },
+                                              childCount: displayedDecorations.length,
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+      ),
     );
   }
 

@@ -6,14 +6,12 @@ import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/features/profile/presentation/widgets/decoration/form_selection_sheet.dart';
 
 class MascotPreviewHero extends StatelessWidget {
-  final String? decorationPath;
   final String mascotType;
   final bool isNight;
   final UserState userState;
 
   const MascotPreviewHero({
     super.key,
-    required this.decorationPath,
     required this.mascotType,
     required this.isNight,
     required this.userState,
