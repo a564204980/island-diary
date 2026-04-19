@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:island_diary/features/home/presentation/widgets/floating_clouds.
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_success_overlay.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
+import 'package:island_diary/core/models/mascot_persona.dart';
 import 'package:island_diary/features/record/presentation/pages/record_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/profile_page.dart';
 import 'package:island_diary/shared/widgets/barrage/mood_barrage_wall.dart';
@@ -86,15 +88,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // 监听日记变化，实时更新分组
     UserState().savedDiaries.addListener(_groupEntriesByDate);
     
-    // 首次进入首页时检测成就（用于解锁“星河初航”等入驻成就）
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        UserState().checkAchievements();
-      }
-    });
-
     // 监听 AI 想法
     UserState().mascotThought.addListener(_onThoughtChanged);
+
+    // 首次进入首页时检测成就与启动事件
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        UserState().checkAchievements();
+        
+        // 我们给 AI 一点时间处理 (2秒内如果 AI 没响，再出保底)
+        UserState().checkAppStartEvents();
+        
+        await Future.delayed(const Duration(seconds: 3));
+        if (mounted && !_showGlobalDialogue) {
+          _showLocalFallbackDialogue();
+        }
+      }
+    });
   }
 
   void _onThoughtChanged() {
@@ -102,20 +112,38 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (thought != null && thought.isNotEmpty) {
       if (mounted) {
         setState(() {
+          // AI 响应回来，直接覆盖并显示
           _globalDialogueText = thought;
           _showGlobalDialogue = true;
         });
         
-        // 10秒后自动消失
         _thoughtTimer?.cancel();
         _thoughtTimer = Timer(const Duration(seconds: 10), () {
           if (mounted) {
             setState(() => _showGlobalDialogue = false);
-            UserState().mascotThought.value = null; // 清空状态
+            UserState().mascotThought.value = null;
           }
         });
       }
     }
+  }
+
+  void _showLocalFallbackDialogue() {
+    // 只有在没显示 AI 对话且没有待处理对话时，才显示本地兜底
+    if (_showGlobalDialogue || UserState().mascotThought.value != null) return;
+
+    final persona = MascotPersona.getByMascotPath(UserState().selectedMascotType.value);
+    final fallback = persona.fallbackQuotes[Random().nextInt(persona.fallbackQuotes.length)];
+    
+    setState(() {
+      _globalDialogueText = fallback;
+      _showGlobalDialogue = true;
+    });
+
+    _thoughtTimer?.cancel();
+    _thoughtTimer = Timer(const Duration(seconds: 8), () {
+      if (mounted) setState(() => _showGlobalDialogue = false);
+    });
   }
 
   void _groupEntriesByDate() {
@@ -412,7 +440,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 Positioned(
                   left: 20,
                   right: 20,
-                  bottom: _isLandscape ? 40 : (MediaQuery.of(context).size.width > 600 ? 150 : 130),
+                  bottom: _isLandscape ? 60 : (MediaQuery.of(context).size.width > 600 ? 170 : 150),
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 400),

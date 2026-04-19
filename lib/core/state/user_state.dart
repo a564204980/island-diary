@@ -9,7 +9,9 @@ import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';
 import 'package:island_diary/core/services/ai_service.dart';
 import 'package:island_diary/core/models/mascot_event.dart';
+import 'package:island_diary/core/models/daily_task.dart';
 import 'dart:typed_data';
+import 'dart:math';
 
 /// 存贮键常量池
 class _K {
@@ -76,6 +78,7 @@ class _K {
   static const isGlassesAboveHat = 'is_glasses_above_hat_v1';
   static const selectedGlassesDecoration = 'selected_glasses_decoration_v1';
   static const deepseekApiKey = 'deepseek_api_key_v1';
+  static const currentDailyTask = 'current_daily_task_v1';
 }
 
 /// 1. 用户资料与引导模块
@@ -94,6 +97,7 @@ mixin ProfileMixin {
   final ValueNotifier<String> themeMode = ValueNotifier<String>('auto');
   final ValueNotifier<String> deepseekApiKey = ValueNotifier<String>('sk-9860dceeff9240c4a497fb6fb7739d95');
   final ValueNotifier<String?> mascotThought = ValueNotifier<String?>(null);
+  final ValueNotifier<DailyTask?> dailyTask = ValueNotifier<DailyTask?>(null);
   DateTime? lastVisitTime;
   MascotEvent? _pendingDecorationEvent;
 
@@ -158,8 +162,93 @@ mixin ProfileMixin {
     
     customAvatarPath.value = prefs.getString(_K.customAvatar);
     
+    // 加载每日任务
+    final taskJson = prefs.getString(_K.currentDailyTask);
+    if (taskJson != null) {
+      try {
+        dailyTask.value = DailyTask.fromMap(jsonDecode(taskJson));
+      } catch (_) {}
+    }
+    _checkAndResetDailyTask(prefs);
+
     // 启动时执行一次过期检测
     checkVipExpiry(prefs);
+  }
+
+  void _checkAndResetDailyTask(SharedPreferences prefs) {
+    bool needsReset = false;
+    final now = DateTime.now();
+    
+    if (lastVisitTime == null) {
+      needsReset = true;
+    } else {
+      if (now.year != lastVisitTime?.year ||
+        now.month != lastVisitTime?.month ||
+        now.day != lastVisitTime?.day) {
+      needsReset = true;
+    }
+    }
+
+    // [新逻辑]：即使日期没变，如果发现今天是节日但当前任务不是节日任务，也强制重置
+    final holidayTask = DailyTask.getHolidayTask(now);
+    if (!needsReset && dailyTask.value != null && !dailyTask.value!.isHoliday && holidayTask != null) {
+      needsReset = true;
+      debugPrint("DAILY_TASK: 检测到节日，强制重置为节日任务");
+    }
+
+    if (needsReset || dailyTask.value == null || !dailyTask.value!.isHoliday) {
+      // 1. 优先使用节日专项任务
+      DailyTask? newTask = DailyTask.getHolidayTask(DateTime(2026, 5, 1)); // 强制获取劳动节任务
+      
+      // 2. 如果强制获取失败（理论上不会），则还是走原来的逻辑
+      if (newTask == null) {
+        final random = Random();
+        final pool = DailyTask.pool;
+        newTask = pool[random.nextInt(pool.length)];
+      }
+
+      dailyTask.value = newTask;
+      prefs.setString(_K.currentDailyTask, jsonEncode(newTask.toMap()));
+      debugPrint("DAILY_TASK: 调试模式 - 强制开启劳动节任务视觉 [Holiday: ${newTask.isHoliday}]");
+    }
+  }
+
+  /// 允许外部手动触发任务完成（如查看统计页）
+  void completeTaskIfType(DailyTaskType type) {
+    final task = dailyTask.value;
+    if (task != null && task.type == type && !task.isCompleted) {
+      task.isCompleted = true;
+      dailyTask.value = task;
+      _saveDailyTask();
+      debugPrint("DAILY_TASK: 任务状态更新 -> 已完成待领取");
+    }
+  }
+
+  Future<void> claimTaskReward() async {
+    final task = dailyTask.value;
+    if (task != null && task.isCompleted && !task.isClaimed) {
+      task.isClaimed = true;
+      dailyTask.value = task;
+      _saveDailyTask();
+      
+      // 增加成就点
+      if (this is AchievementMixin) {
+        (this as UserState).achievementPoints.value += task.rewardPoints;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt(_K.achievementPoints, (this as UserState).achievementPoints.value);
+      }
+      
+      debugPrint("DAILY_TASK: 奖励已领取 -> +${task.rewardPoints}点");
+    }
+  }
+
+  void _saveDailyTask() async {
+    if (dailyTask.value != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_K.currentDailyTask, jsonEncode(dailyTask.value!.toMap()));
+      // 强制触发通知
+      dailyTask.notifyListeners();
+    }
   }
 
   /// 检查会员是否已过期
@@ -323,6 +412,65 @@ mixin ProfileMixin {
     await prefs.setString(_K.deepseekApiKey, key);
   }
 
+  /// 检查启动事件（时间、离别、节日）
+  void checkAppStartEvents() {
+    final now = DateTime.now();
+    
+    // 1. 时间段
+    String timeLabel = "深夜";
+    if (now.hour >= 5 && now.hour < 9) timeLabel = "清晨";
+    else if (now.hour >= 9 && now.hour < 12) timeLabel = "上午";
+    else if (now.hour >= 12 && now.hour < 14) timeLabel = "正午";
+    else if (now.hour >= 14 && now.hour < 18) timeLabel = "下午";
+    else if (now.hour >= 18 && now.hour < 23) timeLabel = "晚上";
+    
+    // 2. 离别天数
+    final days = daysSinceLastVisit;
+    
+    // 3. 节日
+    final holiday = _getHolidayInfo(now);
+    
+    // 构建上下文描述
+    String ctx = "在${timeLabel}打开了应用";
+    if (days >= 3) {
+      ctx += "，距离他上次已经过去了 $days 天，他好久没来了（如果你觉得很久的话）";
+    }
+    if (holiday != null) {
+      ctx += "，而且今天还是 ${holiday}";
+    }
+    
+    // 触发事件
+    notifyMascotEvent(MascotEvent(
+      type: MascotEventType.appStarted,
+      description: ctx,
+    ));
+    
+    // 刷新访问时间
+    recordVisit();
+  }
+
+  String? _getHolidayInfo(DateTime now) {
+    // 极简节日匹配
+    final mmdd = "${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}";
+    final Map<String, String> holidays = {
+      "0101": "元旦",
+      "0214": "情人节",
+      "0501": "劳动节",
+      "0601": "儿童节",
+      "1001": "国庆节",
+      "1225": "圣诞节",
+    };
+    
+    // 检查用户生日
+    if (userBirthday.value != null) {
+      if (now.month == userBirthday.value!.month && now.day == userBirthday.value!.day) {
+        return "他本人的生日";
+      }
+    }
+    
+    return holidays[mmdd];
+  }
+
   /// 内部方法：触发小软的情感反应
   Future<void> notifyMascotEvent(MascotEvent event) async {
     // 换装相关的事件改为“挂起”模式，等到用户离开页面时再统一清算
@@ -474,12 +622,10 @@ mixin DiaryMixin on ProfileMixin {
     await _saveDiariesToStorage();
     await clearDraft();
 
-    // --- AI 情感感应点 ---
-    notifyMascotEvent(MascotEvent(
-      type: MascotEventType.diarySaved,
-      description: "心情：${draft.moodIndex}, 内容摘要：${draft.content.length > 20 ? draft.content.substring(0, 20) : draft.content}",
-      metadata: {'moodIndex': draft.moodIndex},
-    ));
+    // 检查每日任务
+    if (this is ProfileMixin) {
+      (this as ProfileMixin).completeTaskIfType(DailyTaskType.writeDiary);
+    }
 
     // 检查是否有新成就达成
     if (this is AchievementMixin) {
@@ -957,6 +1103,9 @@ mixin PreferenceMixin on ProfileMixin {
     a == null ? await p.remove(_K.mascotDecoration) : await p.setString(_K.mascotDecoration, a); 
 
     if (a != null) {
+      // 检查每日任务
+      completeTaskIfType(DailyTaskType.changeDecoration);
+      
       final deco = MascotDecoration.getByPath(a);
       notifyMascotEvent(MascotEvent(
         type: MascotEventType.decorationChanged,
@@ -971,6 +1120,9 @@ mixin PreferenceMixin on ProfileMixin {
     a == null ? await p.remove(_K.selectedGlassesDecoration) : await p.setString(_K.selectedGlassesDecoration, a); 
 
     if (a != null) {
+      // 检查每日任务
+      completeTaskIfType(DailyTaskType.changeDecoration);
+
       final deco = MascotDecoration.getByPath(a);
       notifyMascotEvent(MascotEvent(
         type: MascotEventType.decorationChanged,

@@ -76,6 +76,10 @@ class AIService {
       case MascotEventType.idle:
         userPrompt = "现在是闲暇时光，请随便说句符合你性格的话，就像对老朋友聊天那样。";
         break;
+      case MascotEventType.appStarted:
+        // 解析描述中的复合信息：时间、离别天数、节日
+        userPrompt = "现在是应用启动时刻，你的朋友${event.description}。请给他一个自然、温馨且符合你性格的综合问候语。";
+        break;
     }
 
     try {

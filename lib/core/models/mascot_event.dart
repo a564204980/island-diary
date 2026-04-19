@@ -8,6 +8,8 @@ enum MascotEventType {
   achievementUnlocked,
   /// 随机互动 (闲聊)
   idle,
+  /// 应用启动问候 (包含时间、久别、节日检测)
+  appStarted,
 }
 
 /// AI 感知事件模型

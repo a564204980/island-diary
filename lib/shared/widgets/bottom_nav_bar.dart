@@ -55,13 +55,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
   @override
   void initState() {
     super.initState();
-    _showDialogueNotifier = ValueNotifier<bool>(true);
-    _dialogueTextNotifier = ValueNotifier<String>('');
     _isIdleNotifier = ValueNotifier<bool>(false);
     _isMoodPickerOpenNotifier = ValueNotifier<bool>(false);
-
-    _refreshDialogue();
-    _startDialogueTimer();
     _startIdleTimer();
   }
 
@@ -83,20 +78,10 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   @override
   void dispose() {
-    _dialogueTimer?.cancel();
     _idleTimer?.cancel();
-    _showDialogueNotifier.dispose();
-    _dialogueTextNotifier.dispose();
     _isIdleNotifier.dispose();
     _isMoodPickerOpenNotifier.dispose();
     super.dispose();
-  }
-
-  void _startDialogueTimer() {
-    _dialogueTimer?.cancel();
-    _dialogueTimer = Timer(const Duration(seconds: 10), () {
-      if (mounted) _showDialogueNotifier.value = false;
-    });
   }
 
   void _startIdleTimer() {
@@ -104,10 +89,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
     _idleTimer = Timer(const Duration(seconds: 30), () {
       if (mounted) _isIdleNotifier.value = true;
     });
-  }
-
-  void _refreshDialogue() {
-    _dialogueTextNotifier.value = SlimeDialogueService().getDynamicDialogue();
   }
 
   @override
@@ -312,12 +293,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   Widget _buildSlimeInteractiveLayer(double barMaxWidth) {
     return MultiValueListenableBuilder(
-      listenables: [_isIdleNotifier, _showDialogueNotifier, _isMoodPickerOpenNotifier, _dialogueTextNotifier],
+      listenables: [_isIdleNotifier, _isMoodPickerOpenNotifier],
       builder: (context, values, _) {
-        final showDialogue = values[1] as bool;
-        final isMoodPickerOpen = values[2] as bool;
-        final dialogue = values[3] as String;
-
         return Stack(
           alignment: Alignment.bottomCenter,
           clipBehavior: Clip.none,
@@ -335,34 +312,13 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 ),
               ),
             ),
-            if (!_justFinishedOnboarding)
-              _buildDialogue(showDialogue && !isMoodPickerOpen && !widget.forceHideDialogue, dialogue),
           ],
         );
       },
     );
   }
 
-  Widget _buildDialogue(bool visible, String text) {
-    return Positioned(
-      bottom: 124.0,
-      child: IgnorePointer(
-        ignoring: !visible,
-        child: SpriteDialogue(
-          text: text,
-          useTypewriter: false,
-          onNext: () {
-            _dialogueTimer?.cancel();
-            _showDialogueNotifier.value = false;
-          },
-        ).animate(target: visible ? 1 : 0).fade(duration: 400.ms).scale(
-              begin: const Offset(0.9, 0.9),
-              duration: 400.ms,
-              curve: Curves.easeOutBack,
-            ),
-      ),
-    );
-  }
+
 
   Widget _buildNavItem(int index, IconData unselectedIcon, IconData selectedIcon, String label) {
     return Expanded(
@@ -431,7 +387,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
       _isIdleNotifier.value = false;
       if (wasOnboarding) {
         setState(() => _justFinishedOnboarding = true);
-        _refreshDialogue();
         UserState().completeOnboarding();
       }
       _startIdleTimer();

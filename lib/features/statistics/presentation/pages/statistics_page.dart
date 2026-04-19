@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+import 'package:island_diary/core/models/daily_task.dart';
 
 import 'package:island_diary/features/statistics/domain/utils/soul_season_logic.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/bento/recovery_dialog.dart';
@@ -228,6 +229,9 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     UserState().savedDiaries.addListener(_updateDiaries);
     _waveAnimController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1500))..forward();
+    
+    // 检查每日任务
+    UserState().completeTaskIfType(DailyTaskType.viewStats);
   }
 
   @override

@@ -5,6 +5,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/widgets/profile_header.dart';
 import 'package:island_diary/features/profile/presentation/widgets/premium_bento_card.dart';
 import 'package:island_diary/features/profile/presentation/widgets/bento_menu_grid.dart';
+import 'package:island_diary/features/profile/presentation/widgets/daily_task_card.dart';
 import 'dart:async';
 
 class ProfilePage extends StatefulWidget {
@@ -130,6 +131,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       ProfileHeader(isNight: isNight, isVip: isVip),
                       const SizedBox(height: 32),
                       PremiumBentoCard(isVip: isVip, isNight: isNight),
+                      const SizedBox(height: 16),
+                      DailyTaskCard(isNight: isNight),
                       const SizedBox(height: 24),
                       BentoMenuGrid(isNight: isNight),
                       const SizedBox(height: 32),
