@@ -26,8 +26,8 @@ class AchievementDetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final decoration = achievement.rewardDecorationId != null
         ? MascotDecoration.allDecorations
-            .where((d) => d.id == achievement.rewardDecorationId)
-            .firstOrNull
+              .where((d) => d.id == achievement.rewardDecorationId)
+              .firstOrNull
         : null;
 
     final bg = isNight ? const Color(0xFF1A1A2E) : Colors.white;
@@ -59,60 +59,52 @@ class AchievementDetailSheet extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // 图标预览
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: accent.withValues(alpha: 0.1),
+          SizedBox(
+            height: 180, 
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: accent.withValues(alpha: 0.1),
+                  ),
                 ),
-              ),
-              Hero(
-                tag: 'medal_${achievement.id}',
-                child: ColorFiltered(
-                  colorFilter: isUnlocked
-                      ? const ColorFilter.mode(
-                          Colors.transparent,
-                          BlendMode.multiply,
-                        )
-                      : const ColorFilter.matrix([
-                          0.2,
-                          0.2,
-                          0.2,
-                          0,
-                          0,
-                          0.2,
-                          0.2,
-                          0.2,
-                          0,
-                          0,
-                          0.2,
-                          0.2,
-                          0.2,
-                          0,
-                          0,
-                          0,
-                          0,
-                          0,
-                          1,
-                          0,
-                        ]),
-                  child: decoration != null
-                      ? Image.asset(decoration.path, width: 80)
-                      : (achievement.imagePath != null
-                            ? Image.asset(achievement.imagePath!, width: 80)
-                            : Icon(
-                                achievement.condition.icon,
-                                size: 60,
-                                color: accent,
-                              )),
+                Transform.translate(
+                  offset: achievement.medalOffset,
+                  child: Transform.scale(
+                    scale: achievement.medalScale,
+                    child: Hero(
+                      tag: 'medal_${achievement.id}',
+                      child: ColorFiltered(
+                        colorFilter: isUnlocked
+                            ? const ColorFilter.mode(
+                                Colors.transparent,
+                                BlendMode.multiply,
+                              )
+                            : const ColorFilter.matrix([
+                                0.2, 0.2, 0.2, 0, 0,
+                                0.2, 0.2, 0.2, 0, 0,
+                                0.2, 0.2, 0.2, 0, 0,
+                                0, 0, 0, 1, 0,
+                              ]),
+                        child: decoration != null
+                            ? Image.asset(decoration.path, width: 80)
+                            : (achievement.imagePath != null
+                                  ? Image.asset(achievement.imagePath!, width: 80)
+                                  : Icon(
+                                      achievement.condition.icon,
+                                      size: 60,
+                                      color: accent,
+                                    )),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
           const SizedBox(height: 20),

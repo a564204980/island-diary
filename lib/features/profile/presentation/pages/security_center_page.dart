@@ -425,38 +425,187 @@ class _SecurityCenterPageState extends State<SecurityCenterPage> {
 
   void _showSetPinDialog(BuildContext context, UserState state) {
     final controller = TextEditingController();
+    final focusNode = FocusNode();
     final isNight = state.isNight;
+    
     showDialog(
       context: context,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: AlertDialog(
-          backgroundColor: isNight ? const Color(0xFF1A1A1A) : Colors.white,
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28), side: BorderSide(color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05))),
-          title: Text('修改密码', style: TextStyle(color: isNight ? Colors.white : const Color(0xFF2D3436), fontWeight: FontWeight.w900)),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            maxLength: 4,
-            style: TextStyle(color: isNight ? Colors.white : const Color(0xFF2D3436), fontSize: 24, letterSpacing: 10),
-            decoration: const InputDecoration(hintText: '输入4位数字', hintStyle: TextStyle(fontSize: 14, letterSpacing: 0), border: InputBorder.none, counterText: ''),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-            TextButton(
-              onPressed: () {
-                if (controller.text.length == 4) {
-                  state.updateSecuritySettings(pin: controller.text, appLock: true);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('确认修改', style: TextStyle(color: Color(0xFF81C784))),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          controller.addListener(() => setState(() {}));
+          
+          return BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: Container(
+                width: 320,
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: isNight ? const Color(0xFF1E1E1E).withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(
+                    color: isNight ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isNight ? 0.3 : 0.1),
+                      blurRadius: 30,
+                      offset: const Offset(0, 15),
+                    )
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 1. 顶部视觉标识
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF81C784).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.lock_person_rounded, color: Color(0xFF81C784), size: 28),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      '设置安全密码',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: isNight ? Colors.white : const Color(0xFF1E3A34),
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '输入4位数字，守护日记私密',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: (isNight ? Colors.white : const Color(0xFF4A615C)).withValues(alpha: 0.5),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // 2. 4位方格输入区
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // 隐藏的可操作输入框
+                        Opacity(
+                          opacity: 0,
+                          child: TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            autofocus: true,
+                            keyboardType: TextInputType.number,
+                            maxLength: 4,
+                            onChanged: (val) {
+                              if (val.length == 4) {
+                                // 自动补完
+                              }
+                            },
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          ),
+                        ),
+                        // 展示用的方格 Row
+                        GestureDetector(
+                          onTap: () => focusNode.requestFocus(),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: List.generate(4, (index) {
+                              final bool hasChar = controller.text.length > index;
+                              final bool isCurrent = controller.text.length == index;
+                              
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 50,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: isNight ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isCurrent 
+                                        ? const Color(0xFF81C784) 
+                                        : (isNight ? Colors.white10 : Colors.black12),
+                                    width: isCurrent ? 2 : 1,
+                                  ),
+                                  boxShadow: isCurrent ? [
+                                    BoxShadow(
+                                      color: const Color(0xFF81C784).withValues(alpha: 0.2),
+                                      blurRadius: 10,
+                                      spreadRadius: 1,
+                                    )
+                                  ] : [],
+                                ),
+                                child: Center(
+                                  child: hasChar
+                                      ? Container(
+                                          width: 12,
+                                          height: 12,
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFF81C784),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ).animate().scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1))
+                                      : Container(
+                                          width: 4,
+                                          height: 4,
+                                          decoration: BoxDecoration(
+                                            color: isNight ? Colors.white24 : Colors.black12,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 40),
+
+                    // 3. 操作按钮
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: controller.text.length == 4
+                            ? () {
+                                state.updateSecuritySettings(pin: controller.text, appLock: true);
+                                Navigator.pop(context);
+                              }
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF81C784),
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: isNight ? Colors.white12 : Colors.black12,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        ),
+                        child: const Text('确认修改', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        '取消',
+                        style: TextStyle(
+                          color: (isNight ? Colors.white : const Color(0xFF4A615C)).withValues(alpha: 0.4),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

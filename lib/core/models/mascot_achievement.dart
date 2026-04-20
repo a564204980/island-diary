@@ -133,6 +133,7 @@ class MascotAchievement {
   final int rewardPoints;
   final String? imagePath;
   final double medalScale;
+  final Offset medalOffset;
 
   const MascotAchievement({
     required this.id,
@@ -146,6 +147,7 @@ class MascotAchievement {
     this.rewardPoints = 10,
     this.imagePath,
     this.medalScale = 1.0,
+    this.medalOffset = Offset.zero,
   });
 
   /// 检查是否满足成就条件
@@ -193,6 +195,8 @@ class MascotAchievement {
       rewardMascotPath: 'assets/images/emoji/marshmallow3.png',
       rewardTitle: '灵犀之友',
       rewardPoints: 50,
+      imagePath: 'assets/images/emoji/medal/medal8.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'month_milestone',
@@ -261,15 +265,19 @@ class MascotAchievement {
       targetValue: 7,
       rewardTitle: '向阳而栖',
       rewardPoints: 50,
+      imagePath: 'assets/images/emoji/medal/medal7.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'night_soul',
-      title: '星夜观测',
+      title: '星夜观察',
       description: '在凌晨 0:00 - 4:00 记录 5 篇日记',
       condition: AchievementCondition.nightDiaries,
       targetValue: 5,
       rewardTitle: '引星入梦',
       rewardPoints: 50,
+      imagePath: 'assets/images/emoji/medal/medal6.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'long_diary_talker',
@@ -279,6 +287,8 @@ class MascotAchievement {
       targetValue: 500,
       rewardTitle: '孤独乐章',
       rewardPoints: 60,
+      imagePath: 'assets/images/emoji/medal/medal18.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'word_master',
@@ -288,6 +298,8 @@ class MascotAchievement {
       targetValue: 5000,
       rewardTitle: '笔尖脉络',
       rewardPoints: 120,
+      imagePath: 'assets/images/emoji/medal/medal15.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'word_scholar',
@@ -335,6 +347,8 @@ class MascotAchievement {
       targetValue: 50,
       rewardTitle: '灵感捕手',
       rewardPoints: 50,
+      imagePath: 'assets/images/emoji/medal/medal5.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'yunzhi_unlock',
@@ -345,6 +359,8 @@ class MascotAchievement {
       rewardMascotPath: 'assets/images/emoji/marshmallow.png',
       rewardTitle: '织梦大师',
       rewardPoints: 120,
+      imagePath: 'assets/images/emoji/medal/medal11.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'diaries_100',
@@ -466,6 +482,8 @@ class MascotAchievement {
       targetValue: 100,
       rewardTitle: '逐日流光',
       rewardPoints: 250,
+      imagePath: 'assets/images/emoji/medal/medal10.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'night_30',
@@ -475,6 +493,8 @@ class MascotAchievement {
       targetValue: 30,
       rewardTitle: '星夜织火',
       rewardPoints: 80,
+      imagePath: 'assets/images/emoji/medal/medal19.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'night_100',
@@ -493,6 +513,8 @@ class MascotAchievement {
       targetValue: 5,
       rewardTitle: '审美感知',
       rewardPoints: 20,
+      imagePath: 'assets/images/emoji/medal/medal12.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'decorations_10',
@@ -532,6 +554,8 @@ class MascotAchievement {
       targetValue: 10,
       rewardTitle: '光影漫步',
       rewardPoints: 80,
+      imagePath: 'assets/images/emoji/medal/medal20.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'photo_50',
@@ -560,6 +584,8 @@ class MascotAchievement {
       targetValue: 5,
       rewardTitle: '秩序原点',
       rewardPoints: 20,
+      imagePath: 'assets/images/emoji/medal/medal16.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'tag_15',
@@ -578,6 +604,8 @@ class MascotAchievement {
       targetValue: 30,
       rewardTitle: '万象森罗',
       rewardPoints: 300,
+      imagePath: 'assets/images/emoji/medal/medal14.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'active_10',
@@ -598,6 +626,8 @@ class MascotAchievement {
       targetValue: 50,
       rewardTitle: '岛屿知己',
       rewardPoints: 100,
+      imagePath: 'assets/images/emoji/medal/medal9.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'active_100',
@@ -607,6 +637,8 @@ class MascotAchievement {
       targetValue: 100,
       rewardTitle: '时光印记',
       rewardPoints: 300,
+      imagePath: 'assets/images/emoji/medal/medal13.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'active_365',
@@ -717,6 +749,8 @@ class MascotAchievement {
       rewardDecorationId: 'glasses_cupcake',
       rewardTitle: '糖份侦探',
       rewardPoints: 40,
+      imagePath: 'assets/images/emoji/medal/medal17.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'glasses_pixel_geek',

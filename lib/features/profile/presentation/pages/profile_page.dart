@@ -124,7 +124,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 800),
                   child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
                     physics: const BouncingScrollPhysics(),
                     children: [
                       const SizedBox(height: 20),
@@ -135,8 +135,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       DailyTaskCard(isNight: isNight),
                       const SizedBox(height: 24),
                       BentoMenuGrid(isNight: isNight),
-                      const SizedBox(height: 32),
-                      _buildFooter(isNight),
+                      const SizedBox(height: 80),
                     ],
                   ),
                 ),
@@ -145,19 +144,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         );
       },
-    );
-  }
-
-  Widget _buildFooter(bool isNight) {
-    return Center(
-      child: Text(
-        '岛屿日记 · 1.0.0',
-        style: TextStyle(
-          fontSize: 12,
-          color: isNight ? Colors.white24 : Colors.black26,
-          fontFamily: 'LXGWWenKai',
-        ),
-      ),
     );
   }
 }

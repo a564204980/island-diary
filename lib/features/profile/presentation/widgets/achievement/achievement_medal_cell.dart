@@ -65,10 +65,13 @@ class AchievementMedalCell extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(10.0),
             child: ClipOval(
-              child: Transform.scale(
-                scale: achievement.medalScale,
-                child: Center(
-                  child: _buildMedalIcon(decoration, primaryColor),
+              child: Transform.translate(
+                offset: achievement.medalOffset,
+                child: Transform.scale(
+                  scale: achievement.medalScale,
+                  child: Center(
+                    child: _buildMedalIcon(decoration, primaryColor),
+                  ),
                 ),
               ),
             ),
@@ -206,15 +209,17 @@ class AchievementMedalCell extends StatelessWidget {
             0.2126, 0.7152, 0.0722, 0, 0,
             0,      0,      0,      1, 0,
           ]),
-          child: decoration != null
+          child: (decoration != null && decoration.path.isNotEmpty)
               ? Image.asset(decoration.path, fit: BoxFit.contain)
-              : Icon(
-                  achievement.rewardTitle != null 
-                    ? achievement.titleTier.badge 
-                    : achievement.condition.icon, 
-                  size: 30, 
-                  color: Colors.grey
-                ),
+              : (achievement.imagePath != null && achievement.imagePath!.isNotEmpty)
+                  ? Image.asset(achievement.imagePath!, fit: BoxFit.contain)
+                  : Icon(
+                      achievement.rewardTitle != null 
+                        ? achievement.titleTier.badge 
+                        : achievement.condition.icon, 
+                      size: 30, 
+                      color: Colors.grey
+                    ),
         ),
       );
     }

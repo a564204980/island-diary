@@ -1,5 +1,5 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:intl/intl.dart';
@@ -407,58 +407,159 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   }
 
   void _showBirthdayPicker(BuildContext context, bool isNight) {
+    DateTime initialDate = _selectedBirthday ?? DateTime(2000, 1, 1);
+    int currentYear = initialDate.year;
+    int currentMonth = initialDate.month;
+    int currentDay = initialDate.day;
+
+    final List<int> years = List.generate(DateTime.now().year - 1950 + 1, (i) => 1950 + i);
+    final List<int> months = List.generate(12, (i) => i + 1);
+
+    final yearController = FixedExtentScrollController(initialItem: years.indexOf(currentYear));
+    final monthController = FixedExtentScrollController(initialItem: currentMonth - 1);
+    final dayController = FixedExtentScrollController(initialItem: currentDay - 1);
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: 350,
-        decoration: BoxDecoration(
-          color: isNight ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setPickerState) {
+          int daysInMonth = DateTime(currentYear, currentMonth + 1, 0).day;
+          if (currentDay > daysInMonth) currentDay = daysInMonth;
+          final List<int> days = List.generate(daysInMonth, (i) => i + 1);
+
+          String getMetadataText() {
+            final now = DateTime.now();
+            int age = now.year - currentYear;
+            if (now.month < currentMonth || (now.month == currentMonth && now.day < currentDay)) {
+              age--;
+            }
+            final signs = ['摩羯座', '水瓶座', '双鱼座', '白羊座', '金牛座', '双子座', '巨蟹座', '狮子座', '处女座', '天秤座', '天蝎座', '射手座'];
+            final cutoff = [19, 18, 20, 19, 20, 20, 22, 22, 22, 22, 21, 21];
+            int index = currentMonth - (currentDay <= cutoff[currentMonth - 1] ? 1 : 0);
+            if (index < 0) index = 11;
+            if (index >= 12) index = 0;
+            return '${currentYear}年 · $age岁 · ${signs[index]}';
+          }
+
+          return BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+            child: Container(
+              height: 400,
+              decoration: BoxDecoration(
+                color: isNight ? const Color(0xFF1E293B).withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.95),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                border: Border(top: BorderSide(color: isNight ? Colors.white10 : Colors.white, width: 1.5)),
+              ),
+              child: Column(
                 children: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消', style: TextStyle(color: Colors.grey))),
-                  const Text('选择生日', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  TextButton(
-                    onPressed: () {
-                      if (_selectedBirthday == null) {
-                        setState(() => _selectedBirthday = DateTime(2000, 1, 1));
-                      }
-                      Navigator.pop(context);
-                    },
-                    child: const Text('确定'),
+                  const SizedBox(height: 12),
+                  Container(width: 38, height: 4.5, decoration: BoxDecoration(color: isNight ? Colors.white24 : Colors.black12, borderRadius: BorderRadius.circular(2.25))),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context), 
+                          child: Text('取消', style: TextStyle(color: isNight ? Colors.white38 : Colors.black38, fontSize: 15, fontFamily: 'LXGWWenKai'))
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('选择生日', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: isNight ? Colors.white : Colors.black87, fontFamily: 'LXGWWenKai')),
+                            const SizedBox(height: 6),
+                            Text(
+                              getMetadataText(),
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF29B6E0), fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                            ),
+                          ],
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() => _selectedBirthday = DateTime(currentYear, currentMonth, currentDay));
+                            Navigator.pop(context);
+                          },
+                          child: const Text('确定', style: TextStyle(color: Color(0xFF29B6E0), fontWeight: FontWeight.w900, fontSize: 16, fontFamily: 'LXGWWenKai')),
+                        ),
+                      ],
+                    ),
                   ),
+                  Expanded(
+                    child: ShaderMask(
+                      shaderCallback: (rect) => LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.black.withValues(alpha: 0.05), Colors.black, Colors.black, Colors.black.withValues(alpha: 0.05)],
+                        stops: const [0.0, 0.3, 0.7, 1.0],
+                      ).createShader(rect),
+                      blendMode: BlendMode.dstIn,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            height: 48,
+                            margin: const EdgeInsets.symmetric(horizontal: 24),
+                            decoration: BoxDecoration(
+                              color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFF29B6E0).withValues(alpha: 0.15), width: 1),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              _buildStarTrailWheel(years, yearController, (val) {
+                                setPickerState(() => currentYear = years[val]);
+                              }, isNight, flex: 3, suffix: '年'),
+                              _buildStarTrailWheel(months, monthController, (val) {
+                                setPickerState(() => currentMonth = months[val]);
+                              }, isNight, flex: 2, suffix: '月'),
+                              _buildStarTrailWheel(days, dayController, (val) {
+                                setPickerState(() => currentDay = days[val]);
+                              }, isNight, flex: 2, suffix: '日'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
-            Expanded(
-              child: CupertinoTheme(
-                data: CupertinoThemeData(
-                  brightness: isNight ? Brightness.dark : Brightness.light,
-                  textTheme: CupertinoTextThemeData(
-                    dateTimePickerTextStyle: TextStyle(
-                      color: isNight ? Colors.white : Colors.black,
-                      fontFamily: 'LXGWWenKai',
-                    ),
-                  ),
-                ),
-                child: CupertinoDatePicker(
-                  mode: CupertinoDatePickerMode.date,
-                  initialDateTime: _selectedBirthday ?? DateTime(2000, 1, 1),
-                  maximumDate: DateTime.now(),
-                  onDateTimeChanged: (date) {
-                    setState(() => _selectedBirthday = date);
-                  },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStarTrailWheel(List<int> items, FixedExtentScrollController controller, ValueChanged<int> onChanged, bool isNight, {required int flex, required String suffix}) {
+    return Expanded(
+      flex: flex,
+      child: ListWheelScrollView.useDelegate(
+        controller: controller,
+        itemExtent: 48,
+        perspective: 0.005,
+        diameterRatio: 1.4,
+        physics: const FixedExtentScrollPhysics(),
+        onSelectedItemChanged: onChanged,
+        childDelegate: ListWheelChildBuilderDelegate(
+          builder: (context, index) {
+            if (index < 0 || index >= items.length) return null;
+            return Center(
+              child: Text(
+                '${items[index]}$suffix',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: isNight ? Colors.white : Colors.black87,
+                  fontFamily: 'LXGWWenKai',
                 ),
               ),
-            ),
-          ],
+            );
+          },
+          childCount: items.length,
         ),
       ),
     );

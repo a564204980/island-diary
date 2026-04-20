@@ -98,6 +98,7 @@ mixin ProfileMixin {
   final ValueNotifier<String> deepseekApiKey = ValueNotifier<String>('sk-9860dceeff9240c4a497fb6fb7739d95');
   final ValueNotifier<String?> mascotThought = ValueNotifier<String?>(null);
   final ValueNotifier<DailyTask?> dailyTask = ValueNotifier<DailyTask?>(null);
+  final ValueNotifier<bool> isEventDrawerUnlocked = ValueNotifier<bool>(false);
   DateTime? lastVisitTime;
   MascotEvent? _pendingDecorationEvent;
 
@@ -176,41 +177,11 @@ mixin ProfileMixin {
   }
 
   void _checkAndResetDailyTask(SharedPreferences prefs) {
-    bool needsReset = false;
-    final now = DateTime.now();
-    
-    if (lastVisitTime == null) {
-      needsReset = true;
-    } else {
-      if (now.year != lastVisitTime?.year ||
-        now.month != lastVisitTime?.month ||
-        now.day != lastVisitTime?.day) {
-      needsReset = true;
-    }
-    }
-
-    // [新逻辑]：即使日期没变，如果发现今天是节日但当前任务不是节日任务，也强制重置
-    final holidayTask = DailyTask.getHolidayTask(now);
-    if (!needsReset && dailyTask.value != null && !dailyTask.value!.isHoliday && holidayTask != null) {
-      needsReset = true;
-      debugPrint("DAILY_TASK: 检测到节日，强制重置为节日任务");
-    }
-
-    if (needsReset || dailyTask.value == null || !dailyTask.value!.isHoliday) {
-      // 1. 优先使用节日专项任务
-      DailyTask? newTask = DailyTask.getHolidayTask(DateTime(2026, 5, 1)); // 强制获取劳动节任务
-      
-      // 2. 如果强制获取失败（理论上不会），则还是走原来的逻辑
-      if (newTask == null) {
-        final random = Random();
-        final pool = DailyTask.pool;
-        newTask = pool[random.nextInt(pool.length)];
-      }
-
-      dailyTask.value = newTask;
-      prefs.setString(_K.currentDailyTask, jsonEncode(newTask.toMap()));
-      debugPrint("DAILY_TASK: 调试模式 - 强制开启劳动节任务视觉 [Holiday: ${newTask.isHoliday}]");
-    }
+    // 【调试模式】极其强硬地强制开启劳动节任务，绕过所有判定
+    final newTask = DailyTask.getHolidayTask(DateTime(2026, 5, 1))!;
+    dailyTask.value = newTask;
+    prefs.setString(_K.currentDailyTask, jsonEncode(newTask.toMap()));
+    debugPrint("DAILY_TASK: 已执行极其强硬的强制重置 -> ${newTask.id}");
   }
 
   /// 允许外部手动触发任务完成（如查看统计页）

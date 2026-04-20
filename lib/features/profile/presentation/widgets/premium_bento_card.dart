@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/pages/vip_benefits_page.dart';
 
 class PremiumBentoCard extends StatelessWidget {
@@ -65,9 +66,7 @@ class PremiumBentoCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w900,
-                              color: isVip
-                                  ? Colors.white
-                                  : (isNight ? Colors.white : const Color(0xFF3E2723)),
+                              color: Colors.white,
                               letterSpacing: 1,
                               fontFamily: 'LXGWWenKai',
                             ),
@@ -76,9 +75,7 @@ class PremiumBentoCard extends StatelessWidget {
                             isVip ? '您的岛屿正沐浴在永恒星光中' : '让每一份心情都拥有流光溢彩的家',
                             style: TextStyle(
                               fontSize: 11,
-                              color: isVip
-                                  ? Colors.white.withValues(alpha: 0.7)
-                                  : (isNight ? Colors.white38 : Colors.black38),
+                              color: Colors.white.withValues(alpha: 0.8),
                               fontFamily: 'LXGWWenKai',
                             ),
                           ),
@@ -86,9 +83,7 @@ class PremiumBentoCard extends StatelessWidget {
                       ),
                       Icon(
                         isVip ? Icons.workspace_premium : Icons.stars,
-                        color: isVip
-                            ? const Color(0xFFFFF176)
-                            : (isNight ? Colors.white24 : Colors.black12),
+                        color: isVip ? const Color(0xFFFFF176) : Colors.white24,
                         size: 32,
                       ),
                     ],
@@ -96,6 +91,10 @@ class PremiumBentoCard extends StatelessWidget {
                   const Spacer(),
                   GestureDetector(
                     onTap: () {
+                      final userState = UserState();
+                      userState.isVip.value = true;
+                      userState.isEventDrawerUnlocked.value = true;
+                      
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -181,18 +180,11 @@ class _AnimatedGradientState extends State<AnimatedGradient>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: widget.isVip
-                  ? [
-                      const Color(0xFFCE93D8),
-                      const Color(0xFF7E57C2),
-                      const Color(0xFF42A5F5),
-                    ]
-                  : (widget.isNight
-                      ? [const Color(0xFF37474F), const Color(0xFF263238)]
-                      : [
-                          Colors.white.withValues(alpha: 0.9),
-                          Colors.white.withValues(alpha: 0.8),
-                        ]),
+              colors: [
+                const Color(0xFFCE93D8),
+                const Color(0xFF7E57C2),
+                const Color(0xFF42A5F5),
+              ],
               stops: widget.isVip
                   ? [
                       0.0,

@@ -84,21 +84,72 @@ class DailyTask {
   ];
 
   static DailyTask? getHolidayTask(DateTime date) {
-    final mmdd = "${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}";
-    
-    if (mmdd == "0501" || mmdd == "0312") {
+    // 强制返回劳动节任务，方便调试 UI 细节
+    // 在正式发布前应取消此强制返回，恢复下方的日期判定逻辑
+    return DailyTask(
+      id: 'holiday_labor_day',
+      title: '致敬劳动者',
+      description: '勤劳的手指能编织最美的岛屿梦。去小红书安利你的岛屿生活，集赞收获日出勋章！',
+      type: DailyTaskType.writeDiary,
+      rewardPoints: 51,
+      isHoliday: true,
+      icon: 'assets/images/icons/sun.png',
+    );
+
+    /* 正式逻辑：
+    final month = date.month;
+    final day = date.day;
+
+    // 植树节：3月12日 - 3月14日
+    if (month == 3 && day >= 12 && day <= 14) {
       return DailyTask(
         id: 'holiday_arbor_day',
         title: '森林守护者',
         description: '小岛的春天需要你的一份绿意。去小红书分享你的岛屿记录，集赞领取森林限定礼吧！',
         type: DailyTaskType.writeDiary,
-        rewardPoints: 51,
+        rewardPoints: 32,
         isHoliday: true,
         icon: 'assets/images/icons/leaf.png',
       );
     }
-    
-    // 其他节日逻辑可在此扩展...
+
+    // 劳动节：5月1日 - 5月5日
+    if (month == 5 && day >= 1 && day <= 5) {
+      return DailyTask(
+        id: 'holiday_labor_day',
+        title: '致敬劳动者',
+        description: '勤劳的手指能编织最美的岛屿梦。去小红书安利你的岛屿生活，集赞收获日出勋章！',
+        type: DailyTaskType.writeDiary,
+        rewardPoints: 51,
+        isHoliday: true,
+        icon: 'assets/images/icons/sun.png',
+      );
+    }
     return null;
+    */
+  }
+
+  /// 获取目前所有可用的节日活动任务
+  static List<DailyTask> getAvailableEvents() {
+    return [
+      DailyTask(
+        id: 'holiday_arbor_day',
+        title: '森林守护者',
+        description: '小岛的春天需要你的一份绿意。去小红书分享你的岛屿记录，集赞领取森林限定礼吧！',
+        type: DailyTaskType.writeDiary,
+        rewardPoints: 32,
+        isHoliday: true,
+        icon: 'assets/images/icons/leaf.png',
+      ),
+      DailyTask(
+        id: 'holiday_labor_day',
+        title: '致敬劳动者',
+        description: '勤劳的手指能编织最美的岛屿梦。去小红书安利你的岛屿生活，集赞收获日出勋章！',
+        type: DailyTaskType.writeDiary,
+        rewardPoints: 55, // 统一一下之前变动的数值
+        isHoliday: true,
+        icon: 'assets/images/icons/sun.png',
+      ),
+    ];
   }
 }
