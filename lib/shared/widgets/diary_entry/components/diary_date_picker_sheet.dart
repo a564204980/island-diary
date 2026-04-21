@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../utils/diary_utils.dart';
@@ -90,30 +91,35 @@ class _DiaryDatePickerSheetState extends State<DiaryDatePickerSheet> {
     final Color bgColor = DiaryUtils.getPopupBackgroundColor(widget.paperStyle, isNight);
     final Color inkColor = DiaryUtils.getInkColor(widget.paperStyle, isNight);
 
-    return Container(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 20,
-        bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
+    return BackdropFilter(
+      filter: ImageFilter.blur(
+        sigmaX: isNight ? 15 : 0,
+        sigmaY: isNight ? 15 : 0,
       ),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
+      child: Container(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 20,
+          bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: accentColor.withValues(alpha: 0.1),
-            blurRadius: 30,
-            offset: const Offset(0, -5),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(32),
+            topRight: Radius.circular(32),
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.1),
+              blurRadius: 30,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // 晶体拉杆
           Container(
             width: 40,
@@ -264,6 +270,7 @@ class _DiaryDatePickerSheetState extends State<DiaryDatePickerSheet> {
           ),
         ],
       ),
+    ),
     ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
   }
 

@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/widgets/profile_header.dart';
 import 'package:island_diary/features/profile/presentation/widgets/premium_bento_card.dart';

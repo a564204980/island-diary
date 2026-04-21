@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../models/diary_block.dart';
+import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import '../utils/diary_utils.dart';
@@ -229,6 +231,12 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   }
 
   Future<bool> onSave() async {
+    // 立即触发触感反馈，提供点击确认感
+    debugPrint("DIARY_EDITOR: 收到保存指令 (onSave called)");
+    try {
+      HapticFeedback.mediumImpact();
+    } catch (_) {}
+
     final fullText = blocks
         .whereType<TextBlock>()
         .map((b) => b.controller.text)
@@ -253,12 +261,15 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           .map((b) => b.controller.text)
           .join('\n');
 
+      List<MascotAchievement> achievements = [];
+
       if (widget.entry != null) {
+        debugPrint("DIARY_EDITOR: 正在保存更新 (修改模式)...");
         // 修改模式
         final updatedEntry = DiaryEntry(
           id: widget.entry!.id,
           dateTime: widget.entry!.dateTime,
-          moodIndex: currentMoodIndex ?? 0, // 如果是纯自定义标签，默认给 0
+          moodIndex: currentMoodIndex ?? 0,
           intensity: currentIntensity,
           content: content,
           tag: currentTag,
@@ -267,15 +278,16 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           location: location,
           customDate: customDate,
           blocks: blocks.map((b) => b.toMap()).toList(),
-          replies: replies, // 使用本地维护的回复状态
+          replies: replies, 
           paperStyle: currentPaperStyle,
           isImageGrid: isImageGrid,
           isMixedLayout: isMixedLayout,
         );
         await UserState().updateDiary(updatedEntry);
+        debugPrint("DIARY_EDITOR: 更新保存成功。");
       } else {
+        debugPrint("DIARY_EDITOR: 正在创建新日记 (新建模式)...");
         // 新建模式
-        // 在保存草稿/正式保存时也要确保 moodIndex 有值
         await UserState().saveDraft(
           moodIndex: currentMoodIndex ?? 0,
           intensity: currentIntensity,
@@ -292,14 +304,18 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           isImageGrid: isImageGrid,
           isMixedLayout: isMixedLayout,
         );
-        final achievements = await UserState().saveDiary();
-        if (mounted) {
-          Navigator.of(context).pop(achievements);
-        }
+        achievements = await UserState().saveDiary();
+        debugPrint("DIARY_EDITOR: 新日记保存成功，获得成就数量: ${achievements.length}");
+      }
+
+      if (mounted) {
+        debugPrint("DIARY_EDITOR: 正在退出编辑器...");
+        Navigator.of(context).pop(achievements);
       }
 
       return true;
     } catch (e) {
+      debugPrint("DIARY_EDITOR: 保存失败 -> $e");
       if (mounted) {
         IslandAlert.show(context, icon: '🏮', message: '日记暂时无法保存: $e');
       }

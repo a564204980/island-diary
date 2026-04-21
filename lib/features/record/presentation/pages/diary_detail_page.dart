@@ -1,4 +1,3 @@
-import 'dart:ui';
 // Analysis Flush: 强制刷新库摘要以解决 Bad state 错误
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -171,14 +170,11 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 if (_currentEntry.paperStyle.startsWith('note'))
                   Positioned.fill(
                     child: Image.asset(
-                      'assets/images/note/${_currentEntry.paperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7', 'note8', 'note9'].contains(_currentEntry.paperStyle) ? '.png' : '.jpg'}',
+                      DiaryUtils.getPaperBackgroundPath(_currentEntry.paperStyle, widget.isNight),
                       fit: BoxFit.cover,
-                      color: _effectiveIsNight
-                          ? Colors.black.withValues(alpha: 0.3)
-                          : null,
-                      colorBlendMode: _effectiveIsNight
-                          ? BlendMode.darken
-                          : null,
+                      // note 系列现在自带夜间背景图，不再需要额外的颜色叠加遮罩
+                      color: null,
+                      colorBlendMode: null,
                     ),
                   ),
                 Positioned.fill(

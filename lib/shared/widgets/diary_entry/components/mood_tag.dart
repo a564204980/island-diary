@@ -16,7 +16,7 @@ class MoodTag extends StatelessWidget {
     return CustomPaint(
       painter: HandDrawnTagPainter(
         color: isNight 
-            ? const Color(0xFF333333).withValues(alpha: 0.85)
+            ? const Color(0xFF1F1F35).withValues(alpha: 0.85) // 带有月光蓝调的深色背景
             : const Color.fromRGBO(249, 238, 216, 0.75).withValues(alpha: 0.95),
         borderColor: isNight
             ? const Color(0xFFE0C097).withValues(alpha: 0.5)

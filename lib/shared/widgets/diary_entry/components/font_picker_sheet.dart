@@ -1,4 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:island_diary/core/state/user_state.dart';
+import '../utils/diary_utils.dart';
 
 class DiaryFontPickerSheet extends StatelessWidget {
   final String currentFontFamily;
@@ -24,78 +27,90 @@ class DiaryFontPickerSheet extends StatelessWidget {
       {'label': '猫啃珠圆体', 'value': 'MaoKenZhuYuan'},
     ];
 
-    return Container(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 24,
-        bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
+    final bool isNight = UserState().isNight;
+    final Color bgColor = DiaryUtils.getPopupBackgroundColor('standard', isNight);
+    final Color textColor = DiaryUtils.getInkColor('standard', isNight);
+
+    return BackdropFilter(
+      filter: ImageFilter.blur(
+        sigmaX: isNight ? 15 : 0,
+        sigmaY: isNight ? 15 : 0,
       ),
-      decoration: const BoxDecoration(
-        color: Color(0xFFFDF7E9),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(28),
-          topRight: Radius.circular(28),
+      child: Container(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 24,
+          bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
         ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            '常用字体',
-            style: TextStyle(
-              fontFamily: 'LXGWWenKai',
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF8B5E3C),
-            ),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
           ),
-          const SizedBox(height: 24),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 2.2,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '常用字体',
+              style: TextStyle(
+                fontFamily: 'LXGWWenKai',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: textColor.withValues(alpha: 0.9),
+              ),
             ),
-            itemCount: fonts.length,
-            itemBuilder: (context, index) {
-              final font = fonts[index];
-              final isSelected = currentFontFamily == font['value'];
-              return GestureDetector(
-                onTap: () => onApplyFontFamily(font['value']!),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFF8B5E3C)
-                        : Colors.white.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(
-                        0xFF8B5E3C,
-                      ).withValues(alpha: isSelected ? 1.0 : 0.2),
-                      width: 1.5,
+            const SizedBox(height: 24),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 2.2,
+              ),
+              itemCount: fonts.length,
+              itemBuilder: (context, index) {
+                final font = fonts[index];
+                final isSelected = currentFontFamily == font['value'];
+                return GestureDetector(
+                  onTap: () => onApplyFontFamily(font['value']!),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? (isNight ? textColor.withValues(alpha: 0.8) : const Color(0xFF8B5E3C))
+                          : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.5)),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isNight 
+                            ? (isSelected ? textColor : Colors.white10)
+                            : (const Color(0xFF8B5E3C)).withValues(alpha: isSelected ? 1.0 : 0.2),
+                        width: 1.5,
+                      ),
                     ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      font['label']!,
-                      style: TextStyle(
-                        fontFamily: font['value'],
-                        fontSize: 14,
-                        color: isSelected ? Colors.white : const Color(0xFF8B5E3C),
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    child: Center(
+                      child: Text(
+                        font['label']!,
+                        style: TextStyle(
+                          fontFamily: font['value'],
+                          fontSize: 14,
+                          color: isSelected 
+                              ? (isNight ? Colors.black87 : Colors.white) 
+                              : (isNight ? textColor.withValues(alpha: 0.7) : const Color(0xFF8B5E3C)),
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-        ],
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
   }

@@ -377,6 +377,7 @@ class _EmojiPanelState extends State<EmojiPanel> {
 
   // 固定的右下角控制按钮
   Widget _buildActionButtons(Color accentColor, Color inkColor) {
+    final bool isNight = UserState().isNight;
     return Positioned(
       right: 20,
       bottom: 20,
@@ -388,25 +389,21 @@ class _EmojiPanelState extends State<EmojiPanel> {
             onTap: widget.onBackspace,
             child: Container(
               width: 52,
-              height: 40,
+              height: 52,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(12),
+                color: isNight
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.white.withValues(alpha: 0.9),
+                shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
+                    color: Colors.black.withValues(alpha: isNight ? 0.2 : 0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: Center(
-                child: Icon(
-                  Icons.backspace_rounded,
-                  size: 20,
-                  color: inkColor.withValues(alpha: 0.6),
-                ),
-              ),
+              child: Icon(Icons.backspace_rounded, size: 22, color: accentColor),
             ),
           ),
           const SizedBox(width: 12),
@@ -446,8 +443,6 @@ class _EmojiPanelState extends State<EmojiPanel> {
   }
 
   Widget _buildLiveEmojiPreview(String imagePath, String videoPath) {
-    // 复用之前定义的微动播放器，由于它定义在另一个文件，这里简单先用图片占位或在这里也贴一份逻辑
-    // 为了最小改动，这里先显示图片叠加一个实况图标标识。
     return Stack(
       fit: StackFit.expand,
       children: [

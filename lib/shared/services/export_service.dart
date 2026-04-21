@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 
 enum PdfThemeType { classic, minimalist }
 
@@ -141,9 +142,7 @@ class ExportService {
           final currentStyle = style;
           backgroundFutures.add(() async {
             try {
-              final fileName = currentStyle.replaceFirst('note', 'note_bg');
-              final ext = ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7', 'note8', 'note9'].contains(currentStyle) ? '.png' : '.jpg';
-              final path = 'assets/images/note/$fileName$ext';
+              final path = DiaryUtils.getPaperBackgroundPath(currentStyle, false);
               final data = await rootBundle.load(path);
               paperBackgrounds[currentStyle] = pw.MemoryImage(data.buffer.asUint8List());
             } catch (e) {

@@ -4,8 +4,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/features/record/presentation/widgets/book_glow_hint.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
+import 'package:island_diary/shared/widgets/decoration/firefly_atmosphere.dart';
 
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
@@ -19,8 +19,6 @@ class _RecordPageState extends State<RecordPage>
   late ScrollController _scrollController;
   late final ValueNotifier<double> _scrollOffsetNotifier;
   double _aspectRatio = 1.0;
-  bool _showBookHint = true; // 始终显示书籍互动的提示
-  Timer? _bookHintTimer; 
   Timer? _thoughtTimer; 
 
   @override
@@ -30,9 +28,6 @@ class _RecordPageState extends State<RecordPage>
     _scrollOffsetNotifier = ValueNotifier<double>(0.0);
     _resolveImageSize();
     UserState().decorationSnapshot.addListener(_onSnapshotChanged);
-
-    // 默认显示互动提示
-    _showBookHint = true;
   }
 
   void _onSnapshotChanged() {
@@ -78,7 +73,6 @@ class _RecordPageState extends State<RecordPage>
 
   @override
   void dispose() {
-    _bookHintTimer?.cancel();
     _thoughtTimer?.cancel();
     _scrollController.dispose();
     _scrollOffsetNotifier.dispose();
@@ -98,10 +92,12 @@ class _RecordPageState extends State<RecordPage>
               backgroundColor: themeColor,
               body: Stack(
                 children: [
-                  // 1. 高质感材质底层 (Paper Texture)
+                  // 1. 高质感材质底层 (Paper Texture / Night Image)
                   Positioned.fill(
                     child: Image.asset(
-                      'assets/images/paper_bg.png',
+                      UserState().isNight 
+                          ? 'assets/images/login_bg_1.png' 
+                          : 'assets/images/paper_bg.png',
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -115,8 +111,8 @@ class _RecordPageState extends State<RecordPage>
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  const Color(0xFF1E1026).withValues(alpha: 0.88), // 暖紫
-                                  const Color(0xFF0F0B1E).withValues(alpha: 0.96), // 极暗
+                                  const Color(0xFF1B1629).withValues(alpha: 0.4), // 显著降低透明度，透出背景图
+                                  const Color(0xFF0A0814).withValues(alpha: 0.6),
                                 ],
                               )
                             : LinearGradient(
@@ -130,6 +126,12 @@ class _RecordPageState extends State<RecordPage>
                       ),
                     ),
                   ),
+                  // 深夜氛围装饰层 (星云、萤火虫)
+                  if (UserState().isNight) ...[
+                    _buildNightAtmosphere(),
+                    const FireflyAtmosphere(),
+                  ],
+                  
                   Positioned.fill(
                     child: ValueListenableBuilder<Uint8List?>(
                       valueListenable: UserState().decorationSnapshot,
@@ -159,37 +161,39 @@ class _RecordPageState extends State<RecordPage>
                             final h = constraints.maxHeight * scale;
                             final fullWidth = h * _aspectRatio;
 
-                            // 坐标系数 (0.50 为中心)
-                            final deskRelX = fullWidth * 0.40; // 书桌位置
-                            final deskY = h * 0.58;
-
-                            return NotificationListener<ScrollNotification>(
-                              onNotification: (notification) {
-                                if (notification is ScrollUpdateNotification) {
-                                  _scrollOffsetNotifier.value =
-                                      notification.metrics.pixels;
-                                }
-                                return false;
-                              },
-                              child: Center(
-                                child: SizedBox(
-                                  width: fullWidth,
-                                  height: h,
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      _buildBackground(
-                                        null,
-                                        snapshot,
-                                        h,
-                                        fullWidth,
-                                        Colors.transparent,
+                            return Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // 1. 房屋快照容器
+                                  Container(
+                                    width: double.infinity,
+                                    height: constraints.maxHeight * 0.65,
+                                    decoration: UserState().isNight ? BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF818CF8).withValues(alpha: 0.15),
+                                          blurRadius: 100,
+                                          spreadRadius: 20,
+                                        ),
+                                      ],
+                                    ) : null,
+                                    child: Center(
+                                      child: SizedBox(
+                                        width: fullWidth,
+                                        height: h,
+                                        child: _buildBackground(
+                                          null,
+                                          snapshot,
+                                          h,
+                                          fullWidth,
+                                          Colors.transparent,
+                                        ),
                                       ),
-                                      if (_showBookHint)
-                                        _buildBookHint(deskRelX, deskY),
-                                    ],
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
                             );
                           },
@@ -197,12 +201,162 @@ class _RecordPageState extends State<RecordPage>
                       },
                     ),
                   ),
+                  
+                  // 3. 侧边功能缎带 (方案 A)
+                  _buildSideActionRibbon(),
                 ],
               ),
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildNightAtmosphere() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Stack(
+          children: [
+            // 1. 背景星云光晕 - 紫色
+            Positioned(
+              top: -100,
+              right: -50,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.08),
+                ),
+              ).animate(onPlay: (c) => c.repeat(reverse: true)).move(end: const Offset(40, 20), duration: 10.seconds),
+            ),
+            // 2. 背景星云光晕 - 蓝色
+            Positioned(
+              bottom: 150,
+              left: -80,
+              child: Container(
+                width: 250,
+                height: 250,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF0EA5E9).withValues(alpha: 0.06),
+                ),
+              ).animate(onPlay: (c) => c.repeat(reverse: true)).move(end: const Offset(30, -30), duration: 12.seconds),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildSideActionRibbon() {
+    return Positioned(
+      right: 12,
+      top: 0,
+      bottom: 0,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildStampItem(
+              icon: Icons.auto_stories_rounded,
+              label: "回忆",
+              onTap: () => _openHistoryTimeline(),
+              delay: 300.ms,
+            ),
+            const SizedBox(height: 16),
+            _buildStampItem(
+              icon: Icons.bar_chart_rounded,
+              label: "统计",
+              onTap: () {},
+              delay: 450.ms,
+              opacity: 0.5,
+            ),
+            const SizedBox(height: 16),
+            _buildStampItem(
+              icon: Icons.emoji_events_rounded,
+              label: "成就",
+              onTap: () {},
+              delay: 600.ms,
+              opacity: 0.5,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStampItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required Duration delay,
+    double opacity = 1.0,
+  }) {
+    final isNight = UserState().isNight;
+    final primaryColor = isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF5D4037);
+    
+    return Opacity(
+      opacity: opacity,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isNight 
+                    ? Colors.white.withValues(alpha: 0.1) 
+                    : Colors.white.withValues(alpha: 0.65),
+                border: Border.all(
+                  color: isNight 
+                      ? Colors.white.withValues(alpha: 0.2) 
+                      : const Color(0xFF5D4037).withValues(alpha: 0.15),
+                  width: 1.0,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isNight 
+                        ? const Color(0xFF818CF8).withValues(alpha: 0.3) // 夜晚使用月光蓝发光
+                        : Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: isNight ? Offset.zero : const Offset(0, 5),
+                    spreadRadius: isNight ? 2 : 0,
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Center(
+                    child: Icon(
+                      icon,
+                      color: primaryColor,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: primaryColor.withValues(alpha: 0.8),
+                fontFamily: 'LXGWWenKai',
+                letterSpacing: 1.0,
+              ),
+            ),
+          ],
+        ),
+      ).animate().fadeIn(duration: 600.ms, delay: delay).scale(begin: const Offset(0.8, 0.8)),
     );
   }
 
@@ -213,84 +367,13 @@ class _RecordPageState extends State<RecordPage>
     double w,
     Color bgColor,
   ) {
-    return Positioned.fill(
-      child: _ParallaxBackground(
-        bgPath: bgPath,
-        snapshot: snapshot,
-        h: h,
-        w: w,
-        bgColor: bgColor,
-      ),
+    return _ParallaxBackground(
+      bgPath: bgPath,
+      snapshot: snapshot,
+      h: h,
+      w: w,
+      bgColor: bgColor,
     );
-  }
-
-  Widget _buildBookHint(double deskRelX, double deskY) {
-    return Positioned(
-      left: deskRelX - 2,
-      top: deskY - 110,
-      child:
-          Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                   _buildHintLabel(),
-                   const SizedBox(height: 4),
-                   BookGlowHint(
-                    onTap: () async {
-                      if (mounted) {
-                        setState(() {
-                          _showBookHint = false;
-                        });
-                        await _openHistoryTimeline();
-                        if (mounted) setState(() => _showBookHint = true);
-                      }
-                    },
-                  ),
-                ],
-              )
-              .animate()
-              .fadeIn(duration: 800.ms)
-              .scale(
-                begin: const Offset(0.5, 0.5),
-                duration: 600.ms,
-                curve: Curves.easeOutBack,
-              ),
-    );
-  }
-
-  Widget _buildHintLabel() {
-    return ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  width: 0.5,
-                ),
-              ),
-              child: const Text(
-                "旧日回忆",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF5D4037),
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-            ),
-          ),
-        )
-        .animate(onPlay: (c) => c.repeat(reverse: true))
-        .moveY(
-          begin: 0,
-          end: -4,
-          duration: 1.5.seconds,
-          curve: Curves.easeInOut,
-        );
   }
 
   Future<void> _openHistoryTimeline() async {
@@ -327,9 +410,22 @@ class _ParallaxBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (snapshot != null) {
-      return Image.memory(snapshot!, height: h, width: w, fit: BoxFit.cover);
-    }
-    return Container(color: bgColor, width: w, height: h);
+    return Stack(
+      children: [
+        // 1. 背景材质/图片
+        if (bgPath != null)
+          Positioned.fill(
+            child: Image.asset(bgPath!, fit: BoxFit.cover),
+          )
+        else
+          Positioned.fill(child: Container(color: bgColor)),
+
+        // 2. 房屋快照
+        if (snapshot != null)
+          Positioned.fill(
+            child: Image.memory(snapshot!, fit: BoxFit.cover),
+          ),
+      ],
+    );
   }
 }

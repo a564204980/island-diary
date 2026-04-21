@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../utils/diary_utils.dart';
@@ -51,25 +52,30 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
     final Color bgColor = DiaryUtils.getPopupBackgroundColor(widget.paperStyle, isNight);
     final Color inkColor = DiaryUtils.getInkColor(widget.paperStyle, isNight);
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
+    return BackdropFilter(
+      filter: ImageFilter.blur(
+        sigmaX: isNight ? 15 : 0,
+        sigmaY: isNight ? 15 : 0,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(32),
+            topRight: Radius.circular(32),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // 顶部装饰条
           Container(
             width: 40,
@@ -214,6 +220,7 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
           ),
         ],
       ),
+    ),
     ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
   }
 }

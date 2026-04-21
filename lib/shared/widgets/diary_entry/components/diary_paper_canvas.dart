@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'diary_painters.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';
@@ -61,10 +62,11 @@ class DiaryPaperCanvas extends StatelessWidget {
                         if (style.startsWith('note'))
                           Positioned.fill(
                             child: Image.asset(
-                              'assets/images/note/${style.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7', 'note8', 'note9'].contains(style) ? '.png' : '.jpg'}',
+                              DiaryUtils.getPaperBackgroundPath(style, isNight),
                               fit: BoxFit.cover,
-                              color: effectiveIsNight ? Colors.black.withValues(alpha: 0.3) : null,
-                              colorBlendMode: effectiveIsNight ? BlendMode.darken : null,
+                              // note 系列现在自带夜间背景图，不再需要额外的颜色叠加遮罩
+                              color: null,
+                              colorBlendMode: null,
                             ),
                           ),
                         Positioned.fill(

@@ -202,10 +202,7 @@ class DailyTaskCard extends StatelessWidget {
 
   /// 构建“垂直专题流”模式下的 UI
   Widget _buildEventVerticalStream(BuildContext context, UserState userState, DailyTask? currentTask) {
-    // 1. 获取所有预定义的节日活动
-    final List<DailyTask> holidayEvents = DailyTask.getAvailableEvents();
-    
-    // 2. 直接构造展示列表，利用 Collection If 简化逻辑
+    // 1. 直接构造展示列表，利用 Collection If 简化逻辑
     final List<DailyTask> displayList = [
       // 如果当前任务不是节日活动（如普通任务或会员任务），则排在首位展示
       if (currentTask?.id.startsWith('holiday_') == false) currentTask!,

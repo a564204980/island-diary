@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
 import 'dart:math' as math;
@@ -59,15 +60,14 @@ class DiaryToolbar extends StatelessWidget {
     final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
     final Color primaryColor = isNight ? const Color(0xFFE0C097) : inkColor;
 
-    // 动态工具栏背景：基于信纸色调进行高亮处理
+    // 动态工具栏背景：夜间模式下使用深色磨砂玻璃感
     final Color paperBase = DiaryUtils.getPaperBaseColor(paperStyle, isNight);
-
-    final Color toolbarBg = isNight
-        ? const Color(0xFF1E1E2C).withValues(alpha: 0.95)
+    final Color toolbarBg = isNight 
+        ? const Color(0xFF141426).withValues(alpha: 0.85) // 更加纯粹的夜间深背景
         : paperBase.withValues(alpha: 0.95);
 
     final Color toolbarBorder = isNight
-        ? Colors.white24
+        ? Colors.white.withValues(alpha: 0.15)
         : primaryColor.withValues(alpha: 0.25);
 
     return LayoutBuilder(
@@ -96,8 +96,8 @@ class DiaryToolbar extends StatelessWidget {
                 child: ClipRect(
                   child: BackdropFilter(
                     filter: ImageFilter.blur(
-                      sigmaX: isNoteBackground ? 1 : 4,
-                      sigmaY: isNoteBackground ? 1 : 4,
+                      sigmaX: isNight ? 10 : (isNoteBackground ? 1 : 4),
+                      sigmaY: isNight ? 10 : (isNoteBackground ? 1 : 4),
                     ),
                     child: CustomPaint(
                       painter: HandDrawnToolbarPainter(
@@ -119,6 +119,7 @@ class DiaryToolbar extends StatelessWidget {
                 child: isWide
                     ? Row(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch, // 关键：撑满垂直高度
                         children: _buildSingleRowIcons(
                           rowWidth,
                           isNight,
@@ -212,43 +213,46 @@ class DiaryToolbar extends StatelessWidget {
     bool isNight,
     Color primaryColor,
   ) {
-    final List<Map<String, dynamic>> icons = _getIconData(
-      isNight,
-      primaryColor,
-    );
+    final icons = _getIconData(isNight, primaryColor);
+    final row1Icons = icons.sublist(0, 7);
+    final row2Icons = icons.sublist(7);
 
     // 在宽屏下即使是两行也保持一定的紧凑度
     final double itemWidth = rowWidth / 7;
 
-    final row1Icons = icons.sublist(0, 7);
-    final row2Icons = icons.sublist(7);
-
     return [
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center, // 居中排列
-        children: row1Icons.map((icon) {
-          return _buildToolbarItem(
-            itemWidth,
-            icon: icon['icon'],
-            iconColor: icon['color'],
-            bgColor: icon['bgColor'],
-            onTap: icon['onTap'],
-            primaryColor: primaryColor,
-          );
-        }).toList(),
+      Expanded(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: row1Icons.map((icon) {
+            return _buildToolbarItem(
+              itemWidth,
+              icon: icon['icon'],
+              iconColor: icon['color'],
+              bgColor: icon['bgColor'],
+              onTap: icon['onTap'],
+              primaryColor: primaryColor,
+            );
+          }).toList(),
+        ),
       ),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center, // 居中排列
-        children: row2Icons.map((icon) {
-          return _buildToolbarItem(
-            itemWidth,
-            icon: icon['icon'],
-            iconColor: icon['color'],
-            bgColor: icon['bgColor'],
-            onTap: icon['onTap'],
-            primaryColor: primaryColor,
-          );
-        }).toList(),
+      const SizedBox(height: 8), // 行间距
+      Expanded(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: row2Icons.map((icon) {
+            return _buildToolbarItem(
+              itemWidth,
+              icon: icon['icon'],
+              iconColor: icon['color'],
+              bgColor: icon['bgColor'],
+              onTap: icon['onTap'],
+              primaryColor: primaryColor,
+            );
+          }).toList(),
+        ),
       ),
     ];
   }
@@ -264,37 +268,46 @@ class DiaryToolbar extends StatelessWidget {
   }) {
     return SizedBox(
       width: width,
-      child: Center(
-        child:
-            InkWell(
-                  onTap: onTap ?? () {},
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? primaryColor.withValues(alpha: 0.2)
-                          : (bgColor ?? primaryColor.withValues(alpha: 0.05)),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected
-                            ? primaryColor.withValues(alpha: 0.3)
-                            : Colors.transparent,
-                        width: 1,
-                      ),
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 22, // 略微缩小图标以适应背景圆角
-                      color: iconColor ?? primaryColor,
-                    ),
-                  ),
-                )
+      // 移除 height: double.infinity，由父级 Row 的 CrossAxisAlignment.stretch 控制
+      child: InkWell(
+        onTap: () {
+          debugPrint("TOOLBAR_CLICK: 点击了图标 ${icon.codePoint}");
+          if (onTap != null) {
+            try {
+              HapticFeedback.lightImpact();
+            } catch (_) {}
+            onTap();
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? primaryColor.withValues(alpha: 0.2)
+                  : (bgColor ?? primaryColor.withValues(alpha: 0.05)),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isSelected
+                    ? primaryColor.withValues(alpha: 0.3)
+                    : Colors.transparent,
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              icon,
+              size: 24,
+              color: iconColor ?? primaryColor,
+            )
                 .animate(target: isSelected ? 1 : 0)
                 .scale(
                   begin: const Offset(1, 1),
-                  end: const Offset(1.2, 1.2),
+                  end: const Offset(1.15, 1.15),
                   duration: 200.ms,
                 ),
+          ),
+        ),
       ),
     );
   }

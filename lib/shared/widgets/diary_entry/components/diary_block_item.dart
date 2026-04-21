@@ -135,7 +135,7 @@ class DiaryBlockItem extends StatelessWidget {
               color: isNoteBackground 
                   ? (accentColor?.withValues(alpha: 0.5) ?? (isNight ? Colors.white38 : Colors.black38))
                   : (isNight 
-                      ? const Color(0xFFBDB2A7).withValues(alpha: 0.6) 
+                      ? const Color(0xFFC4B8AD).withValues(alpha: 0.45) // 夜间模式提示色，不刺眼但也清晰
                       : const Color(0xFF8B5E3C).withValues(alpha: 0.6)),
             ),
             border: InputBorder.none,

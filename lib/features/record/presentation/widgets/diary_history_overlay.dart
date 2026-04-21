@@ -405,8 +405,9 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          // 1. 居中的主工具栏
                           Container(
                                 height: 54,
                                 padding: const EdgeInsets.symmetric(
@@ -484,6 +485,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                               .fadeIn(delay: 200.ms)
                               .scale(begin: const Offset(0.9, 0.9)),
                           const SizedBox(width: 16),
+                          // 2. 靠在一起的添加按钮
                           _buildAddButton(isNight),
                         ],
                       ),

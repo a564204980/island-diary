@@ -451,6 +451,8 @@ class MascotAchievement {
       targetValue: 1000,
       rewardTitle: '思绪暴君',
       rewardPoints: 150,
+      imagePath: 'assets/images/emoji/medal/medal25.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'total_word_50000',

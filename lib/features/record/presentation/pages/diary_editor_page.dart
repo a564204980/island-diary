@@ -19,14 +19,12 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
 import 'package:island_diary/shared/widgets/island_vip_guard_dialog.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-
 class DiaryEditorPage extends StatefulWidget {
   final int? moodIndex;
   final double intensity;
   final String? tag;
   final DiaryEntry? entry;
   final DateTime? initialDate;
-
   const DiaryEditorPage({
     super.key,
     this.moodIndex,
@@ -35,11 +33,9 @@ class DiaryEditorPage extends StatefulWidget {
     this.entry,
     this.initialDate,
   });
-
   @override
   State<DiaryEditorPage> createState() => _DiaryEditorPageState();
 }
-
 class _DiaryEditorPageState extends State<DiaryEditorPage>
     with
         DiaryEditorCoreMixin<DiaryEditorPage>,
@@ -51,26 +47,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     super.initState();
     initializeEditor(entry: widget.entry, initialDate: widget.initialDate);
   }
-
   @override
   Widget build(BuildContext context) {
     final mood = (currentMoodIndex != null && currentMoodIndex! >= 0)
         ? kMoods[currentMoodIndex!]
         : null;
-    final bool isNight = UserState().isNight;
-    // 如果使用自定义信纸背景（note系列），即便在晚上也不使用夜间模式样式
-    final bool effectiveIsNight =
-        isNight && !currentPaperStyle.startsWith('note');
-    final Color accentColor = DiaryUtils.getAccentColor(
-      currentPaperStyle,
-      effectiveIsNight,
-    );
-    final Color bgColor = DiaryUtils.getPaperBaseColor(
-      currentPaperStyle,
-      effectiveIsNight,
-    );
-
     final double viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
+    
     // 实时捕捉并记忆最大键盘高度，移至 build 以供内容区域 padding 使用
     if (viewInsetsBottom > 100 && viewInsetsBottom > keyboardHeight) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -85,14 +68,28 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         ? math.max(viewInsetsBottom, keyboardHeight)
         : viewInsetsBottom;
 
-    return PopScope(
+    return ValueListenableBuilder<String>(
+      valueListenable: UserState().themeMode,
+      builder: (context, themeMode, child) {
+        final bool isNight = UserState().isNight;
+        // 使用 isNight 决定配色，DiaryUtils 会根据信纸类型自动适配
+        final bool effectiveIsNight = isNight;
+        final Color accentColor = DiaryUtils.getAccentColor(
+          currentPaperStyle,
+          effectiveIsNight,
+        );
+        final Color bgColor = DiaryUtils.getPaperBaseColor(
+          currentPaperStyle,
+          effectiveIsNight,
+        );
+        return PopScope(
       canPop: true,
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         backgroundColor: bgColor,
         body: Stack(
           children: [
-            // 背景层
+            // 背景图?
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -106,7 +103,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                 ),
               ),
             ),
-
             // 信纸底色与纹理层
             Positioned.fill(
               child: Stack(
@@ -114,16 +110,11 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   if (currentPaperStyle.startsWith('note'))
                     Positioned.fill(
                       child: Image.asset(
-                        'assets/images/note/${currentPaperStyle.replaceFirst('note', 'note_bg')}${['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7', 'note8', 'note9'].contains(currentPaperStyle) ? '.png' : '.jpg'}',
+                        DiaryUtils.getPaperBackgroundPath(
+                          currentPaperStyle,
+                          isNight,
+                        ),
                         fit: BoxFit.cover,
-                        color:
-                            (isNight && !currentPaperStyle.startsWith('note'))
-                            ? Colors.black.withValues(alpha: 0.3)
-                            : null,
-                        colorBlendMode:
-                            (isNight && !currentPaperStyle.startsWith('note'))
-                            ? BlendMode.darken
-                            : null,
                       ),
                     ),
                   Positioned.fill(
@@ -138,8 +129,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                 ],
               ),
             ),
-
-            // 主内容：模拟详情页结构
+            // 主内容：模拟详情页结构?
             GestureDetector(
               onTap: () {
                 FocusScope.of(context).unfocus();
@@ -249,7 +239,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                   decoration: BoxDecoration(
                                     color: currentPaperStyle.startsWith('note')
                                         ? Colors.white.withValues(alpha: 0.4)
-                                        : accentColor.withValues(alpha: 0.08),
+                                        : effectiveIsNight ? Colors.white.withValues(alpha: 0.2) : accentColor.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
                                       color: accentColor.withValues(alpha: 0.15),
@@ -315,14 +305,12 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                   decoration: BoxDecoration(
                                     color: currentPaperStyle.startsWith('note')
                                         ? Colors.white.withValues(alpha: 0.4)
-                                        : accentColor.withValues(alpha: 0.08),
+                                        : effectiveIsNight ? Colors.white.withValues(alpha: 0.2) : accentColor.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: accentColor.withValues(
-                                        alpha: currentPaperStyle.startsWith('note')
-                                            ? 0.2
-                                            : 0.15,
-                                      ),
+                                      color: effectiveIsNight
+                                           ? Colors.white.withValues(alpha: 0.55)
+                                           : accentColor.withValues(alpha: currentPaperStyle.startsWith('note') ? 0.2 : 0.25),
                                     ),
                                   ),
                                   child: Text(
@@ -344,14 +332,12 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                   decoration: BoxDecoration(
                                     color: currentPaperStyle.startsWith('note')
                                         ? Colors.white.withValues(alpha: 0.4)
-                                        : accentColor.withValues(alpha: 0.08),
+                                        : effectiveIsNight ? Colors.white.withValues(alpha: 0.2) : accentColor.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: accentColor.withValues(
-                                        alpha: currentPaperStyle.startsWith('note')
-                                            ? 0.2
-                                            : 0.15,
-                                      ),
+                                      color: effectiveIsNight
+                                           ? Colors.white.withValues(alpha: 0.55)
+                                           : accentColor.withValues(alpha: currentPaperStyle.startsWith('note') ? 0.2 : 0.25),
                                     ),
                                   ),
                                   child: Row(
@@ -374,7 +360,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                     ],
                                   ),
                                 ),
-                              // 自定义日期
+                              // 自定义日期?
                               if (customDate != null)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -384,14 +370,12 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                   decoration: BoxDecoration(
                                     color: currentPaperStyle.startsWith('note')
                                         ? Colors.white.withValues(alpha: 0.4)
-                                        : accentColor.withValues(alpha: 0.08),
+                                        : effectiveIsNight ? Colors.white.withValues(alpha: 0.2) : accentColor.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: accentColor.withValues(
-                                        alpha: currentPaperStyle.startsWith('note')
-                                            ? 0.2
-                                            : 0.15,
-                                      ),
+                                      color: effectiveIsNight
+                                           ? Colors.white.withValues(alpha: 0.55)
+                                           : accentColor.withValues(alpha: currentPaperStyle.startsWith('note') ? 0.2 : 0.25),
                                     ),
                                   ),
                                   child: Row(
@@ -414,7 +398,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                     ],
                                   ),
                                 ),
-                              // 自定义时间
+                              // 自定义时间?
                               if (customTime != null)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -424,14 +408,12 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                   decoration: BoxDecoration(
                                     color: currentPaperStyle.startsWith('note')
                                         ? Colors.white.withValues(alpha: 0.4)
-                                        : accentColor.withValues(alpha: 0.08),
+                                        : effectiveIsNight ? Colors.white.withValues(alpha: 0.2) : accentColor.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: accentColor.withValues(
-                                        alpha: currentPaperStyle.startsWith('note')
-                                            ? 0.2
-                                            : 0.15,
-                                      ),
+                                      color: effectiveIsNight
+                                           ? Colors.white.withValues(alpha: 0.55)
+                                           : accentColor.withValues(alpha: currentPaperStyle.startsWith('note') ? 0.2 : 0.25),
                                     ),
                                   ),
                                   child: Row(
@@ -458,7 +440,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                           ),
                         ),
                       ),
-
                       SliverPadding(
                         padding: EdgeInsets.fromLTRB(
                           24,
@@ -477,7 +458,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                     .where((b) => b is! ImageBlock)
                                     .toList();
                                 if (index >= nonImageBlocks.length) return null;
-
                                 final block = nonImageBlocks[index];
                                 final key = blockKeys[block.id];
                                 return DiaryBlockItem(
@@ -502,7 +482,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                   accentColor: accentColor,
                                 );
                               }
-
                               final block = blocks[index];
                               final key = blockKeys[block.id];
                               return DiaryBlockItem(
@@ -532,7 +511,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                           ),
                         ),
                       ),
-
                       SliverToBoxAdapter(
                         child: SizedBox(
                           height: (isImageGrid && !isMixedLayout)
@@ -545,8 +523,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                 ),
               ),
             ),
-
-            // 底部工具栏 (根据要求：不要动)
+            // 底部工具栏(根据要求：不要动)
             Positioned(
               bottom: 0,
               left: 0,
@@ -558,9 +535,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   final double toolbarMaxWidth = isWide
                       ? 800.0
                       : double.infinity;
-
                   final double totalBottomHeight = currentBottomHeight;
-
                   return Align(
                     alignment: Alignment.bottomCenter,
                     child: SizedBox(
@@ -632,8 +607,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         ),
       ),
     );
+  },
+);
   }
-
   Future<void> _showMoodPicker() async {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -645,7 +621,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         paperStyle: currentPaperStyle,
       ),
     );
-
     if (result != null && mounted) {
       setState(() {
         currentMoodIndex = result['index'];
@@ -657,17 +632,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       });
     }
   }
-
   void onMoreClick() {
     _showMoreBottomSheet();
   }
-
   void _showMoreBottomSheet() {
     final bool isNight = UserState().isNight;
     // 使用与主 build 一致的逻辑
-    final bool effectiveIsNight =
-        isNight && !currentPaperStyle.startsWith('note');
-
+    final bool effectiveIsNight = isNight;
     final Color accentColor = DiaryUtils.getAccentColor(
       currentPaperStyle,
       effectiveIsNight,
@@ -680,7 +651,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       currentPaperStyle,
       effectiveIsNight,
     ).withValues(alpha: 0.9);
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -716,7 +686,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   ),
                 ),
                 const SizedBox(height: 24),
-                // 图文混排开关
+                // 图文混排开启?
                 _buildMoreMenuItem(
                   icon: Icons.layers_rounded,
                   title: "开启图文混排",
@@ -745,7 +715,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         isMixedLayout = value;
                         if (value) isImageGrid = false;
                       });
-                      onBlocksChanged(); // 即便是在关闭也触发同步
+                      onBlocksChanged(); // 即便是在关闭也触发同步?
                     },
                   ),
                   accentColor: accentColor,
@@ -767,7 +737,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   onTap: () {},
                 ),
                 const SizedBox(height: 12),
-                // 图片九宫格开关
+                // 图片九宫格开启?
                 _buildMoreMenuItem(
                   icon: Icons.grid_view_rounded,
                   title: "开启图片九宫格",
@@ -782,8 +752,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                           context: context,
                           builder: (context) => const IslandVipGuardDialog(
                             title: '解锁九宫格布局',
-                            description:
-                                '“图片九宫格”功能属于“星光计划”会员专享。开启后，您的图片将以精致的网格形式呈现。',
+                            description: '“图片九宫格”功能属于“星光计划”会员专享。开启后，您的图片将以精致的网格形式呈现。',
                           ),
                         );
                         return;
@@ -792,7 +761,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         isImageGrid = value;
                         if (value) {
                           isMixedLayout = false; // 互斥逻辑
-                          // 清理逻辑：开启九宫格时，移除文末由于自动插入产生的冗余空行
+                          // 清理逻辑：开启九宫格时，移除文末由于自动插入产生的冗余空格?
                           if (blocks.length > 1 &&
                               blocks.last is TextBlock &&
                               (blocks.last as TextBlock)
@@ -831,7 +800,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       ),
     );
   }
-
   Widget _buildMoreMenuItem({
     required IconData icon,
     required String title,
@@ -892,13 +860,10 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       ),
     );
   }
-
   Widget _buildImageUploadPreviewBar(bool isNight, Color accentColor) {
     if (isMixedLayout) return const SizedBox.shrink();
-
     final images = blocks.whereType<ImageBlock>().toList();
     if (images.isEmpty) return const SizedBox.shrink();
-
     return Container(
       height: 90,
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
@@ -911,7 +876,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         itemBuilder: (context, index) {
           final img = images[index];
           final imgIndex = blocks.indexOf(img);
-
           return Padding(
             padding: const EdgeInsets.only(top: 8, right: 8),
             child: Stack(

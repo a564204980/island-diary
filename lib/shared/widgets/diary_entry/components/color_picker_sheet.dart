@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -53,28 +54,33 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
         ? widget.currentBgColor 
         : widget.currentTextColor;
 
-    return Container(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 24,
-        bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
+    return BackdropFilter(
+      filter: ImageFilter.blur(
+        sigmaX: isNight ? 15 : 0,
+        sigmaY: isNight ? 15 : 0,
       ),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        border: Border.all(color: accentColor.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: accentColor.withValues(alpha: 0.15),
-            blurRadius: 30,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: Container(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 24,
+          bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border.all(color: accentColor.withValues(alpha: 0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.15),
+              blurRadius: 30,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // 头部区域
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -273,8 +279,9 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
           const SizedBox(height: 12),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildHeaderButton({required IconData icon, required VoidCallback onPressed, required Color color}) {
     return Material(
