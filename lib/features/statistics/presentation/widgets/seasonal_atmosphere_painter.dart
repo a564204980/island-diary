@@ -15,7 +15,8 @@ class SeasonalAtmosphere extends StatefulWidget {
   State<SeasonalAtmosphere> createState() => _SeasonalAtmosphereState();
 }
 
-class _SeasonalAtmosphereState extends State<SeasonalAtmosphere> with SingleTickerProviderStateMixin {
+class _SeasonalAtmosphereState extends State<SeasonalAtmosphere>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   final List<_Particle> _particles = [];
   final Random _random = Random();
@@ -37,37 +38,42 @@ class _SeasonalAtmosphereState extends State<SeasonalAtmosphere> with SingleTick
 
     // 基础季节粒子数量（优质感重于数量）
     int seasonalCount = 18;
-    
+
     // 1. 初始化季节性粒子
     for (int i = 0; i < seasonalCount; i++) {
-      _particles.add(_Particle(
-        x: _random.nextDouble(),
-        y: _random.nextDouble(),
-        baseSize: _random.nextDouble() * 2 + 1.5,
-        speed: _random.nextDouble() * 0.002 + 0.0005,
-        depth: _random.nextDouble(), // 0.0 (远) -> 1.0 (近)
-        type: widget.particleType,
-      ));
+      _particles.add(
+        _Particle(
+          x: _random.nextDouble(),
+          y: _random.nextDouble(),
+          baseSize: _random.nextDouble() * 2 + 1.5,
+          speed: _random.nextDouble() * 0.002 + 0.0005,
+          depth: _random.nextDouble(), // 0.0 (远) -> 1.0 (近)
+          type: widget.particleType,
+        ),
+      );
     }
 
     // 2. 夜间模式额外追加 6 个萤火虫（常驻灵感）
     if (widget.isNight) {
       for (int i = 0; i < 6; i++) {
-        _particles.add(_Particle(
-          x: _random.nextDouble(),
-          y: _random.nextDouble(),
-          baseSize: _random.nextDouble() * 1.5 + 1.5,
-          speed: _random.nextDouble() * 0.0015 + 0.0008,
-          depth: _random.nextDouble() * 0.8 + 0.2,
-          type: 'firefly',
-        ));
+        _particles.add(
+          _Particle(
+            x: _random.nextDouble(),
+            y: _random.nextDouble(),
+            baseSize: _random.nextDouble() * 1.5 + 1.5,
+            speed: _random.nextDouble() * 0.0015 + 0.0008,
+            depth: _random.nextDouble() * 0.8 + 0.2,
+            type: 'firefly',
+          ),
+        );
       }
     }
   }
 
   @override
   void didUpdateWidget(SeasonalAtmosphere oldWidget) {
-    if (oldWidget.particleType != widget.particleType || oldWidget.isNight != widget.isNight) {
+    if (oldWidget.particleType != widget.particleType ||
+        oldWidget.isNight != widget.isNight) {
       _initParticles();
     }
     super.didUpdateWidget(oldWidget);
@@ -154,7 +160,7 @@ class _AtmospherePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Paint paint = Paint();
-    
+
     // 按深度降序排列（确保真实的层叠透视）
     final sortedParticles = List<_Particle>.from(particles)
       ..sort((a, b) => a.depth.compareTo(b.depth));
@@ -162,39 +168,62 @@ class _AtmospherePainter extends CustomPainter {
     for (var p in sortedParticles) {
       final double depth = p.depth;
       final pos = Offset(p.x * size.width, p.y * size.height);
-      
+
       // 核心动态参数：虚化大小与呼吸频率
-      final double currentSize = p.baseSize * (1.1 + depth * 3.5); 
-      final double pulse = (sin(DateTime.now().millisecondsSinceEpoch / (700 + depth * 300).toInt() + p.x * 20) + 1.0) / 2.0;
+      final double currentSize = p.baseSize * (1.1 + depth * 3.5);
+      final double pulse =
+          (sin(
+                DateTime.now().millisecondsSinceEpoch /
+                        (700 + depth * 300).toInt() +
+                    p.x * 20,
+              ) +
+              1.0) /
+          2.0;
       final double opacity = (0.22 + depth * 0.28) * (0.6 + 0.4 * pulse);
-      
+
       Color mainColor;
       switch (p.type) {
-        case 'flower': mainColor = const Color(0xFFFFC2D1); break; // 柔和夜楼粉
-        case 'firefly': mainColor = const Color(0xFFFFD54F); break;
-        case 'leaf': mainColor = const Color(0xFFFFB347); break;
-        case 'rain': mainColor = isNight ? Colors.white30 : Colors.blue.withOpacity(0.3); break;
-        default: mainColor = Colors.white;
+        case 'flower':
+          mainColor = const Color(0xFFFFC2D1);
+          break; // 柔和夜楼粉
+        case 'firefly':
+          mainColor = const Color(0xFFFFD54F);
+          break;
+        case 'leaf':
+          mainColor = const Color(0xFFFFB347);
+          break;
+        case 'rain':
+          mainColor = isNight ? Colors.white30 : Colors.blue.withValues(alpha: 0.3);
+          break;
+        default:
+          mainColor = Colors.white;
       }
 
       if (p.type == 'rain') {
-        paint.color = mainColor.withOpacity(opacity);
-        canvas.drawLine(pos, pos + Offset(1.5, 20 * depth + 5), paint..strokeWidth = 0.8 + depth);
+        paint.color = mainColor.withValues(alpha: opacity);
+        canvas.drawLine(
+          pos,
+          pos + Offset(1.5, 20 * depth + 5),
+          paint..strokeWidth = 0.8 + depth,
+        );
       } else {
         // 关键视觉：博凯虚化渲染
-        final double blurSigma = depth * 11.0 + 0.8; 
-        
-        paint.color = mainColor.withOpacity(opacity);
+        final double blurSigma = depth * 11.0 + 0.8;
+
+        paint.color = mainColor.withValues(alpha: opacity);
         if (depth > 0.7) {
           // 近景：径向渐变模拟虚化圆环
-          paint.shader = RadialGradient(
-            colors: [
-              mainColor.withOpacity(opacity * 1.4), 
-              mainColor.withOpacity(opacity * 0.4),
-              Colors.transparent,
-            ],
-            stops: const [0.0, 0.45, 1.0],
-          ).createShader(Rect.fromCircle(center: pos, radius: currentSize * 2.2));
+          paint.shader =
+              RadialGradient(
+                colors: [
+                  mainColor.withValues(alpha: opacity * 1.4),
+                  mainColor.withValues(alpha: opacity * 0.4),
+                  Colors.transparent,
+                ],
+                stops: const [0.0, 0.45, 1.0],
+              ).createShader(
+                Rect.fromCircle(center: pos, radius: currentSize * 2.2),
+              );
           canvas.drawCircle(pos, currentSize * 2.2, paint);
           paint.shader = null;
         } else {
@@ -203,12 +232,16 @@ class _AtmospherePainter extends CustomPainter {
           canvas.drawCircle(pos, currentSize, paint);
           paint.maskFilter = null;
         }
-        
+
         // 萤火特有渲染：金色晕染层
         if (p.type == 'firefly') {
-          canvas.drawCircle(pos, currentSize * 4.5, Paint()
-            ..color = mainColor.withOpacity(opacity * 0.18)
-            ..maskFilter = MaskFilter.blur(BlurStyle.normal, 14 * depth + 6));
+          canvas.drawCircle(
+            pos,
+            currentSize * 4.5,
+            Paint()
+              ..color = mainColor.withValues(alpha: opacity * 0.18)
+              ..maskFilter = MaskFilter.blur(BlurStyle.normal, 14 * depth + 6),
+          );
         }
       }
     }

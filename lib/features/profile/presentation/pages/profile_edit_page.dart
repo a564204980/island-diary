@@ -443,90 +443,86 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             return '${currentYear}年 · $age岁 · ${signs[index]}';
           }
 
-          return BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-            child: Container(
-              height: 400,
-              decoration: BoxDecoration(
-                color: isNight ? const Color(0xFF1E293B).withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.95),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                border: Border(top: BorderSide(color: isNight ? Colors.white10 : Colors.white, width: 1.5)),
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  Container(width: 38, height: 4.5, decoration: BoxDecoration(color: isNight ? Colors.white24 : Colors.black12, borderRadius: BorderRadius.circular(2.25))),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          return Container(
+            height: 400,
+            decoration: BoxDecoration(
+              color: isNight ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
+                Container(width: 38, height: 4.5, decoration: BoxDecoration(color: isNight ? Colors.white24 : Colors.black12, borderRadius: BorderRadius.circular(2.25))),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context), 
+                        child: Text('取消', style: TextStyle(color: isNight ? Colors.white38 : Colors.black38, fontSize: 15, fontFamily: 'LXGWWenKai'))
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('选择生日', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: isNight ? Colors.white : Colors.black87, fontFamily: 'LXGWWenKai')),
+                          const SizedBox(height: 6),
+                          Text(
+                            getMetadataText(),
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF29B6E0), fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          ),
+                        ],
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() => _selectedBirthday = DateTime(currentYear, currentMonth, currentDay));
+                          Navigator.pop(context);
+                        },
+                        child: const Text('确定', style: TextStyle(color: Color(0xFF29B6E0), fontWeight: FontWeight.w900, fontSize: 16, fontFamily: 'LXGWWenKai')),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ShaderMask(
+                    shaderCallback: (rect) => LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.black.withValues(alpha: 0.05), Colors.black, Colors.black, Colors.black.withValues(alpha: 0.05)],
+                      stops: const [0.0, 0.3, 0.7, 1.0],
+                    ).createShader(rect),
+                    blendMode: BlendMode.dstIn,
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context), 
-                          child: Text('取消', style: TextStyle(color: isNight ? Colors.white38 : Colors.black38, fontSize: 15, fontFamily: 'LXGWWenKai'))
+                        Container(
+                          height: 48,
+                          margin: const EdgeInsets.symmetric(horizontal: 24),
+                          decoration: BoxDecoration(
+                            color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFF29B6E0).withValues(alpha: 0.15), width: 1),
+                          ),
                         ),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
+                        Row(
                           children: [
-                            Text('选择生日', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: isNight ? Colors.white : Colors.black87, fontFamily: 'LXGWWenKai')),
-                            const SizedBox(height: 6),
-                            Text(
-                              getMetadataText(),
-                              style: const TextStyle(fontSize: 12, color: Color(0xFF29B6E0), fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                            ),
+                            _buildStarTrailWheel(years, yearController, (val) {
+                              setPickerState(() => currentYear = years[val]);
+                            }, isNight, flex: 3, suffix: '年'),
+                            _buildStarTrailWheel(months, monthController, (val) {
+                              setPickerState(() => currentMonth = months[val]);
+                            }, isNight, flex: 2, suffix: '月'),
+                            _buildStarTrailWheel(days, dayController, (val) {
+                              setPickerState(() => currentDay = days[val]);
+                            }, isNight, flex: 2, suffix: '日'),
                           ],
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            setState(() => _selectedBirthday = DateTime(currentYear, currentMonth, currentDay));
-                            Navigator.pop(context);
-                          },
-                          child: const Text('确定', style: TextStyle(color: Color(0xFF29B6E0), fontWeight: FontWeight.w900, fontSize: 16, fontFamily: 'LXGWWenKai')),
                         ),
                       ],
                     ),
                   ),
-                  Expanded(
-                    child: ShaderMask(
-                      shaderCallback: (rect) => LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.black.withValues(alpha: 0.05), Colors.black, Colors.black, Colors.black.withValues(alpha: 0.05)],
-                        stops: const [0.0, 0.3, 0.7, 1.0],
-                      ).createShader(rect),
-                      blendMode: BlendMode.dstIn,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            height: 48,
-                            margin: const EdgeInsets.symmetric(horizontal: 24),
-                            decoration: BoxDecoration(
-                              color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFF29B6E0).withValues(alpha: 0.15), width: 1),
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              _buildStarTrailWheel(years, yearController, (val) {
-                                setPickerState(() => currentYear = years[val]);
-                              }, isNight, flex: 3, suffix: '年'),
-                              _buildStarTrailWheel(months, monthController, (val) {
-                                setPickerState(() => currentMonth = months[val]);
-                              }, isNight, flex: 2, suffix: '月'),
-                              _buildStarTrailWheel(days, dayController, (val) {
-                                setPickerState(() => currentDay = days[val]);
-                              }, isNight, flex: 2, suffix: '日'),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
           );
         },

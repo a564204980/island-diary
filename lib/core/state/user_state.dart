@@ -12,6 +12,7 @@ import 'package:island_diary/core/models/mascot_event.dart';
 import 'package:island_diary/core/models/daily_task.dart';
 import 'dart:typed_data';
 import 'dart:math';
+import 'dart:async';
 
 /// 存贮键常量池
 class _K {
@@ -79,6 +80,8 @@ class _K {
   static const selectedGlassesDecoration = 'selected_glasses_decoration_v1';
   static const deepseekApiKey = 'deepseek_api_key_v1';
   static const currentDailyTask = 'current_daily_task_v1';
+  static const lastSoulInsight = 'last_soul_insight_v1';
+  static const lastSoulInsightDate = 'last_soul_insight_date_v1';
 }
 
 /// 1. 用户资料与引导模块
@@ -97,9 +100,17 @@ mixin ProfileMixin {
   final ValueNotifier<String> themeMode = ValueNotifier<String>('auto');
   final ValueNotifier<String> deepseekApiKey = ValueNotifier<String>('sk-9860dceeff9240c4a497fb6fb7739d95');
   final ValueNotifier<String?> mascotThought = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> lastSoulInsight = ValueNotifier<String?>(null);
   final ValueNotifier<DailyTask?> dailyTask = ValueNotifier<DailyTask?>(null);
   final ValueNotifier<bool> isEventDrawerUnlocked = ValueNotifier<bool>(false);
+
+  // 全局背景与主题色
+  final ValueNotifier<String> currentBackgroundPath = ValueNotifier<String>('assets/images/home_xiatian_big.png');
+  final ValueNotifier<Color> currentThemeColor = ValueNotifier<Color>(const Color(0xFFE6F3F5));
+  Timer? _backgroundTimer;
+
   DateTime? lastVisitTime;
+  String? lastSoulInsightDate;
   MascotEvent? _pendingDecorationEvent;
 
   bool get isNight {
@@ -163,6 +174,10 @@ mixin ProfileMixin {
     
     customAvatarPath.value = prefs.getString(_K.customAvatar);
     
+    // 加载缓存的 AI 洞见
+    lastSoulInsight.value = prefs.getString(_K.lastSoulInsight);
+    lastSoulInsightDate = prefs.getString(_K.lastSoulInsightDate);
+    
     // 加载每日任务
     final taskJson = prefs.getString(_K.currentDailyTask);
     if (taskJson != null) {
@@ -174,6 +189,49 @@ mixin ProfileMixin {
 
     // 启动时执行一次过期检测
     checkVipExpiry(prefs);
+
+    // 启动全局背景巡检
+    updateDynamicBackground();
+    _backgroundTimer?.cancel();
+    _backgroundTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      updateDynamicBackground();
+    });
+  }
+
+  /// 根据时间自动切换背景与主题色
+  void updateDynamicBackground() {
+    if (themeMode.value == 'light') {
+      currentBackgroundPath.value = 'assets/images/home_zhongwu_big.png';
+      currentThemeColor.value = const Color(0xFFE6F3F5);
+      return;
+    }
+    if (themeMode.value == 'dark') {
+      currentBackgroundPath.value = 'assets/images/home_wanshang_big.png';
+      currentThemeColor.value = const Color(0xFF0D1B2A);
+      return;
+    }
+
+    final int hour = DateTime.now().hour;
+    String newPath;
+    Color newColor;
+
+    if (hour >= 6 && hour < 11) {
+      newPath = 'assets/images/home_xiatian_big.png';
+      newColor = const Color(0xFFE6F3F5);
+    } else if (hour >= 11 && hour < 17) {
+      newPath = 'assets/images/home_zhongwu_big.png';
+      newColor = const Color(0xFFE8F5E9); 
+    } else {
+      newPath = 'assets/images/home_wanshang_big.png';
+      newColor = const Color(0xFF0D1B2A);
+    }
+
+    if (currentBackgroundPath.value != newPath) {
+      currentBackgroundPath.value = newPath;
+    }
+    if (currentThemeColor.value != newColor) {
+      currentThemeColor.value = newColor;
+    }
   }
 
   void _checkAndResetDailyTask(SharedPreferences prefs) {
@@ -381,6 +439,20 @@ mixin ProfileMixin {
     deepseekApiKey.value = key;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_K.deepseekApiKey, key);
+  }
+
+  /// 保存 AI 生成的心灵深度分析结果
+  Future<void> saveSoulInsight(String insight) async {
+    final now = DateTime.now();
+    final dateStr = "${now.year}-${now.month}-${now.day}";
+    
+    lastSoulInsight.value = insight;
+    lastSoulInsightDate = dateStr;
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_K.lastSoulInsight, insight);
+    await prefs.setString(_K.lastSoulInsightDate, dateStr);
+    debugPrint("SOUL_INSIGHT: 分析结果已缓存 -> $dateStr");
   }
 
   /// 检查启动事件（时间、离别、节日）
@@ -1158,6 +1230,7 @@ class UserState with ProfileMixin, DiaryMixin, DecorationMixin, SecurityMixin, A
   }
 
   void dispose() {
+    _backgroundTimer?.cancel();
     userName.dispose(); hasFinishedOnboarding.dispose(); hasSeenRecordGuidance.dispose();
     diaryDraft.dispose(); isSlimeInBottomMenu.dispose(); selectedMascotDecoration.dispose();
     ownedDecorationIds.dispose(); unlockedMascotPaths.dispose(); unlockedAchievements.dispose(); achievementPoints.dispose();

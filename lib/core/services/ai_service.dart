@@ -118,6 +118,55 @@ class AIService {
     }
   }
 
+  /// 自动心灵分析：基于时节和情绪分布生成深度洞察
+  Future<String?> analyzeSoulSeason(String apiKey, {
+    required String seasonName,
+    required String moodDistribution,
+    required String topTags,
+  }) async {
+    if (apiKey.isEmpty || apiKey == 'YOUR_API_KEY') return null;
+
+    final String systemPrompt = """
+你现在是朋友的‘内心独白’。请基于他在岛屿上留下的情绪印记和当前灵魂时节，写一段深度的、极具诗意的自我剖析。
+
+要求：
+1. 必须使用第一人称（‘我’）进行叙事。
+2. 语气要像是在寂静深夜里，自己与灵魂的窃窃私语。要深邃、空灵且带有治愈感。
+3. 结合当前时节（$seasonName）以及情绪特征（$moodDistribution）和关键词（$topTags），挖掘出‘我’这段时间内心真实的渴求、避风港或生命力的流转。
+4. 篇幅在 40-70 字左右，直接返回独白内容，不要有任何前缀或标题。
+5. 严禁使用陈词滥调，要写出那种‘击中心灵’的独特性。
+""";
+
+    try {
+      final response = await _dio.post(
+        '/v1/chat/completions',
+        data: {
+          'model': 'deepseek-chat',
+          'messages': [
+            {'role': 'system', 'content': systemPrompt},
+            {'role': 'user', 'content': "朋友，这是我最近的心灵气象报告。请对我此刻的状态进行一次温柔的解析吧。"},
+          ],
+          'temperature': 0.8,
+          'max_tokens': 150,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['choices'][0]['message']['content'].toString().trim();
+      }
+      return null;
+    } catch (e) {
+      debugPrint("SOUL_ANALYSIS_ERROR: $e");
+      return null;
+    }
+  }
+
   String _getRandomFallback(MascotPersona persona) {
     return persona.fallbackQuotes[Random().nextInt(persona.fallbackQuotes.length)];
   }

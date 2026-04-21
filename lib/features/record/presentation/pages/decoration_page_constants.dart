@@ -8,6 +8,6 @@ const double kGridTopTaper = 0;
 const double kGridBottomTaper = 0;
 const double kGridLeftTaper = 0;
 const double kGridRightTaper = 0;
-const double kSceneScaleFactor = 1.2;
+const double kSceneScaleFactor = 2.0;
 const int kWallGridHeight = 14;
 const double kWallThickness = 0.6;

@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:ui' as ui;
-import 'dart:typed_data';
 import 'package:island_diary/core/state/user_state.dart';
 import '../controllers/decoration_controller.dart';
 import '../widgets/decoration/decoration_scene.dart';
 import '../widgets/decoration/decoration_overlay_ui.dart';
 import '../widgets/decoration/wall_color_picker_overlay.dart';
+import './decoration_page_constants.dart';
 
 class DecorationPage extends StatefulWidget {
   const DecorationPage({super.key});
@@ -27,8 +27,8 @@ class _DecorationPageState extends State<DecorationPage>
   bool _showColorPicker = false;
 
   AnimationController? _zoomAnimationController;
-  double _zoomStartScale = 0.6;
-  double _zoomEndScale = 0.6;
+  double _zoomStartScale = 0.4;
+  double _zoomEndScale = 0.4;
 
   @override
   void initState() {
@@ -140,7 +140,7 @@ class _DecorationPageState extends State<DecorationPage>
               width: 300,
               height: 12,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: Colors.white10, width: 1),
               ),
@@ -174,7 +174,7 @@ class _DecorationPageState extends State<DecorationPage>
   void _handleZoom(double delta) {
     if (_controller.selectedFurniture != null) return;
     _zoomStartScale = _controller.currentScale;
-    _zoomEndScale = (_zoomStartScale + delta).clamp(0.4, 3.5);
+    _zoomEndScale = (_zoomStartScale + delta).clamp(0.3, 3.5);
     _zoomAnimationController!.forward(from: 0);
   }
 
@@ -216,9 +216,38 @@ class _DecorationPageState extends State<DecorationPage>
 
   Future<Uint8List?> _captureSnapshot() async {
     try {
+      final size = MediaQuery.of(context).size;
+      final double screenW = size.width;
+      final double screenH = size.height;
+
+      // 1. 提升全景缩放比例 (从 0.45 提升至 0.55) 以增大房屋在快照中的占比
+      const double targetScale = 0.55;
+      _controller.currentScale = targetScale;
+      
+      // 2. 几何算法：动态计算居中偏移量
+      const double imgW = 2000;
+      const double imgH = 2000;
+      double baseScale = screenH / imgH;
+      if (imgW * baseScale < screenW) baseScale = screenW / imgW;
+      
+      final double w = imgW * baseScale * kSceneScaleFactor * targetScale;
+      final double h = imgH * baseScale * kSceneScaleFactor * targetScale;
+      
+      final double tw = w / 50;
+      final double th = tw * kGridAspectRatio; 
+      final double centerY = h * 0.40;
+
+      // 强力对齐：确保视觉重心在 X/Y 轴都绝对居中
+      _controller.sceneOffset = Offset(
+        (screenW - w) / 2,
+        (screenH / 2) - (centerY - 7 * th),
+      );
+
       _controller.updateCapturing(true);
       _controller.selectFurniture(null);
-      await Future.delayed(const Duration(milliseconds: 50));
+      
+      // 3. 增加等待时长，确保场景已经平滑地“瞬移”回中心并完成重绘
+      await Future.delayed(const Duration(milliseconds: 180));
 
       final boundary =
           _repaintKey.currentContext?.findRenderObject()

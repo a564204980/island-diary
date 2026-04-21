@@ -185,6 +185,8 @@ class MascotAchievement {
       targetValue: 7,
       rewardTitle: '旅岛信使',
       rewardPoints: 30,
+      imagePath: 'assets/images/emoji/medal/medal21.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'lingxi_unlock',
@@ -227,6 +229,8 @@ class MascotAchievement {
       targetValue: 15,
       rewardTitle: '海岛羁绊',
       rewardPoints: 80,
+      imagePath: 'assets/images/emoji/medal/medal22.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'streak_30_days',
@@ -408,6 +412,8 @@ class MascotAchievement {
       targetValue: 50,
       rewardTitle: '漫步岁月的隙间',
       rewardPoints: 120,
+      imagePath: 'assets/images/emoji/medal/medal23.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'streak_100',
@@ -658,6 +664,8 @@ class MascotAchievement {
       targetValue: 100,
       rewardTitle: '心灵捕手',
       rewardPoints: 80,
+      imagePath: 'assets/images/emoji/medal/medal24.png',
+      medalScale: 1.2,
     ),
     MascotAchievement(
       id: 'moods_500',

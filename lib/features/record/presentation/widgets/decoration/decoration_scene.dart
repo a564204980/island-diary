@@ -37,8 +37,9 @@ class DecorationScene extends StatelessWidget {
         imgH * baseScale * kSceneScaleFactor * controller.currentScale;
 
     // 使用统一的坐标转换工具，确保点击检测与绘制逻辑一致
-    final double tw = w / 28;
-    final double th = tw * kGridAspectRatio; // 替换硬编码的 w / 56
+    // 增加分母（从 28 改为 50），配合更大的画布（kSceneScaleFactor），确保截图时能完美收纳整个房间
+    final double tw = w / 50;
+    final double th = tw * kGridAspectRatio; 
     final double centerYFactor = _getGridCenterYFactor(context);
 
     final converter = IsometricCoordinateConverter(
@@ -257,7 +258,7 @@ class DecorationScene extends StatelessWidget {
                                 }
                               },
                               onLeave: (_) => controller.selectCell(null),
-                              builder: (context, _, __) =>
+                              builder: (context, _, _) =>
                                   const SizedBox.shrink(),
                             ),
                           ),
@@ -306,8 +307,7 @@ class DecorationScene extends StatelessWidget {
   }
 
   double _getGridCenterYFactor(BuildContext context) {
-    bool isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-    return isLandscape ? 0.35 : 0.42;
+    // 经过数学估算，0.4 左右能让 24x24 房间加 14 层墙在 1:1 截图中视觉居中（平衡地板底角与墙头高度）
+    return 0.40;
   }
 }

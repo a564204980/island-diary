@@ -40,7 +40,7 @@ class DecorationController extends ChangeNotifier {
   double get bounceScale => _bounceAnimation?.value ?? 1.0;
 
   // --- 鍦烘櫙鎺у埗 ---
-  double currentScale = 0.6;
+  double currentScale = 0.4;
   Offset sceneOffset = const Offset(-120, 0);
   bool isInteracting = false;
   bool showGrid = true;

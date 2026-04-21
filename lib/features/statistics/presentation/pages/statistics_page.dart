@@ -16,6 +16,7 @@ import 'package:island_diary/features/statistics/presentation/widgets/mood_poste
 import 'package:island_diary/features/statistics/presentation/widgets/glass_bento.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/seasonal_atmosphere_painter.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/mental_island_card.dart';
+import 'package:island_diary/core/services/ai_service.dart';
 part '../widgets/bento/bento_radar_chart.dart';
 part '../widgets/bento/bento_mood_calendar.dart';
 part '../widgets/bento/bento_emotion_metrics.dart';
@@ -37,7 +38,7 @@ class UnifiedEmotionData {
   final Color color;
   final String? iconPath;
   final int? originalMoodIndex;
-  final Color orbColor1 = const Color(0xFFBC8A5F).withOpacity(0.3);
+  final Color orbColor1 = const Color(0xFFBC8A5F).withValues(alpha: 0.05);
 
   UnifiedEmotionData({
     required this.label,
@@ -232,6 +233,56 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     
     // 检查每日任务
     UserState().completeTaskIfType(DailyTaskType.viewStats);
+
+    // 触发自动心灵分析 (静默异步)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _triggerAutoAnalysis();
+    });
+  }
+
+  Future<void> _triggerAutoAnalysis() async {
+    final state = UserState();
+    final diaries = _getFilteredDiaries();
+    if (diaries.isEmpty) return;
+
+    // 1. 检查今日是否已分析过
+    final now = DateTime.now();
+    final todayStr = "${now.year}-${now.month}-${now.day}";
+    if (state.lastSoulInsightDate == todayStr && state.lastSoulInsight.value != null) {
+      debugPrint("SOUL_INSIGHT: 今日已分析，跳过。");
+      return;
+    }
+
+    debugPrint("SOUL_INSIGHT: 开始执行自动心灵解析...");
+    
+    // 2. 汇总数据画像
+    final moodData = _getUnifiedEmotionData(diaries);
+    final String moodDesc = moodData.take(3).map((e) => "${e.label}(${e.count}次)").join('、');
+    
+    // 提取热门关键词
+    final Map<String, int> tagCounts = {};
+    for (var d in diaries) {
+      if (d.tag != null && d.tag!.isNotEmpty) {
+        tagCounts[d.tag!] = (tagCounts[d.tag!] ?? 0) + 1;
+      }
+    }
+    final sortedTags = tagCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final String topTags = sortedTags.take(5).map((e) => e.key).join('、');
+    
+    final currentSeason = SoulSeasonLogic.getSeason(diaries);
+
+    // 3. 调用 AI 解析
+    final insight = await AIService().analyzeSoulSeason(
+      state.deepseekApiKey.value, 
+      seasonName: currentSeason.seasonName, 
+      moodDistribution: moodDesc, 
+      topTags: topTags.isEmpty ? "暂无关键词" : topTags,
+    );
+
+    // 4. 持久化缓存
+    if (insight != null && insight.isNotEmpty) {
+      await state.saveSoulInsight(insight);
+    }
   }
 
   @override
@@ -462,7 +513,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                                         child: Material(
                                           color: Colors.transparent,
                                           elevation: animValue * 8,
-                                          shadowColor: Colors.black26,
+                                          shadowColor: Colors.black.withValues(alpha: 0.26),
                                           child: child,
                                         ),
                                       );
@@ -551,7 +602,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isNight ? Colors.white24 : Colors.black.withOpacity(0.05),
+                            color: isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
@@ -569,7 +620,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isNight ? Colors.white24 : Colors.black.withOpacity(0.05),
+                            color: isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
@@ -629,7 +680,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           boxShadow: isSelected && !isNight ? [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0,2))
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0,2))
           ] : null,
         ),
         child: Text(

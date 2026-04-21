@@ -21,7 +21,7 @@ class TitleSelectionSheet extends StatelessWidget {
       height: MediaQuery.of(context).size.height * 0.82,
       decoration: BoxDecoration(
         color: isNight ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

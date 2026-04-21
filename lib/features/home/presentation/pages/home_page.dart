@@ -48,22 +48,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _currentBgPath = _getBackgroundImageForCurrentTime();
-
     // 强制初始化为竖屏，防止热重启后残留横屏设置
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-
-    _timeChecker = Timer.periodic(const Duration(minutes: 1), (timer) {
-      if (UserState().themeMode.value == 'auto') {
-        final newBgPath = _getBackgroundImageForCurrentTime();
-        if (newBgPath != _currentBgPath) {
-          setState(() {
-            _currentBgPath = newBgPath;
-          });
-        }
-      }
-    });
 
     _floatController = AnimationController(
       vsync: this,
@@ -176,23 +163,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
-  String _getBackgroundImageForCurrentTime({bool isWide = false}) {
-    if (UserState().themeMode.value == 'light') {
-      return 'assets/images/home_zhongwu_big.png';
-    }
-    if (UserState().themeMode.value == 'dark') {
-      return 'assets/images/home_wanshang_big.png';
-    }
-
-    final int currentHour = DateTime.now().hour;
-    if (currentHour >= 6 && currentHour < 11) {
-      return 'assets/images/home_xiatian_big.png';
-    } else if (currentHour >= 11 && currentHour < 17) {
-      return 'assets/images/home_zhongwu_big.png';
-    } else {
-      return 'assets/images/home_wanshang_big.png';
-    }
-  }
 
   String _getIslandImageForCurrentTime() {
     if (UserState().themeMode.value == 'light') {
@@ -469,37 +439,38 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildHomeContent(bool isNight, bool isWide) {
-    final responsiveBgPath = _getBackgroundImageForCurrentTime(
-      isWide: MediaQuery.of(context).size.width > 600,
-    );
     final islandPath = _getIslandImageForCurrentTime();
 
-    return Stack(
-      key: const ValueKey('HomeContent'),
-      children: [
-        Positioned.fill(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 1500),
-            layoutBuilder: (child, others) => Stack(
-              children: [
-                ...others.map((e) => Positioned.fill(child: e)),
-                if (child != null) Positioned.fill(child: child),
-              ],
+    return ValueListenableBuilder<String>(
+      valueListenable: UserState().currentBackgroundPath,
+      builder: (context, currentBgPath, _) {
+        return Stack(
+          key: const ValueKey('HomeContent'),
+          children: [
+            Positioned.fill(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 1500),
+                layoutBuilder: (child, others) => Stack(
+                  children: [
+                    ...others.map((e) => Positioned.fill(child: e)),
+                    if (child != null) Positioned.fill(child: child),
+                  ],
+                ),
+                child: Image.asset(
+                  currentBgPath,
+                  key: ValueKey(currentBgPath),
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
-            child: Image.asset(
-              responsiveBgPath,
-              key: ValueKey(responsiveBgPath),
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-        if (!_isLandscape)
-          Positioned.fill(
-            child: FloatingClouds(
-              isNight: isNight,
-              shouldAnimate: _currentNavIndex == 0,
-            ),
-          ),
+            if (!_isLandscape)
+              Positioned.fill(
+                child: FloatingClouds(
+                  isNight: isNight,
+                  shouldAnimate: _currentNavIndex == 0,
+                ),
+              ),
+            // ... rest of the interactive content
         Positioned.fill(
           child: InteractiveViewer(
             transformationController: _transformationController,
@@ -590,6 +561,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         // 移除了内部的顶部操作栏，已提升至上层 Stack
       ],
+        );
+      },
     );
   }
 

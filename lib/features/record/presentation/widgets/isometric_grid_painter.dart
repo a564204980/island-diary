@@ -64,7 +64,7 @@ class IsometricGridPainter extends CustomPainter {
     canvas.translate(-centerX, -centerY);
 
     // 单个菱形格子的尺寸
-    final double tw = fullWidth / 28;
+    final double tw = fullWidth / 50;
     final double th = tw * kGridAspectRatio;
 
     // 初始化统一的坐标转换工具

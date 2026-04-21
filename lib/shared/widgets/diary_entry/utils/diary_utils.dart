@@ -86,6 +86,17 @@ class DiaryUtils {
     return options[DateTime.now().second % options.length];
   }
 
+  /// 获取日期对应的星座 (Sync: 2026-04-21)
+  static String getZodiacSign(int month, int day) {
+    const List<String> signs = [
+      '摩羯座', '水瓶座', '双鱼座', '白羊座', '金牛座', '双子座',
+      '巨蟹座', '狮子座', '处女座', '天秤座', '天蝎座', '射手座', '摩羯座'
+    ];
+    // 对应 1-12 月的星座分界点
+    const List<int> cutoffs = [20, 19, 21, 20, 21, 22, 23, 23, 23, 24, 23, 22];
+    return day < cutoffs[month - 1] ? signs[month - 1] : signs[month];
+  }
+
   /// 获取心情强度描述文字 (如：万分激动)
   static String getMoodIntensityPrefix(String label, double intensity) {
     const Map<String, List<String>> moodPrefixes = {

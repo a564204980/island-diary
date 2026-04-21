@@ -23,8 +23,8 @@ class GlassBento extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: isNight 
-                ? Colors.black.withOpacity(0.3) 
-                : Colors.black.withOpacity(0.1),
+                ? Colors.black.withValues(alpha: 0.3) 
+                : Colors.black.withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -38,12 +38,12 @@ class GlassBento extends StatelessWidget {
             decoration: BoxDecoration(
               color: isNight 
                   ? Colors.transparent 
-                  : Colors.white.withOpacity(0.5),
+                  : Colors.white.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: isNight 
-                    ? Colors.white.withOpacity(0.08) 
-                    : Colors.white.withOpacity(0.8),
+                    ? Colors.white.withValues(alpha: 0.08) 
+                    : Colors.white.withValues(alpha: 0.8),
                 width: 1.5,
               ),
             ),

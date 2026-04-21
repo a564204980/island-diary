@@ -16,14 +16,12 @@ class AboutIslandPage extends StatelessWidget {
       backgroundColor: isNight
           ? const Color(0xFF0D1B2A)
           : const Color(0xFFE6F3F5),
-      // 不再使用 extendBodyBehindAppBar，以确保 AppBar 和 Body 的位置关系完全符合标准
       appBar: _buildStandardAppBar(context, isNight),
       body: Stack(
         children: [
-          // 1. 沉浸式流光背景 - 改为 fill，但在 extendBodyBehindAppBar 为 false 时，它只填充 body 区域
           Positioned.fill(child: AboutHeroBackground(isNight: isNight)),
 
-          // 2. 模糊覆盖层
+          // 模糊覆盖层
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
