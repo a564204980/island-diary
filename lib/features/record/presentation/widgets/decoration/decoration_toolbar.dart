@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/models/placed_furniture.dart';
 import '../../utils/isometric_coordinate_utils.dart';
 
-/// 瀹跺叿鎿嶄綔宸ュ叿鏍忕粍浠讹紝鍖呭惈鏃嬭浆鍜屽垹闄ゅ姛鑳姐€?
+/// 家具操作工具栏组件，包含旋转和删除功能。
 class DecorationToolbar extends StatelessWidget {
   final PlacedFurniture pf;
   final IsometricCoordinateConverter converter;
@@ -31,12 +31,12 @@ class DecorationToolbar extends StatelessWidget {
       gh = pf.item.gridW;
     }
 
-    // 2. 鍩哄噯鐐瑰畾浣?(Anchor Point)
+    // 2. 基准点定位 (Anchor Point)
     final double centerR;
     final double centerC;
     final double wallZ;
 
-    // 纭畾褰撳墠鏄惁涓洪暅鍍忕姸鎬?(涓?IsometricGridPainter.isFlipped 閫昏緫涓€鑷?
+    // 确定当前是否为镜像状态 (与 IsometricGridPainter.isFlipped 逻辑一致)
     final bool isFlipped = pf.rotation == 1;
     final double vScale = isFlipped
         ? (pf.item.flippedVisualScale ?? pf.item.visualScale)
@@ -46,7 +46,7 @@ class DecorationToolbar extends StatelessWidget {
         : pf.item.visualOffset;
 
     if (pf.item.isWall) {
-      wallZ = pf.z + pf.item.gridH.toDouble(); // 鐗╁搧瀹為檯椤剁 = 搴曢儴楂樺害 + 鑷韩楂樺害
+      wallZ = pf.z + pf.item.gridH.toDouble(); // 物品实际顶端 = 底部高度 + 自身高度
       if (pf.rotation % 2 == 0) {
         centerR = pf.r + pf.item.gridW / 2.0;
         centerC = pf.c.toDouble();
@@ -62,38 +62,43 @@ class DecorationToolbar extends StatelessWidget {
 
     final pt = converter.getScreenPoint(centerR, centerC, wallZ);
 
-    // 3. 璁＄畻瀵归綈涓庡亸绉?
+    // 3. 计算对齐与偏移
     final double s = converter.getTaperScale(centerR, centerC);
     final double visualW;
     final double spriteH;
     final double finalTop;
 
     if (pf.item.isWall) {
-      // 澧欏鐗╁搧锛氳绠楄创鍥炬樉绀虹殑瑙嗚瀹藉害
+      // 澧欏鐗物品氳绠楄贴图显示的视觉宽度
       visualW = (pf.item.gridW * converter.tw / 2) * s * vScale;
       spriteH = visualW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
       final basePt = converter.getScreenPoint(centerR, centerC, pf.z);
-      // 閿氬畾鍦ㄨ创鍥鹃《閮紝鍥哄畾 10% 璐村浘楂樺害鐨勭┖闅欍€?
-      // 娉ㄦ剰锛歅ainter 涓闈㈡湁 33.0 鐨勫亸绉伙紝姝ゅ涔熷繀椤诲姞涓婁互淇濇寔鍚屾
+      // 锚定在贴图顶部，固定大约 60 物理像素的高度偏移（包含工具栏本身高度和一定间隙）。
+      // 注意：Painter 中墙面有 33.0 的偏移，此处也必须加上以保持同步
       const double wallBasePadding = 33.0;
       finalTop =
           basePt.dy +
           wallBasePadding +
           vOffset.dy -
-          spriteH * (1.1 + pf.item.toolbarOffset.dy);
+          spriteH -
+          45.0 -
+          (spriteH * pf.item.toolbarOffset.dy);
     } else {
-      // 鍦伴潰瀹跺叿锛氳绠楄创鍥炬樉绀虹殑瑙嗚瀹藉害
-      // 淇锛氫互鍓嶇敤 pf.item.gridW 鏄浐瀹氱殑锛岃繖浼氬鑷存棆杞悗瀵逛簬闀挎柟褰㈠鍏蜂及绠楅敊璇?
-      visualW = converter.estimateVisualWidth(gw, gh, centerR, centerC, vScale);
+      // 地面家具：计算贴图显示的视觉宽度
+      final double unscaledItemW = converter.tw * (gw + gh) * s * 0.5;
+      final double footprintOffset = unscaledItemW / 4.0;
+      
+      visualW = unscaledItemW * vScale;
       spriteH = visualW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
-      // 瀹跺叿鐨?pt.dy 鏄簳瑙掍腑蹇冪偣锛岄€氳繃楂樺害琛ュ伩 verticalOffset 淇鍒拌彵褰腑蹇冿紝鍐嶅噺鍘昏创鍥鹃珮搴?
-      final double verticalOffset = visualW / 4.0;
-      // 杩欓噷鐨?1.1 琛ㄧず鍦ㄩ《閮ㄤ笂鏂逛繚鐣?10% 鐨勭┖闅?
+      
+      // 在顶部上方保留固定的 45 物理像素间隙
       finalTop =
           pt.dy +
-          verticalOffset +
+          footprintOffset +
           vOffset.dy -
-          spriteH * (1.1 + pf.item.toolbarOffset.dy);
+          spriteH -
+          45.0 -
+          (spriteH * pf.item.toolbarOffset.dy);
     }
 
     final isNight = Theme.of(context).brightness == Brightness.dark;
@@ -103,9 +108,8 @@ class DecorationToolbar extends StatelessWidget {
           pt.dx -
           55 +
           vOffset.dx +
-          (pf.item.toolbarOffset.dx * visualW) +
-          layoutOffset.dx,
-      top: finalTop + layoutOffset.dy,
+          (pf.item.toolbarOffset.dx * visualW),
+      top: finalTop,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(

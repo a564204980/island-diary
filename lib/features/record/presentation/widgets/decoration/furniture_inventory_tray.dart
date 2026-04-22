@@ -316,17 +316,17 @@ class FurnitureInventoryTray extends StatelessWidget {
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
-      case '鍦版澘':
+      case '地板':
         return Icons.grid_view_rounded;
-      case '澧欏':
+      case '墙壁':
         return Icons.view_quilt_rounded;
-      case '鍘ㄦ埧':
+      case '厨房':
         return Icons.kitchen;
-      case '鍗у':
+      case '卧室':
         return Icons.bed;
-      case '瀹㈠巺':
+      case '客厅':
         return Icons.chair;
-      case '瑁呴グ':
+      case '装饰':
         return Icons.palette;
       default:
         return Icons.category;

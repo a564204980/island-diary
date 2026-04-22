@@ -9,7 +9,7 @@ import '../../data/furniture_data.dart';
 import '../widgets/furniture_sprite.dart';
 
 class DecorationController extends ChangeNotifier {
-  // --- 鏍稿績瀹跺叿鏁版嵁 ---
+  // --- 核心家具数据 ---
   final List<PlacedFurniture> _placedFurniture = [];
   List<PlacedFurniture> get placedFurniture =>
       List.unmodifiable(_placedFurniture);
@@ -17,10 +17,10 @@ class DecorationController extends ChangeNotifier {
   late List<FurnitureItem> _availableItems;
   List<FurnitureItem> get availableItems => _availableItems;
 
-  String selectedCategory = '鍘ㄦ埧';
+  String selectedCategory = '厨房';
   String? selectedSubCategory;
 
-  // --- 浜や簰涓庨€夋嫨鐘舵€?---
+  // --- 交互与选择状态 ---
   (int, int)? selectedCell;
   (int, int)? ghostCell;
   FurnitureItem? draggingItem;
@@ -28,18 +28,18 @@ class DecorationController extends ChangeNotifier {
   double ghostZ = 0.0;
   PlacedFurniture? selectedFurniture;
 
-  // 杩炶疮鎷栨嫿鐩稿叧
+  // 连贯拖拽相关
   bool isLongPressDragging = false;
   PlacedFurniture? originalFurnitureData;
   PlacedFurniture? draggingOriginalPF;
 
-  // 鏋滃喕寮硅烦鍔ㄧ敾鐩稿叧
+  // 果冻弹跳动画相关
   AnimationController? _bounceController;
   Animation<double>? _bounceAnimation;
   PlacedFurniture? bouncingFurniture;
   double get bounceScale => _bounceAnimation?.value ?? 1.0;
 
-  // --- 鍦烘櫙鎺у埗 ---
+  // --- 场景控制 ---
   double currentScale = 0.4;
   Offset sceneOffset = const Offset(-120, 0);
   bool isInteracting = false;
@@ -48,7 +48,7 @@ class DecorationController extends ChangeNotifier {
   bool isInitializing = true;
   double loadingProgress = 0.0;
 
-  // --- 澧欓潰棰滆壊鎺у埗 ---
+  // --- 墙面颜色控制 ---
   Color wallColorLeft = const Color(0xFFDEDCCE);
   Color wallColorRight = const Color(0xFFDEDCCE);
 
@@ -92,10 +92,11 @@ class DecorationController extends ChangeNotifier {
         flippedVisualRotationY: item.flippedVisualRotationY,
         flippedVisualRotationZ: item.flippedVisualRotationZ,
         flippedVisualPivot: item.flippedVisualPivot,
+        toolbarOffset: item.toolbarOffset,
       );
     }).toList();
 
-    // 鍔犺浇宸蹭繚瀛樼殑瀹跺叿甯冨眬
+    // 加载已保存的家具布局
     final saved = UserState().placedFurniture.value;
     if (saved.isNotEmpty) {
       for (var sf in saved) {
@@ -118,7 +119,7 @@ class DecorationController extends ChangeNotifier {
       }
     }
 
-    // 棰勫姞杞藉繀闇€璧勬簮
+    // 预加载必需资源
     _preloadAssets(context);
   }
 
@@ -127,7 +128,7 @@ class DecorationController extends ChangeNotifier {
     loadingProgress = 0.0;
     notifyListeners();
 
-    // 1. 纭畾闇€瑕佷紭鍏堝姞杞界殑璧勬簮锛堝凡鎽嗘斁鐨勫鍏?+ 褰撳墠鍒嗙被鐨勫墠鍑犱釜锛?
+    // 1. 确定需要优先加载的资源（已摆放的家具 + 当前分类的前几个）
     final Set<String> itemsToPreload = {};
     for (var pf in _placedFurniture) {
       itemsToPreload.add(pf.item.id);
@@ -150,7 +151,7 @@ class DecorationController extends ChangeNotifier {
     int loadedCount = 0;
     final totalToLoad = itemsToPreload.length;
 
-    // 鎸夐『搴忛€愪釜鍔犺浇璧勬簮锛屽噺灏戝唴瀛樺嘲鍊煎苟璁╄繘搴︽洿鏂版洿骞虫粦
+    // 按顺序逐个加载资源，减少内存峰值并让进度更新更平滑
     for (final id in itemsToPreload) {
       final item = _availableItems.firstWhere((it) => it.id == id);
       try {
@@ -162,13 +163,13 @@ class DecorationController extends ChangeNotifier {
       loadingProgress = loadedCount / totalToLoad;
       notifyListeners();
 
-      // 缁?UI 绾跨▼鍠樻伅鐨勬満浼氾紝纭繚杩涘害鏉℃枃瀛楄兘娓叉煋鍑烘潵
+      // 给 UI 线程喘息的机会，确保进度条文字能渲染出来
       await Future.delayed(Duration.zero);
     }
 
     // 棰濆鐨勫皬寤惰繜纭繚 UI 骞虫粦杩囨浮
     await Future.delayed(const Duration(milliseconds: 300));
-    // 鍔犺浇澧欓潰棰滆壊
+    // 加载墙面颜色官方推荐色
     wallColorLeft = UserState().wallColorLeft.value;
     wallColorRight = UserState().wallColorRight.value;
 
@@ -192,7 +193,7 @@ class DecorationController extends ChangeNotifier {
     super.dispose();
   }
 
-  // --- 鏍稿績涓氬姟閫昏緫 ---
+  // --- 核心业务逻辑 ---
 
   void selectCell((int, int)? cell) {
     selectedCell = cell;
@@ -217,7 +218,7 @@ class DecorationController extends ChangeNotifier {
     notifyListeners();
   }
 
-  double dragZOffset = 0.0; // 璁板綍鎷栨嫿寮€濮嬫椂鎵嬫寚涓庣墿鍝佸簳搴х殑 Z 杞村亸绉?
+  double dragZOffset = 0.0; // 记录拖拽开始时手指与物品底座的 Z 轴偏移
 
   void updateDragPosition(
     Offset localPos,
@@ -227,8 +228,8 @@ class DecorationController extends ChangeNotifier {
     if (draggingItem == null) return;
 
     if (draggingItem!.isWall) {
-      // 绛夎酱娴嬪潗鏍囩郴涓紝宸﹀(XZ闈?r杞?鍦ㄨ瑙変笂浣嶄簬灞忓箷鍙充晶锛屽彸澧?YZ闈?c杞?鍦ㄨ瑙変笂浣嶄簬灞忓箷宸︿晶
-      // 鍥犳鎵嬫寚鍦ㄥ睆骞曞彸渚?> centerX)鏃舵墠鏄?preferLeft
+      // 等轴测坐标系中，左墙(XZ面, r轴) 在视觉上位于屏幕右侧，右墙(YZ面, c轴) 在视觉上位于屏幕左侧
+      // 因此手指在屏幕右侧 (> centerX) 时才是 preferLeft
       final bool preferLeft = localPos.dx > converter.centerX;
 
       final bool useLeftWall = preferLeft;
@@ -247,13 +248,14 @@ class DecorationController extends ChangeNotifier {
         maxZ: kWallGridHeight.toDouble(),
       );
 
-      // 濡傛灉鏄涓€甯э紙鍒氭姄璧凤級锛屽垵濮嬪寲鍋忕Щ閲?
+      // 如果是第一帧（刚抓起），初始化偏移量
       if (isFirstFrame) {
         dragZOffset = ghostZ - touchZ;
       }
 
       final double maxAllowedZ = (kWallGridHeight - draggingItem!.gridH)
           .toDouble();
+      final double oldZ = ghostZ;
       ghostZ = (touchZ + dragZOffset).clamp(0.0, maxAllowedZ).roundToDouble();
 
       final int gw = draggingItem!.gridW;
@@ -261,58 +263,55 @@ class DecorationController extends ChangeNotifier {
           ? ((wallCell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw), 0)
           : (0, (wallCell.$2 - (gw / 2).floor()).clamp(0, kGridCols - gw));
 
-      if (centeredCell != ghostCell || draggingRotation != targetRotation) {
+      if (centeredCell != ghostCell || draggingRotation != targetRotation || ghostZ != oldZ) {
         ghostCell = centeredCell;
         draggingRotation = targetRotation;
         isInteracting = true;
         notifyListeners();
       }
     } else {
-      var cell = converter.getGridCell(localPos);
-      if (cell != null && isCellExcluded(cell.$1, cell.$2)) cell = null;
-      if (cell != null) {
+      // 1. 获取稳定、不受高度影响的基础控制网格(光标直射地面)，以此作为承托面侦测依据，绝对消除边缘跨层抖动。
+      var cell0 = converter.getGridCell(localPos, z: 0.0);
+      if (cell0 != null && isCellExcluded(cell0.$1, cell0.$2)) cell0 = null;
+      
+      if (cell0 != null) {
         int gw = draggingRotation % 2 == 0
             ? draggingItem!.gridW
             : draggingItem!.gridH;
         int gh = draggingRotation % 2 == 0
             ? draggingItem!.gridH
             : draggingItem!.gridW;
-        final centeredCell = (
-          (cell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
-          (cell.$2 - (gh / 2).floor()).clamp(0, kGridCols - gh),
+            
+        final centeredCell0 = (
+          (cell0.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
+          (cell0.$2 - (gh / 2).floor()).clamp(0, kGridCols - gh),
         );
-        // --- 闈犲瀹跺叿鍔ㄦ€侀珮搴﹀惛闄勯€昏緫 (鏁版嵁椹卞姩) ---
+        
+        // --- 靠墙/高台家具动态高度吸附逻辑 ---
         double targetZ = 0.0;
-
-        // 鍙湁楗板搧銆佽蒋瑁呫€佺泦鏍界瓑瑁呴グ绫荤墿浠惰Е鍙戞閫昏緫
         bool isDecoration =
-            draggingItem!.category == '瑁呴グ' ||
-            draggingItem!.subCategory == '杞' ||
-            draggingItem!.subCategory == '楗板搧' ||
-            draggingItem!.subCategory == '鐩嗘牻';
+            draggingItem!.category == '装饰' ||
+            draggingItem!.subCategory == '软装' ||
+            draggingItem!.subCategory == '饰品' ||
+            draggingItem!.subCategory == '盆栽';
 
         if (isDecoration) {
           double foundSurfaceZ = 0.0;
           for (final pf in _placedFurniture) {
-            // 蹇界暐鍦版澘銆佸澹佷互鍙婅嚜韬?
             if (pf.item.isFloor || pf.item.isWall || pf == draggingOriginalPF)
               continue;
 
             int pgw = pf.rotation % 2 == 0 ? pf.item.gridW : pf.item.gridH;
             int pgh = pf.rotation % 2 == 0 ? pf.item.gridH : pf.item.gridW;
 
-            // 纰版挒妫€娴嬶細褰撳墠鐗╁搧鏍兼槸鍚﹀湪瀹跺叿鍗犱綅鍐?
-            if (centeredCell.$1 < pf.r + pgw &&
-                centeredCell.$1 + gw > pf.r &&
-                centeredCell.$2 < pf.c + pgh &&
-                centeredCell.$2 + gh > pf.c) {
-              // 鍏抽敭鍒ゆ柇锛氳瀹跺叿鏄惁闈犲 (r=0 鎴?c=0)
-              if (pf.r == 0 || pf.c == 0) {
-                // 浠庨厤缃〃涓幏鍙栬瀹跺叿鐨勮〃闈㈤珮搴?
-                final height = _furnitureSurfaceHeights[pf.item.id] ?? 0.0;
-                if (height > foundSurfaceZ) {
-                  foundSurfaceZ = height;
-                }
+            // 碰撞检测使用基础探测网格：只要光标下方实际有支持面，无论最终视觉偏多少都视作落在桌上
+            if (centeredCell0.$1 < pf.r + pgw &&
+                centeredCell0.$1 + gw > pf.r &&
+                centeredCell0.$2 < pf.c + pgh &&
+                centeredCell0.$2 + gh > pf.c) {
+              final height = _furnitureSurfaceHeights[pf.item.id] ?? 0.0;
+              if (height > foundSurfaceZ) {
+                foundSurfaceZ = height;
               }
             }
           }
@@ -322,29 +321,39 @@ class DecorationController extends ChangeNotifier {
         double oldZ = ghostZ;
         ghostZ = targetZ;
 
+        // 2. 根据确定的 targetZ 逆向求出带有视差补偿的最终摆放网格，确保高空画出来的物块在其对应绝对坐标上与手指无任何偏移
+        var cellZ = converter.getGridCell(localPos, z: targetZ);
+        if (cellZ != null && isCellExcluded(cellZ.$1, cellZ.$2)) cellZ = null;
+        var finalCell = cellZ ?? cell0; // 若悬空补偿导致超出室内，使用基础退回
+
+        final centeredCell = (
+          (finalCell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
+          (finalCell.$2 - (gh / 2).floor()).clamp(0, kGridCols - gh),
+        );
+
         if (centeredCell != ghostCell) {
           ghostCell = centeredCell;
           isInteracting = true;
           notifyListeners();
         } else if (targetZ != oldZ) {
-          // 濡傛灉浣嶇疆娌″彉浣嗛珮搴﹀彉浜嗭紙杩涘叆/绂诲紑涓嶅悓楂樺害瀹跺叿鍖哄煙锛夛紝涔熻閫氱煡閲嶇粯
+          // 如果位置没变但高度变了（进入/离开不同高度家具区域），也要通知重绘
           notifyListeners();
         }
       }
     }
   }
 
-  // --- 瀹跺叿琛ㄩ潰楂樺害閰嶇疆琛?---
+  // --- 家具表面高度配置表 ---
   static const Map<String, double> _furnitureSurfaceHeights = {
-    'cabinet_1': 4.0, // 姗辨煖
-    'table_1': 2.2, // 妗屽瓙 1
-    'table_2': 2.2, // 妗屽瓙 2
-    'table_3': 1.8, // 妗屽瓙 3 (杈冪煯)
-    'sofa_1': 1.2, // 娌欏彂
+    'cabinet_1': 4.0, // 橱柜
+    'table_1': 2.2, // 桌子 1
+    'table_2': 2.2, // 桌子 2
+    'table_3': 1.8, // 桌子 3 (较矮)
+    'sofa_1': 1.2, // 沙发
     'sofa_2': 1.2,
     'sofa_3': 1.2,
     'sofa_4': 1.2,
-    'bookcase_1': 3.0, // 涔︽煖鍙伴潰
+    'bookcase_1': 3.0, // 书柜台面
   };
 
   void placeFurniture(
@@ -372,7 +381,7 @@ class DecorationController extends ChangeNotifier {
     selectedFurniture = newPf;
     _cleanupDragState();
 
-    // 瑙﹀彂鏋滃喕寮硅烦鍚搁檮鍔ㄧ敾
+    // 触发果冻弹跳吸附动画
     bouncingFurniture = newPf;
     _bounceController?.forward(from: 0.0);
 
@@ -394,7 +403,7 @@ class DecorationController extends ChangeNotifier {
     final int oldRotation = pf.rotation;
     final int nextRotation = (oldRotation + 1) % 2;
 
-    // 鑾峰彇褰撳墠鍗犲湴瀹介珮 (鐢?isAreaAvailable 鍐呴儴閫昏緫鎺ㄥ鍑?
+    // 获取当前占地宽高 (由 isAreaAvailable 内部逻辑推导出)
     int gw = pf.item.gridW;
     int gh = pf.item.isWall ? 1 : pf.item.gridH;
     if (oldRotation % 2 != 0) {
@@ -407,7 +416,7 @@ class DecorationController extends ChangeNotifier {
       }
     }
 
-    // 鑾峰彇鏃嬭浆鍚庣殑鍗犲湴瀹介珮
+    // 获取旋转后的占地宽高
     int ngw = pf.item.gridW;
     int ngh = pf.item.isWall ? 1 : pf.item.gridH;
     if (nextRotation % 2 != 0) {
@@ -424,19 +433,19 @@ class DecorationController extends ChangeNotifier {
     int nc = pf.c;
 
     if (pf.item.isWall) {
-      // 澧欓潰鎸備欢锛氬垏鎹㈠闈㈤€昏緫
-      // Rotation index: 0(宸?, 1(鍙?, 2(宸?鑳?, 3(鍙?鑳?
+      // 墙面挂件：切换墙面逻辑
+      // Rotation index: 0(左), 1(右), 2(左后), 3(右后)
       if (oldRotation % 2 == 0 && nextRotation % 2 != 0) {
-        // 浠庡乏澧欏彉鍙冲: (r, 0) -> (0, r)
+        // 从左墙变右墙: (r, 0) -> (0, r)
         nr = 0;
         nc = pf.r;
       } else if (oldRotation % 2 != 0 && nextRotation % 2 == 0) {
-        // 浠庡彸澧欏彉宸﹀: (0, c) -> (c, 0)
+        // 从右墙变左墙: (0, c) -> (c, 0)
         nr = pf.c;
         nc = 0;
       }
     } else {
-      // 鍦伴潰鐗╁搧锛氬熀浜庨噸蹇冪殑鏃嬭浆閫昏緫
+      // 地面物品：基于重心的旋转逻辑
       nr = pf.r + (gw - ngw) ~/ 2;
       nc = pf.c + (gh - ngh) ~/ 2;
     }
@@ -484,14 +493,14 @@ class DecorationController extends ChangeNotifier {
   }
 
   void handleFillAll(FurnitureItem item) {
-    // 1. 灏嗘墍鏈夌幇鏈夌殑鍦版澘褰掕繕搴撳瓨
+    // 1. 将所有现有的地板归还库存
     for (var pf in _placedFurniture.where((pf) => pf.item.isFloor)) {
       pf.item.quantity++;
     }
-    // 2. 绉婚櫎鎵€鏈夊湴鏉?
+    // 2. 移除所有地板
     _placedFurniture.removeWhere((pf) => pf.item.isFloor);
 
-    // 3. 璁＄畻閾烘弧闇€瑕佺殑琛屽垪鏁?
+    // 3. 计算铺满需要的行列数
     final int rows = (kGridRows / item.gridW).ceil();
     final int cols = (kGridCols / item.gridH).ceil();
 
@@ -564,23 +573,23 @@ class DecorationController extends ChangeNotifier {
       }
 
       if (r < pf.r + pgw && r + gw > pf.r && c < pf.c + pgh && c + gh > pf.c) {
-        // 濡傛灉姝ｅ湪鏀剧疆鐨勬槸鍦版锛岃€屽鏂规槸鏅€氬鍏凤紙闈炲湴鏉裤€侀潪鍦版锛夛紝鍒欒烦杩囩鎾?
-        if (item.subCategory == '鍦版' &&
+        // 如果正在放置的是地毯，而对方是普通家具（非地板、非地毯），则跳过碰撞检测
+        if (item.subCategory == '地毯' &&
             !pf.item.isFloor &&
-            pf.item.subCategory != '鍦版') {
+            pf.item.subCategory != '地毯') {
           continue;
         }
-        // 濡傛灉瀵规柟鏄湴姣紝鑰屾垜浠瑕佹斁缃殑鏄櫘閫氬鍏凤紝涔熻烦杩囨娴嬶紝璁╁湴姣竴鐩村彲浠ヨ鍘嬬潃
-        if (pf.item.subCategory == '鍦版' &&
+        // 如果对方是地毯，而我们正要放置的是普通家具，也跳过检测，让地毯一直可以被压着
+        if (pf.item.subCategory == '地毯' &&
             !item.isFloor &&
-            item.subCategory != '鍦版') {
+            item.subCategory != '地毯') {
           continue;
         }
 
-        // [淇] 濡傛灉鏀剧殑鏄€滈グ鍝?瑁呴グ鈥濇垨鈥滆蒋瑁呪€濓紝鍒欏厑璁镐笌闄ゅ湴鏉垮鐨勪换浣曞鍏凤紙鍖呮嫭鍏朵粬楗板搧锛夐噸鍙?
-        bool isDecorator = item.category == '瑁呴グ' || item.subCategory == '杞';
+        // [修正] 如果放的是“饰品/装饰”或“软装”，则允许与除地板外的任何家具（包括其他饰品）重叠
+        bool isDecorator = item.category == '装饰' || item.subCategory == '软装';
         bool isExistingDecorator =
-            pf.item.category == '瑁呴グ' || pf.item.subCategory == '杞';
+            pf.item.category == '装饰' || pf.item.subCategory == '软装';
 
         if ((isDecorator && !pf.item.isFloor) ||
             (isExistingDecorator && !item.isFloor)) {
@@ -599,32 +608,32 @@ class DecorationController extends ChangeNotifier {
   ) {
     final sorted = List<PlacedFurniture>.from(_placedFurniture)
       ..sort((a, b) {
-        // 1. 鍩虹鍒嗙被浼樺厛绾э細澧欓潰 > 鍦伴潰 (瀹跺叿/瑁呴グ) > 鍦版澘
+        // 1. 基础分类优先级：墙面 > 地面 (家具/装饰) > 地板
         if (a.item.isWall != b.item.isWall) return a.item.isWall ? -1 : 1;
         if (a.item.isFloor != b.item.isFloor) return a.item.isFloor ? 1 : -1;
 
         // 2. 杞/楗板搧锛堥€氬父鍦ㄤ笂鏂癸級鍏锋湁鏇撮珮鐐瑰嚮浼樺厛绾?
-        bool aIsSoft = a.item.subCategory == '杞' || a.item.category == '瑁呴グ';
-        bool bIsSoft = b.item.subCategory == '杞' || b.item.category == '瑁呴グ';
+        bool aIsSoft = a.item.subCategory == '软装' || a.item.category == '装饰';
+        bool bIsSoft = b.item.subCategory == '软装' || b.item.category == '装饰';
         if (aIsSoft != bIsSoft) return aIsSoft ? -1 : 1;
 
-        // 3. 鏍稿績鎺掑簭锛氱敱杩戝強杩?(Front-to-Back)
-        // 鍦ㄧ瓑杞翠晶鎶曞奖涓紝r+c 杈冨ぇ浠ｈ〃鐗╀綋鏇撮潬杩戣瀵熻€咃紝搴斾紭鍏堟娴?
+        // 3. 核心排序：由近及远 (Front-to-Back)
+        // 在等轴测投影中，r+c 较大代表物体更靠近观察者，应优先检测
         int gwA = a.rotation % 2 == 0 ? a.item.gridW : a.item.gridH;
         int ghA = a.rotation % 2 == 0 ? a.item.gridH : a.item.gridW;
         int gwB = b.rotation % 2 == 0 ? b.item.gridW : b.item.gridH;
         int ghB = b.rotation % 2 == 0 ? b.item.gridH : b.item.gridW;
 
-        // 濡傛灉 a 涓ユ牸鍦?b 鐨勫墠鏂癸紝鍒?a 浼樺厛
+        // 如果 a 严格在 b 的前方，则 a 优先
         if (a.r >= b.r + gwB || a.c >= b.c + ghB) return -1;
         // 濡傛灉 b 涓ユ牸鍦?a 鐨勫墠鏂癸紝鍒?b 浼樺厛
         if (b.r >= a.r + gwA || b.c >= a.c + ghA) return 1;
 
         // 4. 閲嶅彔鎯呭喌涓嬬殑缁嗚妭鍒ゅ畾 (楂樺害銆佷綅缃?
-        // 濡傛灉鍦ㄥ悓涓€鏍兼垨閲嶅彔锛孼 杞达紙楂樺害锛夊ぇ鐨勪紭鍏?
+        // 如果在同一格或重叠，Z 轴（高度）大的优先
         if (a.z != b.z) return b.z.compareTo(a.z);
 
-        // 鏈€鍚庢牴鎹綉鏍间腑蹇冩繁搴﹂檷搴忔帓鍒?
+        // 最后根据网格中心深度降序排列
         return (b.r + b.c).compareTo(a.r + a.c);
       });
 
@@ -686,22 +695,22 @@ class DecorationController extends ChangeNotifier {
         );
 
         if (rect.contains(localPos)) {
-          // 鐭╁舰鍖哄煙鍐咃紝杩涗竴姝ユ娴嬪儚绱犻€忔槑搴?
+          // 矩形区域内，进一步检测像素透明度官方推荐色
           final double dx = localPos.dx - rect.left;
           final double dy = localPos.dy - rect.top;
 
-          // 1. 鐢ㄧ煩褰㈠疄闄呭昂瀵镐笌 intrinsic 灏哄鐨勬瘮渚嬫潵鏄犲皠锛?
-          //    涓嶈兘鐢?visualScale 闄わ紝鍥犱负 rect 鐨勫疄闄呭楂樼敱 estimateVisualWidth
-          //    鎺ㄥ锛堝彈 tw銆乬ridW銆乬ridH銆乼aper 褰卞搷锛夛紝涓?intrinsicWidth * visualScale 涓嶇瓑銆?
+          // 1. 用矩形实际尺寸与 intrinsic 尺寸的比例来映射：
+          //    不能用 visualScale 除，因为 rect 的实际宽高由 estimateVisualWidth
+          //    推导（受 tw、gridW、gridH、taper 影响），与 intrinsicWidth * visualScale 不等。
           double ix = dx * pf.item.intrinsicWidth / rect.width;
           double iy = dy * pf.item.intrinsicHeight / rect.height;
 
-          // 2. 澶勭悊闀滃儚鍙嶈浆锛坮otation==1 鏃跺浘鍍忔按骞崇炕杞級
+          // 2. 处理镜像反转（rotation==1 时图像水平翻转）
           if (isFlipped) {
             ix = pf.item.intrinsicWidth - ix;
           }
 
-          // 3. 鏄犲皠鍒板浘鐗囩湡瀹炲垎杈ㄧ巼
+          // 3. 映射到图片真实分辨率
           final img = SpritePainter.getImage(pf.item.imagePath);
           if (img != null) {
             final double sx = pf.item.spriteRect.left * img.width;
@@ -720,7 +729,7 @@ class DecorationController extends ChangeNotifier {
               return pf;
             }
           } else {
-            // 濡傛灉鍥剧墖杩樻病鍔犺浇瀹岋紝鍥為€€鍒扮煩褰㈡娴?
+            // 如果图片还没加载完，回退到矩形检测
             return pf;
           }
         }

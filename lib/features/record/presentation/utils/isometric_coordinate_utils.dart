@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../pages/decoration_page_constants.dart';
 
-/// 绛夎窛鍧愭爣杞崲宸ュ叿绫伙紝缁熶竴澶勭悊缃戞牸鍧愭爣 (r, c, z) 鍒板睆骞曞儚绱犲潗鏍囩殑杞崲妯″瀷銆?
+/// 等轴测坐标转换工具类，统一处理网格坐标 (r, c, z) 到屏幕像素坐标的转换模型。
 class IsometricCoordinateConverter {
   final double centerX;
   final double centerY;
@@ -16,7 +16,7 @@ class IsometricCoordinateConverter {
     required this.th,
   });
 
-  /// 鑾峰彇鎸囧畾缃戞牸鍧愭爣澶勭殑鎶曞奖鍙樺舰姣斾緥 (Taper)
+  /// 获取指定网格坐标处的投影变形比例 (Taper)
   double getTaperScale(double r, double c) {
     final double u = (r / kGridRows).clamp(0, 1);
     final double v = (c / kGridCols).clamp(0, 1);
@@ -28,21 +28,21 @@ class IsometricCoordinateConverter {
         u * v * kGridBottomTaper;
   }
 
-  /// 灏嗙綉鏍煎潗鏍?(r, c, z) 杞崲涓哄睆骞曞亸绉婚噺 Offset
+  /// 将网格坐标 (r, c, z) 转换为屏幕偏移量 Offset
   Offset getScreenPoint(double r, double c, [double z = 0]) {
     final double s = getTaperScale(r, c);
 
-    // 鍩虹绛夎窛鎶曞奖鍧愭爣 (鏈棆杞墠)
-    // x 杞达細(r - c) 鏂瑰悜
-    // y 杞达細(r + c) 鏂瑰悜锛屽苟鍑忓幓涓績鍋忕Щ
+    // 基础等轴测投影坐标 (未旋转前)
+    // x 轴：(r - c) 方向
+    // y 轴：(r + c) 方向，并减去中心偏移
     final double x = (r - c) * (tw / 2) * s;
     final double y = (r + c - (kGridRows + kGridCols) / 2) * (th / 2) * s;
 
-    // 鍨傜洿楂樺害琛ュ伩 (Z 杞?
-    final double hFactor = th; // 浣跨敤鍗曞厓鏍奸珮搴︿綔涓?Z 杞存闀垮熀鍑嗭紝閫傞厤 30 搴﹁瑙?
+    // 垂直高度补偿 (Z 轴)
+    final double hFactor = th; // 使用单元格高度作为 Z 轴步长基准，适配 30 度视角
     final double verticalY = -z * hFactor * s;
 
-    // 搴旂敤缃戞牸鏁翠綋鏃嬭浆 (kGridRotationDegree)
+    // 应用网格整体旋转 (kGridRotationDegree)
     final double rad = kGridRotationDegree * math.pi / 180;
     final double cosR = math.cos(rad);
     final double sinR = math.sin(rad);
@@ -53,7 +53,7 @@ class IsometricCoordinateConverter {
     return Offset(centerX + rotatedX, centerY + rotatedY);
   }
 
-  /// 浼扮畻瀹跺叿鍦ㄥ綋鍓嶅潗鏍囦笅鐨勮瑙夊搴?(鍙?Taper 褰卞搷)
+  /// 估算家具在当前坐标下的视觉宽度 (受 Taper 影响)
   double estimateVisualWidth(
     int gridW,
     int gridH,
@@ -65,7 +65,7 @@ class IsometricCoordinateConverter {
     return tw * (gridW + gridH) * s * 0.5 * visualScale;
   }
 
-  /// 璁＄畻瀹跺叿鍦ㄥ睆骞曚笂鐨勮瑙夌煩褰?(鐢ㄤ簬鍛戒腑妫€娴嬫垨 Overlay 瀹氫綅)
+  /// 计算家具在屏幕上的视觉矩形 (用于命中检测或 Overlay 定位)
   Rect getFurnitureRect({
     required int r,
     required int c,
@@ -77,34 +77,31 @@ class IsometricCoordinateConverter {
     required double intrinsicHeight,
     double z = 0,
   }) {
+    final s = getTaperScale(r + gw / 2.0, c + gh / 2.0);
     final pt = getScreenPoint(r + gw / 2.0, c + gh / 2.0, z);
-    final double itemW = estimateVisualWidth(
-      gw,
-      gh,
-      r + gw / 2.0,
-      c + gh / 2.0,
-      visualScale,
-    );
+    final double unscaledItemW = tw * (gw + gh) * s * 0.5;
+    final double footprintOffset = unscaledItemW / 4.0;
+
+    final double itemW = unscaledItemW * visualScale;
     final double spriteH = itemW * (intrinsicHeight / intrinsicWidth);
-    final double verticalOffset = itemW / 4.0;
 
     return Rect.fromLTWH(
       pt.dx - itemW / 2 + visualOffset.dx,
-      pt.dy + verticalOffset - spriteH + visualOffset.dy,
+      pt.dy + footprintOffset - spriteH + visualOffset.dy,
       itemW,
       spriteH,
     );
   }
 
-  /// 鏍稿績鍛戒腑妫€娴嬶細鏍规嵁鍍忕礌鍧愭爣鍙嶆帹鏈€杩戠殑缃戞牸鍧愭爣 (r, c)
-  (int, int)? getGridCell(Offset localPos, {double? customThresholdSq}) {
+  /// 核心命中检测：根据像素坐标反推最近的网格坐标 (r, c)
+  (int, int)? getGridCell(Offset localPos, {double? customThresholdSq, double z = 0.0}) {
     (int, int)? bestCell;
     double minDistanceSq = double.infinity;
 
-    // 鎼滅储鎵€鏈夋牸瀛愶紝鎵惧埌涓績鐐规渶鎺ヨ繎榧犳爣浣嶇疆鐨?
+    // 搜索所有格子，找到中心点最接近鼠标位置的
     for (int r = 0; r < kGridRows; r++) {
       for (int c = 0; c < kGridCols; c++) {
-        final pt = getScreenPoint(r + 0.5, c + 0.5, 0);
+        final pt = getScreenPoint(r + 0.5, c + 0.5, z);
 
         final double dx = localPos.dx - pt.dx;
         final double dy = localPos.dy - pt.dy;
@@ -118,24 +115,24 @@ class IsometricCoordinateConverter {
     }
 
     // 鍔ㄦ€侀槇鍊硷細纭繚鍦ㄩ珮鍊嶇缉鏀撅紙tw 寰堝ぇ锛夋垨鏋佷綆缂╂斁锛坱w 寰堝皬锛夋椂鐐瑰嚮閮芥湁鏁?
-    // 浣跨敤 tw^2 浣滀负鍩哄噯瀹瑰樊锛岃鐩栨暣涓彵褰㈠尯鍩?
+    // 使用 tw^2 作为基准容差，覆盖整个菱形区域
     final double thresholdSq = customThresholdSq ?? (tw * tw * 1.5);
 
     if (minDistanceSq > thresholdSq) return null;
     return bestCell;
   }
 
-  /// 澧欓潰涓撶敤鎶曞奖锛氬皢鍏夋爣鎶曞奖鍒版寚瀹氬闈紝杩斿洖娌垮鏂瑰悜鐨勬牸瀛愮储寮?
-  /// [preferLeftWall] true=浼樺厛宸﹀(r杞? c=0)锛宖alse=浼樺厛鍙冲(c杞? r=0)
-  /// 杩斿洖 (r, c) 濮嬬粓淇濇寔瀵瑰簲澧欓潰鐨勭害鏉?(宸﹀ c=0, 鍙冲 r=0)
+  /// 墙面专用投影：将光标投影到指定墙面，返回沿墙方向的格子索引
+  /// [preferLeftWall] true=优先左墙(r轴, c=0)，false=优先右墙(c轴, r=0)
+  /// 返回 (r, c) 始终保持对应墙面的约束 (左墙 c=0, 右墙 r=0)
   (int, int) getWallCell(Offset localPos, {required bool preferLeftWall}) {
     if (preferLeftWall) {
-      // 宸﹀悗澧欙細XZ 闈紝c=0锛宺 浠?0 鍒?kGridRows-1
-      // 鍦ㄥ悇涓?r 浣嶇疆鍙栧闈腑绾挎潵姣旇緝 x 璺濈锛堝拷鐣?y 鍗抽珮搴︼級
+      // 左后墙：XZ 面，c=0，r 从 0 到 kGridRows-1
+      // 在各个 r 位置取墙面中线来比较 x 距离（忽略 y 即高度）
       int bestR = 0;
       double minDistX = double.infinity;
       for (int r = 0; r < kGridRows; r++) {
-        // 鍙栬鍒楀簳閮ㄤ腑蹇冪偣鐨?x 鍧愭爣浣滀负鍙傝€?
+        // 取该列底部中心点的 x 坐标作为参考
         final pt = getScreenPoint(r + 0.5, 0);
         final double dx = (localPos.dx - pt.dx).abs();
         if (dx < minDistX) {
@@ -145,7 +142,7 @@ class IsometricCoordinateConverter {
       }
       return (bestR.clamp(0, kGridRows - 1), 0);
     } else {
-      // 鍙冲悗澧欙細YZ 闈紝r=0锛宑 浠?0 鍒?kGridCols-1
+      // 右后墙：YZ 面，r=0，c 从 0 到 kGridCols-1
       int bestC = 0;
       double minDistX = double.infinity;
       for (int c = 0; c < kGridCols; c++) {
@@ -160,9 +157,9 @@ class IsometricCoordinateConverter {
     }
   }
 
-  /// 灏嗗厜鏍?Y 鍧愭爣鐩存帴鏄犲皠涓哄闈?Z 鍊硷紙缁濆浣嶇疆锛屾棤澧為噺绱Н锛?
+  /// 将光标 Y 坐标直接映射为墙面 Z 值（绝对位置，无增量累积）
   /// [r], [c]: 澧欓潰涓婂綋鍓嶆牸瀛愮殑鍩哄噯鍧愭爣锛堢敤浜庤绠楄鍒?琛岀殑鍨傜洿鑼冨洿锛?
-  /// [maxZ]: 澧欓潰楂樺害涓婇檺锛堝嵆 kWallGridHeight锛?
+  /// [maxZ]: 墙面高度上限（即 kWallGridHeight）
   double getWallZ(
     Offset localPos, {
     required double r,

@@ -591,10 +591,9 @@ class IsometricGridPainter extends CustomPainter {
         floors.add(pf);
       } else if (pf.item.isWall) {
         wallItems.add(pf);
-      } else if (sub == '鍦版') {
+      } else if (sub == '地毯') {
         carpets.add(pf);
-      } else if (sub == '杞' || sub == '楗板搧' || sub == '楗扮墿' || sub == '鐩嗘牻') {
-        // 杞欢瑁呴グ鐩存帴鏀惧叆涓€灞傦紝纭繚瀹冧滑鍦ㄤ富浣撳鍏凤紙others锛変箣鍚庣粯鍒?
+      } else if (sub == '软装' || sub == '饰品' || sub == '饰物' || sub == '盆栽') {
         softDecorations.add(pf);
       } else {
         others.add(pf);
@@ -1009,7 +1008,7 @@ class IsometricGridPainter extends CustomPainter {
       canvas.save();
 
       double ty = basePoint.dy + (itemW / 4.0) - (itemH / 2.0);
-      if (item.subCategory == '杞' || item.subCategory == '鍦版') {
+      if (item.subCategory == '地毯') {
         ty = basePoint.dy;
       }
 

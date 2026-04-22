@@ -50,6 +50,7 @@ final List<FurnitureItem> bedroomItems = [
     flippedVisualRotationY: 0,
     flippedVisualRotationZ: 0,
     flippedVisualPivot: null,
+    toolbarOffset: const Offset(0, -0.15),
   ),
   FurnitureItem(
     id: 'bed_2',
@@ -74,6 +75,7 @@ final List<FurnitureItem> bedroomItems = [
     flippedVisualRotationY: 0,
     flippedVisualRotationZ: 0,
     flippedVisualPivot: null,
+    toolbarOffset: const Offset(0, -0.15),
   ),
   FurnitureItem(
     id: 'nightstand_1',
@@ -222,6 +224,7 @@ final List<FurnitureItem> bedroomItems = [
     flippedVisualRotationY: 0,
     flippedVisualRotationZ: 0,
     flippedVisualPivot: null,
+    toolbarOffset: const Offset(0, -0.15),
   ),
   FurnitureItem(
     id: 'bed_4',
@@ -246,6 +249,7 @@ final List<FurnitureItem> bedroomItems = [
     flippedVisualRotationY: 0,
     flippedVisualRotationZ: 0,
     flippedVisualPivot: null,
+    toolbarOffset: const Offset(0, -0.15),
   ),
   FurnitureItem(
     id: 'bed_5',
@@ -270,6 +274,7 @@ final List<FurnitureItem> bedroomItems = [
     flippedVisualRotationY: 0,
     flippedVisualRotationZ: 0,
     flippedVisualPivot: null,
+    toolbarOffset: const Offset(0, -0.15),
   ),
   FurnitureItem(
     id: 'clothing_rack_1',
@@ -318,5 +323,6 @@ final List<FurnitureItem> bedroomItems = [
     flippedVisualRotationY: 0,
     flippedVisualRotationZ: 0,
     flippedVisualPivot: null,
+    toolbarOffset: const Offset(0, -0.15),
   ),
 ];
