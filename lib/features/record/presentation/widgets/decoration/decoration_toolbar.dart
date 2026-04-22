@@ -148,7 +148,7 @@ class DecorationToolbar extends StatelessWidget {
                 ],
                 _ToolbarButton(
                   icon: Icons.rotate_right_rounded,
-                  color: isNight ? ColorsHex.whiteEE : Colors.black87,
+                  color: isNight ? ColorsHex.whiteEE : const Color(0xFF5C8D89),
                   onPressed: onRotate,
                 ),
                 _buildDivider(isNight),

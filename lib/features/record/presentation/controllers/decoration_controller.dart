@@ -346,6 +346,8 @@ class DecorationController extends ChangeNotifier {
   // --- 家具表面高度配置表 ---
   static const Map<String, double> _furnitureSurfaceHeights = {
     'cabinet_1': 4.0, // 橱柜
+    'cabinet_2': 4.0, // 奶酪色拼色地柜
+    'cabinet_3': 4.0, // 奶酪色拼色转角地柜
     'table_1': 2.2, // 桌子 1
     'table_2': 2.2, // 桌子 2
     'table_3': 1.8, // 桌子 3 (较矮)
@@ -674,7 +676,7 @@ class DecorationController extends ChangeNotifier {
       } else {
         int gw = pf.rotation % 2 == 0 ? pf.item.gridW : pf.item.gridH;
         int gh = pf.rotation % 2 == 0 ? pf.item.gridH : pf.item.gridW;
-        final bool isFlipped = pf.rotation == 1; // 鏃嬭浆 1 娆′唬琛?180 搴︾炕杞?
+        final bool isFlipped = pf.rotation == 1; // 旋转 1 次代表 180 度翻转
         final double visualScale = isFlipped
             ? (pf.item.flippedVisualScale ?? pf.item.visualScale)
             : pf.item.visualScale;

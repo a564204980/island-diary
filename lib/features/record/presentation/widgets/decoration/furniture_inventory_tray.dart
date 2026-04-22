@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import '../../../domain/models/furniture_item.dart';
 import '../furniture_sprite.dart';
 
@@ -43,59 +44,62 @@ class FurnitureInventoryTray extends StatelessWidget {
       width: 280,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.85),
+        color: Colors.white.withValues(alpha: 0.65),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+        border: Border.all(color: const Color(0xFF5C8D89).withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
-            offset: const Offset(-10, 0),
+            offset: const Offset(-5, 5),
           ),
         ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
-        child: Row(
-          children: [
-            // 涓€绾у垎绫讳晶杈规爮
-            _buildCategorySidebar(categories),
-            // 鍙充晶鍐呭鍖?
-            Expanded(
-              child: Column(
-                children: [
-                  // 浜岀骇鍒嗙被閫夋嫨鍣?
-                  _buildSubCategorySelector(subCategories),
-                  // 鐗╁搧缃戞牸
-                  Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: GridView.builder(
-                        key: ValueKey(
-                          "${selectedCategory}_$selectedSubCategory",
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Row(
+            children: [
+              // 一级分类侧边栏
+              _buildCategorySidebar(categories),
+              // 右侧内容区
+              Expanded(
+                child: Column(
+                  children: [
+                    // 二级分类选择器
+                    _buildSubCategorySelector(subCategories),
+                    // 物品网格
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: GridView.builder(
+                          key: ValueKey(
+                            "${selectedCategory}_$selectedSubCategory",
+                          ),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 0.75,
+                              ),
+                          itemCount: filteredItems.length,
+                          itemBuilder: (context, index) {
+                            return _buildFurnitureCard(
+                              filteredItems[index],
+                              index,
+                            );
+                          },
                         ),
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 16,
-                              childAspectRatio: 0.75,
-                            ),
-                        itemCount: filteredItems.length,
-                        itemBuilder: (context, index) {
-                          return _buildFurnitureCard(
-                            filteredItems[index],
-                            index,
-                          );
-                        },
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -105,8 +109,8 @@ class FurnitureInventoryTray extends StatelessWidget {
     return Container(
       width: 65,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        border: const Border(right: BorderSide(color: Colors.white10)),
+        color: Colors.black.withValues(alpha: 0.03),
+        border: Border(right: BorderSide(color: Colors.black.withValues(alpha: 0.05))),
       ),
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 20),
@@ -122,7 +126,7 @@ class FurnitureInventoryTray extends StatelessWidget {
               decoration: BoxDecoration(
                 border: isSelected
                     ? const Border(
-                        right: BorderSide(color: Colors.blueAccent, width: 3),
+                        right: BorderSide(color: Color(0xFF5C8D89), width: 3),
                       )
                     : null,
               ),
@@ -131,14 +135,14 @@ class FurnitureInventoryTray extends StatelessWidget {
                 children: [
                   Icon(
                     _getCategoryIcon(cat),
-                    color: isSelected ? Colors.blueAccent : Colors.white24,
+                    color: isSelected ? const Color(0xFF5C8D89) : const Color(0xFF5C8D89).withValues(alpha: 0.3),
                     size: 24,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     cat,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.white30,
+                      color: isSelected ? const Color(0xFF4A6F6C) : const Color(0xFF5C8D89).withValues(alpha: 0.4),
                       fontSize: 10,
                       fontWeight: isSelected
                           ? FontWeight.bold
@@ -166,7 +170,7 @@ class FurnitureInventoryTray extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final isAll = index == 0;
-          final subCat = isAll ? '鍏ㄩ儴' : subCategories[index - 1];
+          final subCat = isAll ? '全部' : subCategories[index - 1];
           final isSelected = isAll
               ? selectedSubCategory == null
               : subCat == selectedSubCategory;
@@ -182,20 +186,20 @@ class FurnitureInventoryTray extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? Colors.blueAccent.withValues(alpha: 0.15)
-                      : Colors.white.withValues(alpha: 0.03),
+                      ? const Color(0xFF5C8D89).withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.02),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected
-                        ? Colors.blueAccent.withValues(alpha: 0.4)
-                        : Colors.white.withValues(alpha: 0.08),
+                        ? const Color(0xFF5C8D89).withValues(alpha: 0.3)
+                        : Colors.black.withValues(alpha: 0.05),
                   ),
                 ),
                 child: Text(
                   subCat,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isSelected ? Colors.white : Colors.white38,
+                    color: isSelected ? const Color(0xFF4A6F6C) : const Color(0xFF5C8D89).withValues(alpha: 0.5),
                     fontWeight: isSelected
                         ? FontWeight.bold
                         : FontWeight.normal,
@@ -259,9 +263,9 @@ class FurnitureInventoryTray extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.04),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
               ),
               child: Center(
                 child: Padding(
@@ -305,7 +309,7 @@ class FurnitureInventoryTray extends StatelessWidget {
         Text(
           item.name,
           style: const TextStyle(
-            color: Colors.white70,
+            color: Color(0xFF4A6F6C),
             fontSize: 10,
             fontWeight: FontWeight.w500,
           ),

@@ -90,7 +90,7 @@ class _DecorationPageState extends State<DecorationPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF606054),
+      backgroundColor: const Color(0xFFD1DAD8),
       body: Stack(
         children: [
           // 核心场景层
@@ -128,7 +128,7 @@ class _DecorationPageState extends State<DecorationPage>
 
   Widget _buildLoadingOverlay() {
     return Container(
-      color: const Color(0xFF606054),
+      color: const Color(0xFFD1DAD8),
       width: double.infinity,
       height: double.infinity,
       child: Center(
@@ -140,9 +140,9 @@ class _DecorationPageState extends State<DecorationPage>
               width: 300,
               height: 12,
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.2),
+                color: Colors.black.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.white10, width: 1),
+                border: Border.all(color: Colors.black.withValues(alpha: 0.05), width: 1),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),
@@ -150,7 +150,7 @@ class _DecorationPageState extends State<DecorationPage>
                   value: _controller.loadingProgress,
                   backgroundColor: Colors.transparent,
                   valueColor: const AlwaysStoppedAnimation<Color>(
-                    Colors.white70,
+                    Color(0xFF5C8D89),
                   ),
                 ),
               ),
@@ -159,10 +159,10 @@ class _DecorationPageState extends State<DecorationPage>
             Text(
               '正在搬运家具元件... ${((_controller.loadingProgress * 100).toInt())}%',
               style: const TextStyle(
-                color: Colors.white70,
+                color: Color(0xFF5C8D89),
                 fontSize: 14,
                 letterSpacing: 1.2,
-                fontWeight: FontWeight.w300,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],
