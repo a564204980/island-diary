@@ -324,7 +324,7 @@ class DecorationScene extends StatelessWidget {
   }
 
   double _getGridCenterYFactor(BuildContext context) {
-    // 经过数学估算，0.4 左右能让 24x24 房间加 14 层墙在 1:1 截图中视觉居中（平衡地板底角与墙头高度）
-    return 0.40;
+    final bool isIPad = MediaQuery.of(context).size.width > 600;
+    return isIPad ? kGridCenterYFactorIPad : kGridCenterYFactorPhone;
   }
 }

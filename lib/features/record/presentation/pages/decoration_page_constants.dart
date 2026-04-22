@@ -1,9 +1,9 @@
 const int kGridRows = 24;
 const int kGridCols = 24;
-const double kGridCenterYFactorIPad = 0.55;
-const double kGridCenterYFactorPhone = 0.55;
+const double kGridCenterYFactorIPad = 0.42;
+const double kGridCenterYFactorPhone = 0.42;
 const double kGridRotationDegree = 0;
-const double kGridAspectRatio = 0.5;
+const double kGridAspectRatio = 0.577; // tan(30°) ≈ 0.57735
 const double kGridTopTaper = 0;
 const double kGridBottomTaper = 0;
 const double kGridLeftTaper = 0;

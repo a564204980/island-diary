@@ -27,8 +27,8 @@ class _DecorationPageState extends State<DecorationPage>
   bool _showColorPicker = false;
 
   AnimationController? _zoomAnimationController;
-  double _zoomStartScale = 0.4;
-  double _zoomEndScale = 0.4;
+  double _zoomStartScale = 0.5;
+  double _zoomEndScale = 0.5;
 
   @override
   void initState() {
@@ -174,7 +174,7 @@ class _DecorationPageState extends State<DecorationPage>
   void _handleZoom(double delta) {
     if (_controller.selectedFurniture != null) return;
     _zoomStartScale = _controller.currentScale;
-    _zoomEndScale = (_zoomStartScale + delta).clamp(0.3, 3.5);
+    _zoomEndScale = (_zoomStartScale + delta).clamp(0.2, 0.5);
     _zoomAnimationController!.forward(from: 0);
   }
 
@@ -220,8 +220,8 @@ class _DecorationPageState extends State<DecorationPage>
       final double screenW = size.width;
       final double screenH = size.height;
 
-      // 1. 提升全景缩放比例 (从 0.45 提升至 0.55) 以增大房屋在快照中的占比
-      const double targetScale = 0.55;
+      // 1. 设置快照缩放比例为 0.5
+      const double targetScale = 0.5;
       _controller.currentScale = targetScale;
       
       // 2. 几何算法：动态计算居中偏移量

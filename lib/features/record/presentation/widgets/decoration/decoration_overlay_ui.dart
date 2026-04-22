@@ -112,7 +112,7 @@ class DecorationOverlayUI extends StatelessWidget {
                       ),
                       onPressed: controller.selectedFurniture != null
                           ? null
-                          : () => onZoom(0.2),
+                          : () => onZoom(0.05),
                       tooltip: '放大',
                     ),
                     Padding(
@@ -143,7 +143,7 @@ class DecorationOverlayUI extends StatelessWidget {
                       ),
                       onPressed: controller.selectedFurniture != null
                           ? null
-                          : () => onZoom(-0.2),
+                          : () => onZoom(-0.05),
                       tooltip: '缩小',
                     ),
                     Divider(
