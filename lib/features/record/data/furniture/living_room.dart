@@ -43,19 +43,7 @@ final List<FurnitureItem> livingRoomItems = [
     visualScale: 0.96,
     visualOffset: const Offset(0, -2),
   ),
-  FurnitureItem(
-    id: 'table_4',
-    name: '多功能开放式展架',
-    imagePath: 'assets/images/decoration/table/table4.png',
-    category: '客厅',
-    subCategory: '家具',
-    gridW: 6,
-    gridH: 2,
-    intrinsicWidth: 350,
-    intrinsicHeight: 788,
-    quantity: 5,
-    visualScale: 1.0,
-  ),
+
   FurnitureItem(
     id: 'easel_1',
     name: '精美画架 1',

@@ -62,7 +62,6 @@ final List<FurnitureItem> decorationItems = [
     visualOffset: const Offset(0, -4),
   ),
 
-
   FurnitureItem(
     id: 'carpet_1',
     name: '精美地毯 1',
@@ -112,12 +111,12 @@ final List<FurnitureItem> decorationItems = [
     imagePath: 'assets/images/decoration/carpets/carpet4.png',
     category: '装饰',
     subCategory: '地毯',
-    gridW: 4,
-    gridH: 8,
+    gridW: 8,
+    gridH: 4,
     intrinsicWidth: 520,
-    intrinsicHeight: 260,
+    intrinsicHeight: 300,
     quantity: 5,
-    visualScale: 0.85,
+    visualScale: 1.0,
     visualOffset: const Offset(0, 0),
   ),
 
