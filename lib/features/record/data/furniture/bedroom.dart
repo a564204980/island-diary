@@ -184,4 +184,17 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 5,
     visualScale: 1.0,
   ),
+  FurnitureItem(
+    id: 'cabinet_4',
+    name: '折叠晾架',
+    imagePath: 'assets/images/decoration/furniture/cabinet4.png',
+    category: '卧室',
+    subCategory: '家具',
+    gridW: 4,
+    gridH: 4,
+    intrinsicWidth: 350,
+    intrinsicHeight: 350,
+    quantity: 5,
+    visualScale: 1.0,
+  ),
 ];
