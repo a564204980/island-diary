@@ -118,10 +118,10 @@ final List<FurnitureItem> kitchenItems = [
     subCategory: '家具',
     gridW: 3,
     gridH: 3,
-    intrinsicWidth: 350,
-    intrinsicHeight: 400,
+    intrinsicWidth: 404,
+    intrinsicHeight: 500,
     quantity: 5,
-    visualScale: 1.0,
+    visualScale: 0.92,
   ),
   FurnitureItem(
     id: 'cabinet_6',

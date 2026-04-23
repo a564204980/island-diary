@@ -130,4 +130,20 @@ final List<FurnitureItem> wallItems = [
     flippedVisualScale: 1.0,
     flippedVisualOffset: const Offset(0, -22),
   ),
+  FurnitureItem(
+    id: 'window_8',
+    name: '原木卷帘框窗',
+    imagePath: 'assets/images/decoration/window/window8.png',
+    category: '墙壁',
+    subCategory: '窗户',
+    gridW: 4,
+    gridH: 6,
+    intrinsicWidth: 132,
+    intrinsicHeight: 345,
+    quantity: 5,
+    visualScale: 1.0,
+    visualOffset: const Offset(0, -20),
+    flippedVisualOffset: const Offset(0, -20),
+  ),
 ];
+

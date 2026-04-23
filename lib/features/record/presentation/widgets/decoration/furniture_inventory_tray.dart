@@ -23,9 +23,24 @@ class FurnitureInventoryTray extends StatelessWidget {
     this.onDragEnd,
   });
 
+  static const Map<String, int> _categoryOrder = {
+    '厨房': 0,
+    '卧室': 1,
+    '客厅': 2,
+    '装饰': 3,
+    '地板': 4,
+    '墙壁': 5,
+  };
+
   @override
   Widget build(BuildContext context) {
     final categories = availableItems.map((e) => e.category).toSet().toList();
+    categories.sort((a, b) {
+      final orderA = _categoryOrder[a] ?? 999;
+      final orderB = _categoryOrder[b] ?? 999;
+      return orderA.compareTo(orderB);
+    });
+
     final subCategories = availableItems
         .where((e) => e.category == selectedCategory)
         .map((e) => e.subCategory)
@@ -46,7 +61,9 @@ class FurnitureInventoryTray extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.65),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: const Color(0xFF5C8D89).withValues(alpha: 0.2)),
+        border: Border.all(
+          color: const Color(0xFF5C8D89).withValues(alpha: 0.2),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -110,7 +127,9 @@ class FurnitureInventoryTray extends StatelessWidget {
       width: 65,
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.03),
-        border: Border(right: BorderSide(color: Colors.black.withValues(alpha: 0.05))),
+        border: Border(
+          right: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
+        ),
       ),
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 20),
@@ -135,14 +154,18 @@ class FurnitureInventoryTray extends StatelessWidget {
                 children: [
                   Icon(
                     _getCategoryIcon(cat),
-                    color: isSelected ? const Color(0xFF5C8D89) : const Color(0xFF5C8D89).withValues(alpha: 0.3),
+                    color: isSelected
+                        ? const Color(0xFF5C8D89)
+                        : const Color(0xFF5C8D89).withValues(alpha: 0.3),
                     size: 24,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     cat,
                     style: TextStyle(
-                      color: isSelected ? const Color(0xFF4A6F6C) : const Color(0xFF5C8D89).withValues(alpha: 0.4),
+                      color: isSelected
+                          ? const Color(0xFF4A6F6C)
+                          : const Color(0xFF5C8D89).withValues(alpha: 0.4),
                       fontSize: 10,
                       fontWeight: isSelected
                           ? FontWeight.bold
@@ -199,7 +222,9 @@ class FurnitureInventoryTray extends StatelessWidget {
                   subCat,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isSelected ? const Color(0xFF4A6F6C) : const Color(0xFF5C8D89).withValues(alpha: 0.5),
+                    color: isSelected
+                        ? const Color(0xFF4A6F6C)
+                        : const Color(0xFF5C8D89).withValues(alpha: 0.5),
                     fontWeight: isSelected
                         ? FontWeight.bold
                         : FontWeight.normal,
@@ -320,10 +345,6 @@ class FurnitureInventoryTray extends StatelessWidget {
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
-      case '地板':
-        return Icons.grid_view_rounded;
-      case '墙壁':
-        return Icons.view_quilt_rounded;
       case '厨房':
         return Icons.kitchen;
       case '卧室':
@@ -332,6 +353,10 @@ class FurnitureInventoryTray extends StatelessWidget {
         return Icons.chair;
       case '装饰':
         return Icons.palette;
+      case '地板':
+        return Icons.grid_view_rounded;
+      case '墙壁':
+        return Icons.view_quilt_rounded;
       default:
         return Icons.category;
     }
