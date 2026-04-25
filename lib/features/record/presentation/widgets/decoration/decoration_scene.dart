@@ -229,7 +229,9 @@ class DecorationScene extends StatelessWidget {
                                     final item = details.data;
                                     controller.updateInteracting(false);
                                     if (controller.ghostCell != null &&
-                                        item.quantity > 0) {
+                                        (item.quantity > 0 ||
+                                            controller.draggingOriginalPF !=
+                                                null)) {
                                       if (controller.isAreaAvailable(
                                         item,
                                         controller.ghostCell!.$1,
