@@ -351,17 +351,17 @@ class DiaryUtils {
   /// 获取信纸对应的墨水颜色 (文字颜色)
   static Color getInkColor(String paperStyle, bool isNight) {
     if (isNight) {
-      return const Color(0xFFE5E0D5); // 统一使用柔和的象牙白，确保夜间书写的视觉一致性与清晰度
+      return const Color(0xFFE5E0D5); 
     }
 
-    // 白天模式：统一使用正常的深黑色，提高阅读清晰度
-    return const Color(0xFF333333);
+    // 白天模式：具有质感的深灰蓝绿色
+    return const Color(0xFF3D4E4F);
   }
 
   /// 获取信纸对应的 UI 控件背景色 (如工具栏底色)
   static Color getPaperBaseColor(String paperStyle, bool isNight) {
     if (isNight && !paperStyle.startsWith('note')) {
-      return const Color(0xFF141426); // 更深邃沉静的深夜底色
+      return const Color(0xFF141426);
     }
 
     if (paperStyle == 'note1') {
@@ -392,11 +392,11 @@ class DiaryUtils {
   /// 获取信纸对应的 UI 强调色 (图标、开关等)
   static Color getAccentColor(String paperStyle, bool isNight) {
     if (isNight) {
-      return const Color(0xFFE0C097); // 统一使用温润的浅金强调色，在深夜提供更好的视觉平衡
+      return const Color(0xFFE0C097); 
     }
 
-    // 白天模式：统一使用正常的深黑色，保持界面的极简与专注感
-    return const Color(0xFF333333);
+    // 白天模式：使用比墨水色略浅的深灰色
+    return const Color(0xFF4A5A58);
   }
 
   /// 获取与信纸风格高度协调的弹窗背景色

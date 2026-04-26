@@ -58,7 +58,7 @@ class DiaryToolbar extends StatelessWidget {
 
     // 核心墨水/强调色
     final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
-    final Color primaryColor = isNight ? const Color(0xFFE0C097) : inkColor;
+    final Color primaryColor = accentColor ?? (isNight ? const Color(0xFFE0C097) : inkColor);
 
     // 动态工具栏背景：夜间模式下使用深色磨砂玻璃感
     final Color paperBase = DiaryUtils.getPaperBaseColor(paperStyle, isNight);
@@ -286,7 +286,7 @@ class DiaryToolbar extends StatelessWidget {
             decoration: BoxDecoration(
               color: isSelected
                   ? primaryColor.withValues(alpha: 0.2)
-                  : (bgColor ?? primaryColor.withValues(alpha: 0.05)),
+                  : (bgColor ?? primaryColor.withValues(alpha: 0.08)),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: isSelected
@@ -298,7 +298,7 @@ class DiaryToolbar extends StatelessWidget {
             child: Icon(
               icon,
               size: 24,
-              color: iconColor ?? primaryColor,
+              color: (iconColor ?? primaryColor).withValues(alpha: 0.85),
             )
                 .animate(target: isSelected ? 1 : 0)
                 .scale(
