@@ -22,7 +22,6 @@ class PaperPickerSheet extends StatefulWidget {
     'note3': '云端独白',
     'note4': '晨曦物语',
     'note5': '山野诗篇',
-    'note6': '碧波涟漪',
     'note7': '林间听雨',
     'note8': '暮色温柔',
     'note9': '星河梦境',
@@ -171,89 +170,84 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                         child: Column(
                           children: [
                             Container(
-                              width: 70,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                color: isNight ? Colors.black26 : Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? widget.accentColor
-                                      : Colors.black12,
-                                  width: isSelected ? 3 : 1.5,
-                                ),
-                                boxShadow: [
-                                  if (isSelected)
-                                    BoxShadow(
-                                      color: widget.accentColor.withValues(
-                                        alpha: 0.4,
-                                      ),
-                                      blurRadius: 12,
-                                      spreadRadius: 2,
-                                    ),
-                                  if (!isSelected)
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.05,
-                                      ),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(9),
-                                child: Stack(
-                                  children: [
-                                    if (key.startsWith('note'))
-                                      Positioned.fill(
-                                        child: Image.asset(
-                                          DiaryUtils.getPaperBackgroundPath(
-                                            key,
-                                            isNight,
-                                          ),
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    Positioned.fill(
-                                      child: CustomPaint(
-                                        painter: PaperBackgroundPainter(
-                                          style: key,
-                                          isNight: isNight,
-                                          accentColor: widget.accentColor,
-                                        ),
-                                      ),
-                                    ),
+                                width: 70,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: isNight ? Colors.black26 : Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? widget.accentColor.withValues(alpha: 0.8)
+                                        : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                                    width: isSelected ? 2.5 : 1.0,
+                                  ),
+                                  boxShadow: [
                                     if (isSelected)
-                                      Positioned(
-                                        top: 4,
-                                        right: 4,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(2),
-                                          decoration: BoxDecoration(
-                                            color: widget.accentColor,
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withValues(
-                                                  alpha: 0.2,
-                                                ),
-                                                blurRadius: 4,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
-                                          ),
-                                          child: const Icon(
-                                            Icons.check,
-                                            size: 14,
-                                            color: Colors.white,
-                                          ),
-                                        ),
+                                      BoxShadow(
+                                        color: widget.accentColor.withValues(alpha: 0.35),
+                                        blurRadius: 15,
+                                        spreadRadius: 2,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    if (!isSelected)
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.05),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 3),
                                       ),
                                   ],
                                 ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Stack(
+                                    children: [
+                                      if (key.startsWith('note'))
+                                        Positioned.fill(
+                                          child: Image.asset(
+                                            DiaryUtils.getPaperBackgroundPath(
+                                              key,
+                                              isNight,
+                                            ),
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                      Positioned.fill(
+                                        child: CustomPaint(
+                                          painter: PaperBackgroundPainter(
+                                            style: key,
+                                            isNight: isNight,
+                                            accentColor: widget.accentColor,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        Positioned(
+                                          bottom: 6,
+                                          right: 6,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(3),
+                                            decoration: BoxDecoration(
+                                              color: widget.accentColor,
+                                              shape: BoxShape.circle,
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.2),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 1),
+                                                ),
+                                              ],
+                                            ),
+                                            child: const Icon(
+                                              Icons.check,
+                                              size: 10,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
                             const SizedBox(height: 8),
                             Text(
                               label,

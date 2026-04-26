@@ -1,4 +1,6 @@
 import 'dart:io' as io;
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -79,7 +81,25 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       pickedPath = file.path;
       if (entity.isLivePhoto) {
         final videoFile = await entity.fileWithSubtype;
-        if (videoFile != null) pickedVideoPath = videoFile.path;
+        if (videoFile != null) {
+          // 持久化保存视频：从临时目录拷贝到 App 文档目录，防止被清理
+          try {
+            final appDocDir = await getApplicationDocumentsDirectory();
+            final String fileName = "${entity.id}_${p.basename(videoFile.path)}";
+            final String savedPath = p.join(appDocDir.path, 'live_photos', fileName);
+            
+            final savedFile = io.File(savedPath);
+            if (!await savedFile.parent.exists()) {
+              await savedFile.parent.create(recursive: true);
+            }
+            
+            await io.File(videoFile.path).copy(savedPath);
+            pickedVideoPath = savedPath;
+          } catch (e) {
+            debugPrint("Failed to save live photo video: $e");
+            pickedVideoPath = videoFile.path; // 失败则退回临时路径
+          }
+        }
       }
     } else {
       final ImagePicker picker = ImagePicker();
@@ -400,5 +420,28 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
         scrollToActiveBlock();
       }
     });
+  }
+
+  /// 专门用于贴纸创作的单图选择逻辑
+  Future<String?> pickSingleImage() async {
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DiaryImageSourceSheet(paperStyle: currentPaperStyle),
+    );
+    if (source == null) return null;
+
+    if (source == ImageSource.gallery) {
+      final List<AssetEntity>? result = await AssetPicker.pickAssets(
+        context,
+        pickerConfig: const AssetPickerConfig(maxAssets: 1, requestType: RequestType.image),
+      );
+      if (result == null || result.isEmpty) return null;
+      final file = await result.first.originFile;
+      return file?.path;
+    } else {
+      final XFile? image = await ImagePicker().pickImage(source: ImageSource.camera);
+      return image?.path;
+    }
   }
 }

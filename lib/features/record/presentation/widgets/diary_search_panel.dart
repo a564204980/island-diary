@@ -36,7 +36,7 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = widget.isNight ? const Color(0xFF2C2E30) : Colors.white;
+    final bgColor = widget.isNight ? const Color(0xFF212831) : Colors.white;
     final textColor = widget.isNight ? Colors.white70 : Colors.black87;
     final hintColor = widget.isNight ? Colors.white38 : Colors.black38;
 
@@ -144,7 +144,7 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                     "清除日期",
                     style: TextStyle(
                       fontSize: 12,
-                      color: const Color(0xFFD4A373).withValues(alpha: 0.8),
+                      color: const Color(0xFFE1AF78).withValues(alpha: 0.8),
                       fontFamily: 'LXGWWenKai',
                     ),
                   ),
@@ -165,10 +165,10 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                   return Theme(
                     data: Theme.of(context).copyWith(
                       colorScheme: ColorScheme.light(
-                        primary: const Color(0xFFD4A373),
+                        primary: const Color(0xFFE1AF78),
                         onPrimary: Colors.white,
                         surface: widget.isNight
-                            ? const Color(0xFF2C2E30)
+                            ? const Color(0xFF212831)
                             : Colors.white,
                         onSurface: widget.isNight
                             ? Colors.white70
@@ -176,7 +176,7 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                       ),
                       textButtonTheme: TextButtonThemeData(
                         style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFFD4A373),
+                          foregroundColor: const Color(0xFFE1AF78),
                         ),
                       ),
                     ),
@@ -200,7 +200,7 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: _selectedDate != null
-                      ? const Color(0xFFD4A373).withValues(alpha: 0.5)
+                      ? const Color(0xFFE1AF78).withValues(alpha: 0.5)
                       : (widget.isNight
                             ? Colors.white10
                             : Colors.black.withValues(alpha: 0.05)),
@@ -212,7 +212,7 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                     Icons.calendar_today_rounded,
                     size: 18,
                     color: _selectedDate != null
-                        ? const Color(0xFFD4A373)
+                        ? const Color(0xFFE1AF78)
                         : hintColor,
                   ),
                   const SizedBox(width: 12),

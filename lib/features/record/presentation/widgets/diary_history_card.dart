@@ -161,16 +161,36 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                       width: 60,
                       padding: const EdgeInsets.only(top: 6), // 稍微留白，更精致
                       alignment: Alignment.topRight,
-                      child: Text(
-                        timelineLabel,
+                      child: RichText(
                         textAlign: TextAlign.right,
-                        style: TextStyle(
-                          fontSize: widget.showDate ? 13 : 15,
-                          color: widget.isNight
-                              ? Colors.white30
-                              : Colors.black.withValues(alpha: 0.35),
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'LXGWWenKai',
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontFamily: 'LXGWWenKai',
+                            fontWeight: FontWeight.w700,
+                          ),
+                          children: [
+                            if (widget.showDate) ...[
+                              TextSpan(
+                                text: "$dateStr\n",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: widget.isNight
+                                      ? const Color(0xFFE1AF78).withValues(alpha: 0.8)
+                                      : Colors.black.withValues(alpha: 0.35),
+                                ),
+                              ),
+                            ],
+                            TextSpan(
+                              text: timeStr,
+                              style: TextStyle(
+                                fontSize: widget.showDate ? 14 : 15,
+                                color: widget.isNight
+                                    ? Colors.white70
+                                    : Colors.black.withValues(alpha: 0.35),
+                                fontWeight: widget.showDate ? FontWeight.w500 : FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -187,7 +207,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                             height: 10,
                             decoration: BoxDecoration(
                               color: widget.isNight
-                                  ? Colors.white10
+                                  ? const Color(0xFFE1AF78).withValues(alpha: 0.6)
                                   : const Color(0xFFC4B69E),
                               shape: BoxShape.circle,
                               boxShadow: widget.isNight
@@ -212,7 +232,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           color: widget.isNight
-                              ? const Color(0xFF383531)
+                              ? const Color(0xFF212831)
                               : Colors.white,
                           borderRadius: BorderRadius.circular(24),
                             border: Border.all(

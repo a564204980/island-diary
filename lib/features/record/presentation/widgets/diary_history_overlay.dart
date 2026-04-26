@@ -100,7 +100,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
             builder: (context, coverPath, _) {
               return Positioned.fill(
                 child: Container(
-                  color: isNight ? const Color(0xFF1A1C1E) : Colors.white,
+                  color: isNight ? const Color(0xFF13131F) : Colors.white,
                   child: isMoments
                       ? (isNight
                             ? const SizedBox.shrink()
@@ -352,13 +352,19 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                         height: 50,
                         decoration: BoxDecoration(
                           color: isNight
-                              ? const Color(0xFF2C2E30).withValues(alpha: 0.9)
+                              ? const Color(0xFF212831)
                               : Colors.white.withValues(alpha: 0.9),
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isNight
+                                ? const Color(0xFFE1AF78).withValues(alpha: 0.25)
+                                : const Color(0xFFD4A373).withValues(alpha: 0.2),
+                            width: 1.5,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 12,
+                              color: Colors.black.withValues(alpha: isNight ? 0.35 : 0.15),
+                              blurRadius: 15,
                               offset: const Offset(0, 4),
                             ),
                           ],
@@ -369,14 +375,14 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                             const Icon(
                               Icons.auto_stories_rounded,
                               size: 20,
-                              color: Color(0xFFD4A373),
+                              color: Color(0xFFE1AF78),
                             ),
                             const Text(
                               "导出",
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFD4A373),
+                                color: Color(0xFFE1AF78),
                                 fontFamily: 'LXGWWenKai',
                               ),
                             ),
@@ -743,7 +749,7 @@ class _HorizontalWeekCalendarState extends State<HorizontalWeekCalendar> {
                     style: TextStyle(
                       fontSize: 12,
                       color: widget.isNight
-                          ? Colors.white30
+                          ? Colors.white.withValues(alpha: 0.8)
                           : Colors.black.withValues(alpha: 0.25),
                       fontFamily: 'LXGWWenKai',
                     ),
@@ -798,9 +804,9 @@ class _HorizontalWeekCalendarState extends State<HorizontalWeekCalendar> {
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isSelected
-                                    ? const Color(0xFFD4A373)
+                                    ? const Color(0xFFE1AF78)
                                     : (widget.isNight
-                                          ? Colors.white30
+                                          ? Colors.white.withValues(alpha: 0.75)
                                           : Colors.black26),
                                 fontFamily: 'LXGWWenKai',
                               ),
@@ -811,7 +817,7 @@ class _HorizontalWeekCalendarState extends State<HorizontalWeekCalendar> {
                               height: 38,
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? const Color(0xFFD4A373)
+                                    ? const Color(0xFFE1AF78)
                                     : Colors.transparent,
                                 shape: BoxShape.circle,
                               ),
@@ -826,7 +832,7 @@ class _HorizontalWeekCalendarState extends State<HorizontalWeekCalendar> {
                                     color: isSelected
                                         ? Colors.white
                                         : (widget.isNight
-                                              ? Colors.white54
+                                              ? Colors.white.withValues(alpha: 0.85)
                                               : Colors.black87),
                                     fontFamily: 'LXGWWenKai',
                                   ),
@@ -855,7 +861,7 @@ class _HorizontalWeekCalendarState extends State<HorizontalWeekCalendar> {
                     style: TextStyle(
                       fontSize: 12,
                       color: widget.isNight
-                          ? Colors.white30
+                          ? Colors.white.withValues(alpha: 0.8)
                           : Colors.black.withValues(alpha: 0.25),
                       fontFamily: 'LXGWWenKai',
                     ),
@@ -874,7 +880,7 @@ class _HorizontalWeekCalendarState extends State<HorizontalWeekCalendar> {
                       child: Icon(
                         Icons.camera_rounded,
                         size: 20,
-                        color: Color(0xFFD4A373),
+                        color: const Color(0xFFE1AF78),
                       ),
                     ),
                   ),

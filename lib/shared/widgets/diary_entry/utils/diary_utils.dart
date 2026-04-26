@@ -51,6 +51,23 @@ class DiaryUtils {
     return '${now.year}年${now.month}月${now.day}日';
   }
 
+  /// 获取中文星期 (1-7)
+  static String getWeekdayChinese(int weekday) {
+    const List<String> weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+    if (weekday < 1 || weekday > 7) return "";
+    return weekdays[weekday - 1];
+  }
+
+  /// 获取月份英文缩写 (1-12)
+  static String getMonthEnglish(int month) {
+    const List<String> months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    if (month < 1 || month > 12) return "";
+    return months[month - 1];
+  }
+
   /// 获取增强格式化的日期 (yyyy/MM/dd 星期X)
   static String getFormattedDateWithWeekday(DateTime date) {
     final weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
@@ -359,6 +376,21 @@ class DiaryUtils {
       return const Color(0xFF5A463D);
     }
 
+    // 针对“粉色梦境”(note9) 风格使用深玫瑰木色
+    if (paperStyle == 'note9') {
+      return const Color(0xFF4E3B3B);
+    }
+
+    // 针对“林间听雨”(note7) 风格使用深海石板蓝
+    if (paperStyle == 'note7') {
+      return const Color(0xFF2F3E46);
+    }
+
+    // 针对“云端独白”(note3) 风格使用深碳灰色
+    if (paperStyle == 'note3') {
+      return const Color(0xFF3A3A3A);
+    }
+
     // 默认白天模式：具有质感的深灰蓝绿色
     return const Color(0xFF3D4E4F);
   }
@@ -403,6 +435,21 @@ class DiaryUtils {
     // 针对“时光叙事”(note2) 风格使用复古棕褐色
     if (paperStyle == 'note2') {
       return const Color(0xFF8B6B5D);
+    }
+
+    // 针对“粉色梦境”(note9) 风格使用灰粉玫瑰色
+    if (paperStyle == 'note9') {
+      return const Color(0xFF8B6B6B);
+    }
+
+    // 针对“林间听雨”(note7) 风格使用雾霾蓝
+    if (paperStyle == 'note7') {
+      return const Color(0xFF546E7A);
+    }
+
+    // 针对“云端独白”(note3) 风格使用冷月灰
+    if (paperStyle == 'note3') {
+      return const Color(0xFF757575);
     }
 
     // 白天模式：使用比墨水色略浅的深灰色

@@ -201,7 +201,7 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
   Widget build(BuildContext context) {
     final textStyle = TextStyle(
       fontSize: 15.0,
-      color: widget.isNight ? Colors.white70 : Colors.black.withValues(alpha: 0.85),
+      color: widget.isNight ? Colors.white.withValues(alpha: 0.9) : Colors.black.withValues(alpha: 0.85),
       height: 1.5,
       fontFamily: 'LXGWWenKai',
     );
@@ -214,7 +214,7 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
         vertical: isWide ? 16 : 12,
       ),
       decoration: BoxDecoration(
-        color: widget.isNight ? const Color(0xFF1A1C1E) : Colors.white,
+        color: widget.isNight ? const Color(0xFF212831) : Colors.white,
         border: Border(
           bottom: BorderSide(
             color: widget.isNight

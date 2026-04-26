@@ -19,7 +19,7 @@ class DiaryToolbar extends StatelessWidget {
   final VoidCallback? onFontClick;
   final VoidCallback? onDateClick;
   final VoidCallback? onTimeClick;
-  final VoidCallback? onTagClick;
+  final VoidCallback? onCreateSticker;
   final VoidCallback? onWeatherClick;
   final VoidCallback? onMoreClick;
   final VoidCallback? onClose;
@@ -41,7 +41,7 @@ class DiaryToolbar extends StatelessWidget {
     this.onFontClick,
     this.onDateClick,
     this.onTimeClick,
-    this.onTagClick,
+    this.onCreateSticker,
     this.onWeatherClick,
     this.onMoreClick,
     this.onClose,
@@ -183,7 +183,7 @@ class DiaryToolbar extends StatelessWidget {
       {'icon': Icons.calendar_month_rounded, 'onTap': onDateClick},
       {'icon': Icons.schedule_rounded, 'onTap': onTimeClick},
       {'icon': Icons.location_on_rounded, 'onTap': onLocationClick},
-      {'icon': Icons.local_offer_rounded, 'onTap': onTagClick},
+      {'icon': Icons.auto_awesome, 'onTap': onCreateSticker},
       {'icon': Icons.format_size_rounded, 'onTap': onFontSizeClick},
       {'icon': Icons.font_download_rounded, 'onTap': onFontClick},
       {'icon': Icons.palette_rounded, 'onTap': onColorClick},

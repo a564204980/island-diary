@@ -16,7 +16,7 @@ class DiaryImageSourceSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isNight = UserState().isNight;
     final Color accentColor = DiaryUtils.getAccentColor(paperStyle, isNight);
-    final Color bgColor = DiaryUtils.getPopupBackgroundColor(paperStyle, isNight);
+    final Color bgColor = DiaryUtils.getPopupBackgroundColor(paperStyle, isNight).withValues(alpha: 0.98);
     final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
 
     return Container(

@@ -178,7 +178,7 @@ class _MonthSection extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 24, left: 4, right: 4),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isNight ? const Color(0xFF232527) : Colors.white,
+            color: isNight ? const Color(0xFF212831) : Colors.white,
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
@@ -297,8 +297,8 @@ class _MonthSection extends StatelessWidget {
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                               color: isNight
-                                  ? Colors.white24
-                                  : Colors.black.withValues(alpha: 0.12),
+                                  ? const Color(0xFFE1AF78).withValues(alpha: 0.6)
+                                  : Colors.black.withValues(alpha: 0.45),
                               fontFamily: 'LXGWWenKai',
                             ),
                           ),
@@ -330,8 +330,8 @@ class _MonthSection extends StatelessWidget {
                     fontSize: 12, // 内部表头稍小一点
                     fontWeight: FontWeight.w800,
                     color: isNight
-                        ? Colors.white24
-                        : Colors.black.withValues(alpha: 0.12),
+                        ? Colors.white38
+                        : Colors.black.withValues(alpha: 0.35),
                     fontFamily: 'LXGWWenKai',
                   ),
                 ),
@@ -454,8 +454,8 @@ class _CalendarDayCell extends StatelessWidget {
     );
 
     final Color lunarColor = (importantFest != null)
-        ? (hasEntry ? Colors.white : const Color(0xFFD4A373)) // 仅重要节日用亮色
-        : (isNight ? Colors.white30 : Colors.black38); // 普通农历用淡色
+        ? (hasEntry ? Colors.white : const Color(0xFFE1AF78)) // 仅重要节日用亮色
+        : (isNight ? Colors.white.withValues(alpha: 0.45) : Colors.black45); // 普通农历用适中色
 
     final TextStyle lunarStyle = TextStyle(
       fontSize: 9.5,
@@ -488,7 +488,7 @@ class _CalendarDayCell extends StatelessWidget {
                           : Colors.black.withValues(alpha: 0.008))),
           borderRadius: BorderRadius.circular(10),
           border: isToday
-              ? Border.all(color: const Color(0xFFD4A373), width: 2.2)
+              ? Border.all(color: const Color(0xFFE1AF78), width: 2.2)
               : (hasEntry
                     ? Border.all(
                         color: isNight
@@ -561,7 +561,7 @@ class _CalendarDayCell extends StatelessWidget {
                   width: 6,
                   height: 6,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFD4A373),
+                    color: Color(0xFFE1AF78),
                     shape: BoxShape.circle,
                   ),
                 ),

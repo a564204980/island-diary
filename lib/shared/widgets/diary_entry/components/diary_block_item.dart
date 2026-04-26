@@ -275,15 +275,29 @@ class _LiveImagePlayerState extends State<_LiveImagePlayer> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_initialized) {
-      return DiaryUtils.buildImage(
-        widget.fallbackPath,
-        fit: BoxFit.cover,
-      );
-    }
     return AspectRatio(
-      aspectRatio: _controller.value.aspectRatio,
-      child: VideoPlayer(_controller),
+      aspectRatio: _initialized ? _controller.value.aspectRatio : 1.0,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 封面占位图 (始终存在，作为背景)
+          Positioned.fill(
+            child: DiaryUtils.buildImage(
+              widget.fallbackPath,
+              fit: BoxFit.cover,
+            ),
+          ),
+          // 视频层 (加载完成后淡入)
+          AnimatedOpacity(
+            opacity: _initialized ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeIn,
+            child: _initialized 
+                ? VideoPlayer(_controller)
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
     );
   }
 }

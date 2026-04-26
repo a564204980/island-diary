@@ -6,6 +6,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
 import 'package:island_diary/shared/widgets/decoration/firefly_atmosphere.dart';
+import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_photo_wall_page.dart';
 
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
@@ -268,10 +270,17 @@ class _RecordPageState extends State<RecordPage>
             ),
             const SizedBox(height: 16),
             _buildStampItem(
+              icon: Icons.collections_rounded,
+              label: "照片墙",
+              onTap: () => _openPhotoWall(),
+              delay: 400.ms,
+            ),
+            const SizedBox(height: 16),
+            _buildStampItem(
               icon: Icons.bar_chart_rounded,
               label: "统计",
               onTap: () {},
-              delay: 450.ms,
+              delay: 500.ms,
               opacity: 0.5,
             ),
             const SizedBox(height: 16),
@@ -281,6 +290,13 @@ class _RecordPageState extends State<RecordPage>
               onTap: () {},
               delay: 600.ms,
               opacity: 0.5,
+            ),
+            const SizedBox(height: 16),
+            _buildStampItem(
+              icon: Icons.chair_outlined,
+              label: "装修",
+              onTap: () => _openDecorationPage(),
+              delay: 750.ms,
             ),
           ],
         ),
@@ -373,6 +389,20 @@ class _RecordPageState extends State<RecordPage>
       h: h,
       w: w,
       bgColor: bgColor,
+    );
+  }
+
+  Future<void> _openDecorationPage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DecorationPage()),
+    );
+  }
+
+  Future<void> _openPhotoWall() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DiaryPhotoWallPage()),
     );
   }
 

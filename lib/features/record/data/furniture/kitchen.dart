@@ -139,6 +139,19 @@ final List<FurnitureItem> kitchenItems = [
     visualScale: 1.0,
     visualOffset: const Offset(0, 2),
   ),
+  FurnitureItem(
+    id: 'cabinet_8',
+    name: '灶台8',
+    imagePath: 'assets/images/decoration/furniture/cabinet8.png',
+    category: '厨房',
+    subCategory: '家具',
+    gridW: 4,
+    gridH: 3,
+    intrinsicWidth: 377,
+    intrinsicHeight: 520,
+    quantity: 5,
+    visualScale: 1.0,
+  ),
 
   FurnitureItem(
     id: 'refrigerator_3',

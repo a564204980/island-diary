@@ -140,8 +140,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     });
   }
 
-  bool get _effectiveIsNight =>
-      widget.isNight && !_currentEntry.paperStyle.startsWith('note');
+  bool get _effectiveIsNight => widget.isNight;
 
   @override
   Widget build(BuildContext context) {
@@ -155,7 +154,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         : Color.lerp(baseGlowColor, Colors.black, 0.45)!;
     final inkColor = DiaryUtils.getInkColor(
       _currentEntry.paperStyle,
-      _effectiveIsNight,
+      widget.isNight,
     );
 
     return Scaffold(
@@ -181,7 +180,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   child: CustomPaint(
                     painter: PaperBackgroundPainter(
                       style: _currentEntry.paperStyle,
-                      isNight: _effectiveIsNight,
+                      isNight: _effectiveIsNight && !_currentEntry.paperStyle.startsWith('note'),
                       accentColor: accentColor,
                     ),
                   ),
@@ -192,7 +191,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           Positioned.fill(
             child: SafeArea(
               bottom: false,
-              child: Center(
+              child: Align(
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 800),
                   child: SingleChildScrollView(
@@ -252,7 +252,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     final iconColor = inkColor.withValues(alpha: 0.9);
     // 悬浮条背景跟随信纸基色，但在 note 系列背景下保持较高的不透明度以防背景干扰
     final barBgColor = _currentEntry.paperStyle.startsWith('note')
-        ? (isNight ? const Color(0xFF2C2E30) : Colors.white).withValues(alpha: 0.9)
+        ? (isNight ? const Color(0xFF2C2E30) : Colors.white)
         : paperBaseColor.withValues(alpha: 0.98);
 
     return Positioned(
@@ -269,9 +269,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             border: Border.all(color: inkColor.withValues(alpha: 0.1), width: 0.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 15,
-                offset: const Offset(0, 6),
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -394,7 +394,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 fontWeight: FontWeight.bold,
                 color: DiaryUtils.getInkColor(
                   _currentEntry.paperStyle,
-                  _effectiveIsNight,
+                  widget.isNight,
                 ),
                 fontFamily: 'LXGWWenKai',
                 letterSpacing: -1,
@@ -407,7 +407,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 fontWeight: FontWeight.w500,
                 color: DiaryUtils.getInkColor(
                   _currentEntry.paperStyle,
-                  _effectiveIsNight,
+                  widget.isNight,
                 ).withValues(alpha: 0.7),
                 fontFamily: 'LXGWWenKai',
               ),
@@ -423,7 +423,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             fontStyle: FontStyle.italic,
             color: DiaryUtils.getInkColor(
               _currentEntry.paperStyle,
-              _effectiveIsNight,
+              widget.isNight,
             ).withValues(alpha: 0.6),
             fontFamily: 'LXGWWenKai',
           ),
@@ -640,7 +640,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       height: 1.8,
       color: DiaryUtils.getInkColor(
         _currentEntry.paperStyle,
-        _effectiveIsNight,
+        widget.isNight,
       ),
       fontFamily: 'LXGWWenKai',
     );
