@@ -354,7 +354,12 @@ class DiaryUtils {
       return const Color(0xFFE5E0D5); 
     }
 
-    // 白天模式：具有质感的深灰蓝绿色
+    // 针对“时光叙事”(note2) 风格使用深咖啡色
+    if (paperStyle == 'note2') {
+      return const Color(0xFF5A463D);
+    }
+
+    // 默认白天模式：具有质感的深灰蓝绿色
     return const Color(0xFF3D4E4F);
   }
 
@@ -393,6 +398,11 @@ class DiaryUtils {
   static Color getAccentColor(String paperStyle, bool isNight) {
     if (isNight) {
       return const Color(0xFFE0C097); 
+    }
+
+    // 针对“时光叙事”(note2) 风格使用复古棕褐色
+    if (paperStyle == 'note2') {
+      return const Color(0xFF8B6B5D);
     }
 
     // 白天模式：使用比墨水色略浅的深灰色
