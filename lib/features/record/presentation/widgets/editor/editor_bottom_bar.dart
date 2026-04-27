@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_toolbar.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/emoji_panel.dart';

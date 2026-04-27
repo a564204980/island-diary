@@ -90,6 +90,46 @@ class DiaryEntry {
     );
   }
 
+  DiaryEntry copyWith({
+    String? id,
+    DateTime? dateTime,
+    int? moodIndex,
+    double? intensity,
+    String? content,
+    String? tag,
+    List<Map<String, dynamic>>? blocks,
+    String? weather,
+    String? temp,
+    String? location,
+    String? customDate,
+    String? customTime,
+    List<DiaryReply>? replies,
+    String? paperStyle,
+    bool? isImageGrid,
+    bool? isMixedLayout,
+    bool? isLiked,
+  }) {
+    return DiaryEntry(
+      id: id ?? this.id,
+      dateTime: dateTime ?? this.dateTime,
+      moodIndex: moodIndex ?? this.moodIndex,
+      intensity: intensity ?? this.intensity,
+      content: content ?? this.content,
+      tag: tag ?? this.tag,
+      blocks: blocks ?? this.blocks,
+      weather: weather ?? this.weather,
+      temp: temp ?? this.temp,
+      location: location ?? this.location,
+      customDate: customDate ?? this.customDate,
+      customTime: customTime ?? this.customTime,
+      replies: replies ?? this.replies,
+      paperStyle: paperStyle ?? this.paperStyle,
+      isImageGrid: isImageGrid ?? this.isImageGrid,
+      isMixedLayout: isMixedLayout ?? this.isMixedLayout,
+      isLiked: isLiked ?? this.isLiked,
+    );
+  }
+
   String toJson() => jsonEncode(toMap());
 
   factory DiaryEntry.fromJson(String source) =>

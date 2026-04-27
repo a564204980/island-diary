@@ -34,7 +34,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _zoomAnimationController;
   Animation<Matrix4>? _zoomAnimation;
   Timer? _timeChecker;
-  late String _currentBgPath;
   bool _isLandscape = false; // 是否全屏横屏模式
   bool _showGlobalDialogue = false; 
   String _globalDialogueText = "";
@@ -271,12 +270,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
-  void _openDecorationPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const DecorationPage()),
-    );
-  }
 
 
   Future<void> _showSuccessEffect(List<MascotAchievement> achievements) async {

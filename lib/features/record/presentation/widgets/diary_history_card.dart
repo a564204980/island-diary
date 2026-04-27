@@ -109,7 +109,6 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
         "${widget.entry.dateTime.month}/${widget.entry.dateTime.day}";
     final timeStr =
         "${widget.entry.dateTime.hour.toString().padLeft(2, '0')}:${widget.entry.dateTime.minute.toString().padLeft(2, '0')}";
-    final timelineLabel = widget.showDate ? "$dateStr\n$timeStr" : timeStr;
 
     final textStyle = TextStyle(
       fontSize: 15.5,
