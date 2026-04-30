@@ -163,7 +163,43 @@ mixin AchievementMixin on ProfileMixin, DiaryMixin {
     // 4. 解锁终身会员
     await setIsVipLevel(3);
 
-    debugPrint('Debug: All items, achievements and VIP unlocked for testing.');
+    // 5. 预填日记草稿 (包含图片，方便测试)
+    final testImages = [
+      '【哲风壁纸】云彩-夜晚-夜景.png',
+      '【哲风壁纸】休闲-室内-居家.png',
+      '【哲风壁纸】冷艳御姐-壁纸-暗调.png',
+      '【哲风壁纸】可爱小狗-小狗-护眼.png',
+      '【哲风壁纸】可爱玩偶-地面落叶.png',
+      '壁hi.png',
+    ];
+    
+    final random = Random();
+    final imageCount = random.nextInt(5) + 1; // 1-5 随机数量
+    final selectedImages = List<String>.from(testImages)..shuffle(random);
+    
+    final blocks = <Map<String, dynamic>>[
+      {'type': 'text', 'content': '今天在岛屿上发现了一个秘密角落...'},
+    ];
+    
+    for (int i = 0; i < imageCount; i++) {
+      blocks.add({'type': 'image', 'path': 'assets/images/test/${selectedImages[i % selectedImages.length]}'});
+      if (i == 0) {
+        blocks.add({'type': 'text', 'content': '这里的景色真是太美了，感觉整个人都治愈了。'});
+      }
+    }
+
+    await saveDraft(
+      content: '今天在岛屿上发现了一个秘密角落...\n这里的景色真是太美了，感觉整个人都治愈了。',
+      moodIndex: 4, // 平静
+      intensity: 8.0,
+      weather: '晴',
+      temp: '26°C',
+      location: '神秘沙滩',
+      blocks: blocks,
+      isMixedLayout: true,
+    );
+
+    debugPrint('Debug: All items, achievements, VIP unlocked and draft pre-filled for testing.');
   }
 
   Map<String, int> getAchievementStats() {
