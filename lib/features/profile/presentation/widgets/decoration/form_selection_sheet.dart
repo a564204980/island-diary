@@ -152,12 +152,12 @@ class MascotFormSelectionSheet extends StatelessWidget {
                   final bPath = b['path']!;
                   bool aLocked =
                       (aPath == 'assets/images/emoji/marshmallow4.png')
-                          ? !isVip
-                          : !unlockedPaths.contains(aPath);
+                      ? !isVip
+                      : !unlockedPaths.contains(aPath);
                   bool bLocked =
                       (bPath == 'assets/images/emoji/marshmallow4.png')
-                          ? !isVip
-                          : !unlockedPaths.contains(bPath);
+                      ? !isVip
+                      : !unlockedPaths.contains(bPath);
                   if (aLocked != bLocked) return aLocked ? 1 : -1;
                   return 0;
                 });

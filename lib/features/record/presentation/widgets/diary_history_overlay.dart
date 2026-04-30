@@ -5,15 +5,17 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_search_panel.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_calendar_panel.dart';
-import 'package:island_diary/features/record/presentation/widgets/diary_history_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_moments_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_moments_header.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_share_card_builder.dart';
 import 'package:island_diary/features/record/presentation/widgets/export_config_dialog.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
-import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_masonry_header.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_masonry_card.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_featured_card.dart';
 
 enum DiaryLayoutMode {
   timeline, // 拟物纸张时间轴
@@ -100,7 +102,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
             builder: (context, coverPath, _) {
               return Positioned.fill(
                 child: Container(
-                  color: isNight ? const Color(0xFF13131F) : Colors.white,
+                  color: isNight ? const Color(0xFF13131F) : const Color(0xFFF7F5F0),
                   child: isMoments
                       ? (isNight
                             ? const SizedBox.shrink()
@@ -124,9 +126,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                         sigmaY: 60,
                                       ),
                                       child: Container(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.6,
-                                        ),
+                                        color: Colors.white.withValues(alpha: 0.6),
                                       ),
                                     ),
                                   ),
@@ -141,13 +141,15 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
           ),
           if (!isMoments && !isCalendar)
             Positioned.fill(
-              child: CustomPaint(
-                painter: PaperBackgroundPainter(
-                  style: 'classic', // 历史记录列表默认使用经典风格线稿
-                  isNight: isNight,
-                  accentColor: isNight
-                      ? const Color(0xFFE0C097)
-                      : const Color(0xFFD4A373),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: isNight 
+                        ? [const Color(0xFF1A1A24), const Color(0xFF13131F)]
+                        : [const Color(0xFFF7F2EC), const Color(0xFFF5F1EB)],
+                  ),
                 ),
               ),
             ),
@@ -174,15 +176,14 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 方案 B：在朋友圈模式下隐藏周历，否则显示周历及其右侧的朋友圈入口
+                          // 方案 B：在朋友圈模式下隐藏头部，否则显示瀑布流头部
                           if (!isMoments && !isCalendar)
-                            HorizontalWeekCalendar(
-                              selectedDate: _selectedDate,
+                            DiaryMasonryHeader(
                               isNight: isNight,
-                              onDateSelected: (date) =>
-                                  setState(() => _selectedDate = date),
-                              onMomentsToggle: () =>
-                                  _setLayoutMode(DiaryLayoutMode.moments),
+                              userName: UserState().userName.value.isEmpty ? "我" : UserState().userName.value,
+                              islandDays: 128, // mock
+                              currentDate: _selectedDate ?? DateTime.now(),
+                              onCalendarTap: () => _setLayoutMode(DiaryLayoutMode.calendar),
                             )
                           else if (isCalendar)
                             const SizedBox(height: 16),
@@ -255,65 +256,71 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                               : Colors.black.withValues(
                                                   alpha: 0.3,
                                                 ),
-                                          fontFamily: 'LXGWWenKai',
+                                          fontFamily: 'ArphicKaiti',
                                         ),
                                       ),
                                     )
-                                  : ListView.builder(
-                                      key: ValueKey('list_$_layoutMode'),
-                                      padding: const EdgeInsets.only(
-                                        top: 0,
-                                        bottom: 100,
-                                      ),
-                                      itemCount: isMoments
-                                          ? filtered.length + 1
-                                          : filtered.length,
-                                      itemBuilder: (context, index) {
-                                        if (isMoments) {
-                                          if (index == 0) {
-                                            return DiaryMomentsHeader(
-                                              isNight: isNight,
-                                              onBack: () => _setLayoutMode(
-                                                DiaryLayoutMode.timeline,
+                                  : (isMoments
+                                      ? ListView.builder(
+                                          key: ValueKey('list_$_layoutMode'),
+                                          padding: const EdgeInsets.only(
+                                            top: 0,
+                                            bottom: 100,
+                                          ),
+                                          itemCount: filtered.length + 1,
+                                          itemBuilder: (context, index) {
+                                            if (index == 0) {
+                                              return DiaryMomentsHeader(
+                                                isNight: isNight,
+                                                onBack: () => _setLayoutMode(
+                                                  DiaryLayoutMode.timeline,
+                                                ),
+                                              );
+                                            }
+                                            return Center(
+                                              child: ConstrainedBox(
+                                                constraints: const BoxConstraints(
+                                                  maxWidth: contentMaxWidth,
+                                                ),
+                                                child: DiaryMomentsCard(
+                                                  entry: filtered[index - 1],
+                                                  isNight: isNight,
+                                                  userName:
+                                                      UserState().userName.value,
+                                                ),
                                               ),
                                             );
-                                          }
-                                          return Center(
-                                            child: ConstrainedBox(
-                                              constraints: const BoxConstraints(
-                                                maxWidth: contentMaxWidth,
+                                          },
+                                        )
+                                      : CustomScrollView(
+                                          key: const ValueKey('masonry'),
+                                          slivers: [
+                                            if (filtered.isNotEmpty)
+                                              SliverToBoxAdapter(
+                                                child: DiaryFeaturedCard(
+                                                  entry: filtered.first,
+                                                  isNight: isNight,
+                                                ),
                                               ),
-                                              child: DiaryMomentsCard(
-                                                entry: filtered[index - 1],
-                                                isNight: isNight,
-                                                userName:
-                                                    UserState().userName.value,
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                        return Center(
-                                          child: ConstrainedBox(
-                                            constraints: const BoxConstraints(
-                                              maxWidth: contentMaxWidth,
-                                            ),
-                                            child: DiaryHistoryCard(
-                                              entry: filtered[index],
-                                              index: index,
-                                              isFilteredMode: true,
-                                              isNight: isNight,
-                                              showDate: _selectedDate == null,
-                                              isFirst: index == 0,
-                                              isLast:
-                                                  index == filtered.length - 1,
-                                              onShare: () => _shareCurrentDay(
-                                                filtered[index].dateTime,
+                                            SliverPadding(
+                                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                                              sliver: SliverMasonryGrid.count(
+                                                crossAxisCount: MediaQuery.of(context).size.width > 800 ? 3 : 2,
+                                                mainAxisSpacing: 12,
+                                                crossAxisSpacing: 12,
+                                                childCount: filtered.length > 1 ? filtered.length - 1 : 0,
+                                                itemBuilder: (context, index) {
+                                                  // skip the first one as it's featured
+                                                  return DiaryMasonryCard(
+                                                    entry: filtered[index + 1],
+                                                    isNight: isNight,
+                                                    index: index + 1,
+                                                  );
+                                                },
                                               ),
                                             ),
-                                          ),
-                                        );
-                                      },
-                                    ),
+                                          ],
+                                        )),
                             );
                           },
                         ),
@@ -383,7 +390,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
                                 color: Color(0xFFE1AF78),
-                                fontFamily: 'LXGWWenKai',
+                                fontFamily: 'ArphicKaiti',
                               ),
                             ),
                           ],
@@ -516,7 +523,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                         _isBookShare ? "正在编撰岁月之书..." : "正在制作分享卡片...",
                         style: const TextStyle(
                           color: Colors.white,
-                          fontFamily: 'LXGWWenKai',
+                          fontFamily: 'ArphicKaiti',
                         ),
                       ),
                     ],
@@ -541,30 +548,6 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
     );
   }
 
-  Future<void> _shareCurrentDay([DateTime? date]) async {
-    final now = date ?? _selectedDate ?? DateTime.now();
-    final dayEntries = UserState().savedDiaries.value
-        .where(
-          (d) =>
-              d.dateTime.year == now.year &&
-              d.dateTime.month == now.month &&
-              d.dateTime.day == now.day,
-        )
-        .toList();
-    if (dayEntries.isEmpty) {
-      return;
-    }
-    setState(() {
-      _shareEntries = dayEntries;
-      _shareTitle = "${now.year}年${now.month}月${now.day}日";
-      _isMonthShare = false;
-      _isBookShare = false;
-      _isCapturing = true;
-    });
-    await _executeCaptureAndShare(
-      "diary_day_${now.millisecondsSinceEpoch}.png",
-    );
-  }
 
   Future<void> _shareCurrentMonth([DateTime? date]) async {
     final now = date ?? _selectedDate ?? DateTime.now();
@@ -695,201 +678,3 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
   }
 }
 
-class HorizontalWeekCalendar extends StatefulWidget {
-  final DateTime? selectedDate;
-  final Function(DateTime?) onDateSelected;
-  final VoidCallback onMomentsToggle;
-  final bool isNight;
-  const HorizontalWeekCalendar({
-    super.key,
-    required this.selectedDate,
-    required this.onDateSelected,
-    required this.onMomentsToggle,
-    required this.isNight,
-  });
-  @override
-  State<HorizontalWeekCalendar> createState() => _HorizontalWeekCalendarState();
-}
-
-class _HorizontalWeekCalendarState extends State<HorizontalWeekCalendar> {
-  late ScrollController _scrollController;
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController(initialScrollOffset: 5000.0);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final firstDayOfMonth = DateTime(now.year, now.month, 1);
-    final weekDates = List.generate(
-      now.day,
-      (i) => firstDayOfMonth.add(Duration(days: i)),
-    );
-    final weekDays = ["日", "一", "二", "三", "四", "五", "六"];
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 20, right: 12),
-            child: GestureDetector(
-              onTap: () => widget.onDateSelected(null),
-              child: Column(
-                children: [
-                  Text(
-                    "全部",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: widget.isNight
-                          ? Colors.white.withValues(alpha: 0.8)
-                          : Colors.black.withValues(alpha: 0.25),
-                      fontFamily: 'LXGWWenKai',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: widget.selectedDate == null
-                          ? const Color(0xFFD4A373)
-                          : Colors.transparent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.all_inclusive,
-                        size: 20,
-                        color: widget.selectedDate == null
-                            ? Colors.white
-                            : (widget.isNight
-                                  ? Colors.white30
-                                  : Colors.black38),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              controller: _scrollController,
-              child: Row(
-                children: [
-                  ...weekDates.map((date) {
-                    final isSelected =
-                        widget.selectedDate != null &&
-                        date.day == widget.selectedDate!.day &&
-                        date.month == widget.selectedDate!.month &&
-                        date.year == widget.selectedDate!.year;
-                    return GestureDetector(
-                      onTap: () => widget.onDateSelected(date),
-                      child: Container(
-                        width: 45,
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        child: Column(
-                          children: [
-                            Text(
-                              weekDays[date.weekday % 7],
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isSelected
-                                    ? const Color(0xFFE1AF78)
-                                    : (widget.isNight
-                                          ? Colors.white.withValues(alpha: 0.75)
-                                          : Colors.black26),
-                                fontFamily: 'LXGWWenKai',
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFFE1AF78)
-                                    : Colors.transparent,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  "${date.day}",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : (widget.isNight
-                                              ? Colors.white.withValues(alpha: 0.85)
-                                              : Colors.black87),
-                                    fontFamily: 'LXGWWenKai',
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  const SizedBox(width: 44), // 为右侧固定按钮预留安全空隙
-                ],
-              ),
-            ),
-          ),
-          // 右侧朋友圈入口 - 固定在右侧，不随日期滚动
-          Padding(
-            padding: const EdgeInsets.only(left: 6, right: 16),
-            child: GestureDetector(
-              onTap: widget.onMomentsToggle,
-              child: Column(
-                children: [
-                  Text(
-                    "朋友圈",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: widget.isNight
-                          ? Colors.white.withValues(alpha: 0.8)
-                          : Colors.black.withValues(alpha: 0.25),
-                      fontFamily: 'LXGWWenKai',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: (widget.isNight
-                          ? Colors.white10
-                          : Colors.black.withValues(alpha: 0.04)),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.camera_rounded,
-                        size: 20,
-                        color: const Color(0xFFE1AF78),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

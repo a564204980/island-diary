@@ -48,7 +48,7 @@ class IslandDiaryApp extends StatelessWidget {
             ),
             useMaterial3: true,
             scaffoldBackgroundColor: const Color(0xFFE6F3F5),
-            fontFamily: 'LXGWWenKai',
+            fontFamily: 'ArphicKaiti',
           ),
           darkTheme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
@@ -57,7 +57,7 @@ class IslandDiaryApp extends StatelessWidget {
             ),
             useMaterial3: true,
             scaffoldBackgroundColor: const Color(0xFF0D1B2A),
-            fontFamily: 'LXGWWenKai',
+            fontFamily: 'ArphicKaiti',
           ),
           themeMode: userState.isNight ? ThemeMode.dark : ThemeMode.light,
       localizationsDelegates: const [

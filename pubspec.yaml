@@ -64,6 +64,7 @@ dependencies:
   dio: ^5.9.2
   archive: ^4.0.9
   google_mlkit_subject_segmentation: ^0.0.3
+  flutter_staggered_grid_view: ^0.7.0
 
 
 dev_dependencies:
@@ -121,6 +122,7 @@ flutter:
     - assets/images/emoji/wechat/other/
     - assets/images/emoji/medal/
     - assets/images/event/
+    - assets/images/test/
     - assets/audio/
     - assets/fonts/
 
@@ -167,5 +169,8 @@ flutter:
     - family: MaoKenZhuYuan
       fonts:
         - asset: assets/fonts/MaoKenZhuYuanTi-MaokenZhuyuanTi-2.ttf
+    - family: ArphicKaiti
+      fonts:
+        - asset: assets/fonts/gkai00mp-2.ttf
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

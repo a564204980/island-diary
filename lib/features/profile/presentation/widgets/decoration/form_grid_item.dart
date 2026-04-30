@@ -75,114 +75,124 @@ class FormGridItem extends StatelessWidget {
         HapticFeedback.lightImpact();
         userState.setMascotType(path);
       },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: _buildItemDecoration(
-          isNight,
-          form['rarity'] ?? '普通',
-        ),
-        child: Stack(
-          children: [
-            if (isSelected) _buildCheckBadge(form['rarity'] ?? '普通'),
-            Column(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: Opacity(
-                      opacity: isLocked ? 0.3 : 1.0,
-                      child: StaticSprite(
-                        assetPath: path,
-                        size: 80,
-                        frameCount: path.contains('weixiao.png') ? 9 : 1,
-                      )
-                          .animate(target: isSelected ? 1 : 0)
-                          .scale(
-                            duration: 300.ms,
-                            begin: const Offset(1, 1),
-                            end: const Offset(1.15, 1.15),
-                            curve: Curves.easeOutBack,
-                          ),
-                    ),
-                  ),
+      child:
+          Container(
+                padding: const EdgeInsets.all(12),
+                decoration: _buildItemDecoration(
+                  isNight,
+                  form['rarity'] ?? '普通',
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Stack(
                   children: [
-                    _buildRarityTag(form['rarity'] ?? '普通'),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        form['name']!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? const Color(0xFF818CF8)
-                              : (isNight ? Colors.white : const Color(0xFF3E2723)),
-                          fontFamily: 'LXGWWenKai',
+                    if (isSelected) _buildCheckBadge(form['rarity'] ?? '普通'),
+                    Column(
+                      children: [
+                        Expanded(
+                          child: Center(
+                            child: Opacity(
+                              opacity: isLocked ? 0.3 : 1.0,
+                              child:
+                                  StaticSprite(
+                                        assetPath: path,
+                                        size: 80,
+                                        frameCount: path.contains('weixiao.png')
+                                            ? 9
+                                            : 1,
+                                      )
+                                      .animate(target: isSelected ? 1 : 0)
+                                      .scale(
+                                        duration: 300.ms,
+                                        begin: const Offset(1, 1),
+                                        end: const Offset(1.15, 1.15),
+                                        curve: Curves.easeOutBack,
+                                      ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildRarityTag(form['rarity'] ?? '普通'),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                form['name']!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSelected
+                                      ? const Color(0xFF818CF8)
+                                      : (isNight
+                                            ? Colors.white
+                                            : const Color(0xFF3E2723)),
+                                  fontFamily: 'LXGWWenKai',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            isLocked ? (lockHint ?? '已锁定') : form['desc']!,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: isLocked
+                                  ? (isNight
+                                        ? Colors.orangeAccent
+                                        : Colors.deepOrange)
+                                  : (isNight ? Colors.white38 : Colors.black26),
+                              fontFamily: 'LXGWWenKai',
+                              fontWeight: isLocked
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                    ),
+                    if (isLocked)
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: isNight
+                                ? Colors.white12
+                                : Colors.black.withValues(alpha: 0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            path.contains('marshmallow4.png')
+                                ? Icons.workspace_premium_rounded
+                                : Icons.lock_rounded,
+                            size: 14,
+                            color: isNight ? Colors.white38 : Colors.black38,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    isLocked ? (lockHint ?? '已锁定') : form['desc']!,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isLocked
-                          ? (isNight ? Colors.orangeAccent : Colors.deepOrange)
-                          : (isNight ? Colors.white38 : Colors.black26),
-                      fontFamily: 'LXGWWenKai',
-                      fontWeight: isLocked ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-              ],
-            ),
-            if (isLocked)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: isNight
-                        ? Colors.white12
-                        : Colors.black.withValues(alpha: 0.05),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    path.contains('marshmallow4.png')
-                        ? Icons.workspace_premium_rounded
-                        : Icons.lock_rounded,
-                    size: 14,
-                    color: isNight ? Colors.white38 : Colors.black38,
-                  ),
-                ),
+              )
+              .animate(
+                delay: shouldAnimate ? (index % 10 * 50).ms : Duration.zero,
+                autoPlay: shouldAnimate,
+              )
+              .fadeIn(duration: 400.ms)
+              .moveY(
+                begin: shouldAnimate ? 15 : 0,
+                end: 0,
+                curve: Curves.easeOutCubic,
               ),
-          ],
-        ),
-      )
-          .animate(
-            delay: shouldAnimate ? (index % 10 * 50).ms : Duration.zero,
-            autoPlay: shouldAnimate,
-          )
-          .fadeIn(duration: 400.ms)
-          .moveY(
-            begin: shouldAnimate ? 15 : 0,
-            end: 0,
-            curve: Curves.easeOutCubic,
-          ),
     );
   }
 
