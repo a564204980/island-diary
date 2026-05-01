@@ -15,7 +15,6 @@ import 'package:island_diary/features/profile/presentation/pages/profile_page.da
 import 'package:island_diary/shared/widgets/barrage/mood_barrage_wall.dart';
 import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
-import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 import 'package:island_diary/features/statistics/presentation/pages/statistics_page.dart';
 
 
