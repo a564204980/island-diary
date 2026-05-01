@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
@@ -12,12 +11,12 @@ import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_form
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_insert_mixin.dart';
 import 'package:island_diary/shared/widgets/mood_picker/mood_popup_picker.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
-import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
 import 'package:island_diary/shared/widgets/island_vip_guard_dialog.dart';
 import 'package:island_diary/core/services/image_segmentation_service.dart';
 import '../widgets/editor/editor_header.dart';
 import '../widgets/editor/editor_content_list.dart';
 import '../widgets/editor/editor_bottom_bar.dart';
+import 'package:island_diary/shared/widgets/mood_picker/custom_mood_picker_popup.dart';
 class DiaryEditorPage extends StatefulWidget {
   final int? moodIndex;
   final double intensity;
@@ -125,6 +124,15 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             accentColor: accentColor,
                             bottomPadding: (!isMixedLayout) ? 12 : math.max(160, currentBottomHeight + 100),
                             currentMoodIndex: currentMoodIndex,
+                            currentTag: currentTag,
+                            onClearMood: () {
+                              setState(() {
+                                currentMoodIndex = null;
+                                currentTag = null;
+                                updateMoodQuote();
+                              });
+                              onBlocksChanged();
+                            },
                             onRemoveImage: removeImage,
                             onDeleteAtStart: handleBackspaceAtStart,
                             onShowPreview: showImagePreview,
@@ -135,6 +143,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               });
                               onBlocksChanged();
                             },
+                            onCustomTap: _showCustomMoodPicker,
                           ),
                           // 底部留白
                           SliverToBoxAdapter(
@@ -212,6 +221,30 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         updateMoodQuote();
       });
     }
+  }
+  Future<void> _showCustomMoodPicker() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => CustomMoodPickerPopup(
+        paperStyle: currentPaperStyle,
+        isNight: UserState().isNight,
+        onSave: (result) {
+          if (mounted) {
+            setState(() {
+              currentMoodIndex = result['index'];
+              currentIntensity = result['intensity'];
+              if (result['tag'] != null) {
+                currentTag = result['tag'];
+              }
+              updateMoodQuote();
+            });
+            onBlocksChanged();
+          }
+        },
+      ),
+    );
   }
   void onMoreClick() {
     _showMoreBottomSheet();

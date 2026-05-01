@@ -368,7 +368,7 @@ class DiaryUtils {
   /// 获取信纸对应的墨水颜色 (文字颜色)
   static Color getInkColor(String paperStyle, bool isNight) {
     if (isNight) {
-      return const Color(0xFFE5E0D5); 
+      return const Color(0xFFFFFFFF); 
     }
 
     // 针对“时光叙事”(note2) 风格使用深咖啡色

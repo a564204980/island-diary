@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_block_item.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
-import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/features/record/presentation/widgets/editor/mood_selector_header.dart';
 
 class EditorContentList extends StatelessWidget {
@@ -14,11 +13,14 @@ class EditorContentList extends StatelessWidget {
   final Color accentColor;
   final double bottomPadding;
   final int? currentMoodIndex;
+  final String? currentTag;
+  final VoidCallback? onClearMood;
 
   final Function(int) onRemoveImage;
   final Function(int) onDeleteAtStart;
   final Function(ImageBlock) onShowPreview;
   final Function(int) onMoodSelected;
+  final VoidCallback onCustomTap;
 
   const EditorContentList({
     super.key,
@@ -31,10 +33,13 @@ class EditorContentList extends StatelessWidget {
     required this.accentColor,
     required this.bottomPadding,
     this.currentMoodIndex,
+    this.currentTag,
+    this.onClearMood,
     required this.onRemoveImage,
     required this.onDeleteAtStart,
     required this.onShowPreview,
     required this.onMoodSelected,
+    required this.onCustomTap,
   });
 
   @override
@@ -48,9 +53,12 @@ class EditorContentList extends StatelessWidget {
             if (index == 0) {
               return MoodSelectorHeader(
                 currentMoodIndex: currentMoodIndex,
+                currentTag: currentTag,
                 onMoodSelected: onMoodSelected,
+                onClearMood: onClearMood,
                 paperStyle: paperStyle,
                 isNight: isNight,
+                onCustomTap: onCustomTap,
               );
             }
 

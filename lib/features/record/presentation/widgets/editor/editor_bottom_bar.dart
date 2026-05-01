@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:island_diary/shared/widgets/diary_entry/components/diary_toolbar.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/emoji_panel.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
@@ -77,7 +76,6 @@ class EditorBottomBar extends StatelessWidget {
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isWide = screenWidth > 800;
     final double toolbarMaxWidth = isWide ? 800.0 : double.infinity;
-    final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -107,7 +105,6 @@ class EditorBottomBar extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildNavItem("心情", Icons.sentiment_satisfied_alt_rounded, false, onMoodTap),
                   _buildNavItem("瞬间", Icons.image_outlined, false, onImagePick),
                   _buildNavItem("表情", Icons.face_rounded, isEmojiOpen, onEmojiToggle),
                   _buildNavItem("文字", Icons.title_rounded, false, onFontSizeClick),
