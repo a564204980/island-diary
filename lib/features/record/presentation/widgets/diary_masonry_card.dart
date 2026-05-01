@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
@@ -29,7 +28,8 @@ class DiaryMasonryCard extends StatelessWidget {
     
     MasonryCardStyle style = MasonryCardStyle.textOnly;
     if (images.isNotEmpty) {
-      style = index % 3 == 0 ? MasonryCardStyle.fullImage : MasonryCardStyle.imageTop;
+      // 只有单图且 index 符合条件时才使用 fullImage，多图一律使用 imageTop 保证文字清晰
+      style = (images.length == 1 && index % 3 == 0) ? MasonryCardStyle.fullImage : MasonryCardStyle.imageTop;
     }
 
     return GestureDetector(
@@ -72,24 +72,20 @@ class DiaryMasonryCard extends StatelessWidget {
 
   Widget _buildCardContent(BuildContext context, MasonryCardStyle style, List<Map<String, dynamic>> images) {
     if (style == MasonryCardStyle.fullImage && images.isNotEmpty) {
-      return _buildFullImageCard(images.first['path']);
+      return _buildFullImageCard(images);
     } else if (style == MasonryCardStyle.imageTop && images.isNotEmpty) {
-      return _buildImageTopCard(images.first['path']);
+      return _buildImageTopCard(images);
     } else {
       return _buildTextOnlyCard();
     }
   }
 
-  Widget _buildFullImageCard(String imagePath) {
+  Widget _buildFullImageCard(List<Map<String, dynamic>> images) {
     return Stack(
       children: [
-        SizedBox(
-          width: double.infinity,
-          height: 240,
-          child: DiaryUtils.buildImage(
-            imagePath,
-            fit: BoxFit.cover,
-          ),
+        AspectRatio(
+          aspectRatio: 1.0, // 全图模式采用正方形
+          child: _buildImageCarousel(images),
         ),
         Positioned.fill(
           child: Container(
@@ -119,24 +115,22 @@ class DiaryMasonryCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTitle(isWhiteText: true),
-              const SizedBox(height: 8),
               _buildExcerpt(isWhiteText: true),
               const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _buildTagsRow(isWhiteText: true),
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      _buildTagsRow(isWhiteText: true),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          _buildTime(isWhiteText: true),
-                          _buildLocation(isWhiteText: true),
-                        ],
-                      ),
+                      _buildTime(isWhiteText: true),
+                      _buildLocation(isWhiteText: true),
                     ],
                   ),
+                ],
+              ),
             ],
           ),
         ),
@@ -144,25 +138,20 @@ class DiaryMasonryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildImageTopCard(String imagePath) {
+  Widget _buildImageTopCard(List<Map<String, dynamic>> images) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: double.infinity,
-          height: 160,
-          child: DiaryUtils.buildImage(
-            imagePath,
-            fit: BoxFit.cover,
-          ),
+        AspectRatio(
+          // 动态比例：根据 index 切换长图/宽图比例
+          aspectRatio: (index % 5 == 0) ? 0.8 : 1.5, 
+          child: _buildImageCarousel(images),
         ),
         Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTitle(),
-              const SizedBox(height: 8),
               _buildExcerpt(),
               const SizedBox(height: 12),
               Row(
@@ -186,7 +175,58 @@ class DiaryMasonryCard extends StatelessWidget {
     );
   }
 
+  Widget _buildImageCarousel(List<Map<String, dynamic>> images) {
+    if (images.length <= 1) {
+      return DiaryUtils.buildImage(
+        images.first['path'],
+        fit: BoxFit.cover,
+      );
+    }
+
+    return Stack(
+      children: [
+        PageView.builder(
+          itemCount: images.length,
+          itemBuilder: (context, i) {
+            return DiaryUtils.buildImage(
+              images[i]['path'],
+              fit: BoxFit.cover,
+            );
+          },
+        ),
+        Positioned(
+          bottom: 8,
+          right: 8,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(
+                images.length,
+                (i) => Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white70,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildTextOnlyCard() {
+    final Color baseBgColor = isNight ? const Color(0xFF212329) : const Color(0xFFF4EFE6);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -194,89 +234,69 @@ class DiaryMasonryCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isNight
-            ? [const Color(0xFF2C2E35), const Color(0xFF212329)]
-            : [const Color(0xFFF9F7F3), const Color(0xFFF4EFE6)],
+            ? [const Color(0xFF2C2E35), baseBgColor]
+            : [const Color(0xFFF9F7F3), baseBgColor],
         ),
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildTitle(),
-          const SizedBox(height: 8),
-          _buildExcerpt(),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _buildTagsRow(),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _buildTime(),
-                  _buildLocation(),
-                ],
-              ),
-            ],
-          )
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildExcerpt(),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _buildTagsRow(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _buildTime(),
+                    _buildLocation(),
+                  ],
+                ),
+              ],
+            )
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildTitle({bool isWhiteText = false}) {
-    final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
-    final mood = kMoods[moodIdx];
-    final Color textColor = isWhiteText ? Colors.white : (isNight ? Colors.white : const Color(0xFF060606));
-
-    String plainText = DiaryUtils.getFilteredContent(entry.content).replaceAll('\n', ' ').trim();
-    String displayTitle = plainText.length > 10 ? plainText.substring(0, 10) : plainText;
-    if (displayTitle.isEmpty) displayTitle = mood.label;
-
-    return Row(
-      children: [
-        Image.asset(
-          mood.iconPath ?? 'assets/images/icons/sun.png',
-          width: 20,
-          height: 20,
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            displayTitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-                          ),
-          ),
-        ),
-      ],
     );
   }
 
   Widget _buildExcerpt({bool isWhiteText = false}) {
-    final Color textColor = isWhiteText ? Colors.white : (isNight ? Colors.white70 : const Color(0xFF8B7763));
+    final bool hasImages = entry.blocks.any((b) => b['type'] == 'image');
+    final bool isAutoDark = !hasImages && DiaryUtils.isMoodBackgroundDark(entry.moodIndex, entry.intensity);
+    final bool forceWhite = isWhiteText || isNight || isAutoDark;
+    final Color textColor = forceWhite ? Colors.white70 : const Color(0xFF333333);
     String plainText = DiaryUtils.getFilteredContent(entry.content).trim();
     if (plainText.isEmpty) return const SizedBox.shrink();
 
+    int maxLines = 3;
+    if (index % 4 == 0) maxLines = 1;
+    if (index % 4 == 3) {
+      maxLines = hasImages ? 6 : 3;
+    }
+
     return Text(
       plainText,
-      maxLines: 3,
+      maxLines: maxLines,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
         fontSize: 13,
         height: 1.5,
         color: textColor,
-              ),
+      ),
     );
   }
 
   Widget _buildTime({bool isWhiteText = false}) {
-    final Color textColor = isWhiteText ? Colors.white : (isNight ? Colors.white54 : const Color(0xFFB5A89A));
+    final bool hasImages = entry.blocks.any((b) => b['type'] == 'image');
+    final bool isAutoDark = !hasImages && DiaryUtils.isMoodBackgroundDark(entry.moodIndex, entry.intensity);
+    final bool forceWhite = isWhiteText || isNight || isAutoDark;
+    final Color textColor = forceWhite ? Colors.white54 : const Color(0xFFB5A89A);
     final timeStr = "${entry.dateTime.hour.toString().padLeft(2, '0')}:${entry.dateTime.minute.toString().padLeft(2, '0')}";
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -300,8 +320,10 @@ class DiaryMasonryCard extends StatelessWidget {
 
   Widget _buildLocation({bool isWhiteText = false}) {
     if (entry.location == null || entry.location!.isEmpty) return const SizedBox.shrink();
-    
-    final Color textColor = isWhiteText ? Colors.white : (isNight ? Colors.white54 : const Color(0xFFB5A89A));
+    final bool hasImages = entry.blocks.any((b) => b['type'] == 'image');
+    final bool isAutoDark = !hasImages && DiaryUtils.isMoodBackgroundDark(entry.moodIndex, entry.intensity);
+    final bool forceWhite = isWhiteText || isNight || isAutoDark;
+    final Color textColor = forceWhite ? Colors.white54 : const Color(0xFFB5A89A);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -342,10 +364,18 @@ class DiaryMasonryCard extends StatelessWidget {
   }
 
   Widget _buildTagPill(String text, {required bool isWhiteText, IconData? icon, String? iconPath}) {
-    final bgColor = isWhiteText 
-        ? Colors.white.withValues(alpha: 0.2) 
-        : (isNight ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF1EDE6));
-    final textColor = isWhiteText ? Colors.white : (isNight ? Colors.white70 : const Color(0xFF8B7763));
+    final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
+    final mood = kMoods[moodIdx];
+    final themeColor = mood.glowColor ?? const Color(0xFFD4A373);
+
+    final bool hasImages = entry.blocks.any((b) => b['type'] == 'image');
+    final bool isAutoDark = !hasImages && DiaryUtils.isMoodBackgroundDark(entry.moodIndex, entry.intensity);
+    final bool isActuallyDark = isWhiteText || isAutoDark;
+    final bool forceWhite = isActuallyDark || isNight;
+
+    final bool useBlackText = !hasImages && !isNight;
+    final bgColor = themeColor.withValues(alpha: forceWhite ? 0.3 : 0.2);
+    final Color textColor = forceWhite ? Colors.white : (useBlackText ? const Color(0xFF060606) : const Color(0xFF333333));
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

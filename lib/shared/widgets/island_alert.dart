@@ -57,8 +57,10 @@ class IslandAlert extends StatelessWidget {
     // 默认 3 秒后自动关闭
     Future.delayed(duration, () {
       if (!context.mounted) return;
-      if (!isPopped && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
+      final navigator = Navigator.of(context);
+      // 增加对 navigator 锁定状态的健壮性检查，防止在并发路由操作时崩溃
+      if (!isPopped && navigator.canPop()) {
+        navigator.pop();
       }
     });
 

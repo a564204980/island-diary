@@ -245,13 +245,21 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     if (fullText.trim().isEmpty &&
         blocks.whereType<ImageBlock>().isEmpty &&
         blocks.whereType<AudioBlock>().isEmpty) {
-      IslandAlert.show(context, message: '从心出发，总要留下点什么（日记内容不能为空哦）');
+      // 预先收起键盘，防止与弹窗冲突
+      FocusScope.of(context).unfocus();
+      if (isEmojiOpen) setState(() => isEmojiOpen = false);
+      
+      // 延迟到下一帧弹出，规避 Navigator 锁定问题
+      Future.microtask(() => IslandAlert.show(context, message: '从心出发，总要留下点什么（日记内容不能为空哦）'));
       return false;
     }
 
     final hasMood = (currentMoodIndex != null && currentMoodIndex! >= 0) || (currentTag != null && currentTag!.isNotEmpty);
     if (!hasMood) {
-      IslandAlert.show(context, message: '先选个心情再出发吧~', icon: '✨');
+      FocusScope.of(context).unfocus();
+      if (isEmojiOpen) setState(() => isEmojiOpen = false);
+      
+      Future.microtask(() => IslandAlert.show(context, message: '先选个心情再出发吧~', icon: '✨'));
       return false;
     }
 
@@ -310,7 +318,9 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
 
       if (mounted) {
         debugPrint("DIARY_EDITOR: 正在退出编辑器...");
-        Navigator.of(context).pop(achievements);
+        // 关键修复：调用方期望 bool? result，因此返回 true 表示保存成功
+        // 成就弹窗通常由外部或全局监听处理，或者此处可以先存储成就数据
+        Navigator.of(context).pop(true);
       }
 
       return true;

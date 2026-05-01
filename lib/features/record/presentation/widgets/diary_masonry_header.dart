@@ -120,34 +120,55 @@ class DiaryMasonryHeader extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: "${currentDate.month}",
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          final offsetAnimation = Tween<Offset>(
+                            begin: const Offset(0.0, 0.4),
+                            end: Offset.zero,
+                          ).animate(CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutBack,
+                          ));
+                          
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: offsetAnimation,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Text.rich(
+                          key: ValueKey("${currentDate.year}-${currentDate.month}-${currentDate.day}"),
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: "${currentDate.month}",
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
                               ),
-                            ),
-                            TextSpan(
-                              text: "月",
-                              style: TextStyle(fontSize: 16, color: textColor),
-                            ),
-                            TextSpan(
-                              text: "${currentDate.day}",
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
+                              TextSpan(
+                                text: "月",
+                                style: TextStyle(fontSize: 16, color: textColor),
                               ),
-                            ),
-                            TextSpan(
-                              text: "日",
-                              style: TextStyle(fontSize: 16, color: textColor),
-                            ),
-                          ],
+                              TextSpan(
+                                text: "${currentDate.day}",
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
+                              ),
+                              TextSpan(
+                                text: "日",
+                                style: TextStyle(fontSize: 16, color: textColor),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(width: 6),

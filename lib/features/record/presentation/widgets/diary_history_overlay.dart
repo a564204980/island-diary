@@ -45,11 +45,15 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
   bool _isMonthShare = false;
   bool _isBookShare = false;
   late final ValueNotifier<Offset?> _dragPosition;
+  late final ScrollController _scrollController;
+  late final ValueNotifier<DateTime> _headerDate;
 
   @override
   void initState() {
     super.initState();
     _dragPosition = ValueNotifier<Offset?>(null);
+    _scrollController = ScrollController();
+    _headerDate = ValueNotifier<DateTime>(DateTime.now());
     _selectedDate = null;
     // 从持久化状态加载
     _layoutMode = DiaryLayoutMode.values[UserState().diaryLayoutMode.value];
@@ -58,6 +62,8 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
   @override
   void dispose() {
     _dragPosition.dispose();
+    _scrollController.dispose();
+    _headerDate.dispose();
     super.dispose();
   }
 
@@ -178,12 +184,17 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                         children: [
                           // 方案 B：在朋友圈模式下隐藏头部，否则显示瀑布流头部
                           if (!isMoments && !isCalendar)
-                            DiaryMasonryHeader(
-                              isNight: isNight,
-                              userName: UserState().userName.value.isEmpty ? "我" : UserState().userName.value,
-                              islandDays: 128, // mock
-                              currentDate: _selectedDate ?? DateTime.now(),
-                              onCalendarTap: () => _setLayoutMode(DiaryLayoutMode.calendar),
+                            ValueListenableBuilder<DateTime>(
+                              valueListenable: _headerDate,
+                              builder: (context, headerDate, _) {
+                                return DiaryMasonryHeader(
+                                  isNight: isNight,
+                                  userName: UserState().userName.value.isEmpty ? "我" : UserState().userName.value,
+                                  islandDays: 128, // mock
+                                  currentDate: headerDate,
+                                  onCalendarTap: () => _setLayoutMode(DiaryLayoutMode.calendar),
+                                );
+                              },
                             )
                           else if (isCalendar)
                             const SizedBox(height: 16),
@@ -212,6 +223,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                     onDateSelected: (date) {
                                       setState(() {
                                         _selectedDate = date;
+                                        _headerDate.value = date;
                                         _setLayoutMode(
                                           DiaryLayoutMode.timeline,
                                         );
@@ -292,34 +304,62 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                             );
                                           },
                                         )
-                                      : CustomScrollView(
-                                          key: const ValueKey('masonry'),
-                                          slivers: [
-                                            if (filtered.isNotEmpty)
-                                              SliverToBoxAdapter(
-                                                child: DiaryFeaturedCard(
-                                                  entry: filtered.first,
-                                                  isNight: isNight,
+                                      : NotificationListener<ScrollNotification>(
+                                          onNotification: (notification) {
+                                            if (filtered.isEmpty) return false;
+                                            
+                                            final double offset = _scrollController.offset;
+                                            final int crossAxisCount = MediaQuery.of(context).size.width > 800 ? 3 : 2;
+                                            
+                                            int index = 0;
+                                            if (offset < 260) {
+                                              index = 0;
+                                            } else {
+                                              double masonryOffset = offset - 260;
+                                              int row = (masonryOffset / 220).floor(); // 估算行高
+                                              index = 1 + row * crossAxisCount;
+                                            }
+                                            
+                                            if (index >= filtered.length) index = filtered.length - 1;
+                                            if (index < 0) index = 0;
+                                            
+                                            final targetDate = filtered[index].dateTime;
+                                            if (_headerDate.value.year != targetDate.year || 
+                                                _headerDate.value.month != targetDate.month || 
+                                                _headerDate.value.day != targetDate.day) {
+                                              _headerDate.value = targetDate;
+                                            }
+                                            return false;
+                                          },
+                                          child: CustomScrollView(
+                                            key: const ValueKey('masonry'),
+                                            controller: _scrollController,
+                                            slivers: [
+                                              if (filtered.isNotEmpty)
+                                                SliverToBoxAdapter(
+                                                  child: DiaryFeaturedCard(
+                                                    entry: filtered.first,
+                                                    isNight: isNight,
+                                                  ),
+                                                ),
+                                              SliverPadding(
+                                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                                                sliver: SliverMasonryGrid.count(
+                                                  crossAxisCount: MediaQuery.of(context).size.width > 800 ? 3 : 2,
+                                                  crossAxisSpacing: 12,
+                                                  mainAxisSpacing: 12,
+                                                  childCount: filtered.length > 1 ? filtered.length - 1 : 0,
+                                                  itemBuilder: (context, index) {
+                                                    return DiaryMasonryCard(
+                                                      entry: filtered[index + 1],
+                                                      isNight: isNight,
+                                                      index: index + 1,
+                                                    );
+                                                  },
                                                 ),
                                               ),
-                                            SliverPadding(
-                                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                                              sliver: SliverMasonryGrid.count(
-                                                crossAxisCount: MediaQuery.of(context).size.width > 800 ? 3 : 2,
-                                                mainAxisSpacing: 12,
-                                                crossAxisSpacing: 12,
-                                                childCount: filtered.length > 1 ? filtered.length - 1 : 0,
-                                                itemBuilder: (context, index) {
-                                                  // skip the first one as it's featured
-                                                  return DiaryMasonryCard(
-                                                    entry: filtered[index + 1],
-                                                    isNight: isNight,
-                                                    index: index + 1,
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         )),
                             );
                           },
@@ -458,6 +498,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                               _filterMoodIndex = m;
                                               if (d != null) {
                                                 _selectedDate = d;
+                                                _headerDate.value = d;
                                               }
                                             });
                                           },

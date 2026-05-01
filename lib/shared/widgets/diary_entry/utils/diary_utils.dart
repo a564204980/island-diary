@@ -476,4 +476,23 @@ class DiaryUtils {
     // 目前 note1-9 都是 png
     return 'assets/images/note/${paperStyle.replaceFirst('note', prefix)}.png';
   }
+
+  /// 根据心情和强度判断背景是否为深色，用于自动切换文字颜色
+  static bool isMoodBackgroundDark(int moodIndex, double intensity) {
+    // 0: 期待, 1: 厌恶, 2: 恐惧, 3: 惊喜, 4: 平静, 5: 愤怒, 6: 悲伤, 7: 开心
+    
+    // 始终定义为深色的背景 (需要白色文字)
+    if (moodIndex == 2 || moodIndex == 5) return true;
+    
+    // 厌恶系列通常偏冷色调/深色
+    if (moodIndex == 1) return true;
+    
+    // 平静系列 1, 2 较浅, 3 较深
+    if (moodIndex == 4) return intensity > 7.0;
+    
+    // 惊喜、期待、开心系列通常较亮 (需要深色文字)
+    if (moodIndex == 0 || moodIndex == 3 || moodIndex == 7) return false;
+    
+    return false;
+  }
 }

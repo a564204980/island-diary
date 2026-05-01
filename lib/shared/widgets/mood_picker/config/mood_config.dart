@@ -18,7 +18,7 @@ List<MoodItem> kMoods = [
     fontSize: 14,
     iconOffset: Offset(-28, -84),
     textOffset: Offset(-26, -60),
-    glowColor: Color(0xFFFFA4A4), // 粉红色
+    glowColor: Color(0xFFBED9AD), // 嫩绿色 (与幼苗图标相符)
     popAngle: -110.0, // 补偿自身重力和形状非对称导致的视觉向右偏移
   ),
   const MoodItem(
