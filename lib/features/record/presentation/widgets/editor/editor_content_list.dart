@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_block_item.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
+import 'package:island_diary/features/record/presentation/widgets/editor/mood_selector_header.dart';
 
 class EditorContentList extends StatelessWidget {
   final List<DiaryBlock> blocks;
@@ -11,9 +13,12 @@ class EditorContentList extends StatelessWidget {
   final String paperStyle;
   final Color accentColor;
   final double bottomPadding;
+  final int? currentMoodIndex;
+
   final Function(int) onRemoveImage;
   final Function(int) onDeleteAtStart;
-  final void Function(ImageBlock)? onShowPreview;
+  final Function(ImageBlock) onShowPreview;
+  final Function(int) onMoodSelected;
 
   const EditorContentList({
     super.key,
@@ -25,9 +30,11 @@ class EditorContentList extends StatelessWidget {
     required this.paperStyle,
     required this.accentColor,
     required this.bottomPadding,
+    this.currentMoodIndex,
     required this.onRemoveImage,
     required this.onDeleteAtStart,
     required this.onShowPreview,
+    required this.onMoodSelected,
   });
 
   @override
@@ -37,23 +44,39 @@ class EditorContentList extends StatelessWidget {
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
+            // 顶部心情选择模块
+            if (index == 0) {
+              return MoodSelectorHeader(
+                currentMoodIndex: currentMoodIndex,
+                onMoodSelected: onMoodSelected,
+                paperStyle: paperStyle,
+                isNight: isNight,
+              );
+            }
+
+            final int contentIndex = index - 1;
+
             // 如果关闭了图文混排模式，只渲染非图片块
             if (!isMixedLayout) {
-              final nonImageBlocks = blocks.where((b) => b is! ImageBlock).toList();
-              if (index >= nonImageBlocks.length) return null;
-              
-              final block = nonImageBlocks[index];
+              final nonImageBlocks = blocks
+                  .where((b) => b is! ImageBlock)
+                  .toList();
+              if (contentIndex >= nonImageBlocks.length) return null;
+
+              final block = nonImageBlocks[contentIndex];
               return _buildBlockItem(block, blocks.indexOf(block));
             }
 
             // 混排模式下按序渲染
-            if (index >= blocks.length) return null;
-            final block = blocks[index];
-            return _buildBlockItem(block, index);
+            if (contentIndex >= blocks.length) return null;
+            final block = blocks[contentIndex];
+            return _buildBlockItem(block, contentIndex);
           },
-          childCount: isMixedLayout 
-              ? blocks.length 
-              : blocks.where((b) => b is! ImageBlock).length,
+          childCount:
+              (isMixedLayout
+                  ? blocks.length
+                  : blocks.where((b) => b is! ImageBlock).length) +
+              1,
         ),
       ),
     );

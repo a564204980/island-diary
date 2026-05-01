@@ -16,6 +16,7 @@ class EditorBottomBar extends StatelessWidget {
 
   // 工具栏回调
   final VoidCallback onEmojiToggle;
+  final VoidCallback onMoodTap;
   final VoidCallback onImagePick;
   final VoidCallback onColorClick;
   final VoidCallback onBgColorClick;
@@ -50,6 +51,7 @@ class EditorBottomBar extends StatelessWidget {
     required this.blocks,
     required this.isMixedLayout,
     required this.onEmojiToggle,
+    required this.onMoodTap,
     required this.onImagePick,
     required this.onColorClick,
     required this.onBgColorClick,
@@ -75,11 +77,23 @@ class EditorBottomBar extends StatelessWidget {
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isWide = screenWidth > 800;
     final double toolbarMaxWidth = isWide ? 800.0 : double.infinity;
+    final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
 
     return Align(
       alignment: Alignment.bottomCenter,
-      child: SizedBox(
+      child: Container(
         width: toolbarMaxWidth,
+        decoration: BoxDecoration(
+          color: isNight ? const Color(0xFF1E1E1E).withValues(alpha: 0.95) : const Color(0xFFFAF8F5).withValues(alpha: 0.95),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -87,29 +101,19 @@ class EditorBottomBar extends StatelessWidget {
             if (!isMixedLayout)
               _buildImageUploadPreviewBar(),
               
-            const SizedBox(height: 8),
-            
-            // 2. 核心工具栏
-            DiaryToolbar(
-              isEmojiOpen: isEmojiOpen,
-              onEmojiToggle: onEmojiToggle,
-              onImagePick: onImagePick,
-              onColorClick: onColorClick,
-              onBgColorClick: onBgColorClick,
-              onLocationClick: onLocationClick,
-              onFontSizeClick: onFontSizeClick,
-              onFontClick: onFontClick,
-              onDateClick: onDateClick,
-              onTimeClick: onTimeClick,
-              onCreateSticker: onCreateSticker,
-              onWeatherClick: onWeatherClick,
-              onMoreClick: onMoreClick,
-              onClose: onClose,
-              onSave: onSave,
-              accentColor: accentColor,
-              isNightOverride: isNight,
-              isNoteBackground: paperStyle.startsWith('note'),
-              paperStyle: paperStyle,
+            // 2. 标签式工具栏
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem("心情", Icons.sentiment_satisfied_alt_rounded, false, onMoodTap),
+                  _buildNavItem("瞬间", Icons.image_outlined, false, onImagePick),
+                  _buildNavItem("表情", Icons.face_rounded, isEmojiOpen, onEmojiToggle),
+                  _buildNavItem("文字", Icons.title_rounded, false, onFontSizeClick),
+                  _buildNavItem("设置", Icons.settings_outlined, false, onMoreClick),
+                ],
+              ),
             ),
             
             // 3. 表情面板/键盘占位区
@@ -117,9 +121,6 @@ class EditorBottomBar extends StatelessWidget {
               duration: Duration(milliseconds: isEmojiOpen ? 150 : 250),
               curve: Curves.easeOutCubic,
               height: currentBottomHeight,
-              color: (isEmojiOpen || viewInsetsBottom > 0)
-                  ? DiaryUtils.getPopupBackgroundColor(paperStyle, isNight).withValues(alpha: 0.98)
-                  : Colors.transparent,
               child: Visibility(
                 visible: isEmojiOpen,
                 maintainState: true,
@@ -134,6 +135,48 @@ class EditorBottomBar extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(String label, IconData icon, bool isActive, VoidCallback onTap) {
+    final Color color = isNight ? Colors.white70 : Colors.black54;
+    final Color activeColor = isNight ? const Color(0xFFE0C097) : const Color(0xFF7A7A6A);
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 26,
+            color: isActive ? activeColor : color.withValues(alpha: 0.6),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: isActive ? activeColor : color.withValues(alpha: 0.6),
+              fontFamily: 'LXGWWenKai',
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          if (isActive)
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              width: 12,
+              height: 2,
+              decoration: BoxDecoration(
+                color: activeColor,
+                borderRadius: BorderRadius.circular(1),
+              ),
+            )
+          else
+            const SizedBox(height: 6),
+        ],
       ),
     );
   }

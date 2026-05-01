@@ -112,6 +112,7 @@ flutter:
     - assets/images/decoration/clothes/
     - assets/images/note/
     - assets/images/icons/
+    - assets/icons/
     - assets/images/emoji/
     - assets/images/emoji/decorate/
     - assets/images/emoji/glasses/

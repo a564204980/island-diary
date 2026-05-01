@@ -36,7 +36,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   String currentFontFamily = UserState().preferredFontFamily.value;
   String? lastFocusedBlockId;
   String? _fixedQuote;
-  DateTime? _entryDateTime;
+  DateTime? entryDateTime;
   
   int? currentMoodIndex;
   late double currentIntensity;
@@ -48,7 +48,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   String get fixedQuote => _fixedQuote ?? '';
 
   void initializeEditor({DiaryEntry? entry, DateTime? initialDate}) {
-    _entryDateTime = entry?.dateTime ?? initialDate;
+    entryDateTime = entry?.dateTime ?? initialDate;
     if (blocks.isEmpty) {
       currentTextColor = UserState().isNight
           ? const Color(0xFFE0C097)
@@ -201,7 +201,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       location: location,
       customDate: customDate,
       customTime: customTime,
-      dateTime: _entryDateTime,
+      dateTime: entryDateTime,
       blocks: blocks.map((b) => b.toMap()).toList(),
       paperStyle: currentPaperStyle,
       isImageGrid: isImageGrid,
@@ -306,7 +306,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           location: location,
           customDate: customDate,
           customTime: customTime,
-          dateTime: _entryDateTime,
+          dateTime: entryDateTime,
           blocks: blocks.map((b) => b.toMap()).toList(),
           paperStyle: currentPaperStyle,
           isImageGrid: isImageGrid,

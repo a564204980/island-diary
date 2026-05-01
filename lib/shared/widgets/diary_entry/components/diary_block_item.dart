@@ -130,7 +130,7 @@ class DiaryBlockItem extends StatelessWidget {
             fontFamilyFallback: const ['LXGWWenKai'],
           ),
           decoration: InputDecoration(
-            hintText: index == 0 ? '今天发生了什么？\n有什么让你在意的瞬间？\n写点只属于你的心情' : '',
+            hintText: index == 0 ? '今天发生了什么?\n\n有什么让你在意的瞬间?\n\n写点只属于你的心情...' : '',
             hintStyle: TextStyle(
               color: isNoteBackground 
                   ? (accentColor?.withValues(alpha: 0.4) ?? (isNight ? Colors.white38 : Colors.black38))

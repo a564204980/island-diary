@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
@@ -15,7 +16,6 @@ import 'package:island_diary/shared/widgets/diary_entry/components/diary_painter
 import 'package:island_diary/shared/widgets/island_vip_guard_dialog.dart';
 import 'package:island_diary/core/services/image_segmentation_service.dart';
 import '../widgets/editor/editor_header.dart';
-import '../widgets/editor/editor_tag_bar.dart';
 import '../widgets/editor/editor_content_list.dart';
 import '../widgets/editor/editor_bottom_bar.dart';
 class DiaryEditorPage extends StatefulWidget {
@@ -71,7 +71,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       builder: (context, themeMode, child) {
         final bool isNight = UserState().isNight;
         final Color accentColor = DiaryUtils.getAccentColor(currentPaperStyle, isNight);
-        final Color bgColor = DiaryUtils.getPaperBaseColor(currentPaperStyle, isNight);
+        final Color bgColor = isNight ? const Color(0xFF121212) : const Color(0xFFFAF8F5);
 
         return PopScope(
           canPop: true,
@@ -80,27 +80,10 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
             backgroundColor: bgColor,
             body: Stack(
               children: [
-                // 1. 信纸底色与纹理层
+                // 1. 信纸底色层
                 Positioned.fill(
-                  child: Stack(
-                    children: [
-                      if (currentPaperStyle.startsWith('note'))
-                        Positioned.fill(
-                          child: Image.asset(
-                            DiaryUtils.getPaperBackgroundPath(currentPaperStyle, isNight),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: PaperBackgroundPainter(
-                            style: currentPaperStyle,
-                            isNight: isNight,
-                            accentColor: accentColor,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: Container(
+                    color: bgColor,
                   ),
                 ),
                 
@@ -117,28 +100,18 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         controller: scrollController,
                         physics: const BouncingScrollPhysics(),
                         slivers: [
-                          // 页头：时间日期与每日一语
+                          // 页头
                           SliverToBoxAdapter(
-                            child: EditorHeader(
-                              paperStyle: currentPaperStyle,
-                              isNight: isNight,
-                              quote: fixedQuote,
-                            ),
-                          ),
-                          // 标签栏：心情、天气、地点等
-                          SliverToBoxAdapter(
-                            child: EditorTagBar(
-                              paperStyle: currentPaperStyle,
-                              isNight: isNight,
-                              accentColor: accentColor,
-                              mood: mood,
-                              currentTag: currentTag,
-                              weather: weather,
-                              temp: temp,
-                              location: location,
-                              customDate: customDate,
-                              customTime: customTime,
-                              onMoodTap: _showMoodPicker,
+                            child: SafeArea(
+                              bottom: false,
+                              child: EditorHeader(
+                                paperStyle: currentPaperStyle,
+                                isNight: isNight,
+                                dateTime: entryDateTime ?? DateTime.now(),
+                                onBack: () => Navigator.of(context).pop(),
+                                onSave: onSave,
+                                onDateTap: onDateClick,
+                              ),
                             ),
                           ),
                           // 编辑主体：内容块列表
@@ -151,9 +124,17 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             paperStyle: currentPaperStyle,
                             accentColor: accentColor,
                             bottomPadding: (!isMixedLayout) ? 12 : math.max(160, currentBottomHeight + 100),
+                            currentMoodIndex: currentMoodIndex,
                             onRemoveImage: removeImage,
                             onDeleteAtStart: handleBackspaceAtStart,
                             onShowPreview: showImagePreview,
+                            onMoodSelected: (index) {
+                              setState(() {
+                                currentMoodIndex = index;
+                                updateMoodQuote();
+                              });
+                              onBlocksChanged();
+                            },
                           ),
                           // 底部留白
                           SliverToBoxAdapter(
@@ -182,6 +163,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     blocks: blocks,
                     isMixedLayout: isMixedLayout,
                     onEmojiToggle: toggleEmoji,
+                    onMoodTap: _showMoodPicker,
                     onImagePick: onImageButtonPressed,
                     onColorClick: showUnifiedColorPicker,
                     onBgColorClick: showPaperPicker,
