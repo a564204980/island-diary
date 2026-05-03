@@ -70,7 +70,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
 
     return Padding(
       padding: EdgeInsets.only(
-        top: isSelected ? 4 : 8,
+        top: 8,
         bottom: isSelected ? 8 : 24,
       ),
       child: Align(

@@ -54,7 +54,15 @@ class DiaryBlockItem extends StatelessWidget {
       return _buildAudioBlock(block as AudioBlock);
     } else if (block is RewardBlock) {
       return _buildRewardBlock(block as RewardBlock);
+    } else if (block is StickerBlock) {
+      return _buildStickerBlock(block as StickerBlock);
     }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildStickerBlock(StickerBlock block) {
+    // 贴纸现在通过 DiaryEditorPage 的 Stack 悬浮层进行交互式渲染，
+    // 这里不再进行重复渲染，仅作为一个占位或返回空。
     return const SizedBox.shrink();
   }
 
@@ -157,48 +165,40 @@ class DiaryBlockItem extends StatelessWidget {
             maxWidth: isWideScreen ? 760 : MediaQuery.of(context).size.width * 0.95,
           ),
           child: Stack(
+            clipBehavior: Clip.none,
             children: [
               GestureDetector(
                 onTap: () => onShowPreview?.call(block),
                 child: Container(
                   margin: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: block.videoPath != null
-                        ? _LiveImagePlayer(
+                  // 移除外层装饰和阴影，支持透明背景
+                  child: block.videoPath != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: _LiveImagePlayer(
                             videoPath: block.videoPath!,
                             fallbackPath: block.file.path,
-                          )
-                        : DiaryUtils.buildImage(
-                            block.file.path,
-                            fit: BoxFit.contain, // 编辑器内也改用 contain 保持完整比例
                           ),
-                  ),
+                        )
+                      : DiaryUtils.buildImage(
+                          block.file.path,
+                          fit: BoxFit.contain,
+                        ),
                 ),
               ),
               Positioned(
-                top: 16,
-                right: 8,
-                child: IconButton(
-                  icon: Container(
+                top: 0,
+                right: -8,
+                child: GestureDetector(
+                  onTap: onRemoveImage,
+                  child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
-                      color: Colors.black45,
+                      color: Colors.black38,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.close, color: Colors.white, size: 20),
+                    child: const Icon(Icons.close, color: Colors.white, size: 18),
                   ),
-                  onPressed: onRemoveImage,
                 ),
               ),
             ],

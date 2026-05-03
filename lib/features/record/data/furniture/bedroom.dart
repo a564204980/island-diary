@@ -222,6 +222,21 @@ final List<FurnitureItem> bedroomItems = [
     visualOffset: const Offset(-1, 3),
     flippedVisualOffset: const Offset(0, 3),
   ),
+  FurnitureItem(
+    id: 'bed_10',
+    name: '床12',
+    imagePath: 'assets/images/decoration/bed/bed12.png',
+    category: '卧室',
+    subCategory: '家具',
+    gridW: 7,
+    gridH: 8,
+    intrinsicWidth: 489,
+    intrinsicHeight: 405,
+    quantity: 1,
+    visualScale: 0.96,
+    visualOffset: const Offset(-1, 3),
+    flippedVisualOffset: const Offset(0, 3),
+  ),
 
   FurnitureItem(
     id: 'table_5',

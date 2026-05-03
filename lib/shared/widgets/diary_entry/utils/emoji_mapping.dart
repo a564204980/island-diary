@@ -1,240 +1,116 @@
-
-/// 表情映射工具类，用于 Unicode 字符与高清图片路径的对应
+/// 表情映射工具类
+/// 使用 Unicode 私用区字符 (U+E001~U+E028) 作为表情占位符。
+/// 每个表情对应一个单一的不可见字符，彻底避免文字外露。
 class EmojiMapping {
-  static const String assetPrefix = 'assets/images/emoji/wechat/face/';
+  static const String yunzhiPrefix = 'assets/images/emoji/yunzhi/';
+  static const String shuangjianPrefix = 'assets/images/emoji/shuangjian/';
+  static const String dushouPrefix = 'assets/images/emoji/dushou/';
 
-  /// Unicode 到本地高清 PNG 路径的映射 (覆盖 75 个主要表情)
-  static const Map<String, String> unicodeToPath = {
-    '😊': '微笑.png',
-    '🥰': '脸红.png', 
-    '🥳': '愉快.png',
-    '🤩': '色.png',
-    '😘': '亲亲.png',
-    '😋': '呲牙.png',
-    '😎': '得意.png',
-    '😇': '笑脸.png',
-    '🤫': '嘘.png',
-    '🤪': '调皮.png',
-    '🤗': '嘿哈.png',
-    '🥺': '可怜.png',
-    '😭': '流泪.png',
-    '😱': '惊恐.png',
-    '😡': '发怒.png',
-    '😏': '悠闲.png',
-    '🥱': '困.png',
-    '😴': '睡.png',
-    '🙄': '白眼.png',
-    '🤔': '疑问.png',
-    '🤤': '流口水.png',
-    '🤢': '吐.png',
-    '🥴': '晕.png',
-    '😵': '晕.png',
-    '😁': '呲牙.png',
-    '😂': '破涕为笑.png',
-    '🤣': '破涕为笑.png',
-    '😅': '尴尬.png',
-    '😑': '😑.png',
-    '😒': '撇嘴.png',
-    '😔': '衰.png',
-    '🤮': '吐.png',
-    '🤬': '咒骂.png',
-    '🤯': '天啊.png',
-    '😳': '害羞.png',
-    '😵‍💫': '晕.png',
-    '🤐': '闭嘴.png',
-    '🤭': '偷笑.png',
-    '😌': '悠闲.png',
-    '😜': '调皮.png',
-    '😝': '调皮.png',
-    '😷': '生病.png',
-    '🤒': '生病.png',
-    '🤕': '生病.png',
-    '😈': '坏笑.png',
-    '👿': '坏笑.png',
-    '💀': '骷髅.png',
-    '💩': '大便.png',
-    '🤡': '小丑.png',
-    '👹': '鬼脸.png',
-    '👺': '鬼脸.png',
-    '👏': '鼓掌.png',
-    '👌': '好的.png',
-    '👍': '点赞.png',
-    '👎': '踩.png',
-    '👊': '敲打.png',
-    '✌️': '耶.png',
-    '👋': '再见.png',
-    '💪': '嘿哈.png',
-    '🙏': '🙏.png',
-    '🤝': '🤝.png',
-    '❤️': '爱心.png',
-    '💖': '爱心.png',
-    '💔': '心碎.png',
-    '💯': '100.png',
-    '🔥': '火.png',
-    '✨': '闪亮.png',
-    '🌟': '星星.png',
-    '🌙': '月亮.png',
-    '☀️': '太阳.png',
-    '☁️': '云.png',
-    '🌧️': '下雨.png',
-    '❄️': '雪花.png',
-    '🌈': '虹.png',
-    '🎀': '礼物.png',
-    '🎁': '礼物.png',
-    '🎂': '蛋糕.png',
-    '🧧': '红包.png',
-    '🐕': '旺柴.png',
-  };
+  /// 分类定义（每个表情含唯一 PUA 码点）
+  static const List<Map<String, dynamic>> categories = [
+    {
+      'id': '云织',
+      'name': '云织',
+      'prefix': yunzhiPrefix,
+      'emojis': [
+        {'name': '开心', 'file': 'happy.png',      'pua': 0xE001},
+        {'name': '生气', 'file': 'angry.png',      'pua': 0xE002},
+        {'name': '害羞', 'file': 'shy.png',        'pua': 0xE003},
+        {'name': '大哭', 'file': 'wail.png',       'pua': 0xE004},
+        {'name': '偷笑', 'file': 'snicker.png',    'pua': 0xE005},
+        {'name': '无语', 'file': 'speechless.png', 'pua': 0xE006},
+        {'name': '惊讶', 'file': 'surprised.png',  'pua': 0xE007},
+        {'name': '委屈', 'file': 'wronged.png',    'pua': 0xE008},
+        {'name': '加油', 'file': 'ComeOn.png',     'pua': 0xE009},
+        {'name': '吃瓜', 'file': 'eatMelon.png',   'pua': 0xE00A},
+        {'name': '拥抱', 'file': 'hug.png',        'pua': 0xE00B},
+        {'name': '喜欢', 'file': 'like.png',       'pua': 0xE00C},
+        {'name': '比心', 'file': 'makeHeart.png',  'pua': 0xE00D},
+        {'name': '想你', 'file': 'missYou.png',    'pua': 0xE00E},
+        {'name': '早安', 'file': 'morning.png',    'pua': 0xE00F},
+        {'name': '晚安', 'file': 'night.png',      'pua': 0xE010},
+        {'name': '好的', 'file': 'okay..png',      'pua': 0xE011},
+        {'name': '偷看', 'file': 'peek.png',       'pua': 0xE012},
+        {'name': '困',   'file': 'sleepy.png',     'pua': 0xE013},
+        {'name': '星星', 'file': 'star.png',       'pua': 0xE014},
+        {'name': '谢谢', 'file': 'thank.png',      'pua': 0xE015},
+        {'name': '发呆', 'file': 'zoneOut.png',    'pua': 0xE016},
+        {'name': '摸头', 'file': 'pathead.png',    'pua': 0xE017},
+      ],
+    },
+    {
+      'id': '霜见',
+      'name': '霜见',
+      'prefix': shuangjianPrefix,
+      'emojis': [
+        {'name': '开心', 'file': 'happy.png',      'pua': 0xE018},
+        {'name': '生气', 'file': 'angry.png',      'pua': 0xE019},
+        {'name': '爱心', 'file': 'heart.png',      'pua': 0xE01A},
+        {'name': '喜欢', 'file': 'like.png',       'pua': 0xE01B},
+        {'name': '想你', 'file': 'missYou.png',    'pua': 0xE01C},
+        {'name': '早安', 'file': 'morning.png',    'pua': 0xE01D},
+        {'name': '晚安', 'file': 'night.png',      'pua': 0xE01E},
+        {'name': '天空', 'file': 'sky.png',        'pua': 0xE01F},
+        {'name': '呜呜', 'file': 'sob.png',        'pua': 0xE020},
+        {'name': '无语', 'file': 'speechless.png', 'pua': 0xE021},
+        {'name': '惊讶', 'file': 'surprised.png',  'pua': 0xE022},
+        {'name': '谢谢', 'file': 'thank.png',      'pua': 0xE023},
+      ],
+    },
+    {
+      'id': '笃守',
+      'name': '笃守',
+      'prefix': dushouPrefix,
+      'emojis': [
+        {'name': '开心', 'file': 'happy.png',      'pua': 0xE024},
+        {'name': '生气', 'file': 'angry.png',      'pua': 0xE025},
+        {'name': '害羞', 'file': 'shy.png',        'pua': 0xE026},
+        {'name': '呜呜', 'file': 'sob.png',        'pua': 0xE027},
+        {'name': '惊讶', 'file': 'surprised.png',  'pua': 0xE028},
+      ],
+    },
+  ];
 
-  /// 微信表情原生名称到路径的映射 (用于 EmojiPanel)
-  static const Map<String, String> nameToPath = {
-    '微笑': 'assets/images/emoji/wechat/face/微笑.png',
-    '撇嘴': 'assets/images/emoji/wechat/face/撇嘴.png',
-    '色': 'assets/images/emoji/wechat/face/色.png',
-    '发呆': 'assets/images/emoji/wechat/face/发呆.png',
-    '得意': 'assets/images/emoji/wechat/face/得意.png',
-    '流泪': 'assets/images/emoji/wechat/face/流泪.png',
-    '害羞': 'assets/images/emoji/wechat/face/害羞.png',
-    '闭嘴': 'assets/images/emoji/wechat/face/闭嘴.png',
-    '睡': 'assets/images/emoji/wechat/face/睡.png',
-    '大哭': 'assets/images/emoji/wechat/face/大哭.png',
-    '尴尬': 'assets/images/emoji/wechat/face/尴尬.png',
-    '发怒': 'assets/images/emoji/wechat/face/发怒.png',
-    '调皮': 'assets/images/emoji/wechat/face/调皮.png',
-    '呲牙': 'assets/images/emoji/wechat/face/呲牙.png',
-    '惊讶': 'assets/images/emoji/wechat/face/惊讶.png',
-    '难过': 'assets/images/emoji/wechat/face/难过.png',
-    '囧': 'assets/images/emoji/wechat/face/囧.png',
-    '抓狂': 'assets/images/emoji/wechat/face/抓狂.png',
-    '吐': 'assets/images/emoji/wechat/face/吐.png',
-    '偷笑': 'assets/images/emoji/wechat/face/偷笑.png',
-    '愉快': 'assets/images/emoji/wechat/face/愉快.png',
-    '白眼': 'assets/images/emoji/wechat/face/白眼.png',
-    '傲慢': 'assets/images/emoji/wechat/face/傲慢.png',
-    '困': 'assets/images/emoji/wechat/face/困.png',
-    '惊恐': 'assets/images/emoji/wechat/face/惊恐.png',
-    '憨笑': 'assets/images/emoji/wechat/face/憨笑.png',
-    '悠闲': 'assets/images/emoji/wechat/face/悠闲.png',
-    '咒骂': 'assets/images/emoji/wechat/face/咒骂.png',
-    '疑问': 'assets/images/emoji/wechat/face/疑问.png',
-    '嘘': 'assets/images/emoji/wechat/face/嘘.png',
-    '晕': 'assets/images/emoji/wechat/face/晕.png',
-    '衰': 'assets/images/emoji/wechat/face/衰.png',
-    '骷髅': 'assets/images/emoji/wechat/face/骷髅.png',
-    '敲打': 'assets/images/emoji/wechat/face/敲打.png',
-    '再见': 'assets/images/emoji/wechat/face/再见.png',
-    '擦汗': 'assets/images/emoji/wechat/face/擦汗.png',
-    '抠鼻': 'assets/images/emoji/wechat/face/抠鼻.png',
-    '鼓掌': 'assets/images/emoji/wechat/face/鼓掌.png',
-    '坏笑': 'assets/images/emoji/wechat/face/坏笑.png',
-    '破涕为笑': 'assets/images/emoji/wechat/face/破涕为笑.png',
-    '好的': 'assets/images/emoji/wechat/face/好的.png',
-    '捂脸': 'assets/images/emoji/wechat/face/捂脸.png',
-    '旺柴': 'assets/images/emoji/wechat/face/旺柴.png',
-    '耶': 'assets/images/emoji/wechat/face/耶.png',
-    '嘿哈': 'assets/images/emoji/wechat/face/嘿哈.png',
-  };
-
-  /// 获取对应的图片路径
-  static String? getPathForEmoji(String emoji) {
-    if (unicodeToPath.containsKey(emoji)) {
-      final fileName = unicodeToPath[emoji]!;
-      return '$assetPrefix$fileName';
+  /// PUA 字符 → 图片路径
+  static Map<String, String> get charToPath {
+    final map = <String, String>{};
+    for (final cat in categories) {
+      final prefix = cat['prefix'] as String;
+      for (final e in (cat['emojis'] as List)) {
+        map[String.fromCharCode(e['pua'] as int)] = '$prefix${e['file']}';
+      }
     }
-    return null;
+    return map;
   }
 
-  /// 获取常用表情列表 (用于 EmojiPanel 展示)
-  static List<Map<String, String>> get commonEmojis {
-    final List<Map<String, String>> list = [];
-    
-    // 反转 unicodeToPath 以便查找
-    final pathToUnicode = <String, String>{};
-    unicodeToPath.forEach((key, value) {
-      pathToUnicode[value] = key;
-    });
+  /// 判断单个字符是否是表情 PUA 字符
+  static bool isEmojiChar(String char) => charToPath.containsKey(char);
 
-    nameToPath.forEach((name, path) {
-      final fileName = path.split('/').last;
-      final unicode = pathToUnicode[fileName] ?? '';
-      list.add({
-        'name': name,
-        'path': path,
-        'unicode': unicode,
-      });
-    });
-    return list;
-  }
+  /// 获取 PUA 字符对应的图片路径
+  static String? getPathForEmoji(String char) => charToPath[char];
 
-  /// 简单的 Unicode 转 [名称] 回退逻辑
-  static const Map<String, String> unicodeToName = {
-    '😊': '微笑',
-    '🥰': '脸红',
-    '🥳': '愉快',
-    '🤩': '色',
-    '😘': '亲亲',
-    '😋': '呲牙',
-    '😎': '得意',
-    '🙄': '白眼',
-    '🤔': '疑问',
-    '😭': '流泪',
-    '😡': '发怒',
-    '😏': '悠闲',
-    '😴': '睡',
-    '😱': '惊恐',
-    '🤫': '嘘',
-    '😜': '调皮',
-    '嘿': '嘿哈',
-    '👋': '再见',
-  };
+  /// 正则：匹配任意一个 PUA 表情字符（U+E001~U+E028）
+  static final RegExp emojiPattern = RegExp('[\uE001-\uE028]');
 
-  /// 解析文本，将其拆分为文字和表情块
+  /// 同 emojiPattern，以字符串形式提供（供旧代码兼容）
+  static String get pattern => '[\uE001-\uE028]';
+
+  /// 解析文本，拆分为普通文字块和表情块
   static List<TextChunk> parseText(String text) {
-    final List<TextChunk> chunks = [];
+    final chunks = <TextChunk>[];
     if (text.isEmpty) return chunks;
-
-    final keys = unicodeToPath.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
-    final emojiPattern = keys.map((e) => RegExp.escape(e)).join('|');
-    
-    final nameKeys = nameToPath.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
-    final namePattern = nameKeys.map((e) => RegExp.escape('[$e]')).join('|');
-
-    final pattern = [
-      if (emojiPattern.isNotEmpty) emojiPattern,
-      if (namePattern.isNotEmpty) namePattern,
-    ].join('|');
-    
-    if (pattern.isEmpty) {
-      chunks.add(TextChunk(text: text));
-      return chunks;
-    }
-
-    final regExp = RegExp(pattern);
-    int lastMatchEnd = 0;
-
-    for (final match in regExp.allMatches(text)) {
-      if (match.start > lastMatchEnd) {
-        chunks.add(TextChunk(text: text.substring(lastMatchEnd, match.start)));
+    int lastEnd = 0;
+    for (final match in emojiPattern.allMatches(text)) {
+      if (match.start > lastEnd) {
+        chunks.add(TextChunk(text: text.substring(lastEnd, match.start)));
       }
-
-      final matchedStr = match.group(0)!;
-      String? path;
-      if (matchedStr.startsWith('[') && matchedStr.endsWith(']')) {
-        final name = matchedStr.substring(1, matchedStr.length - 1);
-        path = nameToPath[name];
-      } else {
-        path = getPathForEmoji(matchedStr);
-      }
-      
-      chunks.add(TextChunk(text: matchedStr, emojiPath: path));
-
-      lastMatchEnd = match.end;
+      final char = match.group(0)!;
+      chunks.add(TextChunk(text: char, emojiPath: charToPath[char]));
+      lastEnd = match.end;
     }
-
-    if (lastMatchEnd < text.length) {
-      chunks.add(TextChunk(text: text.substring(lastMatchEnd)));
+    if (lastEnd < text.length) {
+      chunks.add(TextChunk(text: text.substring(lastEnd)));
     }
-
     return chunks;
   }
 }
@@ -243,8 +119,6 @@ class EmojiMapping {
 class TextChunk {
   final String text;
   final String? emojiPath;
-
   bool get isEmoji => emojiPath != null;
-
   TextChunk({required this.text, this.emojiPath});
 }

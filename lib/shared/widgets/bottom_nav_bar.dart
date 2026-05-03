@@ -5,7 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/slime_onboarding.dart';
 import 'package:island_diary/shared/widgets/slime_button.dart';
-import 'package:island_diary/shared/widgets/mood_picker/mood_picker_sheet.dart';
+import 'package:island_diary/shared/widgets/slime_button.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
@@ -341,56 +341,12 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
     final wasOnboarding = !UserState().hasFinishedOnboarding.value;
     
-    // 如果不是在进行新手引导，则直接进入编辑器（初始：不选心情）
-    if (!wasOnboarding) {
-      _openDiaryEntry(null, 6.0);
-      return;
+    // 统一直接进入编辑器，因为编辑器顶部现在有全新的心情选择器
+    if (wasOnboarding) {
+      setState(() => _justFinishedOnboarding = true);
+      UserState().completeOnboarding();
     }
-
-    // 只有在新手引导时才强制先选心情（或者用户明确想选心情的情况，但目前主要需求是快）
-    _isMoodPickerOpenNotifier.value = true;
-    _showDialogueNotifier.value = false;
-    _isIdleNotifier.value = false;
-    _dialogueTimer?.cancel();
-    _idleTimer?.cancel();
-
-    final completer = Completer<Map<String, dynamic>?>();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return completer.complete(null);
-      final result = await showGeneralDialog<Map<String, dynamic>>(
-        context: context,
-        barrierDismissible: true,
-        barrierLabel: 'MoodPicker',
-        barrierColor: Colors.black.withValues(alpha: 0.6),
-        transitionDuration: const Duration(milliseconds: 500),
-        transitionBuilder: (context, animation, secondaryAnimation, child) {
-          final curvedAnimation =
-              CurvedAnimation(parent: animation, curve: Curves.easeOutBack);
-          return Transform.scale(
-            scale: curvedAnimation.value,
-            alignment: const Alignment(0.0, 0.8),
-            child: FadeTransition(opacity: animation, child: child),
-          );
-        },
-        pageBuilder: (context, anim1, anim2) => const MoodPickerSheet(),
-      );
-      completer.complete(result);
-    });
-
-    final result = await completer.future;
-
-    if (mounted) {
-      _isMoodPickerOpenNotifier.value = false;
-      _isIdleNotifier.value = false;
-      if (wasOnboarding) {
-        setState(() => _justFinishedOnboarding = true);
-        UserState().completeOnboarding();
-      }
-      _startIdleTimer();
-      if (result != null) {
-        _openDiaryEntry(result['index'], result['intensity'], tag: result['tag']);
-      }
-    }
+    _openDiaryEntry(null, 6.0);
   }
 
   void _openDiaryEntry(int? moodIndex, double intensity, {String? tag}) {

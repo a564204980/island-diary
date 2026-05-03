@@ -487,12 +487,8 @@ class ExportService {
     // 1. 收集所有关键边界点
     final Set<int> boundaries = {0, textContent.length};
 
-    // a. 表情边界 (Unicode 或 [名称])
-    final emojiKeys = EmojiMapping.unicodeToPath.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
-    final emojiPattern = emojiKeys.map((e) => RegExp.escape(e)).join('|');
-    final nameKeys = EmojiMapping.nameToPath.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
-    final namePattern = nameKeys.map((e) => RegExp.escape('[$e]')).join('|');
-    final pattern = [if (emojiPattern.isNotEmpty) emojiPattern, if (namePattern.isNotEmpty) namePattern].join('|');
+    // a. 表情边界 (Unicode 或 [名称] 或 [分类:名称])
+    final pattern = EmojiMapping.pattern;
     if (pattern.isNotEmpty) {
       final emojiRegExp = RegExp(pattern);
       for (final match in emojiRegExp.allMatches(textContent)) {
@@ -520,12 +516,7 @@ class ExportService {
         // 优先检查是否完全匹配某个表情
         String? emojiPath;
         if (pattern.isNotEmpty) {
-          if (chunk.startsWith('[') && chunk.endsWith(']')) {
-            final name = chunk.substring(1, chunk.length - 1);
-            emojiPath = EmojiMapping.nameToPath[name];
-          } else {
-            emojiPath = EmojiMapping.getPathForEmoji(chunk);
-          }
+          emojiPath = EmojiMapping.getPathForEmoji(chunk);
         }
 
         if (emojiPath != null && emojiImages.containsKey(emojiPath)) {

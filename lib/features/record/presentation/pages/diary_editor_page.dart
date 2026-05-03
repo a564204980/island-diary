@@ -1,22 +1,23 @@
-import 'dart:typed_data';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/core/services/sticker_service.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_core_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_media_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_format_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_insert_mixin.dart';
-import 'package:island_diary/shared/widgets/mood_picker/mood_popup_picker.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/island_vip_guard_dialog.dart';
-import 'package:island_diary/core/services/image_segmentation_service.dart';
 import '../widgets/editor/editor_header.dart';
 import '../widgets/editor/editor_content_list.dart';
 import '../widgets/editor/editor_bottom_bar.dart';
 import 'package:island_diary/shared/widgets/mood_picker/custom_mood_picker_popup.dart';
+import 'package:island_diary/shared/widgets/sticker_picker/sticker_picker_popup.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/interactive_sticker.dart';
+
 class DiaryEditorPage extends StatefulWidget {
   final int? moodIndex;
   final double intensity;
@@ -34,17 +35,31 @@ class DiaryEditorPage extends StatefulWidget {
   @override
   State<DiaryEditorPage> createState() => _DiaryEditorPageState();
 }
+
 class _DiaryEditorPageState extends State<DiaryEditorPage>
     with
         DiaryEditorCoreMixin<DiaryEditorPage>,
         DiaryEditorMediaMixin<DiaryEditorPage>,
         DiaryEditorFormatMixin<DiaryEditorPage>,
         DiaryEditorInsertMixin<DiaryEditorPage> {
+  double _scrollOffset = 0;
+  String? _activeStickerId;
+
   @override
   void initState() {
     super.initState();
     initializeEditor(entry: widget.entry, initialDate: widget.initialDate);
+    
+    // 监听滚动，用于同步贴纸位置
+    scrollController.addListener(() {
+      if (mounted) {
+        setState(() {
+          _scrollOffset = scrollController.offset;
+        });
+      }
+    });
   }
+
   @override
   Widget build(BuildContext context) {
     final mood = (currentMoodIndex != null && currentMoodIndex! >= 0)
@@ -86,11 +101,16 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   ),
                 ),
                 
-                // 2. 主编辑区
+                // 2. 主编辑区 (文字与图片块)
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     FocusScope.of(context).unfocus();
                     if (isEmojiOpen) toggleEmoji();
+                    // 点击空白处取消贴纸选中
+                    if (_activeStickerId != null) {
+                      setState(() => _activeStickerId = null);
+                    }
                   },
                   child: Center(
                     child: ConstrainedBox(
@@ -99,18 +119,11 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         controller: scrollController,
                         physics: const BouncingScrollPhysics(),
                         slivers: [
-                          // 页头
-                          SliverToBoxAdapter(
+                          // 顶部留白，为固定页头腾出位置
+                          const SliverToBoxAdapter(
                             child: SafeArea(
                               bottom: false,
-                              child: EditorHeader(
-                                paperStyle: currentPaperStyle,
-                                isNight: isNight,
-                                dateTime: entryDateTime ?? DateTime.now(),
-                                onBack: () => Navigator.of(context).pop(),
-                                onSave: onSave,
-                                onDateTap: onDateClick,
-                              ),
+                              child: SizedBox(height: 60), // 对应 Header 的高度
                             ),
                           ),
                           // 编辑主体：内容块列表
@@ -157,7 +170,66 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   ),
                 ),
 
-                // 3. 底部悬浮工具栏
+                // 2.5 固定页头层
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 800),
+                        child: EditorHeader(
+                          paperStyle: currentPaperStyle,
+                          isNight: isNight,
+                          dateTime: entryDateTime ?? DateTime.now(),
+                          onBack: () => Navigator.of(context).pop(),
+                          onSave: onSave,
+                          onDateTap: onDateClick,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 3. 贴纸悬浮层 (层级高于文字，但受到顶部裁剪约束)
+                Positioned.fill(
+                  top: 80, // 顶部裁剪线（避开 Header）
+                  bottom: 100, // 底部裁剪线（避开工具栏）
+                  child: ClipRect(
+                    child: Stack(
+                      children: [
+                        ...blocks.whereType<StickerBlock>().map((sticker) {
+                          return InteractiveSticker(
+                            key: ValueKey(sticker.id),
+                            block: sticker,
+                            isSelected: sticker.id == _activeStickerId,
+                            scrollOffset: _scrollOffset,
+                            onTap: () {
+                              setState(() {
+                                _activeStickerId = sticker.id;
+                                // 置顶逻辑
+                                blocks.remove(sticker);
+                                blocks.add(sticker);
+                              });
+                            },
+                            onRemove: () {
+                              setState(() {
+                                blocks.remove(sticker);
+                                _activeStickerId = null;
+                              });
+                              onBlocksChanged();
+                            },
+                            onChanged: onBlocksChanged,
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 4. 底部悬浮工具栏
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -172,16 +244,16 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     blocks: blocks,
                     isMixedLayout: isMixedLayout,
                     onEmojiToggle: toggleEmoji,
-                    onMoodTap: _showMoodPicker,
                     onImagePick: onImageButtonPressed,
                     onColorClick: showUnifiedColorPicker,
                     onBgColorClick: showPaperPicker,
                     onLocationClick: onLocationClick,
-                    onFontSizeClick: showFontSizePicker,
-                    onFontClick: showFontPicker,
+                    onFontSizeClick: showTextStylePicker,
+                    onFontClick: showTextStylePicker,
                     onDateClick: onDateClick,
                     onTimeClick: onTimeClick,
-                    onCreateSticker: _handleCreateSticker,
+                    onStickerClick: _showStickerPicker,
+                    onCreateSticker: () {}, 
                     onWeatherClick: onWeatherClick,
                     onMoreClick: onMoreClick,
                     onClose: () => Navigator.of(context).pop(),
@@ -200,28 +272,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       },
     );
   }
-  Future<void> _showMoodPicker() async {
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => MoodPopupPicker(
-        initialIndex: currentMoodIndex,
-        initialIntensity: currentIntensity,
-        paperStyle: currentPaperStyle,
-      ),
-    );
-    if (result != null && mounted) {
-      setState(() {
-        currentMoodIndex = result['index'];
-        currentIntensity = result['intensity'];
-        if (result['tag'] != null) {
-          currentTag = result['tag'];
-        }
-        updateMoodQuote();
-      });
-    }
-  }
+
   Future<void> _showCustomMoodPicker() async {
     showModalBottomSheet(
       context: context,
@@ -246,9 +297,34 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       ),
     );
   }
+
+  void _showStickerPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StickerPickerPopup(
+        paperStyle: currentPaperStyle,
+        isNight: UserState().isNight,
+        onStickerSelected: (path) {
+          Navigator.pop(context);
+          setState(() {
+            // 将新贴纸初始位置设为屏幕中心附近
+            final double initialX = MediaQuery.of(context).size.width / 2 - 75;
+            final double initialY = _scrollOffset + MediaQuery.of(context).size.height / 3;
+            final newSticker = StickerBlock(path, dx: initialX, dy: initialY);
+            blocks.add(newSticker);
+            _activeStickerId = newSticker.id; // 新贴纸默认选中
+          });
+          onBlocksChanged();
+        },
+      ),
+    );
+  }
+
   void onMoreClick() {
     _showMoreBottomSheet();
   }
+
   void _showMoreBottomSheet() {
     final bool isNight = UserState().isNight;
     // 使用与主 build 一致的逻辑
@@ -414,6 +490,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       ),
     );
   }
+
   Widget _buildMoreMenuItem({
     required IconData icon,
     required String title,
@@ -470,156 +547,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
             ),
             trailing,
           ],
-        ),
-      ),
-    );
-  }
-
-  // --- AI 贴纸创作逻辑 ---
-
-
-  Future<void> _handleCreateSticker() async {
-    // 1. 调用相册/拍照
-    final String? path = await pickSingleImage();
-    if (path == null) return;
-
-    // 2. 显示 AI 抠图加载中
-    if (!mounted) return;
-    _showAISegmentationLoading();
-
-    // 3. 执行 AI 抠图
-    final Uint8List? pngBytes = await ImageSegmentationService().segmentSubject(path);
-    
-    // 4. 关闭加载弹窗
-    if (mounted) Navigator.pop(context);
-
-    if (pngBytes == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("AI 没能在这张图中找到清晰的主体，换张照片试试？"),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      return;
-    }
-
-    // 5. 展示预览并确认保存
-    if (mounted) {
-      _showStickerPreviewResult(pngBytes);
-    }
-  }
-
-  void _showAISegmentationLoading() {
-    final bool isNight = UserState().isNight;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: isNight ? const Color(0xFF2C2E30) : Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  isNight ? const Color(0xFFE0C097) : const Color(0xFFD4A373),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                "AI 正在为你捕捉灵感...", 
-                style: TextStyle(
-                  color: isNight ? Colors.white70 : Colors.black87,
-                  fontFamily: 'LXGWWenKai', 
-                  fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.none,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showStickerPreviewResult(Uint8List bytes) {
-    final bool isNight = UserState().isNight;
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: isNight ? const Color(0xFF2C2E30) : Colors.white,
-            borderRadius: BorderRadius.circular(32),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "创作成功！", 
-                style: TextStyle(
-                  fontSize: 18, 
-                  fontWeight: FontWeight.bold,
-                  color: isNight ? Colors.white : Colors.black87,
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-              const SizedBox(height: 20),
-              // 模拟贴纸效果：带白边和投影
-              Container(
-                constraints: const BoxConstraints(maxHeight: 200),
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15), 
-                      blurRadius: 15,
-                      spreadRadius: 2,
-                    )
-                  ],
-                ),
-                child: Image.memory(bytes),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text("再选选", style: TextStyle(color: isNight ? Colors.white38 : Colors.grey)),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4A373),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () async {
-                      await ImageSegmentationService().saveAsSticker(bytes);
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("✨ 贴纸已保存至个人收藏！"),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                    child: const Text("保存贴纸", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            ],
-          ),
         ),
       ),
     );

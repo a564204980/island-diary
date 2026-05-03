@@ -88,7 +88,10 @@ class _DiaryDatePickerSheetState extends State<DiaryDatePickerSheet> {
   Widget build(BuildContext context) {
     final bool isNight = UserState().isNight;
     final Color accentColor = DiaryUtils.getAccentColor(widget.paperStyle, isNight);
-    final Color bgColor = DiaryUtils.getPopupBackgroundColor(widget.paperStyle, isNight);
+    // 针对参考图 1 优化的暖奶油背景色
+    final Color bgColor = isNight 
+        ? DiaryUtils.getPopupBackgroundColor(widget.paperStyle, isNight)
+        : const Color(0xFFFAF9F6); 
     final Color inkColor = DiaryUtils.getInkColor(widget.paperStyle, isNight);
 
     return BackdropFilter(
@@ -97,11 +100,10 @@ class _DiaryDatePickerSheetState extends State<DiaryDatePickerSheet> {
         sigmaY: isNight ? 15 : 0,
       ),
       child: Container(
-        padding: EdgeInsets.only(
+        padding: const EdgeInsets.only(
           left: 24,
           right: 24,
           top: 20,
-          bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
         ),
         decoration: BoxDecoration(
           color: bgColor,
@@ -111,166 +113,183 @@ class _DiaryDatePickerSheetState extends State<DiaryDatePickerSheet> {
           ),
           boxShadow: [
             BoxShadow(
-              color: accentColor.withValues(alpha: 0.1),
+              color: isNight ? Colors.black.withValues(alpha: 0.3) : accentColor.withValues(alpha: 0.08),
               blurRadius: 30,
               offset: const Offset(0, -5),
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-          // 晶体拉杆
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [accentColor.withValues(alpha: 0.1), accentColor.withValues(alpha: 0.3)],
-              ),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '选择日期',
-            style: TextStyle(
-              fontFamily: 'LXGWWenKai',
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              color: accentColor,
-              letterSpacing: 4,
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          // 虚空晶石滚轮区
-          Stack(
-            alignment: Alignment.center,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // 选中光感区
+              // 顶部指示条
               Container(
-                height: 48,
+                width: 36,
+                height: 4,
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: accentColor.withValues(alpha: 0.1)),
+                  color: inkColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              SizedBox(
-                height: 200,
-                child: ShaderMask(
-                  shaderCallback: (rect) {
-                    return LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black,
-                        Colors.transparent,
-                        Colors.transparent,
-                        Colors.black
+              const SizedBox(height: 16),
+              Text(
+                '选择日期',
+                style: TextStyle(
+                  fontFamily: 'LXGWWenKai',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: inkColor.withValues(alpha: 0.8),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '选择要记录的那一天',
+                style: TextStyle(
+                  fontFamily: 'LXGWWenKai',
+                  fontSize: 12,
+                  color: inkColor.withValues(alpha: 0.35),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // 虚空晶石滚轮区
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 选中光感区 (拟物化升级)
+                  Container(
+                    height: 48,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: isNight 
+                          ? Colors.white.withValues(alpha: 0.05) 
+                          : const Color(0xFFFDF7E9), // 奶油色底
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: isNight ? 0.1 : 0.08),
+                        width: 1,
+                      ),
+                      boxShadow: isNight ? null : [
+                        BoxShadow(
+                          color: const Color(0xFF8B5E3C).withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
                       ],
-                      stops: const [0.0, 0.15, 0.85, 1.0],
-                    ).createShader(rect);
-                  },
-                  blendMode: BlendMode.dstOut,
-                  child: Row(
-                    children: [
-                      _buildWheel(
-                        label: '年',
-                        controller: _yearController,
-                        itemCount: _endYear - _startYear + 1,
-                        onChanged: (i) {
-                          setState(() => _selectedYear = _startYear + i);
-                          _updateDays();
-                        },
-                        getItemText: (i) => '${_startYear + i}',
-                        accentColor: accentColor,
+                    ),
+                  ),
+                  SizedBox(
+                    height: 180, // 稍微缩小高度防止溢出
+                    child: ShaderMask(
+                      shaderCallback: (rect) {
+                        return const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black,
+                            Colors.transparent,
+                            Colors.transparent,
+                            Colors.black
+                          ],
+                          stops: [0.0, 0.25, 0.75, 1.0],
+                        ).createShader(rect);
+                      },
+                      blendMode: BlendMode.dstOut, // 改回 dstOut，黑色部分隐藏，透明部分显示
+                      child: Row(
+                        children: [
+                          _buildWheel(
+                            label: '年',
+                            controller: _yearController,
+                            itemCount: _endYear - _startYear + 1,
+                            onChanged: (i) {
+                              setState(() => _selectedYear = _startYear + i);
+                              _updateDays();
+                            },
+                            getItemText: (i) => '${_startYear + i}',
+                            accentColor: inkColor,
+                          ),
+                          _buildWheel(
+                            label: '月',
+                            controller: _monthController,
+                            itemCount: 12,
+                            onChanged: (i) {
+                              setState(() => _selectedMonth = i + 1);
+                              _updateDays();
+                            },
+                            getItemText: (i) => '${i + 1}',
+                            accentColor: inkColor,
+                          ),
+                          _buildWheel(
+                            label: '日',
+                            controller: _dayController,
+                            itemCount: _getDaysInMonth(_selectedYear, _selectedMonth),
+                            onChanged: (i) {
+                              setState(() => _selectedDay = i + 1);
+                            },
+                            getItemText: (i) => '${i + 1}',
+                            accentColor: inkColor,
+                          ),
+                        ],
                       ),
-                      _buildWheel(
-                        label: '月',
-                        controller: _monthController,
-                        itemCount: 12,
-                        onChanged: (i) {
-                          setState(() => _selectedMonth = i + 1);
-                          _updateDays();
-                        },
-                        getItemText: (i) => '${i + 1}',
-                        accentColor: accentColor,
-                      ),
-                      _buildWheel(
-                        label: '日',
-                        controller: _dayController,
-                        itemCount: _getDaysInMonth(_selectedYear, _selectedMonth),
-                        onChanged: (i) {
-                          setState(() => _selectedDay = i + 1);
-                        },
-                        getItemText: (i) => '${i + 1}',
-                        accentColor: accentColor,
-                      ),
-                    ],
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              // 农历标签
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isNight 
+                      ? Colors.white.withValues(alpha: 0.03) 
+                      : accentColor.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Text(
+                  _getLunarAndWeekday(),
+                  style: TextStyle(
+                    fontFamily: 'LXGWWenKai',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: inkColor.withValues(alpha: 0.45),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              // 确认按钮
+              GestureDetector(
+                onTap: () => widget.onConfirm(DateTime(_selectedYear, _selectedMonth, _selectedDay)),
+                child: Container(
+                  width: double.infinity,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: isNight 
+                        ? accentColor.withValues(alpha: 0.15) 
+                        : const Color(0xFFE8E3D7), // 匹配图 2 的暖灰调
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '确定',
+                    style: TextStyle(
+                      fontFamily: 'LXGWWenKai',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isNight ? accentColor : inkColor.withValues(alpha: 0.6),
+                      letterSpacing: 2,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          
-          const SizedBox(height: 16),
-          // 时空反馈区
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.03),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              _getLunarAndWeekday(),
-              style: TextStyle(
-                fontFamily: 'LXGWWenKai',
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: inkColor.withValues(alpha: 0.6),
-                letterSpacing: 1.2,
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 24),
-          // 确认按钮 (晶体风格)
-          GestureDetector(
-            onTap: () => widget.onConfirm(DateTime(_selectedYear, _selectedMonth, _selectedDay)),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [accentColor, Color.lerp(accentColor, Colors.white, 0.2)!],
-                ),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: accentColor.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              alignment: Alignment.center,
-              child: const Text(
-                '确定',
-                style: TextStyle(
-                  fontFamily: 'LXGWWenKai',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 4,
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
-    ),
     ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
   }
 

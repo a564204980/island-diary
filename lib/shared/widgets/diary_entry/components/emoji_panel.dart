@@ -28,18 +28,18 @@ class EmojiPanel extends StatefulWidget {
 }
 
 class _EmojiPanelState extends State<EmojiPanel> {
-  // 全局级别的最近使用记录
-  static List<String> _globalRecentEmojis = ['😊', '😂', '🥺', '🌹', '😭'];
+  // 全局级别的最近使用记录 (存储 identifier)
+  static List<String> _globalRecentEmojis = ['😊'];
   // 当前面板固定展示的记录
   late List<String> _displayRecentEmojis;
 
   List<String> _customEmojis = [];
-  int _currentIndex = 0;
+  int _currentIndex = 0; // 0: 云织, 1: 霜见, 2: 笃守, 3: 收藏
 
   @override
   void initState() {
     super.initState();
-    _globalRecentEmojis.removeWhere((e) => e.isEmpty); // 清理可能由于旧 bug 遗留的空记录
+    _globalRecentEmojis.removeWhere((e) => e.isEmpty);
     _displayRecentEmojis = List.from(_globalRecentEmojis);
     _loadCustomEmojis();
   }
@@ -61,7 +61,7 @@ class _EmojiPanelState extends State<EmojiPanel> {
       context,
       pickerConfig: const AssetPickerConfig(
         maxAssets: 1,
-        requestType: RequestType.common, // 支持图片、视频、实况图
+        requestType: RequestType.common,
       ),
     );
 
@@ -71,13 +71,9 @@ class _EmojiPanelState extends State<EmojiPanel> {
       if (file == null) return;
 
       String finalPath = file.path;
-
-      // 处理实况图 (Live Photo)
       if (asset.isLivePhoto) {
-        // 使用针对实况图优化的 API 获取视频部分
         final File? videoFile = await asset.fileWithSubtype;
         if (videoFile != null) {
-          // 这里通过简单的分隔符存储 path|videoPath，后续解析
           finalPath = '${file.path}|${videoFile.path}';
         }
       }
@@ -89,11 +85,10 @@ class _EmojiPanelState extends State<EmojiPanel> {
     }
   }
 
-  void _handleEmojiTap(String unicode) {
-    widget.onEmojiSelected(unicode);
-    // 只更新后台队列，防止当前视图跳动
-    _globalRecentEmojis.remove(unicode);
-    _globalRecentEmojis.insert(0, unicode);
+  void _handleEmojiTap(String identifier) {
+    widget.onEmojiSelected(identifier);
+    _globalRecentEmojis.remove(identifier);
+    _globalRecentEmojis.insert(0, identifier);
     if (_globalRecentEmojis.length > 8) {
       _globalRecentEmojis = _globalRecentEmojis.sublist(0, 8);
     }
@@ -102,71 +97,60 @@ class _EmojiPanelState extends State<EmojiPanel> {
   @override
   Widget build(BuildContext context) {
     final bool isNight = UserState().isNight;
-    final Color accentColor = DiaryUtils.getAccentColor(
-      widget.paperStyle,
-      isNight,
-    );
+    final Color accentColor = DiaryUtils.getAccentColor(widget.paperStyle, isNight);
     final Color inkColor = DiaryUtils.getInkColor(widget.paperStyle, isNight);
-    final emojis = EmojiMapping.commonEmojis;
-
-    // 获取屏幕宽度，动态计算每行显示的表情数量，适配 iPad 等宽屏设备
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final bool isWide = screenWidth > 700;
-
-    // 基础表情每项占约 45-50 像素，iPad 上强制增加列数以实现单行效果
-    final int defaultCrossAxisCount = isWide
-        ? (screenWidth / 45).floor().clamp(14, 25)
-        : (screenWidth / 50).floor().clamp(8, 20);
-
-    // 自定义表情（大贴纸）每项占约 80-100 像素
-    final int customCrossAxisCount = isWide
-        ? (screenWidth / 80).floor().clamp(8, 15)
-        : (screenWidth / 90).floor().clamp(5, 12);
 
     return Container(
       color: Colors.transparent,
       child: Column(
         children: [
-          // ... 略去 Category Bar 部分 ...
+          // 分类切换栏
           Container(
             height: 48,
             color: Colors.transparent,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                _buildCategoryTab(
+                _buildCategoryTabText(
                   index: 0,
-                  icon: Icons.face_retouching_natural_rounded,
+                  title: '云织',
                   isSelected: _currentIndex == 0,
                   accentColor: accentColor,
                 ),
                 const SizedBox(width: 8),
-                _buildCategoryTab(
+                _buildCategoryTabText(
                   index: 1,
-                  icon: Icons.favorite_rounded,
+                  title: '霜见',
                   isSelected: _currentIndex == 1,
+                  accentColor: accentColor,
+                ),
+                const SizedBox(width: 8),
+                _buildCategoryTabText(
+                  index: 2,
+                  title: '笃守',
+                  isSelected: _currentIndex == 2,
+                  accentColor: accentColor,
+                ),
+                const SizedBox(width: 8),
+                _buildCategoryTabIcon(
+                  index: 3,
+                  icon: Icons.favorite_rounded,
+                  isSelected: _currentIndex == 3,
                   accentColor: accentColor,
                 ),
               ],
             ),
           ),
 
-          // 面板内容大区
+          // 内容区
           Expanded(
             child: IndexedStack(
               index: _currentIndex,
               children: [
-                _buildDefaultEmojiPage(
-                  emojis,
-                  accentColor,
-                  inkColor,
-                  defaultCrossAxisCount,
-                ),
-                _buildCustomEmojiPage(
-                  accentColor,
-                  inkColor,
-                  customCrossAxisCount,
-                ),
+                _buildEmojiPage('云织', accentColor, inkColor),
+                _buildEmojiPage('霜见', accentColor, inkColor),
+                _buildEmojiPage('笃守', accentColor, inkColor),
+                _buildCustomEmojiPage(accentColor, inkColor),
               ],
             ),
           ),
@@ -175,7 +159,34 @@ class _EmojiPanelState extends State<EmojiPanel> {
     );
   }
 
-  Widget _buildCategoryTab({
+  Widget _buildCategoryTabText({
+    required int index,
+    required String title,
+    required bool isSelected,
+    required Color accentColor,
+  }) {
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? accentColor.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? accentColor : accentColor.withValues(alpha: 0.4),
+            fontFamily: 'LXGWWenKai',
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryTabIcon({
     required int index,
     required IconData icon,
     required bool isSelected,
@@ -184,37 +195,98 @@ class _EmojiPanelState extends State<EmojiPanel> {
     return GestureDetector(
       onTap: () => setState(() => _currentIndex = index),
       child: Container(
-        width: 52,
-        height: 40,
+        width: 48,
+        height: 36,
         decoration: BoxDecoration(
-          color: isSelected
-              ? accentColor.withValues(alpha: 0.1)
-              : Colors.transparent,
+          color: isSelected ? accentColor.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
           icon,
-          size: 22,
+          size: 20,
           color: isSelected ? accentColor : accentColor.withValues(alpha: 0.4),
         ),
       ),
     );
   }
 
-  Widget _buildCustomEmojiPage(
-    Color accentColor,
-    Color inkColor,
-    int crossAxisCount,
-  ) {
+  Widget _buildEmojiPage(String categoryId, Color accentColor, Color inkColor) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final int crossAxisCount = (screenWidth / 50).floor().clamp(8, 20);
+    
+    final category = EmojiMapping.categories.firstWhere((c) => c['id'] == categoryId);
+    final List emojis = category['emojis'];
+
+    return Stack(
+      children: [
+        CustomScrollView(
+          slivers: [
+            if (_displayRecentEmojis.isNotEmpty) ...[
+              _buildSectionTitle('最近使用', inkColor),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final identifier = _displayRecentEmojis[index];
+                    final path = EmojiMapping.getPathForEmoji(identifier);
+                    return InkWell(
+                      onTap: () => _handleEmojiTap(identifier),
+                      child: Center(
+                        child: path != null
+                            ? Image.asset(path, width: 32, height: 32, fit: BoxFit.contain)
+                            : Text(identifier, style: const TextStyle(fontSize: 16)),
+                      ),
+                    );
+                  }, childCount: _displayRecentEmojis.length),
+                ),
+              ),
+            ],
+            _buildSectionTitle('所有表情', inkColor),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 100),
+              sliver: SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  mainAxisSpacing: 14,
+                  crossAxisSpacing: 14,
+                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final e = emojis[index];
+                  // 使用 PUA 字符作为标识符
+                  final identifier = String.fromCharCode(e['pua'] as int);
+                  final path = '${category['prefix']}${e['file']}';
+                  return InkWell(
+                    onTap: () => _handleEmojiTap(identifier),
+                    child: Center(
+                      child: Image.asset(path, width: 32, height: 32, fit: BoxFit.contain),
+                    ),
+                  );
+                }, childCount: emojis.length),
+              ),
+            ),
+          ],
+        ),
+        _buildActionButtons(accentColor, inkColor),
+      ],
+    );
+  }
+
+  Widget _buildCustomEmojiPage(Color accentColor, Color inkColor) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final int crossAxisCount = (screenWidth / 90).floor().clamp(5, 12);
+
     return Stack(
       children: [
         CustomScrollView(
           slivers: [
             _buildSectionTitle('添加的表情', inkColor),
             SliverPadding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-              ).copyWith(bottom: 100),
+              padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 100),
               sliver: SliverGrid(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
@@ -228,17 +300,10 @@ class _EmojiPanelState extends State<EmojiPanel> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: accentColor.withValues(alpha: 0.05),
-                          border: Border.all(
-                            color: accentColor.withValues(alpha: 0.2),
-                            width: 1.5,
-                          ),
+                          border: Border.all(color: accentColor.withValues(alpha: 0.2), width: 1.5),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(
-                          Icons.add_rounded,
-                          size: 32,
-                          color: accentColor.withValues(alpha: 0.4),
-                        ),
+                        child: Icon(Icons.add_rounded, size: 32, color: accentColor.withValues(alpha: 0.4)),
                       ),
                     );
                   }
@@ -280,102 +345,6 @@ class _EmojiPanelState extends State<EmojiPanel> {
     );
   }
 
-  Widget _buildDefaultEmojiPage(
-    List<Map<String, String>> emojis,
-    Color accentColor,
-    Color inkColor,
-    int crossAxisCount,
-  ) {
-    return Stack(
-      children: [
-        CustomScrollView(
-          slivers: [
-            _buildSectionTitle('最近使用', inkColor),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                ),
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final identifier = _displayRecentEmojis[index];
-                  String? emojiPath = EmojiMapping.getPathForEmoji(identifier);
-                  if (emojiPath == null &&
-                      identifier.startsWith('[') &&
-                      identifier.endsWith(']')) {
-                    final name = identifier.substring(1, identifier.length - 1);
-                    emojiPath = EmojiMapping.nameToPath[name];
-                  }
-
-                  return InkWell(
-                    onTap: () => _handleEmojiTap(identifier),
-                    child: Center(
-                      child: emojiPath != null
-                          ? Image.asset(
-                              emojiPath,
-                              width: 32,
-                              height: 32,
-                              fit: BoxFit.contain,
-                            )
-                          : Text(
-                              identifier,
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                    ),
-                  );
-                }, childCount: _displayRecentEmojis.length),
-              ),
-            ),
-
-            const SliverPadding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              sliver: SliverToBoxAdapter(child: SizedBox.shrink()),
-            ),
-
-            _buildSectionTitle('所有表情', inkColor),
-
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-              ).copyWith(bottom: 100),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                ),
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final emoji = emojis[index];
-                  final String name = emoji['name'] ?? '';
-                  final String unicodeStr = emoji['unicode'] ?? '';
-                  final String identifier = unicodeStr.isNotEmpty
-                      ? unicodeStr
-                      : '[$name]';
-
-                  return InkWell(
-                    onTap: () => _handleEmojiTap(identifier),
-                    child: Center(
-                      child: Image.asset(
-                        emoji['path']!,
-                        width: 32,
-                        height: 32,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  );
-                }, childCount: emojis.length),
-              ),
-            ),
-          ],
-        ),
-        _buildActionButtons(accentColor, inkColor),
-      ],
-    );
-  }
-
-  // 固定的右下角控制按钮
   Widget _buildActionButtons(Color accentColor, Color inkColor) {
     final bool isNight = UserState().isNight;
     return Positioned(
@@ -384,16 +353,13 @@ class _EmojiPanelState extends State<EmojiPanel> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 删除按钮
           GestureDetector(
             onTap: widget.onBackspace,
             child: Container(
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: isNight
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.white.withValues(alpha: 0.9),
+                color: isNight ? Colors.white.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.9),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
@@ -407,7 +373,6 @@ class _EmojiPanelState extends State<EmojiPanel> {
             ),
           ),
           const SizedBox(width: 12),
-          // 发送按钮
           GestureDetector(
             onTap: widget.onSend,
             child: Container(
@@ -427,12 +392,7 @@ class _EmojiPanelState extends State<EmojiPanel> {
               child: const Center(
                 child: Text(
                   '发送',
-                  style: TextStyle(
-                    fontFamily: 'LXGWWenKai',
-                    fontSize: 15,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontFamily: 'LXGWWenKai', fontSize: 15, color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -447,11 +407,7 @@ class _EmojiPanelState extends State<EmojiPanel> {
       fit: StackFit.expand,
       children: [
         Image.file(File(imagePath), fit: BoxFit.cover),
-        const Positioned(
-          top: 4,
-          right: 4,
-          child: Icon(Icons.live_tv, size: 14, color: Colors.white70),
-        ),
+        const Positioned(top: 4, right: 4, child: Icon(Icons.live_tv, size: 14, color: Colors.white70)),
       ],
     );
   }

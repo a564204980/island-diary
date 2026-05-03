@@ -57,9 +57,51 @@ abstract class DiaryBlock {
       final path = map['path']?.toString() ?? '';
       final name = map['name']?.toString() ?? '';
       return RewardBlock(rewardId, path, name, id: id);
+    } else if (type == 'sticker') {
+      final path = map['path'];
+      if (path != null && path.toString().isNotEmpty) {
+        return StickerBlock(
+          path.toString(),
+          id: id,
+          rotation: (map['rotation'] ?? 0.0).toDouble(),
+          scale: (map['scale'] ?? 1.0).toDouble(),
+          dx: (map['dx'] ?? 0.0).toDouble(),
+          dy: (map['dy'] ?? 0.0).toDouble(),
+        );
+      }
+      return TextBlock('');
     }
     return TextBlock('');
   }
+}
+
+/// 贴纸块
+class StickerBlock extends DiaryBlock {
+  final String path;
+  double rotation;
+  double scale;
+  double dx; // 相对横向坐标
+  double dy; // 相对纵向坐标
+
+  StickerBlock(
+    this.path, {
+    super.id,
+    this.rotation = 0.0,
+    this.scale = 1.0,
+    this.dx = 0.0,
+    this.dy = 0.0,
+  });
+
+  @override
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'type': 'sticker',
+    'path': path,
+    'rotation': rotation,
+    'scale': scale,
+    'dx': dx,
+    'dy': dy,
+  };
 }
 
 /// 奖励块 (用于存储动植物等成就)
@@ -141,37 +183,8 @@ class DiaryTextEditingController extends TextEditingController {
   set value(TextEditingValue newValue) {
     TextEditingValue finalValue = newValue;
 
-    // 原子删除表情标签逻辑：处理 [名称] 格式的自定义表情
-    if (newValue.text.length < value.text.length &&
-        newValue.selection.isCollapsed &&
-        value.selection.isCollapsed) {
-      final String oldText = value.text;
-      final int oldPos = value.selection.baseOffset;
-      final int newPos = newValue.selection.baseOffset;
-
-      // 检测是否是单个退格操作且删除了 ']'
-      if (oldPos - newPos == 1 && oldPos > 0 && oldText[oldPos - 1] == ']') {
-        int start = oldPos - 2;
-        // 向前搜索最近的 '['，限制长度防止误伤长文本
-        while (start >= 0 &&
-            oldText[start] != '[' &&
-            oldText[start] != ']' &&
-            (oldPos - start) < 12) {
-          start--;
-        }
-
-        if (start >= 0 && oldText[start] == '[') {
-          final tagContent = oldText.substring(start + 1, oldPos - 1);
-          if (EmojiMapping.nameToPath.containsKey(tagContent)) {
-            // 确认为合法表情标签，执行整块删除
-            finalValue = newValue.copyWith(
-              text: oldText.substring(0, start) + oldText.substring(oldPos),
-              selection: TextSelection.collapsed(offset: start),
-            );
-          }
-        }
-      }
-    }
+    // 原子删除表情标签逻辑已废弃
+    // 现在使用 PUA 字符，每个表情就是一个单字符，退格键天然支持原子删除，不需要任何特殊拦截。
 
     final String oldText = value.text;
     final String newText = finalValue.text;
@@ -354,38 +367,20 @@ class DiaryTextEditingController extends TextEditingController {
     final List<Map<String, dynamic>> highlights = [];
 
     // 1. 获取所有表情范围
-    final emojiKeys = EmojiMapping.unicodeToPath.keys.toList()
-      ..sort((a, b) => b.length.compareTo(a.length));
-    final emojiPattern = emojiKeys.map((e) => "(?:${RegExp.escape(e)})[\ufe00-\ufe0f\u200d]*").join('|');
-
-    final nameKeys = EmojiMapping.nameToPath.keys.toList()
-      ..sort((a, b) => b.length.compareTo(a.length));
-    final namePattern = nameKeys.map((e) => RegExp.escape('[$e]')).join('|');
-
-    final pattern = [
-      if (emojiPattern.isNotEmpty) emojiPattern,
-      if (namePattern.isNotEmpty) namePattern,
-    ].join('|');
+    final String pattern = EmojiMapping.pattern;
 
     if (pattern.isNotEmpty) {
       final RegExp emojiRegExp = RegExp(pattern);
       for (final Match match in emojiRegExp.allMatches(textContent)) {
         final matchedStr = match.group(0)!;
-        String? path;
-
-        if (matchedStr.startsWith('[') && matchedStr.endsWith(']')) {
-          final name = matchedStr.substring(1, matchedStr.length - 1);
-          path = EmojiMapping.nameToPath[name];
-        } else {
-          path = EmojiMapping.getPathForEmoji(matchedStr);
-        }
+        final path = EmojiMapping.getPathForEmoji(matchedStr);
 
         if (path != null) {
           highlights.add({
             'start': match.start,
             'end': match.end,
             'emojiPath': path,
-            'priority': 2, // 降低优先级，确保 Markdown 符号等能覆盖它
+            'priority': 2,
           });
         }
       }
@@ -696,41 +691,30 @@ class DiaryTextEditingController extends TextEditingController {
 
       Map<String, dynamic>? emojiMatch;
       for (var h in highlights) {
-        if (h['priority'] == 3 && start >= h['start'] && end <= h['end']) {
+        if (h['emojiPath'] != null && start >= h['start'] && end <= h['end']) {
           emojiMatch = h;
           break;
         }
       }
 
       if (emojiMatch != null) {
-        // 核心修复：保持 WidgetSpan 在前，对齐索引的 Ghost Span 在后。
-        // 但使用接近 0 的字号和透明色，并在最后提供一个空的 TextSpan 以平滑光标落点。
+        // PUA 字符渲染极简模式：
+        // 这个 chunk 实际上就是一个不可见的 PUA 字符
+        // 我们直接把它替换成图片，不需要任何隐藏文本的玄学逻辑！
         children.add(
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2.0),
+              padding: const EdgeInsets.symmetric(horizontal: 1.0), // 稍微减小间距，让排版更紧凑
               child: Image.asset(
-                emojiMatch['emojiPath'],
-                width: 20,
-                height: 20,
+                emojiMatch!['emojiPath'],
+                width: combinedStyle.fontSize! * 1.2,
+                height: combinedStyle.fontSize! * 1.2,
                 fit: BoxFit.contain,
               ),
             ),
           ),
         );
-        if (chunk.length > 1) {
-          children.add(
-            TextSpan(
-              text: chunk.substring(1),
-              style: combinedStyle.copyWith(
-                fontSize: 0.001,
-                color: Colors.transparent,
-                letterSpacing: -0.5,
-              ),
-            ),
-          );
-        }
         continue;
       }
 

@@ -366,9 +366,9 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       final textPainter = TextPainter(
         text: TextSpan(
           text: text,
-          style: const TextStyle(
-            fontFamily: 'LXGWWenKai',
-            fontSize: 20,
+          style: TextStyle(
+            fontFamily: currentFontFamily,
+            fontSize: currentFontSize,
             height: 1.6,
           ),
         ),
@@ -385,39 +385,50 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       );
 
       final blockContext = key.currentContext;
-      if (blockContext == null) {
-        return;
-      }
+      if (blockContext == null) return;
+      
       final scrollable = Scrollable.of(blockContext);
       final scrollObject = scrollable.context.findRenderObject();
-      if (scrollObject is! RenderBox) {
-        return;
-      }
+      if (scrollObject is! RenderBox) return;
 
+      // 获取光标相对于滚动容器顶部的相对位置
       final Offset caretInScrollOffset = box.localToGlobal(
         Offset(caretOffset.dx, caretOffset.dy + 4),
         ancestor: scrollObject,
       );
+      
       final double currentScroll = scrollController.offset;
       final double viewportHeight = scrollObject.size.height;
 
-      // 核心迭代：考虑底部由于表情包/键盘导致的遮挡高度
+      // 考虑底部由于表情包/键盘导致的遮挡高度
       final double viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
       final double panelHeight = isEmojiOpen ? math.max(viewInsetsBottom, keyboardHeight) : viewInsetsBottom;
-      
-      // 有效视口高度 = 总高度 - 底部遮挡 - 顶部状态栏等安全区（估算值或从 Padding 获取）
       final double visibleViewportHeight = viewportHeight - panelHeight;
       
-      // 目标：将光标定位在“有效视口”的中间偏上位置（约 1/3 处最舒适）
-      final double targetScroll =
-          currentScroll + caretInScrollOffset.dy - (visibleViewportHeight * 0.35);
+      // --- 核心优化：安全区逻辑 ---
+      // 我们希望光标维持在 visibleViewport 的 15% 到 85% 之间
+      final double caretY = caretInScrollOffset.dy;
+      final double safeTop = visibleViewportHeight * 0.15;
+      final double safeBottom = visibleViewportHeight * 0.85;
 
-      if (scrollController.hasClients &&
+      double? targetScroll;
+
+      if (caretY < safeTop) {
+        // 1. 光标太靠上（或被页头挡住），将其滚回到 30% 位置
+        targetScroll = currentScroll + caretY - (visibleViewportHeight * 0.30);
+      } else if (caretY > safeBottom) {
+        // 2. 光标太靠下（或被面板挡住），将其滚回到 60% 位置（露出上方上下文）
+        targetScroll = currentScroll + caretY - (visibleViewportHeight * 0.60);
+      }
+
+      // 如果 targetScroll 不为空且有效，则执行平滑滚动
+      if (targetScroll != null &&
+          scrollController.hasClients &&
           scrollController.position.hasContentDimensions) {
         scrollController.animateTo(
           targetScroll.clamp(0.0, scrollController.position.maxScrollExtent),
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
         );
       }
     });

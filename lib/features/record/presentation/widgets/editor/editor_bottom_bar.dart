@@ -15,8 +15,8 @@ class EditorBottomBar extends StatelessWidget {
 
   // 工具栏回调
   final VoidCallback onEmojiToggle;
-  final VoidCallback onMoodTap;
   final VoidCallback onImagePick;
+  final VoidCallback onStickerClick;
   final VoidCallback onColorClick;
   final VoidCallback onBgColorClick;
   final VoidCallback onLocationClick;
@@ -50,8 +50,8 @@ class EditorBottomBar extends StatelessWidget {
     required this.blocks,
     required this.isMixedLayout,
     required this.onEmojiToggle,
-    required this.onMoodTap,
     required this.onImagePick,
+    required this.onStickerClick,
     required this.onColorClick,
     required this.onBgColorClick,
     required this.onLocationClick,
@@ -77,60 +77,79 @@ class EditorBottomBar extends StatelessWidget {
     final bool isWide = screenWidth > 800;
     final double toolbarMaxWidth = isWide ? 800.0 : double.infinity;
 
+    final bool isFloating = !isEmojiOpen && viewInsetsBottom <= 0;
+
     return Align(
       alignment: Alignment.bottomCenter,
-      child: Container(
-        width: toolbarMaxWidth,
-        decoration: BoxDecoration(
-          color: isNight ? const Color(0xFF1E1E1E).withValues(alpha: 0.95) : const Color(0xFFFAF8F5).withValues(alpha: 0.95),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.fromLTRB(
+          isFloating ? 20 : 0,
+          0,
+          isFloating ? 20 : 0,
+          isFloating ? (20 + MediaQuery.of(context).padding.bottom) : 0,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 1. 图片上传预览条 (仅在非混排模式下显示图片列表)
-            if (!isMixedLayout)
-              _buildImageUploadPreviewBar(),
-              
-            // 2. 标签式工具栏
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem("瞬间", Icons.image_outlined, false, onImagePick),
-                  _buildNavItem("表情", Icons.face_rounded, isEmojiOpen, onEmojiToggle),
-                  _buildNavItem("文字", Icons.title_rounded, false, onFontSizeClick),
-                  _buildNavItem("设置", Icons.settings_outlined, false, onMoreClick),
-                ],
+        child: Container(
+          width: toolbarMaxWidth,
+          decoration: BoxDecoration(
+            color: isNight 
+                ? const Color(0xFF1E1E1E).withValues(alpha: 0.98) 
+                : const Color(0xFFFAF8F5).withValues(alpha: 0.98),
+            borderRadius: isFloating 
+                ? BorderRadius.circular(32)
+                : const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isFloating ? 0.12 : 0.05),
+                blurRadius: isFloating ? 25 : 10,
+                offset: Offset(0, isFloating ? 8 : -2),
               ),
-            ),
-            
-            // 3. 表情面板/键盘占位区
-            AnimatedContainer(
-              duration: Duration(milliseconds: isEmojiOpen ? 150 : 250),
-              curve: Curves.easeOutCubic,
-              height: currentBottomHeight,
-              child: Visibility(
-                visible: isEmojiOpen,
-                maintainState: true,
-                child: EmojiPanel(
-                  onEmojiSelected: onEmojiSelected,
-                  onBackspace: onEmojiBackspace,
-                  onSend: onEmojiSend,
-                  onCustomEmojiSelected: onCustomEmojiSelected,
-                  paperStyle: paperStyle,
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. 图片上传预览条 (仅在非混排模式下显示图片列表)
+              if (!isMixedLayout)
+                _buildImageUploadPreviewBar(),
+                
+              // 2. 标签式工具栏
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildNavItem("图片", Icons.image_outlined, false, onImagePick),
+                    _buildNavItem("贴纸", Icons.auto_awesome_motion_outlined, false, onStickerClick),
+                    _buildNavItem("表情", Icons.face_rounded, isEmojiOpen, onEmojiToggle),
+                    _buildNavItem("文字", Icons.title_rounded, false, onFontSizeClick),
+                    _buildNavItem("涂鸦", Icons.brush_outlined, false, onColorClick),
+                    _buildNavItem("背景", Icons.wallpaper_rounded, false, onBgColorClick),
+                    _buildNavItem("更多", Icons.more_horiz_rounded, false, onMoreClick),
+                  ],
                 ),
               ),
-            ),
-          ],
+              
+              // 3. 表情面板/键盘占位区
+              AnimatedContainer(
+                duration: Duration(milliseconds: isEmojiOpen ? 150 : 250),
+                curve: Curves.easeOutCubic,
+                height: currentBottomHeight,
+                child: Visibility(
+                  visible: isEmojiOpen,
+                  maintainState: true,
+                  child: EmojiPanel(
+                    onEmojiSelected: onEmojiSelected,
+                    onBackspace: onEmojiBackspace,
+                    onSend: onEmojiSend,
+                    onCustomEmojiSelected: onCustomEmojiSelected,
+                    paperStyle: paperStyle,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

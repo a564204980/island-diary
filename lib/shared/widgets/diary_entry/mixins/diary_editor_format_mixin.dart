@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/diary_block.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
-import '../components/font_size_picker_sheet.dart';
+import '../components/text_style_picker_sheet.dart';
 import '../components/color_picker_sheet.dart';
-import '../components/font_picker_sheet.dart';
 import '../utils/emoji_mapping.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import './diary_editor_core_mixin.dart';
@@ -71,7 +70,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     });
   }
 
-  void showFontSizePicker() {
+  void showTextStylePicker() {
     FocusScope.of(context).unfocus();
     setState(() => isColorPickerOpen = true);
     showModalBottomSheet(
@@ -80,14 +79,21 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       isScrollControlled: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
-          return DiaryFontSizePickerSheet(
+          return DiaryTextStylePickerSheet(
             currentFontSize: currentFontSize,
+            currentFontFamily: currentFontFamily,
             paperStyle: currentPaperStyle,
             onApplyFontSize: (size) {
               setModalState(() {
                 currentFontSize = size;
               });
               onApplyFontSize(size);
+            },
+            onApplyFontFamily: (family) {
+              setModalState(() {
+                currentFontFamily = family;
+              });
+              onApplyFontFamily(family);
             },
           );
         },
@@ -123,21 +129,6 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     scrollToActiveBlock();
   }
 
-  void showFontPicker() {
-    FocusScope.of(context).unfocus();
-    setState(() => isColorPickerOpen = true);
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DiaryFontPickerSheet(
-        currentFontFamily: currentFontFamily,
-        onApplyFontFamily: onApplyFontFamily,
-      ),
-    ).then((_) {
-      if (mounted) setState(() => isColorPickerOpen = false);
-    });
-  }
-
   void onApplyFontFamily(String family) {
     setState(() {
       currentFontFamily = family;
@@ -149,7 +140,6 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     });
     UserState().setPreferredFontFamily(family);
     onBlocksChanged();
-    Navigator.pop(context);
   }
 
   void toggleEmoji() {
@@ -204,24 +194,14 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     if (selection.isCollapsed) {
       int start = selection.start - 1;
       
-      if (text[start] == ']') {
-        final openBracketIndex = text.lastIndexOf('[', start);
-        if (openBracketIndex != -1) {
-          final content = text.substring(openBracketIndex + 1, start);
-          if (EmojiMapping.nameToPath.containsKey(content)) {
-            start = openBracketIndex;
-          } else if (start > 0 && 
-              text.codeUnitAt(start - 1) >= 0xD800 && 
-              text.codeUnitAt(start - 1) <= 0xDBFF) {
-            start -= 1; 
-          }
-        }
-      } else if (start > 0 && 
+      // 处理 Surrogate Pair (Emoji/特殊符号通常占用两个 code unit)
+      if (start > 0 && 
           text.codeUnitAt(start - 1) >= 0xD800 && 
           text.codeUnitAt(start - 1) <= 0xDBFF) {
         start -= 1; 
       }
-      final newText = text.replaceRange(start, selection.start, '');
+
+      final newText = text.substring(0, start) + text.substring(selection.end);
       controller.value = controller.value.copyWith(
         text: newText,
         selection: TextSelection.collapsed(offset: start),

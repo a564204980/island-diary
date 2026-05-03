@@ -27,54 +27,71 @@ class EditorHeader extends StatelessWidget {
     final String weekStr = _getChineseWeekDay(dateTime.weekday);
     final String timeStr = DateFormat('HH:mm').format(dateTime);
 
+    final Color bgColor = isNight ? const Color(0xFF121212) : const Color(0xFFFAF8F5);
+    // 如果是特定的信纸，可以从 DiaryUtils 获取对应的背景色
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      child: Row(
+      color: bgColor, // 确保置顶时遮挡下方文字
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // 1. 左侧返回按钮
-          _buildCircleBtn(
-            icon: Icons.chevron_left_rounded,
-            onTap: onBack,
-            isNight: isNight,
-          ),
-          
-          // 2. 中间日期时间
-          Expanded(
-            child: GestureDetector(
-              onTap: onDateTap,
-              behavior: HitTestBehavior.opaque,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: Text(
-                      "$dateStr  $weekStr  $timeStr",
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: inkColor.withValues(alpha: 0.6),
-                        fontFamily: 'LXGWWenKai',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    size: 14,
-                    color: inkColor.withValues(alpha: 0.4),
-                  ),
-                ],
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            children: [
+              // 1. 左侧返回按钮
+              _buildCircleBtn(
+                icon: Icons.chevron_left_rounded,
+                onTap: onBack,
+                isNight: isNight,
               ),
-            ),
-          ),
+              
+              // 2. 中间日期时间
+              Expanded(
+                child: GestureDetector(
+                  onTap: onDateTap,
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          "$dateStr  $weekStr  $timeStr",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: inkColor.withValues(alpha: 0.6),
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 14,
+                        color: inkColor.withValues(alpha: 0.4),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-          // 3. 右侧按钮组
-          _buildSaveBtn(isNight: isNight, onTap: onSave),
-        ],
-      ),
-    );
-  }
+              // 3. 右侧按钮组
+              _buildSaveBtn(isNight: isNight, onTap: onSave),
+            ],
+          ),
+        ),
+        // 底部细横线 (提高显见度)
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          height: 0.8,
+          color: inkColor.withValues(alpha: 0.1),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildCircleBtn({
     required IconData icon,
