@@ -90,6 +90,7 @@ flutter:
     - assets/images/emoji/yunzhi/
     - assets/images/emoji/shuangjian/
     - assets/images/emoji/dushou/
+    - assets/images/emoji/lingxi/
     - assets/images/sticker/
 
   fonts:

@@ -119,6 +119,20 @@ final List<FurnitureItem> decorationItems = [
     visualScale: 1.0,
     visualOffset: const Offset(0, 0),
   ),
+  FurnitureItem(
+    id: 'carpet_5',
+    name: '星纱蔷薇绒毯',
+    imagePath: 'assets/images/decoration/carpets/carpet5.png',
+    category: '装饰',
+    subCategory: '地毯',
+    gridW: 8,
+    gridH: 4,
+    intrinsicWidth: 486,
+    intrinsicHeight: 286,
+    quantity: 5,
+    visualScale: 1.0,
+    visualOffset: const Offset(0, 0),
+  ),
 
   FurnitureItem(
     id: 'table_lamp_1',
