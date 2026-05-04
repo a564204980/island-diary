@@ -29,12 +29,12 @@ class EmojiPanel extends StatefulWidget {
 
 class _EmojiPanelState extends State<EmojiPanel> {
   // 全局级别的最近使用记录 (存储 identifier)
-  static List<String> _globalRecentEmojis = ['😊'];
+  static List<String> _globalRecentEmojis = [];
   // 当前面板固定展示的记录
   late List<String> _displayRecentEmojis;
 
   List<String> _customEmojis = [];
-  int _currentIndex = 0; // 0: 云织, 1: 霜见, 2: 笃守, 3: 收藏
+  int _currentIndex = 0; // 0: 云织, 1: 霜见, 2: 笃守, 3: 灵犀, 4: 收藏
 
   @override
   void initState() {
@@ -87,6 +87,10 @@ class _EmojiPanelState extends State<EmojiPanel> {
 
   void _handleEmojiTap(String identifier) {
     widget.onEmojiSelected(identifier);
+    
+    // 仅记录在 EmojiMapping 中有定义的表情到最近使用
+    if (!EmojiMapping.isEmojiChar(identifier)) return;
+
     _globalRecentEmojis.remove(identifier);
     _globalRecentEmojis.insert(0, identifier);
     if (_globalRecentEmojis.length > 8) {
@@ -132,10 +136,17 @@ class _EmojiPanelState extends State<EmojiPanel> {
                   accentColor: accentColor,
                 ),
                 const SizedBox(width: 8),
-                _buildCategoryTabIcon(
+                _buildCategoryTabText(
                   index: 3,
-                  icon: Icons.favorite_rounded,
+                  title: '灵犀',
                   isSelected: _currentIndex == 3,
+                  accentColor: accentColor,
+                ),
+                const SizedBox(width: 8),
+                _buildCategoryTabIcon(
+                  index: 4,
+                  icon: Icons.favorite_rounded,
+                  isSelected: _currentIndex == 4,
                   accentColor: accentColor,
                 ),
               ],
@@ -150,6 +161,7 @@ class _EmojiPanelState extends State<EmojiPanel> {
                 _buildEmojiPage('云织', accentColor, inkColor),
                 _buildEmojiPage('霜见', accentColor, inkColor),
                 _buildEmojiPage('笃守', accentColor, inkColor),
+                _buildEmojiPage('灵犀', accentColor, inkColor),
                 _buildCustomEmojiPage(accentColor, inkColor),
               ],
             ),

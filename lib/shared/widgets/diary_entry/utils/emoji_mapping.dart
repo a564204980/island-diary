@@ -5,6 +5,7 @@ class EmojiMapping {
   static const String yunzhiPrefix = 'assets/images/emoji/yunzhi/';
   static const String shuangjianPrefix = 'assets/images/emoji/shuangjian/';
   static const String dushouPrefix = 'assets/images/emoji/dushou/';
+  static const String lingxiPrefix = 'assets/images/emoji/lingxi/';
 
   /// 分类定义（每个表情含唯一 PUA 码点）
   static const List<Map<String, dynamic>> categories = [
@@ -67,6 +68,32 @@ class EmojiMapping {
         {'name': '害羞', 'file': 'shy.png',        'pua': 0xE026},
         {'name': '呜呜', 'file': 'sob.png',        'pua': 0xE027},
         {'name': '惊讶', 'file': 'surprised.png',  'pua': 0xE028},
+        {'name': '爱心', 'file': 'heart.png',      'pua': 0xE029},
+        {'name': '喜欢', 'file': 'like.png',       'pua': 0xE02A},
+        {'name': '叹气', 'file': 'sigh.png',       'pua': 0xE02B},
+      ],
+    },
+    {
+      'id': '灵犀',
+      'name': '灵犀',
+      'prefix': lingxiPrefix,
+      'emojis': [
+        {'name': '生气', 'file': 'angry.png',      'pua': 0xE02C},
+        {'name': '大哭', 'file': 'cry.png',        'pua': 0xE02D},
+        {'name': '吃瓜', 'file': 'eatmelon.png',   'pua': 0xE02E},
+        {'name': '开心', 'file': 'happy.png',      'pua': 0xE02F},
+        {'name': '爱心', 'file': 'heart.png',      'pua': 0xE030},
+        {'name': '喜欢', 'file': 'like.png',       'pua': 0xE031},
+        {'name': '想你', 'file': 'missyou.png',    'pua': 0xE032},
+        {'name': '早安', 'file': 'moring.png',     'pua': 0xE033},
+        {'name': '晚安', 'file': 'night.png',      'pua': 0xE034},
+        {'name': '偷看', 'file': 'peek.png',       'pua': 0xE035},
+        {'name': '疑问', 'file': 'question.png',   'pua': 0xE036},
+        {'name': '傲娇', 'file': 'sassy.png',      'pua': 0xE037},
+        {'name': '震惊', 'file': 'shocked.png',    'pua': 0xE038},
+        {'name': '委屈', 'file': 'smh2.png',       'pua': 0xE039},
+        {'name': '偷笑', 'file': 'snicker.png',    'pua': 0xE03A},
+        {'name': '谢谢', 'file': 'thank.png',      'pua': 0xE03B},
       ],
     },
   ];
@@ -89,11 +116,11 @@ class EmojiMapping {
   /// 获取 PUA 字符对应的图片路径
   static String? getPathForEmoji(String char) => charToPath[char];
 
-  /// 正则：匹配任意一个 PUA 表情字符（U+E001~U+E028）
-  static final RegExp emojiPattern = RegExp('[\uE001-\uE028]');
+  /// 正则：匹配任意一个 PUA 表情字符（U+E001~U+E03B）
+  static final RegExp emojiPattern = RegExp('[\uE001-\uE03B]');
 
   /// 同 emojiPattern，以字符串形式提供（供旧代码兼容）
-  static String get pattern => '[\uE001-\uE028]';
+  static String get pattern => '[\uE001-\uE03B]';
 
   /// 解析文本，拆分为普通文字块和表情块
   static List<TextChunk> parseText(String text) {
