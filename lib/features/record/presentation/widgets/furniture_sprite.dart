@@ -69,9 +69,11 @@ class _FurnitureSpriteState extends State<FurnitureSprite> {
   void _updateImage(ImageInfo info, bool _) async {
     if (mounted) {
       await SpritePainter.cacheImage(widget.item.imagePath, info.image);
-      setState(() {
-        _image = info.image;
-      });
+      if (mounted) {
+        setState(() {
+          _image = info.image;
+        });
+      }
     }
   }
 

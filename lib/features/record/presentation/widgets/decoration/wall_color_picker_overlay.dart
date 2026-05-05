@@ -35,7 +35,7 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -81,13 +81,18 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay>
                 tabs: const [
                   Tab(text: '左墙上色'),
                   Tab(text: '右墙上色'),
+                  Tab(text: '地板上色'),
                 ],
               ),
 
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
-                  children: [_buildColorGrid(true), _buildColorGrid(false)],
+                  children: [
+                    _buildColorGrid(0),
+                    _buildColorGrid(1),
+                    _buildColorGrid(2),
+                  ],
                 ),
               ),
 
@@ -118,10 +123,12 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay>
     );
   }
 
-  Widget _buildColorGrid(bool isLeft) {
-    final currentColor = isLeft
+  Widget _buildColorGrid(int type) {
+    final currentColor = type == 0
         ? widget.controller.wallColorLeft
-        : widget.controller.wallColorRight;
+        : (type == 1
+            ? widget.controller.wallColorRight
+            : widget.controller.floorColor);
 
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -138,7 +145,13 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay>
 
         return GestureDetector(
           onTap: () {
-            widget.controller.setWallColor(isLeft, color);
+            if (type == 0) {
+              widget.controller.setWallColor(true, color);
+            } else if (type == 1) {
+              widget.controller.setWallColor(false, color);
+            } else {
+              widget.controller.setFloorColor(color);
+            }
             setState(() {});
           },
           child: Container(

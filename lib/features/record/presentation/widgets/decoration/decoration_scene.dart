@@ -212,6 +212,7 @@ class DecorationScene extends StatelessWidget {
                                     bounceScale: controller.bounceScale,
                                     wallColorLeft: controller.wallColorLeft,
                                     wallColorRight: controller.wallColorRight,
+                                    floorColor: controller.floorColor,
                                   ),
                                 ),
                               ),

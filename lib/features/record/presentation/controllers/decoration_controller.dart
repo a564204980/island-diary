@@ -51,6 +51,7 @@ class DecorationController extends ChangeNotifier {
   // --- 墙面颜色控制 ---
   Color wallColorLeft = const Color(0xFFDEDCCE);
   Color wallColorRight = const Color(0xFFDEDCCE);
+  Color floorColor = const Color(0xFFF1EBD1);
 
   void init(BuildContext context, {TickerProvider? vsync}) {
     if (vsync != null) {
@@ -172,6 +173,7 @@ class DecorationController extends ChangeNotifier {
     // 加载墙面颜色官方推荐色
     wallColorLeft = UserState().wallColorLeft.value;
     wallColorRight = UserState().wallColorRight.value;
+    floorColor = UserState().floorColor.value;
 
     isInitializing = false;
     notifyListeners();
@@ -183,7 +185,13 @@ class DecorationController extends ChangeNotifier {
     } else {
       wallColorRight = color;
     }
-    UserState().saveWallColors(wallColorLeft, wallColorRight);
+    UserState().saveSceneColors(wallColorLeft, wallColorRight, floorColor);
+    notifyListeners();
+  }
+
+  void setFloorColor(Color color) {
+    floorColor = color;
+    UserState().saveSceneColors(wallColorLeft, wallColorRight, floorColor);
     notifyListeners();
   }
 
