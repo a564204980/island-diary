@@ -8,6 +8,7 @@ import '../widgets/decoration/decoration_scene.dart';
 import '../widgets/decoration/decoration_overlay_ui.dart';
 import '../widgets/decoration/wall_color_picker_overlay.dart';
 import './decoration_page_constants.dart';
+import '../widgets/scrolling_sun_background.dart';
 
 class DecorationPage extends StatefulWidget {
   const DecorationPage({super.key});
@@ -93,6 +94,9 @@ class _DecorationPageState extends State<DecorationPage>
       backgroundColor: const Color(0xFFD1DAD8),
       body: Stack(
         children: [
+          // 0. 动态滚动太阳背景
+          const Positioned.fill(child: ScrollingSunBackground()),
+
           // 核心场景层
           DecorationScene(
             gridKey: _gridKey,

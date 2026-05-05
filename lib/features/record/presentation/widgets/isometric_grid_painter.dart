@@ -25,6 +25,7 @@ class IsometricGridPainter extends CustomPainter {
   final double bounceScale;
   final Color wallColorLeft;
   final Color wallColorRight;
+  final Color floorColor;
 
   IsometricGridPainter({
     required this.rows,
@@ -45,6 +46,7 @@ class IsometricGridPainter extends CustomPainter {
     this.bounceScale = 1.0,
     this.wallColorLeft = const Color(0xFFDEDCCE),
     this.wallColorRight = const Color(0xFFDEDCCE),
+    this.floorColor = const Color(0xFFF1EBD1),
   });
 
   @override
@@ -378,8 +380,35 @@ class IsometricGridPainter extends CustomPainter {
     canvas.drawPath(cornerPath, topPaintLeft); // 浣跨敤宸︿晶鏄庡害鍗冲彲锛屼繚鎸佷竴鑷?
     canvas.drawPath(cornerPath, outlinePaint);
 
-    // --- 0.2 缁樺埗鍦伴潰鍘氬害鏁堟灉 (3D 鍩哄骇) ---
-    // 宸﹀墠渚ч潰 (鑰冭檻澧欎綋鍘氬害寤朵几锛岃捣濮嬬偣璁句负 (rows, -kWallThickness))
+    // --- 0.2 绘制地面填充色 (默认地板) ---
+    final floorPath = Path()
+      ..moveTo(
+        converter.getScreenPoint(0, 0, 0).dx,
+        converter.getScreenPoint(0, 0, 0).dy,
+      )
+      ..lineTo(
+        converter.getScreenPoint(rows.toDouble(), 0, 0).dx,
+        converter.getScreenPoint(rows.toDouble(), 0, 0).dy,
+      )
+      ..lineTo(
+        converter.getScreenPoint(rows.toDouble(), cols.toDouble(), 0).dx,
+        converter.getScreenPoint(rows.toDouble(), cols.toDouble(), 0).dy,
+      )
+      ..lineTo(
+        converter.getScreenPoint(0, cols.toDouble(), 0).dx,
+        converter.getScreenPoint(0, cols.toDouble(), 0).dy,
+      )
+      ..close();
+
+    canvas.drawPath(
+      floorPath,
+      Paint()
+        ..color = floorColor
+        ..style = PaintingStyle.fill,
+    );
+
+    // --- 0.3 绘制地面厚度效果 (3D 基座) ---
+    // 左前侧面 (考虑墙体厚度延伸，起始点设置为 (rows, -kWallThickness))
     final floorLeftFacePath = Path()
       ..moveTo(
         converter.getScreenPoint(rows.toDouble(), -kWallThickness, 0).dx,
@@ -407,7 +436,7 @@ class IsometricGridPainter extends CustomPainter {
       )
       ..close();
 
-    // 鍙冲墠渚ч潰 (鑰冭檻澧欎綋鍘氬害寤朵几锛岃捣濮嬬偣璁句负 (-kWallThickness, cols))
+    // 右前侧面 (考虑墙体厚度延伸，起始点设置为 (-kWallThickness, cols))
     final floorRightFacePath = Path()
       ..moveTo(
         converter.getScreenPoint(-kWallThickness, cols.toDouble(), 0).dx,
@@ -435,7 +464,7 @@ class IsometricGridPainter extends CustomPainter {
       )
       ..close();
 
-    // 鍦伴潰渚ч潰棰滆壊 (浣跨敤涓€х殑鐏拌鑹?Foundation Color)
+    // 地面侧面颜色 (使用中性的灰褐色 Foundation Color)
     final floorSideColor = const Color(0xFFD2D0C5);
     final hslFloorSide = HSLColor.fromColor(floorSideColor);
     final floorSidePaintLeft = Paint()

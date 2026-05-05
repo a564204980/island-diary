@@ -9,6 +9,8 @@ import 'package:island_diary/shared/widgets/decoration/firefly_atmosphere.dart';
 import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_photo_wall_page.dart';
 
+import '../widgets/scrolling_sun_background.dart';
+
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
 
@@ -94,14 +96,9 @@ class _RecordPageState extends State<RecordPage>
               backgroundColor: themeColor,
               body: Stack(
                 children: [
-                  // 1. 高质感材质底层 (Paper Texture / Night Image)
-                  Positioned.fill(
-                    child: Image.asset(
-                      UserState().isNight 
-                          ? 'assets/images/login_bg_1.png' 
-                          : 'assets/images/paper_bg.png',
-                      fit: BoxFit.cover,
-                    ),
+                  // 1. 动态滚动太阳背景
+                  const Positioned.fill(
+                    child: ScrollingSunBackground(),
                   ),
                   // 2. 气氛滤镜层 (支持昼夜动态过渡)
                   Positioned.fill(
