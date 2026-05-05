@@ -374,17 +374,17 @@ final List<FurnitureItem> bedroomItems = [
   ),
   FurnitureItem(
     id: 'table_9',
-    name: '桃木简',
+    name: '桃木小方桌',
     imagePath: 'assets/images/decoration/table/table9.png',
     category: '家具',
     subCategory: '桌子',
     gridW: 6,
-    gridH: 4,
+    gridH: 3,
     intrinsicWidth: 469,
     intrinsicHeight: 455,
     quantity: 1,
     visualScale: 1.0,
-    visualOffset: const Offset(0, 0),
+    visualOffset: const Offset(2, 4),
   ),
 
   FurnitureItem(

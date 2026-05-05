@@ -51,9 +51,10 @@ class DecorationController extends ChangeNotifier {
   bool isInitializing = true;
   double loadingProgress = 0.0;
 
-  // --- 墙面颜色控制 ---
+  // --- 场景背景控制 ---
   Color wallColorLeft = const Color(0xFFDEDCCE);
   Color wallColorRight = const Color(0xFFDEDCCE);
+  WallPattern wallPattern = WallPattern.none;
   Color floorColor = const Color(0xFFF1EBD1);
 
   void init(BuildContext context, {TickerProvider? vsync}) {
@@ -176,6 +177,7 @@ class DecorationController extends ChangeNotifier {
     // 加载墙面颜色官方推荐色
     wallColorLeft = UserState().wallColorLeft.value;
     wallColorRight = UserState().wallColorRight.value;
+    wallPattern = WallPattern.values[UserState().wallPattern.value.clamp(0, WallPattern.values.length - 1)];
     floorColor = UserState().floorColor.value;
 
     isInitializing = false;
@@ -195,6 +197,12 @@ class DecorationController extends ChangeNotifier {
   void setFloorColor(Color color) {
     floorColor = color;
     UserState().saveSceneColors(wallColorLeft, wallColorRight, floorColor);
+    notifyListeners();
+  }
+
+  void setWallPattern(WallPattern pattern) {
+    wallPattern = pattern;
+    UserState().saveWallPattern(pattern.index);
     notifyListeners();
   }
 
@@ -412,6 +420,15 @@ class DecorationController extends ChangeNotifier {
       _lastClickPlaced!.item.quantity++;
     }
     _lastClickPlaced = null;
+
+    if (item.subCategory == '墙纸') {
+      if (item.id.contains('stripes')) {
+        setWallPattern(WallPattern.stripes);
+      } else {
+        setWallPattern(WallPattern.none);
+      }
+      return;
+    }
 
     int r = (kGridRows / 2).floor();
     int c = (kGridCols / 2).floor();

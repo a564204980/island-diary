@@ -63,6 +63,7 @@ class _K {
 
   static const wallColorLeft = 'wall_color_left';
   static const wallColorRight = 'wall_color_right';
+  static const wallPattern = 'wall_pattern';
   static const floorColor = 'floor_color';
   static const placedFurniture = 'placed_furniture_v1';
   static const decorationSnapshot = 'decoration_snapshot_v1';

@@ -25,6 +25,7 @@ class IsometricGridPainter extends CustomPainter {
   final double bounceScale;
   final Color wallColorLeft;
   final Color wallColorRight;
+  final WallPattern wallPattern;
   final Color floorColor;
 
   IsometricGridPainter({
@@ -46,6 +47,7 @@ class IsometricGridPainter extends CustomPainter {
     this.bounceScale = 1.0,
     this.wallColorLeft = const Color(0xFFDEDCCE),
     this.wallColorRight = const Color(0xFFDEDCCE),
+    this.wallPattern = WallPattern.none,
     this.floorColor = const Color(0xFFF1EBD1),
   });
 
@@ -146,6 +148,11 @@ class IsometricGridPainter extends CustomPainter {
         ..color = wallColorRight
         ..style = PaintingStyle.fill,
     );
+    
+    if (wallPattern == WallPattern.stripes) {
+      _drawWallStripes(canvas, converter, true, wallColorLeft);
+      _drawWallStripes(canvas, converter, false, wallColorRight);
+    }
 
     // 缁樺埗澧欓潰涓昏疆寤撶嚎
     canvas.drawPath(leftWallPath, outlinePaint);
@@ -1133,6 +1140,39 @@ class IsometricGridPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0,
     );
+  }
+
+  void _drawWallStripes(
+    Canvas canvas,
+    IsometricCoordinateConverter converter,
+    bool isLeft,
+    Color baseColor,
+  ) {
+    // 采用比底色深一点或浅一点的条纹色
+    final hsl = HSLColor.fromColor(baseColor);
+    final stripeColor = hsl.withLightness((hsl.lightness - 0.1).clamp(0.0, 1.0)).toColor();
+    final count = isLeft ? rows : cols;
+
+    for (int i = 0; i < count; i++) {
+      if (i % 2 == 1) {
+        // 绘制 1 个单位宽的条纹
+        final path = Path();
+        if (isLeft) {
+          final p1 = converter.getScreenPoint(i.toDouble(), 0, 0);
+          final p2 = converter.getScreenPoint(i + 1.0, 0, 0);
+          final p3 = converter.getScreenPoint(i + 1.0, 0, kWallGridHeight.toDouble());
+          final p4 = converter.getScreenPoint(i.toDouble(), 0, kWallGridHeight.toDouble());
+          path.addPolygon([p1, p2, p3, p4], true);
+        } else {
+          final p1 = converter.getScreenPoint(0, i.toDouble(), 0);
+          final p2 = converter.getScreenPoint(0, i + 1.0, 0);
+          final p3 = converter.getScreenPoint(0, i + 1.0, kWallGridHeight.toDouble());
+          final p4 = converter.getScreenPoint(0, i.toDouble(), kWallGridHeight.toDouble());
+          path.addPolygon([p1, p2, p3, p4], true);
+        }
+        canvas.drawPath(path, Paint()..color = stripeColor..style = PaintingStyle.fill);
+      }
+    }
   }
 
   @override

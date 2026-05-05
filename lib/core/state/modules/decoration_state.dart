@@ -5,6 +5,7 @@ mixin DecorationMixin {
   final ValueNotifier<List<PlacedFurniture>> placedFurniture = ValueNotifier<List<PlacedFurniture>>([]);
   final ValueNotifier<Color> wallColorLeft = ValueNotifier<Color>(const Color(0xFFDEDCCE));
   final ValueNotifier<Color> wallColorRight = ValueNotifier<Color>(const Color(0xFFDEDCCE));
+  final ValueNotifier<int> wallPattern = ValueNotifier<int>(0);
   final ValueNotifier<Color> floorColor = ValueNotifier<Color>(const Color(0xFFF1EBD1));
   final ValueNotifier<Uint8List?> decorationSnapshot = ValueNotifier<Uint8List?>(null);
 
@@ -22,6 +23,10 @@ mixin DecorationMixin {
     final r = prefs.getInt(_K.wallColorRight);
     if (r != null) {
       wallColorRight.value = Color(r);
+    }
+    final pattern = prefs.getInt(_K.wallPattern);
+    if (pattern != null) {
+      wallPattern.value = pattern;
     }
     final floor = prefs.getInt(_K.floorColor);
     if (floor != null) {
@@ -55,10 +60,17 @@ mixin DecorationMixin {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_K.wallColorLeft, left.toARGB32());
     await prefs.setInt(_K.wallColorRight, right.toARGB32());
+    await prefs.setInt(_K.wallPattern, wallPattern.value);
     await prefs.setInt(_K.floorColor, floor.toARGB32());
   }
 
   Future<void> saveWallColors(Color left, Color right) async {
     await saveSceneColors(left, right, floorColor.value);
+  }
+
+  Future<void> saveWallPattern(int pattern) async {
+    wallPattern.value = pattern;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_K.wallPattern, pattern);
   }
 }

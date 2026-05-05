@@ -11,3 +11,5 @@ const double kGridRightTaper = 0;
 const double kSceneScaleFactor = 2.0;
 const int kWallGridHeight = 14;
 const double kWallThickness = 0.6;
+
+enum WallPattern { none, stripes }

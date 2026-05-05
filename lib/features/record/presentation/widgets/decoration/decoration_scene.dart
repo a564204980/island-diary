@@ -106,6 +106,7 @@ class DecorationScene extends StatelessWidget {
                           bounceScale: controller.bounceScale,
                           wallColorLeft: controller.wallColorLeft,
                           wallColorRight: controller.wallColorRight,
+                          wallPattern: controller.wallPattern,
                           floorColor: controller.floorColor,
                         ),
                       ),
@@ -133,7 +134,8 @@ class DecorationScene extends StatelessWidget {
                       if (hit != null) {
                         controller.selectFurniture(hit);
                       } else {
-                        // 不再选中网格
+                        // 点击空白处，取消选中
+                        controller.selectFurniture(null);
                       }
                     },
                     onLongPressStart: (details) {
