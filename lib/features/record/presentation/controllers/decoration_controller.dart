@@ -33,6 +33,9 @@ class DecorationController extends ChangeNotifier {
   PlacedFurniture? originalFurnitureData;
   PlacedFurniture? draggingOriginalPF;
 
+  // 点击放置的最近一次预览物品（再次点击时先移除）
+  PlacedFurniture? _lastClickPlaced;
+
   // 果冻弹跳动画相关
   AnimationController? _bounceController;
   Animation<double>? _bounceAnimation;
@@ -399,6 +402,29 @@ class DecorationController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void addFurniture(FurnitureItem item) {
+    if (item.quantity <= 0) return;
+
+    // 若上一次点击放置的物品还未被移动/删除，先移除它
+    if (_lastClickPlaced != null &&
+        _placedFurniture.contains(_lastClickPlaced)) {
+      _placedFurniture.remove(_lastClickPlaced);
+      _lastClickPlaced!.item.quantity++;
+    }
+    _lastClickPlaced = null;
+
+    int r = (kGridRows / 2).floor();
+    int c = (kGridCols / 2).floor();
+    if (item.isWall) {
+      r = (kGridRows / 2).floor();
+      c = 0;
+    }
+
+    placeFurniture(item, r: r, c: c, z: 0, rotation: 0);
+    // 记录本次点击放置的引用
+    _lastClickPlaced = selectedFurniture;
+  }
+
   void deleteFurniture(PlacedFurniture pf) {
     _placedFurniture.remove(pf);
     pf.item.quantity++;
@@ -488,6 +514,7 @@ class DecorationController extends ChangeNotifier {
     ghostCell = null;
     originalFurnitureData = null;
     draggingOriginalPF = null;
+    _lastClickPlaced = null; // 拖拽完成后清除点击预览引用
     isInteracting = false;
   }
 

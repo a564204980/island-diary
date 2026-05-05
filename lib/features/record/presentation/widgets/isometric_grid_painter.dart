@@ -803,9 +803,9 @@ class IsometricGridPainter extends CustomPainter {
       );
     }
 
-    if (selectedCell != null && selectedFurniture == null) {
-      _drawSelectionCell(canvas, selectedCell!, converter, tw, th);
-    }
+    // if (selectedCell != null && selectedFurniture == null) {
+    //   _drawSelectionCell(canvas, selectedCell!, converter, tw, th);
+    // }
     canvas.restore();
   }
 

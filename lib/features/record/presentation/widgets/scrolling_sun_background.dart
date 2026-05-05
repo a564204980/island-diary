@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -101,20 +102,26 @@ class _SunBackgroundPainter extends CustomPainter {
     final Paint sunPaint = Paint()..color = Colors.white.withValues(alpha: 0.35);
 
     // 覆盖整个屏幕及其边缘
-    int rowCount = 0;
     for (double y = -spacing; y < size.height + spacing; y += spacing) {
-      rowCount++;
-      // 错位逻辑：奇数行偏移半个间距，实现参差不齐的感觉
-      final double rowShift = (rowCount % 2 == 0) ? 0 : spacing / 2;
-
       for (double x = -spacing; x < size.width + spacing; x += spacing) {
-        // 应用平移偏移和行错位
-        double drawX = x + baseOffsetX + rowShift;
-        double drawY = y + baseOffsetY;
+        // 1. 基础网格索引
+        final double ix = x / spacing;
+        final double iy = y / spacing;
         
-        // 保证循环显示 (使用取模，但需要处理错位带来的边缘衔接)
-        drawX = (drawX % (size.width + spacing * 2)) - spacing;
-        drawY = (drawY % (size.height + spacing * 2)) - spacing;
+        // 2. 引入确定性的参差不齐感 (Deterministic Jitter)
+        // 使用正弦函数根据坐标生成偏移，确保同一个位置的太阳偏移量一致，从而动画滚动时不会闪烁
+        final double jitterX = math.sin(ix * 1.5 + iy * 2.1) * (spacing * 0.25);
+        final double jitterY = math.cos(ix * 0.8 + iy * 1.7) * (spacing * 0.25);
+
+        // 3. 计算最终位置
+        double drawX = x + baseOffsetX + jitterX;
+        double drawY = y + baseOffsetY + jitterY;
+        
+        // 4. 保证循环显示 (使用取模，增加缓冲区确保平滑)
+        final double totalW = size.width + spacing * 2;
+        final double totalH = size.height + spacing * 2;
+        drawX = (drawX % totalW) - spacing;
+        drawY = (drawY % totalH) - spacing;
 
         canvas.drawImageRect(
           sunImage!,

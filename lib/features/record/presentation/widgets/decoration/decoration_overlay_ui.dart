@@ -42,10 +42,18 @@ class DecorationOverlayUI extends StatelessWidget {
                 selectedSubCategory: controller.selectedSubCategory,
                 onCategoryChanged: controller.setCategory,
                 onSubCategoryChanged: controller.setSubCategory,
+                onItemTap: (item) {
+                  if (item.quantity > 0) {
+                    controller.addFurniture(item);
+                  }
+                },
                 onDragStarted: (item) {
                   controller.draggingItem = item;
                   controller.draggingRotation = 0;
                   controller.ghostZ = 0.0;
+                  // 预设场景中心位置，让 ghostItem 从拖拽开始就显示
+                  controller.ghostCell = (12, 12);
+                  controller.updateInteracting(true);
                 },
                 onDragEnd: () => controller.cancelDragging(),
               ),
@@ -63,14 +71,14 @@ class DecorationOverlayUI extends StatelessWidget {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF5C8D89)),
+                    icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF8B5E3C)),
                     onPressed: onBack,
                   ),
                   const SizedBox(width: 8),
                   IconButton(
                     icon: Icon(
                       controller.showGrid ? Icons.grid_on : Icons.grid_off,
-                      color: const Color(0xFF5C8D89).withValues(alpha: 0.7),
+                      color: const Color(0xFF8B5E3C).withValues(alpha: 0.7),
                     ),
                     onPressed: controller.toggleGrid,
                   ),
@@ -87,33 +95,27 @@ class DecorationOverlayUI extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // 3. 垂直缩放栏
+              // 3. 垂直缩放栏 (重构)
               Container(
+                width: 48,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                  color: const Color(0xFFFEF9EB), // 暖米色
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFE8D4B4), width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Column(
                   children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.add,
-                        color: controller.selectedFurniture != null
-                            ? const Color(0xFF5C8D89).withValues(alpha: 0.3)
-                            : const Color(0xFF5C8D89),
-                      ),
-                      onPressed: controller.selectedFurniture != null
-                          ? null
-                          : () => onZoom(0.05),
-                      tooltip: '放大',
+                    _buildControlButton(
+                      icon: Icons.add,
+                      onPressed: controller.selectedFurniture != null ? null : () => onZoom(0.05),
+                      isDisabled: controller.selectedFurniture != null,
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -121,48 +123,23 @@ class DecorationOverlayUI extends StatelessWidget {
                         '${(controller.currentScale * 100).toInt()}%',
                         style: TextStyle(
                           color: controller.selectedFurniture != null
-                              ? const Color(0xFF5C8D89).withValues(alpha: 0.3)
-                              : const Color(0xFF5C8D89),
-                          fontSize: 10,
+                              ? const Color(0xFF8B5E3C).withValues(alpha: 0.3)
+                              : const Color(0xFF8B5E3C),
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    Divider(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      height: 1,
-                      indent: 8,
-                      endIndent: 8,
+                    _buildControlButton(
+                      icon: Icons.remove,
+                      onPressed: controller.selectedFurniture != null ? null : () => onZoom(-0.05),
+                      isDisabled: controller.selectedFurniture != null,
                     ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.remove,
-                        color: controller.selectedFurniture != null
-                            ? const Color(0xFF5C8D89).withValues(alpha: 0.3)
-                            : const Color(0xFF5C8D89),
-                      ),
-                      onPressed: controller.selectedFurniture != null
-                          ? null
-                          : () => onZoom(-0.05),
-                      tooltip: '缩小',
-                    ),
-                    Divider(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      height: 1,
-                      indent: 8,
-                      endIndent: 8,
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.brush_rounded,
-                        color: controller.selectedFurniture != null
-                            ? const Color(0xFF5C8D89).withValues(alpha: 0.3)
-                            : const Color(0xFF5C8D89),
-                      ),
-                      onPressed: controller.selectedFurniture != null
-                          ? null
-                          : onShowPaint,
-                      tooltip: '粉刷墙面',
+                    const Divider(color: Color(0xFFE8D4B4), height: 1, indent: 8, endIndent: 8),
+                    _buildControlButton(
+                      icon: Icons.brush_rounded,
+                      onPressed: controller.selectedFurniture != null ? null : onShowPaint,
+                      isDisabled: controller.selectedFurniture != null,
                     ),
                   ],
                 ),
@@ -174,6 +151,21 @@ class DecorationOverlayUI extends StatelessWidget {
     );
   }
 
+  Widget _buildControlButton({
+    required IconData icon,
+    required VoidCallback? onPressed,
+    bool isDisabled = false,
+  }) {
+    return IconButton(
+      icon: Icon(
+        icon,
+        color: isDisabled ? const Color(0xFF8B5E3C).withValues(alpha: 0.3) : const Color(0xFF8B5E3C),
+        size: 22,
+      ),
+      onPressed: onPressed,
+    );
+  }
+
   Widget _buildTrayToggle() {
     return GestureDetector(
       onTap: onToggleTray,
@@ -181,16 +173,23 @@ class DecorationOverlayUI extends StatelessWidget {
         width: 32,
         height: 60,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.5),
+          color: const Color(0xFFFEF9EB),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(16),
             bottomLeft: Radius.circular(16),
           ),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+          border: Border.all(color: const Color(0xFFE8D4B4)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(-4, 0),
+            ),
+          ],
         ),
         child: Icon(
           isTrayExpanded ? Icons.chevron_right : Icons.chevron_left,
-          color: const Color(0xFF5C8D89),
+          color: const Color(0xFF8B5E3C),
           size: 20,
         ),
       ),

@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:ui' as ui;
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/features/record/presentation/utils/isometric_coordinate_utils.dart';
 import '../controllers/decoration_controller.dart';
+import '../../domain/models/furniture_item.dart';
 import '../widgets/decoration/decoration_scene.dart';
 import '../widgets/decoration/decoration_overlay_ui.dart';
 import '../widgets/decoration/wall_color_picker_overlay.dart';
@@ -90,49 +92,124 @@ class _DecorationPageState extends State<DecorationPage>
 
   @override
   Widget build(BuildContext context) {
+    final double screenW = MediaQuery.of(context).size.width;
+    final double screenH = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: const Color(0xFFD1DAD8),
-      body: Stack(
-        children: [
-          // 0. 动态滚动太阳背景
-          const Positioned.fill(child: ScrollingSunBackground()),
+      body: DragTarget<FurnitureItem>(
+        onMove: (details) {
+          final converter = _getConverter(context);
+          final renderBox = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+          if (renderBox != null) {
+            final localPos = renderBox.globalToLocal(details.offset);
+            _controller.updateDragPosition(localPos, converter);
+          }
+        },
+        onAcceptWithDetails: (details) {
+          final item = details.data;
+          _controller.updateInteracting(false);
+          final converter = _getConverter(context);
+          if (_controller.ghostCell != null &&
+              (item.quantity > 0 || _controller.draggingOriginalPF != null)) {
+            if (_controller.isAreaAvailable(
+              item,
+              _controller.ghostCell!.$1,
+              _controller.ghostCell!.$2,
+              _controller.draggingRotation,
+              converter,
+              z: _controller.ghostZ,
+              exclude: _controller.draggingOriginalPF,
+            )) {
+              _controller.placeFurniture(
+                item,
+                r: _controller.ghostCell!.$1,
+                c: _controller.ghostCell!.$2,
+                z: _controller.ghostZ,
+                rotation: _controller.draggingRotation,
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('该区域无法放置家具'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+              _controller.cancelDragging();
+            }
+          }
+        },
+        onLeave: (_) => _controller.selectCell(null),
+        builder: (context, _, __) => Stack(
+          children: [
+            // 0. 动态滚动太阳背景
+            const Positioned.fill(child: ScrollingSunBackground()),
 
-          // 核心场景层
-          DecorationScene(
-            gridKey: _gridKey,
-            repaintKey: _repaintKey,
-            controller: _controller,
-          ),
-
-          // 用户界面层
-          DecorationOverlayUI(
-            controller: _controller,
-            isTrayExpanded: _isTrayExpanded,
-            onToggleTray: () =>
-                setState(() => _isTrayExpanded = !_isTrayExpanded),
-            onZoom: _handleZoom,
-            onClearAll: _handleClearAll,
-            onBack: _handleBack,
-            onShowPaint: () => setState(() => _showColorPicker = true),
-          ),
-
-          // 3. 墙面颜色选择器覆盖层
-          if (_showColorPicker)
-            WallColorPickerOverlay(
+            // 核心场景层
+            DecorationScene(
+              gridKey: _gridKey,
+              repaintKey: _repaintKey,
               controller: _controller,
-              onClose: () => setState(() => _showColorPicker = false),
             ),
 
-          // 资源加载遮罩
-          if (_controller.isInitializing) _buildLoadingOverlay(),
-        ],
+            // 用户界面层
+            DecorationOverlayUI(
+              controller: _controller,
+              isTrayExpanded: _isTrayExpanded,
+              onToggleTray: () =>
+                  setState(() => _isTrayExpanded = !_isTrayExpanded),
+              onZoom: _handleZoom,
+              onClearAll: _handleClearAll,
+              onBack: _handleBack,
+              onShowPaint: () => setState(() => _showColorPicker = true),
+            ),
+
+            // 3. 墙面颜色选择器覆盖层
+            if (_showColorPicker)
+              WallColorPickerOverlay(
+                controller: _controller,
+                onClose: () => setState(() => _showColorPicker = false),
+              ),
+
+            // 资源加载遮罩
+            if (_controller.isInitializing) _buildLoadingOverlay(),
+          ],
+        ),
       ),
+    );
+  }
+
+  IsometricCoordinateConverter _getConverter(BuildContext context) {
+    final double screenW = MediaQuery.of(context).size.width;
+    final double screenH = MediaQuery.of(context).size.height;
+    const double imgW = 2000;
+    const double imgH = 2000;
+    double baseScale = screenH / imgH;
+    if (imgW * baseScale < screenW) baseScale = screenW / imgW;
+
+    final double w = imgW * baseScale * kSceneScaleFactor * _controller.currentScale;
+    final double h = imgH * baseScale * kSceneScaleFactor * _controller.currentScale;
+    final double tw = w / 50;
+    final double th = tw * kGridAspectRatio;
+    
+    // 复用 DecorationScene 中的逻辑获取 centerYFactor
+    double centerYFactor = kGridCenterYFactorPhone;
+    final double aspectRatio = screenW / screenH;
+    if (aspectRatio > 1.8) {
+      centerYFactor = kGridCenterYFactorIPad;
+    }
+
+    return IsometricCoordinateConverter(
+      centerX: w / 2,
+      centerY: h * centerYFactor,
+      tw: tw,
+      th: th,
     );
   }
 
   Widget _buildLoadingOverlay() {
     return Container(
-      color: const Color(0xFFD1DAD8),
+      color: const Color(0xFFFEF9EB), // 暖米色背景
       width: double.infinity,
       height: double.infinity,
       child: Center(
@@ -144,9 +221,9 @@ class _DecorationPageState extends State<DecorationPage>
               width: 300,
               height: 12,
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: const Color(0xFFE8D4B4).withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.05), width: 1),
+                border: Border.all(color: const Color(0xFFE8D4B4).withValues(alpha: 0.5), width: 1),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),
@@ -154,7 +231,7 @@ class _DecorationPageState extends State<DecorationPage>
                   value: _controller.loadingProgress,
                   backgroundColor: Colors.transparent,
                   valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF5C8D89),
+                    Color(0xFF8B5E3C), // 进度条颜色改为深褐色
                   ),
                 ),
               ),
@@ -163,7 +240,7 @@ class _DecorationPageState extends State<DecorationPage>
             Text(
               '正在搬运家具元件... ${((_controller.loadingProgress * 100).toInt())}%',
               style: const TextStyle(
-                color: Color(0xFF5C8D89),
+                color: Color(0xFF8B5E3C), // 文字颜色改为深褐色
                 fontSize: 14,
                 letterSpacing: 1.2,
                 fontWeight: FontWeight.w400,
