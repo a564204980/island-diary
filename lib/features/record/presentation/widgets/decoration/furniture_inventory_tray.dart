@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 import '../../../domain/models/furniture_item.dart';
 import '../furniture_sprite.dart';
 

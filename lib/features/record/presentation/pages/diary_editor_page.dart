@@ -4,7 +4,6 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/core/services/sticker_service.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_core_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_media_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_format_mixin.dart';
@@ -82,7 +81,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
 
     return ValueListenableBuilder<String>(
       valueListenable: UserState().themeMode,
-      builder: (context, themeMode, child) {
+      builder: (context, themeMode, _) {
         final bool isNight = UserState().isNight;
         final Color accentColor = DiaryUtils.getAccentColor(currentPaperStyle, isNight);
         final Color bgColor = isNight ? const Color(0xFF121212) : const Color(0xFFFAF8F5);

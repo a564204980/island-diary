@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'dart:math' as math;
 import 'package:island_diary/core/state/user_state.dart';
 import '../../domain/models/furniture_item.dart';
 import '../../domain/models/placed_furniture.dart';
@@ -46,7 +46,7 @@ class DecorationController extends ChangeNotifier {
   double currentScale = 0.5;
   Offset sceneOffset = const Offset(-120, 0);
   bool isInteracting = false;
-  bool showGrid = true;
+  bool showGrid = false;
   bool isCapturingSnapshot = false;
   bool isInitializing = true;
   double loadingProgress = 0.0;
@@ -81,7 +81,7 @@ class DecorationController extends ChangeNotifier {
         category: item.category,
         subCategory: item.subCategory,
         gridW: item.gridW,
-        gridH: item.gridH,
+        gridH: item.id == 'glass_partition' ? 14 : item.gridH,
         intrinsicWidth: item.intrinsicWidth,
         intrinsicHeight: item.intrinsicHeight,
         quantity: item.quantity,
@@ -172,7 +172,7 @@ class DecorationController extends ChangeNotifier {
       await Future.delayed(Duration.zero);
     }
 
-    // 棰濆鐨勫皬寤惰繜纭繚 UI 骞虫粦杩囨浮
+    // 额外的微小延迟确保 UI 平滑过渡
     await Future.delayed(const Duration(milliseconds: 300));
     // 加载墙面颜色官方推荐色
     wallColorLeft = UserState().wallColorLeft.value;
@@ -239,6 +239,16 @@ class DecorationController extends ChangeNotifier {
 
   double dragZOffset = 0.0; // 记录拖拽开始时手指与物品底座的 Z 轴偏移
 
+  void startDragging(FurnitureItem item, {PlacedFurniture? originalPF}) {
+    draggingItem = item;
+    draggingOriginalPF = originalPF;
+    ghostCell = null;
+    ghostZ = originalPF?.z ?? 0.0;
+    draggingRotation = originalPF?.rotation ?? 0;
+    isInteracting = true;
+    notifyListeners();
+  }
+
   void updateDragPosition(
     Offset localPos,
     IsometricCoordinateConverter converter, {
@@ -259,7 +269,7 @@ class DecorationController extends ChangeNotifier {
         preferLeftWall: useLeftWall,
       );
 
-      // 璁＄畻褰撳墠鎵嬪娍鐐瑰搴旂殑 Z 楂樺害 (0~max)
+      // 计算当前手指点对应的 Z 高度 (0~max)
       final double touchZ = converter.getWallZ(
         localPos,
         r: useLeftWall ? wallCell.$1.toDouble() : 0,
@@ -272,8 +282,7 @@ class DecorationController extends ChangeNotifier {
         dragZOffset = ghostZ - touchZ;
       }
 
-      final double maxAllowedZ = (kWallGridHeight - draggingItem!.gridH)
-          .toDouble();
+      final double maxAllowedZ = math.max(0.0, (kWallGridHeight - draggingItem!.gridH).toDouble());
       final double oldZ = ghostZ;
       ghostZ = (touchZ + dragZOffset).clamp(0.0, maxAllowedZ).roundToDouble();
 
@@ -458,7 +467,7 @@ class DecorationController extends ChangeNotifier {
     if (selectedFurniture == null) return;
     final pf = selectedFurniture!;
     final int oldRotation = pf.rotation;
-    final int nextRotation = (oldRotation + 1) % 2;
+    final int nextRotation = (oldRotation + 1) % 4;
 
     // 获取当前占地宽高 (由 isAreaAvailable 内部逻辑推导出)
     int gw = pf.item.gridW;
@@ -562,7 +571,7 @@ class DecorationController extends ChangeNotifier {
     final int rows = (kGridRows / item.gridW).ceil();
     final int cols = (kGridCols / item.gridH).ceil();
 
-    // 4. 鎵归噺娣诲姞
+    // 4. 批量添加
     for (int i = 0; i < rows; i++) {
       for (int j = 0; j < cols; j++) {
         if (item.quantity > 0) {
@@ -602,14 +611,19 @@ class DecorationController extends ChangeNotifier {
       }
     }
 
-    if (r < 0 || c < 0 || r + gw > kGridRows || c + gh > kGridCols)
+    if (r < 0 || c < 0 || r + gw > kGridRows || c + gh > kGridCols) {
       return false;
+    }
 
-    if (isWall && z + item.gridH > kWallGridHeight) return false;
+    if (isWall && z + item.gridH > kWallGridHeight) {
+      return false;
+    }
 
     for (int i = r; i < r + gw; i++) {
       for (int j = c; j < c + gh; j++) {
-        if (isCellExcluded(i, j)) return false;
+        if (isCellExcluded(i, j)) {
+          return false;
+        }
       }
     }
 
@@ -670,7 +684,7 @@ class DecorationController extends ChangeNotifier {
         if (a.item.isWall != b.item.isWall) return a.item.isWall ? -1 : 1;
         if (a.item.isFloor != b.item.isFloor) return a.item.isFloor ? 1 : -1;
 
-        // 2. 杞/楗板搧锛堥€氬父鍦ㄤ笂鏂癸級鍏锋湁鏇撮珮鐐瑰嚮浼樺厛绾?
+        // 2. 软装/饰品（通常在上方）具有更高点击优先级
         bool aIsSoft = a.item.subCategory == '软装' || a.item.category == '装饰';
         bool bIsSoft = b.item.subCategory == '软装' || b.item.category == '装饰';
         if (aIsSoft != bIsSoft) return aIsSoft ? -1 : 1;
@@ -684,10 +698,10 @@ class DecorationController extends ChangeNotifier {
 
         // 如果 a 严格在 b 的前方，则 a 优先
         if (a.r >= b.r + gwB || a.c >= b.c + ghB) return -1;
-        // 濡傛灉 b 涓ユ牸鍦?a 鐨勫墠鏂癸紝鍒?b 浼樺厛
+        // 如果 b 严格在 a 的前方，则 b 优先
         if (b.r >= a.r + gwA || b.c >= a.c + ghA) return 1;
 
-        // 4. 閲嶅彔鎯呭喌涓嬬殑缁嗚妭鍒ゅ畾 (楂樺害銆佷綅缃?
+        // 4. 重叠情况下的细节判定 (高度、位置)
         // 如果在同一格或重叠，Z 轴（高度）大的优先
         if (a.z != b.z) return b.z.compareTo(a.z);
 
@@ -753,13 +767,14 @@ class DecorationController extends ChangeNotifier {
         );
 
         if (rect.contains(localPos)) {
-          // 矩形区域内，进一步检测像素透明度官方推荐色
+          // 矩形区域内，进一步检测像素透明度
           final double dx = localPos.dx - rect.left;
           final double dy = localPos.dy - rect.top;
 
           // 1. 用矩形实际尺寸与 intrinsic 尺寸的比例来映射：
-          //    不能用 visualScale 除，因为 rect 的实际宽高由 estimateVisualWidth
-          //    推导（受 tw、gridW、gridH、taper 影响），与 intrinsicWidth * visualScale 不等。
+          //    避免除零
+          if (rect.width == 0 || rect.height == 0) continue;
+          
           double ix = dx * pf.item.intrinsicWidth / rect.width;
           double iy = dy * pf.item.intrinsicHeight / rect.height;
 

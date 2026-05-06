@@ -96,7 +96,7 @@ class DiaryTextStylePickerSheet extends StatelessWidget {
               runSpacing: 10,
               alignment: WrapAlignment.center,
               children: sizes.map((size) {
-                final isSelected = (currentFontSize - size['value'] as double).abs() < 0.5;
+                final isSelected = (currentFontSize - size['value']).abs() < 0.5;
                 return GestureDetector(
                   onTap: () => onApplyFontSize(size['value']),
                   child: AnimatedContainer(

@@ -6,7 +6,6 @@ import 'furniture_drag_overlay.dart';
 import 'decoration_toolbar.dart';
 import '../../utils/isometric_coordinate_utils.dart';
 import '../../pages/decoration_page_constants.dart';
-import '../../../domain/models/furniture_item.dart';
 
 class DecorationScene extends StatelessWidget {
   final GlobalKey gridKey;

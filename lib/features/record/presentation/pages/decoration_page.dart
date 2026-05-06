@@ -92,9 +92,6 @@ class _DecorationPageState extends State<DecorationPage>
 
   @override
   Widget build(BuildContext context) {
-    final double screenW = MediaQuery.of(context).size.width;
-    final double screenH = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: const Color(0xFFD1DAD8),
       body: DragTarget<FurnitureItem>(
@@ -140,7 +137,7 @@ class _DecorationPageState extends State<DecorationPage>
           }
         },
         onLeave: (_) => _controller.selectCell(null),
-        builder: (context, _, __) => Stack(
+        builder: (context, _, _) => Stack(
           children: [
             // 0. 动态滚动太阳背景
             const Positioned.fill(child: ScrollingSunBackground()),

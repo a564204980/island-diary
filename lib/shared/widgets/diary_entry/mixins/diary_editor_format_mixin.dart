@@ -3,7 +3,6 @@ import '../models/diary_block.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import '../components/text_style_picker_sheet.dart';
 import '../components/color_picker_sheet.dart';
-import '../utils/emoji_mapping.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import './diary_editor_core_mixin.dart';
 

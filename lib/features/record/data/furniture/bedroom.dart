@@ -3,20 +3,6 @@ import '../../domain/models/furniture_item.dart';
 
 final List<FurnitureItem> bedroomItems = [
   FurnitureItem(
-    id: 'bed_1',
-    name: '床1',
-    imagePath: 'assets/images/decoration/bed/bed1.png',
-    category: '家具',
-    subCategory: '床',
-    gridW: 5,
-    gridH: 8,
-    intrinsicWidth: 476,
-    intrinsicHeight: 471,
-    quantity: 1,
-    visualScale: 1.0,
-    visualOffset: const Offset(0, 3),
-  ),
-  FurnitureItem(
     id: 'bed_2',
     name: '蔓影织梦单人床',
     imagePath: 'assets/images/decoration/bed/bed2.png',
@@ -28,7 +14,8 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicHeight: 471,
     quantity: 1,
     visualScale: 1.0,
-    visualOffset: const Offset(0, 3),
+    visualOffset: const Offset(0, -2),
+    flippedVisualOffset: const Offset(28, -2),
   ),
   FurnitureItem(
     id: 'bed_3',
@@ -42,7 +29,8 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicHeight: 471,
     quantity: 1,
     visualScale: 1.0,
-    visualOffset: const Offset(0, 3),
+    visualOffset: const Offset(0, -2),
+    flippedVisualOffset: const Offset(28, -2),
   ),
   FurnitureItem(
     id: 'bed_4',
@@ -56,7 +44,8 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicHeight: 471,
     quantity: 1,
     visualScale: 1.0,
-    visualOffset: const Offset(0, 3),
+    visualOffset: const Offset(0, -2),
+    flippedVisualOffset: const Offset(28, -2),
   ),
   FurnitureItem(
     id: 'bed_5',
@@ -65,13 +54,13 @@ final List<FurnitureItem> bedroomItems = [
     category: '家具',
     subCategory: '床',
     gridW: 5,
-    gridH: 8,
+    gridH: 9,
     intrinsicWidth: 476,
     intrinsicHeight: 471,
     quantity: 1,
-    visualScale: 1.0,
-    visualOffset: const Offset(1, 3),
-    flippedVisualOffset: const Offset(-1, 3),
+    visualScale: 0.96,
+    visualOffset: const Offset(-2, 0),
+    flippedVisualOffset: const Offset(38, 0),
   ),
   FurnitureItem(
     id: 'bed_6',
@@ -84,9 +73,9 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicWidth: 476,
     intrinsicHeight: 471,
     quantity: 1,
-    visualScale: 1.0,
-    visualOffset: const Offset(1, 3),
-    flippedVisualOffset: const Offset(-1, 3),
+    visualScale: 0.96,
+    visualOffset: const Offset(0, 0),
+    flippedVisualOffset: const Offset(27, -2),
   ),
   FurnitureItem(
     id: 'bed_7',
@@ -100,8 +89,8 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicHeight: 471,
     quantity: 1,
     visualScale: 1.0,
-    visualOffset: const Offset(1, 3),
-    flippedVisualOffset: const Offset(-1, 3),
+    visualOffset: const Offset(0, -2),
+    flippedVisualOffset: const Offset(28, -2),
   ),
   FurnitureItem(
     id: 'bed_8',
@@ -115,8 +104,8 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicHeight: 471,
     quantity: 1,
     visualScale: 1.0,
-    visualOffset: const Offset(1, 3),
-    flippedVisualOffset: const Offset(-1, 3),
+    visualOffset: const Offset(0, -2),
+    flippedVisualOffset: const Offset(28, -2),
   ),
   FurnitureItem(
     id: 'bed_9',
@@ -130,8 +119,8 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicHeight: 471,
     quantity: 1,
     visualScale: 1.0,
-    visualOffset: const Offset(1, 3),
-    flippedVisualOffset: const Offset(-1, 3),
+    visualOffset: const Offset(0, -2),
+    flippedVisualOffset: const Offset(28, -2),
   ),
   FurnitureItem(
     id: 'bed_10',
@@ -145,8 +134,8 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicHeight: 471,
     quantity: 1,
     visualScale: 1.0,
-    visualOffset: const Offset(1, 3),
-    flippedVisualOffset: const Offset(-1, 3),
+    visualOffset: const Offset(0, -2),
+    flippedVisualOffset: const Offset(28, -2),
   ),
   FurnitureItem(
     id: 'bed_11',
@@ -160,8 +149,23 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicHeight: 471,
     quantity: 1,
     visualScale: 1.0,
-    visualOffset: const Offset(1, 3),
-    flippedVisualOffset: const Offset(-1, 3),
+    visualOffset: const Offset(0, -2),
+    flippedVisualOffset: const Offset(28, -2),
+  ),
+  FurnitureItem(
+    id: 'bed_14',
+    name: '云桃小憩床',
+    imagePath: 'assets/images/decoration/bed/bed14.png',
+    category: '家具',
+    subCategory: '床',
+    gridW: 5,
+    gridH: 8,
+    intrinsicWidth: 476,
+    intrinsicHeight: 471,
+    quantity: 1,
+    visualScale: 1.0,
+    visualOffset: const Offset(0, -2),
+    flippedVisualOffset: const Offset(28, -2),
   ),
   FurnitureItem(
     id: 'table_1',
@@ -202,6 +206,7 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 3,
     visualScale: 1.0,
     visualOffset: const Offset(0, 3),
+    flippedVisualOffset: const Offset(0, -3),
   ),
   FurnitureItem(
     id: 'clothes_rack_1',
@@ -216,6 +221,7 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 1,
     visualScale: 1.0,
     visualOffset: const Offset(0, 0),
+    flippedVisualOffset: const Offset(0, 0),
   ),
   FurnitureItem(
     id: 'clothes_rack_2',
@@ -230,6 +236,7 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 1,
     visualScale: 1.0,
     visualOffset: const Offset(0, 0),
+    flippedVisualOffset: const Offset(0, 0),
   ),
   FurnitureItem(
     id: 'clothes_rack_3',
@@ -244,6 +251,7 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 1,
     visualScale: 1.0,
     visualOffset: const Offset(0, 0),
+    flippedVisualOffset: const Offset(0, 0),
   ),
   FurnitureItem(
     id: 'clothes_rack_4',
@@ -258,6 +266,7 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 1,
     visualScale: 1.0,
     visualOffset: const Offset(0, 0),
+    flippedVisualOffset: const Offset(0, 0),
   ),
   FurnitureItem(
     id: 'clothes_rack_5',
@@ -271,6 +280,7 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicHeight: 649,
     quantity: 1,
     visualOffset: const Offset(0, 0),
+    flippedVisualOffset: const Offset(0, 0),
   ),
   FurnitureItem(
     id: 'wardrobe_mirror_1',
@@ -287,34 +297,7 @@ final List<FurnitureItem> bedroomItems = [
     visualOffset: const Offset(-1, 3),
     flippedVisualOffset: const Offset(1, 3),
   ),
-  FurnitureItem(
-    id: 'wardrobe_open_1',
-    name: '童梦衣语开放柜',
-    imagePath: 'assets/images/decoration/wardrobe/wardrobe1.png',
-    category: '家具',
-    subCategory: '柜子',
-    gridW: 2,
-    gridH: 9,
-    intrinsicWidth: 398,
-    intrinsicHeight: 532,
-    quantity: 1,
-    visualScale: 0.96,
-    visualOffset: const Offset(0, 4),
-  ),
-  FurnitureItem(
-    id: 'wardrobe_open_2',
-    name: '童梦云裳开放衣柜',
-    imagePath: 'assets/images/decoration/wardrobe/wardrobe2.png',
-    category: '家具',
-    subCategory: '柜子',
-    gridW: 2,
-    gridH: 9,
-    intrinsicWidth: 398,
-    intrinsicHeight: 532,
-    quantity: 1,
-    visualScale: 0.96,
-    visualOffset: const Offset(0, 4),
-  ),
+
   FurnitureItem(
     id: 'bookshelf_island_1',
     name: '暖屿拾光书柜',
@@ -344,6 +327,7 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 3,
     visualScale: 1.0,
     visualOffset: const Offset(0, 3),
+    flippedVisualOffset: const Offset(0, -3),
   ),
 
   FurnitureItem(
@@ -358,6 +342,8 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicHeight: 336,
     quantity: 3,
     visualScale: 1.0,
+    visualOffset: const Offset(0, 0),
+    flippedVisualOffset: const Offset(0, 0),
   ),
   FurnitureItem(
     id: 'table_7',
@@ -371,6 +357,8 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicHeight: 336,
     quantity: 3,
     visualScale: 1.0,
+    visualOffset: const Offset(0, 0),
+    flippedVisualOffset: const Offset(0, 0),
   ),
   FurnitureItem(
     id: 'table_9',
@@ -385,6 +373,7 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 1,
     visualScale: 1.0,
     visualOffset: const Offset(2, 4),
+    flippedVisualOffset: const Offset(-2, 4),
   ),
 
   FurnitureItem(
@@ -399,6 +388,8 @@ final List<FurnitureItem> bedroomItems = [
     intrinsicHeight: 350,
     quantity: 5,
     visualScale: 1.0,
+    visualOffset: const Offset(0, 0),
+    flippedVisualOffset: const Offset(0, 0),
   ),
   FurnitureItem(
     id: 'clothes_1',
@@ -413,6 +404,7 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 1,
     visualScale: 1,
     visualOffset: const Offset(0, -3),
+    flippedVisualOffset: const Offset(0, 3),
   ),
   FurnitureItem(
     id: 'clothes_2',
@@ -427,6 +419,7 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 1,
     visualScale: 1,
     visualOffset: const Offset(0, -4),
+    flippedVisualOffset: const Offset(0, 4),
   ),
   FurnitureItem(
     id: 'clothes_3',
@@ -441,6 +434,7 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 1,
     visualScale: 1,
     visualOffset: const Offset(0, -4),
+    flippedVisualOffset: const Offset(0, 4),
   ),
   FurnitureItem(
     id: 'clothes_4',
@@ -455,6 +449,7 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 1,
     visualScale: 1,
     visualOffset: const Offset(0, -4),
+    flippedVisualOffset: const Offset(0, 4),
   ),
   FurnitureItem(
     id: 'clothes_5',
@@ -469,6 +464,7 @@ final List<FurnitureItem> bedroomItems = [
     quantity: 1,
     visualScale: 1,
     visualOffset: const Offset(0, -4),
+    flippedVisualOffset: const Offset(0, 4),
   ),
   FurnitureItem(
     id: 'clothes_6',
