@@ -377,21 +377,6 @@ final List<FurnitureItem> bedroomItems = [
   ),
 
   FurnitureItem(
-    id: 'cabinet_4',
-    name: '折叠晾架',
-    imagePath: 'assets/images/decoration/furniture/cabinet4.png',
-    category: '家具',
-    subCategory: '柜子',
-    gridW: 4,
-    gridH: 4,
-    intrinsicWidth: 350,
-    intrinsicHeight: 350,
-    quantity: 5,
-    visualScale: 1.0,
-    visualOffset: const Offset(0, 0),
-    flippedVisualOffset: const Offset(0, 0),
-  ),
-  FurnitureItem(
     id: 'clothes_1',
     name: '碧云玉瑞服装',
     imagePath: 'assets/images/decoration/clothes/clothes1.png',

@@ -146,17 +146,4 @@ final List<FurnitureItem> kitchenItems = [
     quantity: 1,
     visualScale: 0.92,
   ),
-  FurnitureItem(
-    id: 'cabinet_9',
-    name: '青沐洗物台',
-    imagePath: 'assets/images/decoration/furniture/cabinet9.png',
-    category: '家具',
-    subCategory: '柜子',
-    gridW: 3,
-    gridH: 5,
-    intrinsicWidth: 294,
-    intrinsicHeight: 307,
-    quantity: 1,
-    visualScale: 1.0,
-  ),
 ];
