@@ -152,6 +152,12 @@ class IsometricGridPainter extends CustomPainter {
     if (wallPattern == WallPattern.stripes) {
       _drawWallStripes(canvas, converter, true, wallColorLeft);
       _drawWallStripes(canvas, converter, false, wallColorRight);
+    } else if (wallPattern == WallPattern.dualColor) {
+      _drawDualColorWall(canvas, converter, true);
+      _drawDualColorWall(canvas, converter, false);
+    } else if (wallPattern == WallPattern.lavenderStripes) {
+      _drawWallStripes(canvas, converter, true, const Color(0xFFD5CEDD), stripeColor: const Color(0xFFFFF6E7));
+      _drawWallStripes(canvas, converter, false, const Color(0xFFD5CEDD), stripeColor: const Color(0xFFFFF6E7));
     }
 
     // 缁樺埗澧欓潰涓昏疆寤撶嚎
@@ -1101,56 +1107,22 @@ class IsometricGridPainter extends CustomPainter {
     }
   }
 
-  void _drawSelectionCell(
-    Canvas canvas,
-    (int, int) cell,
-    IsometricCoordinateConverter converter,
-    double tw,
-    double th,
-  ) {
-    final p0 = converter.getScreenPoint(cell.$1.toDouble(), cell.$2.toDouble());
-    final p1 = converter.getScreenPoint(
-      (cell.$1 + 1).toDouble(),
-      cell.$2.toDouble(),
-    );
-    final p2 = converter.getScreenPoint(
-      (cell.$1 + 1).toDouble(),
-      (cell.$2 + 1).toDouble(),
-    );
-    final p3 = converter.getScreenPoint(
-      cell.$1.toDouble(),
-      (cell.$2 + 1).toDouble(),
-    );
-    final path = Path()
-      ..moveTo(p0.dx, p0.dy)
-      ..lineTo(p1.dx, p1.dy)
-      ..lineTo(p2.dx, p2.dy)
-      ..lineTo(p3.dx, p3.dy)
-      ..close();
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = Colors.blue.withValues(alpha: 0.3)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = Colors.blueAccent
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0,
-    );
-  }
-
   void _drawWallStripes(
     Canvas canvas,
     IsometricCoordinateConverter converter,
     bool isLeft,
-    Color baseColor,
-  ) {
-    // 采用比底色深一点或浅一点的条纹色
-    final hsl = HSLColor.fromColor(baseColor);
-    final stripeColor = hsl.withLightness((hsl.lightness - 0.1).clamp(0.0, 1.0)).toColor();
+    Color baseColor, {
+    Color? stripeColor,
+  }) {
+    // 如果没传条纹色，则采用比底色深一点或浅一点的色
+    final Color finalStripeColor;
+    if (stripeColor != null) {
+      finalStripeColor = stripeColor;
+    } else {
+      final hsl = HSLColor.fromColor(baseColor);
+      finalStripeColor = hsl.withLightness((hsl.lightness - 0.1).clamp(0.0, 1.0)).toColor();
+    }
+    
     final count = isLeft ? rows : cols;
 
     for (int i = 0; i < count; i++) {
@@ -1170,8 +1142,70 @@ class IsometricGridPainter extends CustomPainter {
           final p4 = converter.getScreenPoint(0, i.toDouble(), kWallGridHeight.toDouble());
           path.addPolygon([p1, p2, p3, p4], true);
         }
-        canvas.drawPath(path, Paint()..color = stripeColor..style = PaintingStyle.fill);
+        canvas.drawPath(path, Paint()..color = finalStripeColor..style = PaintingStyle.fill);
       }
+    }
+  }
+
+  void _drawDualColorWall(
+    Canvas canvas,
+    IsometricCoordinateConverter converter,
+    bool isLeft,
+  ) {
+    const double bottomHeight = 1.0; // 底部高度
+    final topColor = const Color(0xFFBC5860);
+    final bottomColor = const Color(0xFF845450);
+    final borderColor = const Color(0xFF3B3B36); // 使用和轮廓线一致的颜色
+
+    // 1. 绘制主体颜色层 (覆盖原本的 wallColorLeft/Right)
+    final wallPath = isLeft
+        ? (Path()
+          ..addPolygon([
+            converter.getScreenPoint(0, 0, 0),
+            converter.getScreenPoint(rows.toDouble(), 0, 0),
+            converter.getScreenPoint(rows.toDouble(), 0, kWallGridHeight.toDouble()),
+            converter.getScreenPoint(0, 0, kWallGridHeight.toDouble()),
+          ], true))
+        : (Path()
+          ..addPolygon([
+            converter.getScreenPoint(0, 0, 0),
+            converter.getScreenPoint(0, cols.toDouble(), 0),
+            converter.getScreenPoint(0, cols.toDouble(), kWallGridHeight.toDouble()),
+            converter.getScreenPoint(0, 0, kWallGridHeight.toDouble()),
+          ], true));
+    canvas.drawPath(wallPath, Paint()..color = topColor..style = PaintingStyle.fill);
+
+    // 2. 绘制底部色块
+    final bottomPath = Path();
+    if (isLeft) {
+      final p1 = converter.getScreenPoint(0, 0, 0);
+      final p2 = converter.getScreenPoint(rows.toDouble(), 0, 0);
+      final p3 = converter.getScreenPoint(rows.toDouble(), 0, bottomHeight);
+      final p4 = converter.getScreenPoint(0, 0, bottomHeight);
+      bottomPath.addPolygon([p1, p2, p3, p4], true);
+    } else {
+      final p1 = converter.getScreenPoint(0, 0, 0);
+      final p2 = converter.getScreenPoint(0, cols.toDouble(), 0);
+      final p3 = converter.getScreenPoint(0, cols.toDouble(), bottomHeight);
+      final p4 = converter.getScreenPoint(0, 0, bottomHeight);
+      bottomPath.addPolygon([p1, p2, p3, p4], true);
+    }
+    canvas.drawPath(bottomPath, Paint()..color = bottomColor..style = PaintingStyle.fill);
+
+    // 3. 绘制区分边 (腰线)
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2; // 稍微粗一点
+    
+    if (isLeft) {
+      final start = converter.getScreenPoint(0, 0, bottomHeight);
+      final end = converter.getScreenPoint(rows.toDouble(), 0, bottomHeight);
+      canvas.drawLine(start, end, borderPaint);
+    } else {
+      final start = converter.getScreenPoint(0, 0, bottomHeight);
+      final end = converter.getScreenPoint(0, cols.toDouble(), bottomHeight);
+      canvas.drawLine(start, end, borderPaint);
     }
   }
 

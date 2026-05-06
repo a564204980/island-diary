@@ -6,7 +6,8 @@ import 'package:flutter/services.dart';
 
 /// 一个带有动态滚动小太阳和棋盘格网格的背景组件
 class ScrollingSunBackground extends StatefulWidget {
-  const ScrollingSunBackground({super.key});
+  final bool isNight;
+  const ScrollingSunBackground({super.key, this.isNight = false});
 
   @override
   State<ScrollingSunBackground> createState() => _ScrollingSunBackgroundState();
@@ -58,6 +59,7 @@ class _ScrollingSunBackgroundState extends State<ScrollingSunBackground>
           painter: _SunBackgroundPainter(
             sunImage: _sunImage,
             animationValue: _controller.value,
+            isNight: widget.isNight,
           ),
           child: const SizedBox.expand(),
         );
@@ -69,19 +71,27 @@ class _ScrollingSunBackgroundState extends State<ScrollingSunBackground>
 class _SunBackgroundPainter extends CustomPainter {
   final ui.Image? sunImage;
   final double animationValue;
+  final bool isNight;
 
-  _SunBackgroundPainter({this.sunImage, required this.animationValue});
+  _SunBackgroundPainter({
+    this.sunImage,
+    required this.animationValue,
+    required this.isNight,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     // 1. 绘制棋盘格背景
     const double squareSize = 60.0;
-    final Paint lightPaint = Paint()..color = const Color(0xFFF3E9C9);
-    final Paint darkPaint = Paint()..color = const Color(0xFFE9DDB3);
+    final Paint lightPaint = Paint()
+      ..color = isNight ? const Color(0xFFC9BAA8) : const Color(0xFFF3E9C9);
+    final Paint darkPaint = Paint()
+      ..color = isNight ? const Color(0xFFBBAA96) : const Color(0xFFE9DDB3);
 
     for (double y = 0; y < size.height; y += squareSize) {
       for (double x = 0; x < size.width; x += squareSize) {
-        final bool isDark = ((x / squareSize).floor() + (y / squareSize).floor()) % 2 != 0;
+        final bool isDark =
+            ((x / squareSize).floor() + (y / squareSize).floor()) % 2 != 0;
         canvas.drawRect(
           Rect.fromLTWH(x, y, squareSize, squareSize),
           isDark ? darkPaint : lightPaint,
@@ -94,12 +104,20 @@ class _SunBackgroundPainter extends CustomPainter {
     // 2. 绘制滚动的太阳图标
     const double spacing = 180.0;
     const double iconSize = 48.0;
-    
+
     // 计算当前的偏移量 (从右上到左下: x 减小, y 增大)
     final double baseOffsetX = -animationValue * spacing;
     final double baseOffsetY = animationValue * spacing;
 
-    final Paint sunPaint = Paint()..color = Colors.white.withValues(alpha: 0.35);
+    final Paint sunPaint = Paint()
+      ..color = Colors.white.withValues(alpha: isNight ? 0.8 : 0.35);
+
+    if (isNight) {
+      sunPaint.colorFilter = const ui.ColorFilter.mode(
+        ui.Color.fromARGB(255, 255, 255, 255),
+        ui.BlendMode.srcIn,
+      );
+    }
 
     // 覆盖整个屏幕及其边缘
     for (double y = -spacing; y < size.height + spacing; y += spacing) {
@@ -107,7 +125,7 @@ class _SunBackgroundPainter extends CustomPainter {
         // 1. 基础网格索引
         final double ix = x / spacing;
         final double iy = y / spacing;
-        
+
         // 2. 引入确定性的参差不齐感 (Deterministic Jitter)
         // 使用正弦函数根据坐标生成偏移，确保同一个位置的太阳偏移量一致，从而动画滚动时不会闪烁
         final double jitterX = math.sin(ix * 1.5 + iy * 2.1) * (spacing * 0.25);
@@ -116,7 +134,7 @@ class _SunBackgroundPainter extends CustomPainter {
         // 3. 计算最终位置
         double drawX = x + baseOffsetX + jitterX;
         double drawY = y + baseOffsetY + jitterY;
-        
+
         // 4. 保证循环显示 (使用取模，增加缓冲区确保平滑)
         final double totalW = size.width + spacing * 2;
         final double totalH = size.height + spacing * 2;
@@ -125,7 +143,12 @@ class _SunBackgroundPainter extends CustomPainter {
 
         canvas.drawImageRect(
           sunImage!,
-          Rect.fromLTWH(0, 0, sunImage!.width.toDouble(), sunImage!.height.toDouble()),
+          Rect.fromLTWH(
+            0,
+            0,
+            sunImage!.width.toDouble(),
+            sunImage!.height.toDouble(),
+          ),
           Rect.fromLTWH(drawX, drawY, iconSize, iconSize),
           sunPaint,
         );
@@ -135,6 +158,8 @@ class _SunBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SunBackgroundPainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue || oldDelegate.sunImage != sunImage;
+    return oldDelegate.animationValue != animationValue ||
+        oldDelegate.sunImage != sunImage ||
+        oldDelegate.isNight != isNight;
   }
 }

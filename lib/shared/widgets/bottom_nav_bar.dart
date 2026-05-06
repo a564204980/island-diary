@@ -5,7 +5,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/slime_onboarding.dart';
 import 'package:island_diary/shared/widgets/slime_button.dart';
-import 'package:island_diary/shared/widgets/slime_button.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
@@ -35,13 +34,9 @@ class BottomNavBar extends StatefulWidget {
 }
 
 class _BottomNavBarState extends State<BottomNavBar> {
-  bool _justFinishedOnboarding = false;
-  late final ValueNotifier<bool> _showDialogueNotifier;
-  late final ValueNotifier<String> _dialogueTextNotifier;
   late final ValueNotifier<bool> _isIdleNotifier;
   late final ValueNotifier<bool> _isMoodPickerOpenNotifier;
 
-  Timer? _dialogueTimer;
   Timer? _idleTimer;
   final GlobalKey _slimeKey = GlobalKey();
 
@@ -63,7 +58,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
     precacheImage(const AssetImage('assets/images/emoji/weixiao.png'), context);
     precacheImage(const AssetImage('assets/images/emoji/pedding.png'), context);
     precacheImage(const AssetImage('assets/images/paper.png'), context);
-    precacheImage(const AssetImage('assets/images/paper2.png'), context);
 
     for (var mood in kMoods) {
       final img = mood.imagePath;
@@ -278,7 +272,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
       isNight: widget.isNight,
       onSlimeAction: _openMoodPicker,
       onComplete: () {
-        setState(() => _justFinishedOnboarding = true);
         UserState().completeOnboarding();
       },
     );
@@ -343,7 +336,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
     
     // 统一直接进入编辑器，因为编辑器顶部现在有全新的心情选择器
     if (wasOnboarding) {
-      setState(() => _justFinishedOnboarding = true);
       UserState().completeOnboarding();
     }
     _openDiaryEntry(null, 6.0);

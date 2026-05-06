@@ -17,7 +17,7 @@ class DecorationController extends ChangeNotifier {
   late List<FurnitureItem> _availableItems;
   List<FurnitureItem> get availableItems => _availableItems;
 
-  String selectedCategory = '厨房';
+  String selectedCategory = '家具';
   String? selectedSubCategory;
 
   // --- 交互与选择状态 ---
@@ -422,8 +422,12 @@ class DecorationController extends ChangeNotifier {
     _lastClickPlaced = null;
 
     if (item.subCategory == '墙纸') {
-      if (item.id.contains('stripes')) {
+      if (item.id.contains('stripes_pink')) {
         setWallPattern(WallPattern.stripes);
+      } else if (item.id.contains('stripes_lavender')) {
+        setWallPattern(WallPattern.lavenderStripes);
+      } else if (item.id.contains('dual_color')) {
+        setWallPattern(WallPattern.dualColor);
       } else {
         setWallPattern(WallPattern.none);
       }

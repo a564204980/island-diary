@@ -381,4 +381,18 @@ final List<FurnitureItem> livingRoomItems = [
     visualOffset: const Offset(-2, 2),
     flippedVisualOffset: const Offset(4, 2),
   ),
+  FurnitureItem(
+    id: 'furniture_glass_partition_1',
+    name: '水庭花屏玻璃隔断',
+    imagePath: 'assets/images/decoration/wall/glassPartition1.png',
+    category: '家具',
+    subCategory: '隔断',
+    gridW: 3,
+    gridH: 1,
+    intrinsicWidth: 159,
+    intrinsicHeight: 631,
+    quantity: 3,
+    visualScale: 1.0,
+    visualOffset: const Offset(0, 0),
+  ),
 ];

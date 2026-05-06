@@ -707,7 +707,7 @@ class DiaryTextEditingController extends TextEditingController {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 1.0), // 稍微减小间距，让排版更紧凑
               child: Image.asset(
-                emojiMatch!['emojiPath'],
+                emojiMatch['emojiPath'],
                 width: combinedStyle.fontSize! * 1.2,
                 height: combinedStyle.fontSize! * 1.2,
                 fit: BoxFit.contain,
@@ -752,7 +752,7 @@ class TextBlock extends DiaryBlock {
         'type': 'text',
         'content': tc.text,
         'attributes': tc.attributes.map((a) => a.toMap()).toList(),
-        'baseColor': tc.baseColor.value,
+        'baseColor': tc.baseColor.toARGB32(),
         'baseFontSize': tc.baseFontSize,
         'baseFontFamily': tc.baseFontFamily,
       };

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
-import 'package:island_diary/shared/widgets/decoration/firefly_atmosphere.dart';
+
 import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_photo_wall_page.dart';
 
@@ -97,8 +97,8 @@ class _RecordPageState extends State<RecordPage>
               body: Stack(
                 children: [
                   // 1. 动态滚动太阳背景
-                  const Positioned.fill(
-                    child: ScrollingSunBackground(),
+                  Positioned.fill(
+                    child: ScrollingSunBackground(isNight: UserState().isNight),
                   ),
                   // 2. 气氛滤镜层 (支持昼夜动态过渡)
                   Positioned.fill(
@@ -110,8 +110,8 @@ class _RecordPageState extends State<RecordPage>
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  const Color(0xFF1B1629).withValues(alpha: 0.4), // 显著降低透明度，透出背景图
-                                  const Color(0xFF0A0814).withValues(alpha: 0.6),
+                                  const Color(0xFF2D1B10).withValues(alpha: 0.35), 
+                                  const Color(0xFF1A0F0A).withValues(alpha: 0.55),
                                 ],
                               )
                             : LinearGradient(
@@ -125,11 +125,7 @@ class _RecordPageState extends State<RecordPage>
                       ),
                     ),
                   ),
-                  // 深夜氛围装饰层 (星云、萤火虫)
-                  if (UserState().isNight) ...[
-                    _buildNightAtmosphere(),
-                    const FireflyAtmosphere(),
-                  ],
+
                   
                   Positioned.fill(
                     child: ValueListenableBuilder<Uint8List?>(
@@ -212,42 +208,7 @@ class _RecordPageState extends State<RecordPage>
     );
   }
 
-  Widget _buildNightAtmosphere() {
-    return Positioned.fill(
-      child: IgnorePointer(
-        child: Stack(
-          children: [
-            // 1. 背景星云光晕 - 紫色
-            Positioned(
-              top: -100,
-              right: -50,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF6366F1).withValues(alpha: 0.08),
-                ),
-              ).animate(onPlay: (c) => c.repeat(reverse: true)).move(end: const Offset(40, 20), duration: 10.seconds),
-            ),
-            // 2. 背景星云光晕 - 蓝色
-            Positioned(
-              bottom: 150,
-              left: -80,
-              child: Container(
-                width: 250,
-                height: 250,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF0EA5E9).withValues(alpha: 0.06),
-                ),
-              ).animate(onPlay: (c) => c.repeat(reverse: true)).move(end: const Offset(30, -30), duration: 12.seconds),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
 
   Widget _buildSideActionRibbon() {

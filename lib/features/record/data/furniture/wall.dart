@@ -447,4 +447,28 @@ final List<FurnitureItem> wallItems = [
     intrinsicHeight: 64,
     quantity: 1,
   ),
+  FurnitureItem(
+    id: 'wallpaper_dual_color_1',
+    name: '红调双色墙纸',
+    imagePath: 'assets/images/decoration/wall/stripes2.png',
+    category: '硬装',
+    subCategory: '墙纸',
+    gridW: 1,
+    gridH: 1,
+    intrinsicWidth: 64,
+    intrinsicHeight: 64,
+    quantity: 1,
+  ),
+  FurnitureItem(
+    id: 'wallpaper_stripes_lavender',
+    name: '薰衣草条纹墙纸',
+    imagePath: 'assets/images/decoration/wall/stripes1.png', // 使用现有的条纹预览图即可
+    category: '硬装',
+    subCategory: '墙纸',
+    gridW: 1,
+    gridH: 1,
+    intrinsicWidth: 64,
+    intrinsicHeight: 64,
+    quantity: 1,
+  ),
 ];
