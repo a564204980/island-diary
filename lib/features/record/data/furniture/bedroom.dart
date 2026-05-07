@@ -299,6 +299,34 @@ final List<FurnitureItem> bedroomItems = [
   ),
 
   FurnitureItem(
+    id: 'wardrobe_2',
+    name: '青璃花影衣柜',
+    imagePath: 'assets/images/decoration/houseplant/table1.png',
+    category: '家具',
+    subCategory: '柜子',
+    gridW: 2,
+    gridH: 5,
+    intrinsicWidth: 388,
+    intrinsicHeight: 643,
+    quantity: 1,
+    visualScale: 1.0,
+  ),
+
+  FurnitureItem(
+    id: 'wardrobe_3',
+    name: '原木暖居衣柜',
+    imagePath: 'assets/images/decoration/houseplant/table3.png',
+    category: '家具',
+    subCategory: '柜子',
+    gridW: 5,
+    gridH: 2,
+    intrinsicWidth: 395,
+    intrinsicHeight: 631,
+    quantity: 1,
+    visualScale: 1.0,
+  ),
+
+  FurnitureItem(
     id: 'bookshelf_island_1',
     name: '暖屿拾光书柜',
     imagePath: 'assets/images/decoration/table/table8.png',

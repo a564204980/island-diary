@@ -158,8 +158,8 @@ class FurnitureRenderer {
     double th,
   ) {
     final List<Offset> pts;
-    final double radius = 4.0; // 恢复原始圆角半径
-    const double padding = 0.35; // 增加扩展边距，使选中圆圈稍微大一点
+    final double radius = 4.0; 
+    const double padding = 0.0; 
 
     if (pf.item.isWall) {
       final double h = pf.item.gridH.toDouble();
@@ -268,16 +268,16 @@ class FurnitureRenderer {
     canvas.drawPath(
       path,
       Paint()
-        ..color = const Color(0xFFB5D3B8).withValues(alpha: 0.4)
+        ..color = const Color(0xFFFFF176).withValues(alpha: 0.4)
         ..style = PaintingStyle.fill,
     );
     // 绘制边框
     canvas.drawPath(
       path,
       Paint()
-        ..color = const Color(0xFF8BB3A5).withValues(alpha: 0.8)
+        ..color = const Color(0xFFFDD835).withValues(alpha: 0.8)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.0
+        ..strokeWidth = 1.5
         ..strokeJoin = StrokeJoin.round
         ..strokeCap = StrokeCap.round,
     );

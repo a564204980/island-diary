@@ -71,20 +71,6 @@ final List<FurnitureItem> kitchenItems = [
     visualOffset: const Offset(0, 0),
     flippedVisualOffset: const Offset(0, 0),
   ),
-  FurnitureItem(
-    id: 'cabinet_7',
-    name: '林间清泉单灶烤箱一体机',
-    imagePath: 'assets/images/decoration/furniture/cabinet7.png',
-    category: '家具',
-    subCategory: '柜子',
-    gridW: 5,
-    gridH: 3,
-    intrinsicWidth: 428,
-    intrinsicHeight: 467,
-    quantity: 5,
-    visualScale: 1.0,
-    visualOffset: const Offset(0, 2),
-  ),
 
   FurnitureItem(
     id: 'refrigerator_3',
