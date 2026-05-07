@@ -757,13 +757,14 @@ class DecorationController extends ChangeNotifier {
         final rect = converter.getFurnitureRect(
           r: pf.r,
           c: pf.c,
-          gw: gw,
-          gh: gh,
+          gw: pf.item.gridW,
+          gh: pf.item.gridH,
           visualScale: visualScale,
           visualOffset: visualOffset,
           intrinsicWidth: pf.item.intrinsicWidth,
           intrinsicHeight: pf.item.intrinsicHeight,
           z: pf.z,
+          isCarpet: pf.item.subCategory == '地毯',
         );
 
         if (rect.contains(localPos)) {

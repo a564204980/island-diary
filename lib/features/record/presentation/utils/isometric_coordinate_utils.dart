@@ -76,20 +76,21 @@ class IsometricCoordinateConverter {
     required double intrinsicWidth,
     required double intrinsicHeight,
     double z = 0,
+    bool isCarpet = false,
   }) {
     final s = getTaperScale(r + gw / 2.0, c + gh / 2.0);
     final pt = getScreenPoint(r + gw / 2.0, c + gh / 2.0, z);
-    final double unscaledItemW = tw * (gw + gh) * s * 0.5;
-    final double footprintOffset = unscaledItemW / 4.0;
+    final double itemW = tw * (gw + gh) * s * 0.5 * visualScale;
+    final double itemH = itemW * (intrinsicHeight / intrinsicWidth);
 
-    final double itemW = unscaledItemW * visualScale;
-    final double spriteH = itemW * (intrinsicHeight / intrinsicWidth);
+    double ty = pt.dy + (itemW * kGridAspectRatio / 2.0) - (itemH / 2.0);
+    if (isCarpet) ty = pt.dy;
 
     return Rect.fromLTWH(
       pt.dx - itemW / 2 + visualOffset.dx,
-      pt.dy + footprintOffset - spriteH + visualOffset.dy,
+      ty - itemH / 2.0 + visualOffset.dy,
       itemW,
-      spriteH,
+      itemH,
     );
   }
 
