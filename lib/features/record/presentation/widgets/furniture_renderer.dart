@@ -71,16 +71,22 @@ class FurnitureRenderer {
       _drawImage(canvas, image, src, dst, opacity, isValid);
       canvas.restore();
     } else {
+      int gw = item.gridW;
+      int gh = item.gridH;
+      if (rotation % 2 != 0) {
+        gw = item.gridH;
+        gh = item.gridW;
+      }
       final double baseS = converter.getTaperScale(
-        r + item.gridW / 2.0,
-        c + item.gridH / 2.0,
+        r + gw / 2.0,
+        c + gh / 2.0,
       );
       final double itemW =
-          tw * (item.gridW + item.gridH) * baseS * 0.5 * vScale;
+          tw * (gw + gh) * baseS * 0.5 * vScale;
       final double itemH = itemW * (item.intrinsicHeight / item.intrinsicWidth);
       final basePoint = converter.getScreenPoint(
-        r + item.gridW / 2.0,
-        c + item.gridH / 2.0,
+        r + gw / 2.0,
+        c + gh / 2.0,
         z,
       );
 

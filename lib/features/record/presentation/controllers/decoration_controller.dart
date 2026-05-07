@@ -437,6 +437,10 @@ class DecorationController extends ChangeNotifier {
         setWallPattern(WallPattern.lavenderStripes);
       } else if (item.id.contains('dual_color')) {
         setWallPattern(WallPattern.dualColor);
+      } else if (item.id.contains('solid_sand')) {
+        setWallColor(true, const Color(0xFFE7CBA2));
+        setWallColor(false, const Color(0xFFE7CBA2));
+        setWallPattern(WallPattern.none);
       } else {
         setWallPattern(WallPattern.none);
       }
@@ -757,8 +761,8 @@ class DecorationController extends ChangeNotifier {
         final rect = converter.getFurnitureRect(
           r: pf.r,
           c: pf.c,
-          gw: pf.item.gridW,
-          gh: pf.item.gridH,
+          gw: gw,
+          gh: gh,
           visualScale: visualScale,
           visualOffset: visualOffset,
           intrinsicWidth: pf.item.intrinsicWidth,
