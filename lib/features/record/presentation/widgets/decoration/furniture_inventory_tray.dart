@@ -25,11 +25,13 @@ class FurnitureInventoryTray extends StatelessWidget {
   });
 
   static const Map<String, int> _categoryOrder = {
-    '家具': 0,
-    '墙饰': 1,
-    '摆件': 2,
-    '地饰': 3,
-    '花盆': 4,
+    '家具': 1,
+    '墙饰': 2,
+    '摆件': 3,
+    '地饰': 4,
+    '花盆': 5,
+    '室外': 6,
+    '硬装': 7,
   };
 
   @override
@@ -80,7 +82,7 @@ class FurnitureInventoryTray extends StatelessWidget {
         children: [
           // 1. 一级分类侧边栏 (参考图 1 布局)
           _buildCategorySidebar(categories),
-          
+
           // 2. 右侧内容区
           Expanded(
             child: Column(
@@ -94,12 +96,13 @@ class FurnitureInventoryTray extends StatelessWidget {
                   child: GridView.builder(
                     key: ValueKey("${selectedCategory}_$selectedSubCategory"),
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.78,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.78,
+                        ),
                     itemCount: filteredItems.length,
                     itemBuilder: (context, index) {
                       return _buildFurnitureCard(filteredItems[index], index);
@@ -119,9 +122,7 @@ class FurnitureInventoryTray extends StatelessWidget {
       width: 75,
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: const BoxDecoration(
-        border: Border(
-          right: BorderSide(color: Color(0xFFE8D4B4), width: 1),
-        ),
+        border: Border(right: BorderSide(color: Color(0xFFE8D4B4), width: 1)),
       ),
       child: ListView.builder(
         itemCount: categories.length,
@@ -139,7 +140,12 @@ class FurnitureInventoryTray extends StatelessWidget {
     );
   }
 
-  Widget _buildSidebarButton(IconData icon, String label, bool isSelected, VoidCallback onTap) {
+  Widget _buildSidebarButton(
+    IconData icon,
+    String label,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -147,15 +153,19 @@ class FurnitureInventoryTray extends StatelessWidget {
         height: 65,
         margin: const EdgeInsets.fromLTRB(8, 4, 8, 4),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF8B5E3C) : const Color(0xFFF9F3DF), // 选中时为深褐，未选中时为浅黄
+          color: isSelected
+              ? const Color(0xFF8B5E3C)
+              : const Color(0xFFF9F3DF), // 选中时为深褐，未选中时为浅黄
           borderRadius: BorderRadius.circular(18),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: const Color(0xFF8B5E3C).withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            )
-          ] : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF8B5E3C).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -190,23 +200,31 @@ class FurnitureInventoryTray extends StatelessWidget {
         itemCount: allSubCats.length,
         itemBuilder: (context, index) {
           final subCat = allSubCats[index];
-          final isSelected = (index == 0 && selectedSubCategory == null) || (subCat == selectedSubCategory);
-          
+          final isSelected =
+              (index == 0 && selectedSubCategory == null) ||
+              (subCat == selectedSubCategory);
+
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: ActionChip(
               label: Text(subCat),
               onPressed: () => onSubCategoryChanged(index == 0 ? null : subCat),
-              backgroundColor: isSelected ? const Color(0xFFD4A373) : const Color(0xFFF9F3DF),
+              backgroundColor: isSelected
+                  ? const Color(0xFFD4A373)
+                  : const Color(0xFFF9F3DF),
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : const Color(0xFF8B5E3C),
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
               side: BorderSide(
-                color: isSelected ? const Color(0xFFD4A373) : const Color(0xFFE8D4B4),
+                color: isSelected
+                    ? const Color(0xFFD4A373)
+                    : const Color(0xFFE8D4B4),
               ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 4),
             ),
           );
@@ -226,12 +244,22 @@ class FurnitureInventoryTray extends StatelessWidget {
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
-      case '家具': return Icons.chair_rounded;
-      case '墙饰': return Icons.wallpaper_rounded;
-      case '摆件': return Icons.auto_awesome_rounded;
-      case '地饰': return Icons.layers_rounded;
-      case '花盆': return Icons.local_florist_rounded;
-      default: return Icons.category;
+      case '家具':
+        return Icons.chair_rounded;
+      case '墙饰':
+        return Icons.wallpaper_rounded;
+      case '摆件':
+        return Icons.auto_awesome_rounded;
+      case '地饰':
+        return Icons.layers_rounded;
+      case '花盆':
+        return Icons.local_florist_rounded;
+      case '室外':
+        return Icons.deck_rounded;
+      case '硬装':
+        return Icons.construction_rounded;
+      default:
+        return Icons.category;
     }
   }
 }
@@ -253,7 +281,8 @@ class _FurnitureCard extends StatefulWidget {
   State<_FurnitureCard> createState() => _FurnitureCardState();
 }
 
-class _FurnitureCardState extends State<_FurnitureCard> with SingleTickerProviderStateMixin {
+class _FurnitureCardState extends State<_FurnitureCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -264,9 +293,10 @@ class _FurnitureCardState extends State<_FurnitureCard> with SingleTickerProvide
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.92).animate(
-      CurveTween(curve: Curves.easeInOut).animate(_controller),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.92,
+    ).animate(CurveTween(curve: Curves.easeInOut).animate(_controller));
   }
 
   @override
@@ -325,7 +355,9 @@ class _FurnitureCardState extends State<_FurnitureCard> with SingleTickerProvide
                         child: Padding(
                           padding: const EdgeInsets.all(12),
                           child: AspectRatio(
-                            aspectRatio: widget.item.intrinsicWidth / widget.item.intrinsicHeight,
+                            aspectRatio:
+                                widget.item.intrinsicWidth /
+                                widget.item.intrinsicHeight,
                             child: FurnitureSprite(item: widget.item),
                           ),
                         ),
@@ -356,9 +388,14 @@ class _FurnitureCardState extends State<_FurnitureCard> with SingleTickerProvide
                         top: 8,
                         right: 8,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD4A373).withValues(alpha: 0.8), // 稍微透明一点更高级
+                            color: const Color(
+                              0xFFD4A373,
+                            ).withValues(alpha: 0.8), // 稍微透明一点更高级
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(

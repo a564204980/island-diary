@@ -75,13 +75,13 @@ class _FurnitureDyeingDialogState extends State<FurnitureDyeingDialog> {
                       '颜色选择',
                       style: TextStyle(
                         color: Color(0xFF5D4E7A),
-                        fontSize: 18,
+                        fontSize: 16, // 略微缩小字号
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12), // 缩减间距
                     _buildColorSelector(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16), // 缩减间距
                     _buildStatusHint(),
                     const Spacer(),
                     _buildActionButtons(context),
@@ -297,32 +297,32 @@ class _FurnitureDyeingDialogState extends State<FurnitureDyeingDialog> {
           },
           child: Container(
             width: double.infinity,
-            height: 48,
+            height: 42, // 减小按钮高度
             decoration: BoxDecoration(
-              color: const Color(0xFF9892B1), // 改为深紫色风格
-              borderRadius: BorderRadius.circular(24),
+              color: const Color(0xFF9892B1),
+              borderRadius: BorderRadius.circular(21),
             ),
             alignment: Alignment.center,
             child: const Text(
               '立即染色',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8), // 缩减按钮间距
         GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(
             width: double.infinity,
-            height: 48,
+            height: 42, // 减小按钮高度
             decoration: BoxDecoration(
               color: const Color(0xFFF1A7B1),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(21),
             ),
             alignment: Alignment.center,
             child: const Text(
               '取消',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
         ),
