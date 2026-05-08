@@ -132,4 +132,35 @@ final List<FurnitureItem> kitchenItems = [
     quantity: 1,
     visualScale: 0.92,
   ),
+
+  FurnitureItem(
+    id: 'refrigerator_8',
+    name: '清新双门冰箱',
+    imagePath: 'assets/images/decoration/furniture/fridge8_green.png',
+    category: '家具',
+    subCategory: '冰箱',
+    gridW: 3,
+    gridH: 3,
+    intrinsicWidth: 363,
+    intrinsicHeight: 687,
+    quantity: 1,
+    visualScale: 0.88,
+    visualOffset: const Offset(1, -1),
+    flippedVisualOffset: const Offset(-1, -1),
+    canBeDyed: true,
+    colorVariants: [
+      FurnitureColorVariant(
+        id: 'fridge8_green',
+        name: '薄荷奶绿',
+        imagePath: 'assets/images/decoration/furniture/fridge8_green.png',
+        color: const Color(0xFFB9DCC8),
+      ),
+      FurnitureColorVariant(
+        id: 'fridge8_yellow',
+        name: '奶油鹅黄',
+        imagePath: 'assets/images/decoration/furniture/fridge8_yellow.png',
+        color: const Color(0xFFF1DC8A),
+      ),
+    ],
+  ),
 ];

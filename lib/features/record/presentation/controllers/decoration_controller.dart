@@ -55,6 +55,7 @@ class DecorationController extends ChangeNotifier {
   Color wallColorLeft = const Color(0xFFDEDCCE);
   Color wallColorRight = const Color(0xFFDEDCCE);
   WallPattern wallPattern = WallPattern.none;
+  FloorPattern floorPattern = FloorPattern.none;
   Color floorColor = const Color(0xFFF1EBD1);
 
   void init(BuildContext context, {TickerProvider? vsync}) {
@@ -181,6 +182,7 @@ class DecorationController extends ChangeNotifier {
     wallColorRight = UserState().wallColorRight.value;
     wallPattern = WallPattern.values[UserState().wallPattern.value.clamp(0, WallPattern.values.length - 1)];
     floorColor = UserState().floorColor.value;
+    floorPattern = FloorPattern.values[UserState().floorPattern.value.clamp(0, FloorPattern.values.length - 1)];
 
     isInitializing = false;
     notifyListeners();
@@ -199,6 +201,12 @@ class DecorationController extends ChangeNotifier {
   void setFloorColor(Color color) {
     floorColor = color;
     UserState().saveSceneColors(wallColorLeft, wallColorRight, floorColor);
+    notifyListeners();
+  }
+
+  void setFloorPattern(FloorPattern pattern) {
+    floorPattern = pattern;
+    UserState().saveFloorPattern(pattern.index);
     notifyListeners();
   }
 
@@ -474,10 +482,30 @@ class DecorationController extends ChangeNotifier {
         setWallColor(true, const Color(0xFFE7CBA2));
         setWallColor(false, const Color(0xFFE7CBA2));
         setWallPattern(WallPattern.none);
+      } else if (item.id.contains('wainscoting')) {
+        setWallPattern(WallPattern.wainscoting);
+        // 设置配套的藕粉色基调
+        setWallColor(true, const Color(0xFFBC8B91));
+        setWallColor(false, const Color(0xFFBC8B91));
+      } else if (item.id.contains('clouds')) {
+        setWallPattern(WallPattern.clouds); // 强制刷新
+        // 设置配套的天蓝色基调
+        setWallColor(true, const Color(0xFFC2DFFF));
+        setWallColor(false, const Color(0xFFC2DFFF));
       } else {
         setWallPattern(WallPattern.none);
       }
       return;
+    }
+
+    if (item.subCategory == '地板') {
+      if (item.id.contains('herringbone')) {
+        setFloorPattern(FloorPattern.herringbone);
+        return;
+      } else {
+        // 如果是普通地板图层，则重置代码生成的纹理
+        setFloorPattern(FloorPattern.none);
+      }
     }
 
     int r = (kGridRows / 2).floor();

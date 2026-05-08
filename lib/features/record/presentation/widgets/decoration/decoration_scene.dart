@@ -109,6 +109,7 @@ class DecorationScene extends StatelessWidget {
                           wallColorRight: controller.wallColorRight,
                           wallPattern: controller.wallPattern,
                           floorColor: controller.floorColor,
+                          floorPattern: controller.floorPattern,
                         ),
                       ),
                     ),

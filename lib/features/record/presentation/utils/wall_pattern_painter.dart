@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../pages/decoration_page_constants.dart';
 import './isometric_coordinate_utils.dart';
 
@@ -13,6 +14,28 @@ class WallPatternPainter {
     required int cols,
     required Color baseColor,
   }) {
+    if (pattern == WallPattern.none) return;
+
+    // --- 1. 建立墙面裁剪路径，防止花纹溢出到墙外 ---
+    final wallPath = isLeft
+        ? (Path()
+          ..addPolygon([
+            converter.getScreenPoint(0, 0, 0),
+            converter.getScreenPoint(rows.toDouble(), 0, 0),
+            converter.getScreenPoint(rows.toDouble(), 0, kWallGridHeight.toDouble()),
+            converter.getScreenPoint(0, 0, kWallGridHeight.toDouble()),
+          ], true))
+        : (Path()
+          ..addPolygon([
+            converter.getScreenPoint(0, 0, 0),
+            converter.getScreenPoint(0, cols.toDouble(), 0),
+            converter.getScreenPoint(0, cols.toDouble(), kWallGridHeight.toDouble()),
+            converter.getScreenPoint(0, 0, kWallGridHeight.toDouble()),
+          ], true));
+
+    canvas.save();
+    canvas.clipPath(wallPath);
+
     switch (pattern) {
       case WallPattern.none:
         break;
@@ -25,7 +48,6 @@ class WallPatternPainter {
           cols: cols,
           baseColor: baseColor,
         );
-        // 为普通条纹增加一个简约的白木踢脚线
         _drawSkirtingBoard(
           canvas: canvas,
           converter: converter,
@@ -37,7 +59,6 @@ class WallPatternPainter {
         );
         break;
       case WallPattern.dualColor:
-        // 红调双色：红色主体 + 深胡桃木色底边
         _drawSolidColor(
           canvas: canvas,
           converter: converter,
@@ -56,7 +77,6 @@ class WallPatternPainter {
         );
         break;
       case WallPattern.lavenderStripes:
-        // 薰衣草条纹：紫色/米色条纹 + 暖灰色底边
         _drawWallStripes(
           canvas: canvas,
           converter: converter,
@@ -76,6 +96,229 @@ class WallPatternPainter {
           shadowColor: const Color(0xFFCDBAAA),
         );
         break;
+      case WallPattern.wainscoting:
+        _drawWainscoting(
+          canvas: canvas,
+          converter: converter,
+          isLeft: isLeft,
+          rows: rows,
+          cols: cols,
+          baseColor: baseColor,
+        );
+        break;
+      case WallPattern.clouds:
+        _drawClouds(
+          canvas: canvas,
+          converter: converter,
+          isLeft: isLeft,
+          rows: rows,
+          cols: cols,
+          baseColor: baseColor,
+        );
+        break;
+    }
+
+    canvas.restore();
+  }
+
+  /// 绘制云端拾光效果
+  static void _drawClouds({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required bool isLeft,
+    required int rows,
+    required int cols,
+    required Color baseColor,
+  }) {
+    final count = isLeft ? rows : cols;
+
+    // 1. 绘制天空底色
+    _drawSolidColor(
+      canvas: canvas,
+      converter: converter,
+      isLeft: isLeft,
+      rows: rows,
+      cols: cols,
+      color: baseColor,
+    );
+
+    // --- 关键：建立墙面投影矩阵 ---
+    // 获取墙面的两个基向量（水平方向和垂直方向）
+    final pOrigin = converter.getScreenPoint(0, 0, 0);
+    final pHorizontal = isLeft ? converter.getScreenPoint(1, 0, 0) : converter.getScreenPoint(0, 1, 0);
+    final pVertical = converter.getScreenPoint(0, 0, 1);
+
+    final vx = Offset(pHorizontal.dx - pOrigin.dx, pHorizontal.dy - pOrigin.dy);
+    final vy = Offset(pVertical.dx - pOrigin.dx, pVertical.dy - pOrigin.dy);
+
+    // 2. 绘制装饰虚线 (在中部建立投影)
+    final dashPaint = Paint()
+      ..color = Colors.white.withOpacity(0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    
+    const double dashH = 5.5;
+    const double dashLen = 0.8;
+    const double gapLen = 0.4;
+    
+    for (double i = 0; i < count; i += (dashLen + gapLen)) {
+      final p1 = isLeft ? converter.getScreenPoint(i, 0, dashH) : converter.getScreenPoint(0, i, dashH);
+      final p2 = isLeft ? converter.getScreenPoint(i + dashLen, 0, dashH) : converter.getScreenPoint(0, i + dashLen, dashH);
+      canvas.drawLine(p1, p2, dashPaint);
+    }
+
+    // 3. 绘制投影云朵
+    final cloudPaint = Paint()..color = Colors.white.withOpacity(0.9)..style = PaintingStyle.fill;
+    
+    final List<(double, double, double)> cloudConfigs = [
+      (2.0, 10.0, 1.2),
+      (6.0, 7.5, 1.0),
+      (12.0, 11.0, 1.5),
+      (18.0, 8.5, 0.9),
+      (22.0, 12.0, 1.1),
+    ];
+
+    for (var config in cloudConfigs) {
+      if (config.$1 >= count) continue;
+      
+      // 这里的 x, y 是墙面坐标系下的坐标
+      final double wallX = config.$1;
+      final double wallZ = config.$2;
+      final double scale = config.$3;
+
+      _drawSingleCloudProjected(canvas, pOrigin, vx, vy, wallX, wallZ, scale, cloudPaint);
+    }
+  }
+
+  /// 在墙面投影空间中绘制单个云朵 (横向蓬松排列)
+  static void _drawSingleCloudProjected(
+    Canvas canvas, 
+    Offset origin, 
+    Offset vx, 
+    Offset vy, 
+    double x, 
+    double z, 
+    double scale, 
+    Paint paint
+  ) {
+    // 将墙面上的局部坐标 (dx, dz) 映射到屏幕投影坐标
+    Offset project(double dx, double dz) {
+      return Offset(
+        origin.dx + (x + dx) * vx.dx + (z + dz) * vy.dx,
+        origin.dy + (x + dx) * vx.dy + (z + dz) * vy.dy,
+      );
+    }
+
+    // 在等轴测平面上绘制一个投影后的圆（即椭圆）
+    void drawCircleInSpace(double dx, double dz, double radius) {
+      final path = Path();
+      for (int i = 0; i <= 32; i++) {
+        final angle = i * (2 * math.pi / 32);
+        // 修正：在空间内使用 1:1 比例，投影矩阵会自动处理 30 度透视变形
+        final p = project(dx + radius * math.cos(angle), dz + radius * math.sin(angle));
+        if (i == 0) path.moveTo(p.dx, p.dy);
+        else path.lineTo(p.dx, p.dy);
+      }
+      canvas.drawPath(path, paint);
+    }
+
+    // 绘制云朵组合：通过 5 个圆的横向拉伸排列，营造蓬松感
+    drawCircleInSpace(0, 0, 1.2 * scale); // 中心圆
+    drawCircleInSpace(-1.1 * scale, -0.1 * scale, 0.8 * scale); // 左侧圆
+    drawCircleInSpace(1.1 * scale, -0.1 * scale, 0.8 * scale); // 右侧圆
+    drawCircleInSpace(-0.4 * scale, 0.5 * scale, 0.7 * scale); // 左上圆
+    drawCircleInSpace(0.4 * scale, 0.5 * scale, 0.7 * scale); // 右上圆
+  }
+
+
+  /// 绘制法式护墙板与波点
+  static void _drawWainscoting({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required bool isLeft,
+    required int rows,
+    required int cols,
+    required Color baseColor,
+  }) {
+    const double wallH = kWallGridHeight + 0.0;
+    const double panelH = 5.0; // 护墙板高度
+    final count = isLeft ? rows : cols;
+
+    // 1. 绘制上半部分的藕粉色（或传入的 baseColor）
+    _drawSolidColor(
+      canvas: canvas,
+      converter: converter,
+      isLeft: isLeft,
+      rows: rows,
+      cols: cols,
+      color: baseColor,
+    );
+
+    // 2. 绘制下半部分的护墙板 (米白色)
+    final bottomColor = const Color(0xFFFDF9EE);
+    final bottomPath = Path();
+    if (isLeft) {
+      bottomPath.addPolygon([
+        converter.getScreenPoint(0, 0, 0),
+        converter.getScreenPoint(rows.toDouble(), 0, 0),
+        converter.getScreenPoint(rows.toDouble(), 0, panelH),
+        converter.getScreenPoint(0, 0, panelH),
+      ], true);
+    } else {
+      bottomPath.addPolygon([
+        converter.getScreenPoint(0, 0, 0),
+        converter.getScreenPoint(0, cols.toDouble(), 0),
+        converter.getScreenPoint(0, cols.toDouble(), panelH),
+        converter.getScreenPoint(0, 0, panelH),
+      ], true);
+    }
+    canvas.drawPath(bottomPath, Paint()..color = bottomColor..style = PaintingStyle.fill);
+
+    // 3. 绘制护墙板的垂直线条 (细微的阴影线)
+    final linePaint = Paint()
+      ..color = const Color(0xFFE5DCC5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+    
+    for (int i = 0; i <= count; i++) {
+      final p1 = isLeft ? converter.getScreenPoint(i.toDouble(), 0, 0) : converter.getScreenPoint(0, i.toDouble(), 0);
+      final p2 = isLeft ? converter.getScreenPoint(i.toDouble(), 0, panelH) : converter.getScreenPoint(0, i.toDouble(), panelH);
+      canvas.drawLine(p1, p2, linePaint);
+    }
+
+    // 4. 绘制腰线 (两条细白线)
+    final dividerPaint = Paint()
+      ..color = Colors.white.withOpacity(0.9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+    
+    for (double h in [panelH, panelH + 0.3]) {
+      final start = converter.getScreenPoint(0, 0, h);
+      final end = isLeft ? converter.getScreenPoint(rows.toDouble(), 0, h) : converter.getScreenPoint(0, cols.toDouble(), h);
+      canvas.drawLine(start, end, dividerPaint);
+    }
+
+    // 5. 绘制波点 (Polka Dots)
+    final dotPaint = Paint()
+      ..color = Colors.white.withOpacity(0.6)
+      ..style = PaintingStyle.fill;
+    
+    // 使用数学偏移实现交错排列
+    const double stepH = 2.5;
+    const double stepV = 2.0;
+    
+    for (double v = panelH + 1.5; v < wallH - 0.5; v += stepV) {
+      final bool isShifted = (v ~/ stepV) % 2 == 0;
+      for (double h = 0.5; h < count; h += stepH) {
+        final double posH = h + (isShifted ? stepH / 2 : 0);
+        if (posH >= count) continue;
+
+        final center = isLeft ? converter.getScreenPoint(posH, 0, v) : converter.getScreenPoint(0, posH, v);
+        
+        // 绘制大小错落的圆点
+        final double radius = (posH.toInt() % 3 == 0) ? 2.5 : 1.5;
+        canvas.drawCircle(center, radius, dotPaint);
+      }
     }
   }
 

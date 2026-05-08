@@ -4,6 +4,7 @@ import '../../domain/models/furniture_item.dart';
 import '../../domain/models/placed_furniture.dart';
 import '../utils/isometric_coordinate_utils.dart';
 import '../utils/wall_pattern_painter.dart';
+import '../utils/floor_pattern_painter.dart';
 import '../pages/decoration_page_constants.dart';
 import './isometric_scene_renderer.dart';
 import './furniture_renderer.dart';
@@ -29,6 +30,7 @@ class IsometricGridPainter extends CustomPainter {
   final Color wallColorRight;
   final WallPattern wallPattern;
   final Color floorColor;
+  final FloorPattern floorPattern;
   final int dyeVersion; // 染色版本号
 
   IsometricGridPainter({
@@ -52,6 +54,7 @@ class IsometricGridPainter extends CustomPainter {
     this.wallColorRight = const Color(0xFFDEDCCE),
     this.wallPattern = WallPattern.none,
     this.floorColor = const Color(0xFFF1EBD1),
+    this.floorPattern = FloorPattern.none,
     this.dyeVersion = 0,
   });
 
@@ -124,6 +127,16 @@ class IsometricGridPainter extends CustomPainter {
       cols: cols,
       floorColor: floorColor,
       outlinePaint: outlinePaint,
+    );
+    
+    // 4.5 绘制地面代码花纹
+    FloorPatternPainter.paint(
+      canvas: canvas,
+      converter: converter,
+      pattern: floorPattern,
+      rows: rows,
+      cols: cols,
+      baseColor: floorColor,
     );
 
     // 4. 绘制网格线
@@ -213,6 +226,7 @@ class IsometricGridPainter extends CustomPainter {
         oldDelegate.wallColorRight != wallColorRight ||
         oldDelegate.wallPattern != wallPattern ||
         oldDelegate.floorColor != floorColor ||
+        oldDelegate.floorPattern != floorPattern ||
         oldDelegate.dyeVersion != dyeVersion;
   }
 }
