@@ -98,6 +98,8 @@ class DecorationController extends ChangeNotifier {
         flippedVisualRotationZ: item.flippedVisualRotationZ,
         flippedVisualPivot: item.flippedVisualPivot,
         toolbarOffset: item.toolbarOffset,
+        canBeDyed: item.canBeDyed,
+        colorVariants: item.colorVariants,
       );
     }).toList();
 
@@ -224,6 +226,37 @@ class DecorationController extends ChangeNotifier {
     selectedFurniture = pf;
     selectedCell = null;
     notifyListeners();
+  }
+
+  int dyeVersion = 0; // 用于强制触发重绘的版本号
+
+  void updatePlacedFurnitureVariant(PlacedFurniture pf, String newImagePath) {
+    final index = _placedFurniture.indexOf(pf);
+    if (index != -1) {
+      // 1. 先更新模型数据
+      final updatedPF = pf.copyWith(
+        item: pf.item.copyWith(imagePath: newImagePath),
+      );
+      _placedFurniture[index] = updatedPF;
+      
+      // 增加版本号以触发重绘
+      dyeVersion++;
+      
+      if (selectedFurniture == pf) {
+        selectedFurniture = updatedPF;
+      }
+      notifyListeners(); // 第一次通知：数据已变
+
+      // 2. 预加载新贴图，加载完成后再次触发重绘确保显示
+      final image = AssetImage(newImagePath);
+      final stream = image.resolve(ImageConfiguration.empty);
+      stream.addListener(ImageStreamListener((ImageInfo info, bool _) {
+        // 将图片存入缓存池
+        SpritePainter.cacheImage(newImagePath, info.image);
+        // 图片准备好了，第二次通知：强制场景重绘以显示新贴图
+        notifyListeners();
+      }));
+    }
   }
 
   void setCategory(String cat) {

@@ -1,5 +1,23 @@
 import 'package:flutter/material.dart';
 
+class FurnitureColorVariant {
+  final String id;
+  final String name;
+  final String imagePath;
+  final Color color; // 用于在色盘中显示的颜色
+  final int dyeCost;
+  final int goldCost;
+
+  FurnitureColorVariant({
+    required this.id,
+    required this.name,
+    required this.imagePath,
+    required this.color,
+    this.dyeCost = 1,
+    this.goldCost = 100,
+  });
+}
+
 class FurnitureItem {
   final String id;
   final String name;
@@ -18,6 +36,8 @@ class FurnitureItem {
   final double visualRotationZ;
   final Offset visualPivot;
   final Offset toolbarOffset;
+  final bool canBeDyed;
+  final List<FurnitureColorVariant> colorVariants;
 
   // 镜像（旋转 index 为 1 时）的独立微调参数
   final double? flippedVisualScale;
@@ -54,6 +74,8 @@ class FurnitureItem {
     this.flippedVisualRotationZ,
     this.flippedVisualPivot,
     this.toolbarOffset = Offset.zero,
+    this.canBeDyed = false,
+    this.colorVariants = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -91,7 +113,41 @@ class FurnitureItem {
           ? {'x': flippedVisualPivot!.dx, 'y': flippedVisualPivot!.dy}
           : null,
       'toolbarOffset': {'x': toolbarOffset.dx, 'y': toolbarOffset.dy},
+      'canBeDyed': canBeDyed,
     };
+  }
+
+  FurnitureItem copyWith({
+    String? imagePath,
+  }) {
+    return FurnitureItem(
+      id: id,
+      name: name,
+      imagePath: imagePath ?? this.imagePath,
+      spriteRect: spriteRect,
+      category: category,
+      subCategory: subCategory,
+      gridW: gridW,
+      gridH: gridH,
+      intrinsicWidth: intrinsicWidth,
+      intrinsicHeight: intrinsicHeight,
+      quantity: quantity,
+      visualScale: visualScale,
+      visualOffset: visualOffset,
+      visualRotationX: visualRotationX,
+      visualRotationY: visualRotationY,
+      visualRotationZ: visualRotationZ,
+      visualPivot: visualPivot,
+      flippedVisualScale: flippedVisualScale,
+      flippedVisualOffset: flippedVisualOffset,
+      flippedVisualRotationX: flippedVisualRotationX,
+      flippedVisualRotationY: flippedVisualRotationY,
+      flippedVisualRotationZ: flippedVisualRotationZ,
+      flippedVisualPivot: flippedVisualPivot,
+      toolbarOffset: toolbarOffset,
+      canBeDyed: canBeDyed,
+      colorVariants: colorVariants,
+    );
   }
 
   factory FurnitureItem.fromMap(Map<String, dynamic> map) {
@@ -151,6 +207,7 @@ class FurnitureItem {
               (map['toolbarOffset']['y'] as num).toDouble(),
             )
           : Offset.zero,
+      canBeDyed: map['canBeDyed'] ?? false,
     );
   }
 

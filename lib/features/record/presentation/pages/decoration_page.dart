@@ -143,10 +143,13 @@ class _DecorationPageState extends State<DecorationPage>
             const Positioned.fill(child: ScrollingSunBackground()),
 
             // 核心场景层
-            DecorationScene(
-              gridKey: _gridKey,
-              repaintKey: _repaintKey,
-              controller: _controller,
+            ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) => DecorationScene(
+                gridKey: _gridKey,
+                repaintKey: _repaintKey,
+                controller: _controller,
+              ),
             ),
 
             // 用户界面层

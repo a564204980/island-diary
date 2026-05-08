@@ -330,28 +330,42 @@ class _FurnitureCardState extends State<_FurnitureCard> with SingleTickerProvide
                           ),
                         ),
                       ),
-                      // 数量角标
+                      // 可染色/改制角标 (左上角)
+                      if (widget.item.canBeDyed)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFA78BFA), // 紫色背景，参考图1
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(18), // 配合外层圆角
+                                bottomRight: Radius.circular(14),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.brush_rounded, // 滚筒刷/刷子图标
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                      // 数量角标 (右上角)
                       Positioned(
-                        top: 6,
-                        right: 6,
+                        top: 8,
+                        right: 8,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD4A373), // 使用暖色调
+                            color: const Color(0xFFD4A373).withValues(alpha: 0.8), // 稍微透明一点更高级
                             borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
                           ),
                           child: Text(
                             'x${widget.item.quantity}',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 10,
+                              fontSize: 9,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

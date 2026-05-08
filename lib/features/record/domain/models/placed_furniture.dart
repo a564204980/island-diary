@@ -28,4 +28,20 @@ class PlacedFurniture {
       rotation: map['rotation'],
     );
   }
+
+  PlacedFurniture copyWith({
+    FurnitureItem? item,
+    int? r,
+    int? c,
+    double? z,
+    int? rotation,
+  }) {
+    return PlacedFurniture(
+      item: item ?? this.item,
+      r: r ?? this.r,
+      c: c ?? this.c,
+      z: z ?? this.z,
+      rotation: rotation ?? this.rotation,
+    );
+  }
 }

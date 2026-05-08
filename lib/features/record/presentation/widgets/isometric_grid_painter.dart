@@ -29,6 +29,7 @@ class IsometricGridPainter extends CustomPainter {
   final Color wallColorRight;
   final WallPattern wallPattern;
   final Color floorColor;
+  final int dyeVersion; // 染色版本号
 
   IsometricGridPainter({
     required this.rows,
@@ -51,6 +52,7 @@ class IsometricGridPainter extends CustomPainter {
     this.wallColorRight = const Color(0xFFDEDCCE),
     this.wallPattern = WallPattern.none,
     this.floorColor = const Color(0xFFF1EBD1),
+    this.dyeVersion = 0,
   });
 
   @override
@@ -210,6 +212,7 @@ class IsometricGridPainter extends CustomPainter {
         oldDelegate.wallColorLeft != wallColorLeft ||
         oldDelegate.wallColorRight != wallColorRight ||
         oldDelegate.wallPattern != wallPattern ||
-        oldDelegate.floorColor != floorColor;
+        oldDelegate.floorColor != floorColor ||
+        oldDelegate.dyeVersion != dyeVersion;
   }
 }

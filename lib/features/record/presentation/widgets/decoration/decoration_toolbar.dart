@@ -10,6 +10,7 @@ class DecorationToolbar extends StatelessWidget {
   final VoidCallback onRotate;
   final VoidCallback onDelete;
   final VoidCallback onFillAll;
+  final VoidCallback onDye;
   final Offset layoutOffset;
 
   const DecorationToolbar({
@@ -19,6 +20,7 @@ class DecorationToolbar extends StatelessWidget {
     required this.onRotate,
     required this.onDelete,
     required this.onFillAll,
+    required this.onDye,
     this.layoutOffset = Offset.zero,
   });
 
@@ -138,6 +140,14 @@ class DecorationToolbar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (pf.item.canBeDyed) ...[
+                  _ToolbarButton(
+                    icon: Icons.brush_rounded,
+                    color: const Color(0xFFA78BFA), // 紫色
+                    onPressed: onDye,
+                  ),
+                  _buildDivider(isNight),
+                ],
                 if (pf.item.isFloor) ...[
                   _ToolbarButton(
                     icon: Icons.grid_view_rounded,

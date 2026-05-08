@@ -4,6 +4,7 @@ import '../../controllers/decoration_controller.dart';
 import '../isometric_grid_painter.dart';
 import 'furniture_drag_overlay.dart';
 import 'decoration_toolbar.dart';
+import 'furniture_dyeing_dialog.dart';
 import '../../utils/isometric_coordinate_utils.dart';
 import '../../pages/decoration_page_constants.dart';
 
@@ -81,6 +82,7 @@ class DecorationScene extends StatelessWidget {
                           showGrid: controller.showGrid,
                           isInteracting: controller.isInteracting,
                           currentScale: controller.currentScale,
+                          dyeVersion: controller.dyeVersion,
                           ghostItem:
                               controller.draggingItem != null &&
                                   controller.ghostCell != null
@@ -250,6 +252,20 @@ class DecorationScene extends StatelessWidget {
                                 controller.selectedFurniture!,
                               ),
                               onFillAll: () => {},
+                              onDye: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => FurnitureDyeingDialog(
+                                    pf: controller.selectedFurniture!,
+                                    onVariantSelected: (variant) {
+                                      controller.updatePlacedFurnitureVariant(
+                                        controller.selectedFurniture!,
+                                        variant.imagePath,
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ],
