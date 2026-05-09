@@ -35,4 +35,18 @@ final List<FurnitureItem> floorItems = [
       ),
     ],
   ),
+  FurnitureItem(
+    id: 'floor_sand_beach_full',
+    name: '沙滩',
+    imagePath: 'assets/images/decoration/door/door1.png',
+    category: '地饰',
+    subCategory: '地板',
+    gridW: 24,
+    gridH: 24,
+    intrinsicWidth: 1600,
+    intrinsicHeight: 924,
+    quantity: 1,
+    visualScale: 1.05,
+    visualOffset: const Offset(0, 0),
+  ),
 ];

@@ -185,16 +185,39 @@ class IsometricGridPainter extends CustomPainter {
         bool bIsCarpet = b.item.subCategory == '地毯';
         if (aIsCarpet != bIsCarpet) return aIsCarpet ? -1 : 1;
 
-        // 深度排序
-        final depthA = a.r + a.c + a.z;
-        final depthB = b.r + b.c + b.z;
-        return depthA.compareTo(depthB);
+        // 深度排序 - 增强型
+        int gwA = a.rotation % 2 == 0 ? a.item.gridW : a.item.gridH;
+        int ghA = a.rotation % 2 == 0 ? a.item.gridH : a.item.gridW;
+        int gwB = b.rotation % 2 == 0 ? b.item.gridW : b.item.gridH;
+        int ghB = b.rotation % 2 == 0 ? b.item.gridH : b.item.gridW;
+
+        if (a.r >= b.r + gwB || a.c >= b.c + ghB) return 1;
+        if (b.r >= a.r + gwA || b.c >= a.c + ghA) return -1;
+        if (a.z != b.z) return a.z.compareTo(b.z);
+        return (a.r + a.c).compareTo(b.r + b.c);
       });
+
+    // 创建地板裁剪路径
+    final floorPath = Path()
+      ..addPolygon([
+        converter.getScreenPoint(0, 0, 0),
+        converter.getScreenPoint(rows.toDouble(), 0, 0),
+        converter.getScreenPoint(rows.toDouble(), cols.toDouble(), 0),
+        converter.getScreenPoint(0, cols.toDouble(), 0),
+      ], true);
 
     for (final pf in sortedItems) {
       if (pf == selectedFurniture) {
         FurnitureRenderer.drawSelectionFootprint(canvas, pf, converter, tw, th);
       }
+
+      // 地板和地毯需要裁剪，防止超出房间范围
+      final bool needsClip = pf.item.isFloor || pf.item.subCategory == '地毯';
+      if (needsClip) {
+        canvas.save();
+        canvas.clipPath(floorPath);
+      }
+
       FurnitureRenderer.draw(
         canvas: canvas,
         item: pf.item,
@@ -207,6 +230,10 @@ class IsometricGridPainter extends CustomPainter {
         th: th,
         bounceScale: (pf == bouncingItem) ? bounceScale : 1.0,
       );
+
+      if (needsClip) {
+        canvas.restore();
+      }
     }
   }
 

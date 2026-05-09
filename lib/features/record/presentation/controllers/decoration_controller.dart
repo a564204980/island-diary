@@ -743,7 +743,7 @@ class DecorationController extends ChangeNotifier {
     Offset localPos,
     IsometricCoordinateConverter converter,
   ) {
-    final sorted = List<PlacedFurniture>.from(_placedFurniture)
+    final sorted = List<PlacedFurniture>.from(_placedFurniture.where((pf) => !pf.item.isFloor))
       ..sort((a, b) {
         // 1. 基础分类优先级：墙面 > 地面 (家具/装饰) > 地板
         if (a.item.isWall != b.item.isWall) return a.item.isWall ? -1 : 1;

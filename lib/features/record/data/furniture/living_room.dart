@@ -15,6 +15,20 @@ final List<FurnitureItem> livingRoomItems = [
     quantity: 3,
     visualScale: 1.0,
   ),
+  FurnitureItem(
+    id: 'cabinet_wood_drawer_1',
+    name: '暖木四屉柜',
+    imagePath: 'assets/images/decoration/table/table13.png',
+    category: '家具',
+    subCategory: '柜子',
+    gridW: 4,
+    gridH: 2,
+    intrinsicWidth: 193,
+    intrinsicHeight: 400,
+    quantity: 1,
+    visualScale: 1.0,
+    visualOffset: Offset.zero,
+  ),
 
   FurnitureItem(
     id: 'table_2',
