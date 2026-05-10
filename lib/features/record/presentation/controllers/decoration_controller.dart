@@ -488,10 +488,13 @@ class DecorationController extends ChangeNotifier {
         setWallColor(true, const Color(0xFFBC8B91));
         setWallColor(false, const Color(0xFFBC8B91));
       } else if (item.id.contains('clouds')) {
-        setWallPattern(WallPattern.clouds); // 强制刷新
-        // 设置配套的天蓝色基调
+        setWallPattern(WallPattern.clouds);
         setWallColor(true, const Color(0xFFC2DFFF));
         setWallColor(false, const Color(0xFFC2DFFF));
+      } else if (item.id.contains('gradient')) {
+        setWallPattern(WallPattern.gradient);
+      } else if (item.id.contains('sparkle')) {
+        setWallPattern(WallPattern.sparkle);
       } else {
         setWallPattern(WallPattern.none);
       }
@@ -501,11 +504,12 @@ class DecorationController extends ChangeNotifier {
     if (item.subCategory == '地板') {
       if (item.id.contains('herringbone')) {
         setFloorPattern(FloorPattern.herringbone);
-        return;
       } else {
-        // 如果是普通地板图层，则重置代码生成的纹理
+        // 如果是普通地板图层，则重置代码生成的纹理并自动铺满
         setFloorPattern(FloorPattern.none);
+        handleFillAll(item);
       }
+      return;
     }
 
     int r = (kGridRows / 2).floor();

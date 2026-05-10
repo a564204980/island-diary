@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:flutter/material.dart';
 import '../pages/decoration_page_constants.dart';
 import './isometric_coordinate_utils.dart';
 
@@ -114,6 +114,28 @@ class WallPatternPainter {
           rows: rows,
           cols: cols,
           baseColor: baseColor,
+        );
+        break;
+      case WallPattern.gradient:
+        _drawGradient(
+          canvas: canvas,
+          converter: converter,
+          isLeft: isLeft,
+          rows: rows,
+          cols: cols,
+          topColor: const Color(0xFFDBF3F4),
+          bottomColor: const Color(0xFF77D9D9),
+        );
+        break;
+      case WallPattern.sparkle:
+        _drawSparkle(
+          canvas: canvas,
+          converter: converter,
+          isLeft: isLeft,
+          rows: rows,
+          cols: cols,
+          baseColor: const Color(0xFF9181C9),
+          lightColor: const Color(0xFFDCCFF2),
         );
         break;
     }
@@ -318,6 +340,107 @@ class WallPatternPainter {
         // 绘制大小错落的圆点
         final double radius = (posH.toInt() % 3 == 0) ? 2.5 : 1.5;
         canvas.drawCircle(center, radius, dotPaint);
+      }
+    }
+  }
+  
+  /// 绘制渐变墙面
+  static void _drawGradient({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required bool isLeft,
+    required int rows,
+    required int cols,
+    required Color topColor,
+    required Color bottomColor,
+  }) {
+    final path = isLeft
+        ? (Path()
+          ..addPolygon([
+            converter.getScreenPoint(0, 0, 0),
+            converter.getScreenPoint(rows.toDouble(), 0, 0),
+            converter.getScreenPoint(rows.toDouble(), 0, kWallGridHeight.toDouble()),
+            converter.getScreenPoint(0, 0, kWallGridHeight.toDouble()),
+          ], true))
+        : (Path()
+          ..addPolygon([
+            converter.getScreenPoint(0, 0, 0),
+            converter.getScreenPoint(0, cols.toDouble(), 0),
+            converter.getScreenPoint(0, cols.toDouble(), kWallGridHeight.toDouble()),
+            converter.getScreenPoint(0, 0, kWallGridHeight.toDouble()),
+          ], true));
+
+    final Rect bounds = path.getBounds();
+    final gradient = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [topColor, bottomColor],
+    ).createShader(bounds);
+
+    canvas.drawPath(path, Paint()..shader = gradient..style = PaintingStyle.fill);
+  }
+
+  /// 绘制星光像素墙面
+  static void _drawSparkle({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required bool isLeft,
+    required int rows,
+    required int cols,
+    required Color baseColor,
+    required Color lightColor,
+  }) {
+    // 1. 绘制背景基色
+    _drawSolidColor(
+      canvas: canvas,
+      converter: converter,
+      isLeft: isLeft,
+      rows: rows,
+      cols: cols,
+      color: baseColor,
+    );
+
+    final random = math.Random(42); // 固定种子
+    const double step = 0.6; // 像素块间距
+
+    if (isLeft) {
+      for (double r = 0; r < rows; r += step) {
+        for (double z = 0; z < kWallGridHeight; z += step) {
+          final double hRatio = (kWallGridHeight - z) / kWallGridHeight;
+          // 底部密集，顶部稀疏
+          if (random.nextDouble() < hRatio * 0.7) {
+            final path = Path()
+              ..addPolygon([
+                converter.getScreenPoint(r, 0, z),
+                converter.getScreenPoint(r + step, 0, z),
+                converter.getScreenPoint(r + step, 0, z + step),
+                converter.getScreenPoint(r, 0, z + step),
+              ], true);
+            canvas.drawPath(
+              path,
+              Paint()..color = lightColor.withOpacity(0.2 + random.nextDouble() * 0.6),
+            );
+          }
+        }
+      }
+    } else {
+      for (double c = 0; c < cols; c += step) {
+        for (double z = 0; z < kWallGridHeight; z += step) {
+          final double hRatio = (kWallGridHeight - z) / kWallGridHeight;
+          if (random.nextDouble() < hRatio * 0.7) {
+            final path = Path()
+              ..addPolygon([
+                converter.getScreenPoint(0, c, z),
+                converter.getScreenPoint(0, c + step, z),
+                converter.getScreenPoint(0, c + step, z + step),
+                converter.getScreenPoint(0, c, z + step),
+              ], true);
+            canvas.drawPath(
+              path,
+              Paint()..color = lightColor.withOpacity(0.2 + random.nextDouble() * 0.6),
+            );
+          }
+        }
       }
     }
   }
