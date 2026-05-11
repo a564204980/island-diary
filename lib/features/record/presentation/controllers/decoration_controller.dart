@@ -5,7 +5,7 @@ import '../../domain/models/furniture_item.dart';
 import '../../domain/models/placed_furniture.dart';
 import '../utils/isometric_coordinate_utils.dart';
 import '../pages/decoration_page_constants.dart';
-import '../../data/furniture_data.dart';
+import '../../data/services/furniture_db_service.dart';
 import '../widgets/furniture_sprite.dart';
 
 class DecorationController extends ChangeNotifier {
@@ -14,7 +14,7 @@ class DecorationController extends ChangeNotifier {
   List<PlacedFurniture> get placedFurniture =>
       List.unmodifiable(_placedFurniture);
 
-  late List<FurnitureItem> _availableItems;
+  List<FurnitureItem> _availableItems = [];
   List<FurnitureItem> get availableItems => _availableItems;
 
   String selectedCategory = '家具';
@@ -58,8 +58,12 @@ class DecorationController extends ChangeNotifier {
   FloorPattern floorPattern = FloorPattern.none;
   Color floorColor = const Color(0xFFF1EBD1);
 
-  void init(BuildContext context, {TickerProvider? vsync}) {
-    if (vsync != null) {
+  Future<void> init(BuildContext context, {TickerProvider? vsync}) async {
+    isInitializing = true;
+    loadingProgress = 0.0;
+    notifyListeners();
+
+    if (vsync != null && _bounceController == null) {
       _bounceController =
           AnimationController(
             vsync: vsync,
@@ -73,36 +77,13 @@ class DecorationController extends ChangeNotifier {
       );
     }
 
-    _availableItems = defaultFurnitureItems.map((item) {
-      return FurnitureItem(
-        id: item.id,
-        name: item.name,
-        imagePath: item.imagePath,
-        spriteRect: item.spriteRect,
-        category: item.category,
-        subCategory: item.subCategory,
-        gridW: item.gridW,
-        gridH: item.id == 'glass_partition' ? 14 : item.gridH,
-        intrinsicWidth: item.intrinsicWidth,
-        intrinsicHeight: item.intrinsicHeight,
-        quantity: item.quantity,
-        visualScale: item.visualScale,
-        visualOffset: item.visualOffset,
-        visualRotationX: item.visualRotationX,
-        visualRotationY: item.visualRotationY,
-        visualRotationZ: item.visualRotationZ,
-        visualPivot: item.visualPivot,
-        flippedVisualScale: item.flippedVisualScale,
-        flippedVisualOffset: item.flippedVisualOffset,
-        flippedVisualRotationX: item.flippedVisualRotationX,
-        flippedVisualRotationY: item.flippedVisualRotationY,
-        flippedVisualRotationZ: item.flippedVisualRotationZ,
-        flippedVisualPivot: item.flippedVisualPivot,
-        toolbarOffset: item.toolbarOffset,
-        canBeDyed: item.canBeDyed,
-        colorVariants: item.colorVariants,
-      );
-    }).toList();
+    // 初始化数据库并读取数据
+    try {
+      await FurnitureDbService.init();
+      _availableItems = await FurnitureDbService.getAllItems();
+    } catch (e) {
+      debugPrint('Database initialization error: $e');
+    }
 
     // 加载已保存的家具布局
     final saved = UserState().placedFurniture.value;
@@ -128,7 +109,7 @@ class DecorationController extends ChangeNotifier {
     }
 
     // 预加载必需资源
-    _preloadAssets(context);
+    await _preloadAssets(context);
   }
 
   Future<void> _preloadAssets(BuildContext context) async {

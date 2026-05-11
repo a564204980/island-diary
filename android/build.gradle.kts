@@ -19,6 +19,10 @@ subprojects {
     val configureAndroid = {
         if (project.hasProperty("android")) {
             val android = project.extensions.getByName("android") as com.android.build.gradle.BaseExtension
+            if (android.namespace == null) {
+                android.namespace = project.group.toString()
+            }
+            android.compileSdkVersion(36)
             android.compileOptions {
                 sourceCompatibility = JavaVersion.VERSION_17
                 targetCompatibility = JavaVersion.VERSION_17
