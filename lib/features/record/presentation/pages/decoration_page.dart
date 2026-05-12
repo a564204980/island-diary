@@ -28,6 +28,25 @@ class _DecorationPageState extends State<DecorationPage>
   bool _isTrayExpanded = true;
   bool _isInitialized = false;
   bool _showColorPicker = false;
+  
+  // 趣味加载文案列表
+  static const List<String> _allLoadingMessages = [
+    '正在确认装修图纸是否拿反了...',
+    '正在催促家具厂连夜赶工...',
+    '正在指挥快递小哥搬运家具...',
+    '正在给新买的地毯拍灰尘...',
+    '正在努力布置你的温馨小屋...',
+    '装修队的工人们正在努力干活...',
+    '正在对齐最后一块瓷砖...',
+    '正在给家具进行最后的抛光...',
+    '正在帮你的家具找个风水宝地...',
+    '正在清点你的私人收藏家具...',
+    '正在为你的审美感到惊叹...',
+    '正在调整灯光，准备完美亮相...',
+    '正在打扫卫生，准备开门迎客...',
+    '大功告成就在眼前，请稍候...',
+  ];
+  late List<String> _shuffledMessages;
 
   AnimationController? _zoomAnimationController;
   double _zoomStartScale = 0.5;
@@ -50,6 +69,9 @@ class _DecorationPageState extends State<DecorationPage>
       vsync: this,
       duration: const Duration(milliseconds: 250),
     );
+    
+    // 初始化并随机洗牌文案
+    _shuffledMessages = List.from(_allLoadingMessages)..shuffle();
     _zoomAnimationController!.addListener(() {
       if (_zoomAnimationController!.isAnimating) {
         final double t = CurvedAnimation(
@@ -216,33 +238,51 @@ class _DecorationPageState extends State<DecorationPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 自定义进度条容器
+            // 1. 趣味文案 (居上)
+            Text(
+              _getCurrentMessage(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF8B5E3C),
+                fontSize: 15,
+                letterSpacing: 1.1,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // 2. 自定义进度条容器 (居中)
             Container(
               width: 300,
-              height: 12,
+              height: 10,
               decoration: BoxDecoration(
                 color: const Color(0xFFE8D4B4).withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFFE8D4B4).withValues(alpha: 0.5), width: 1),
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(
+                  color: const Color(0xFFE8D4B4).withValues(alpha: 0.5),
+                  width: 1,
+                ),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(5),
                 child: LinearProgressIndicator(
                   value: _controller.loadingProgress,
                   backgroundColor: Colors.transparent,
                   valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF8B5E3C), // 进度条颜色改为深褐色
+                    Color(0xFF8B5E3C),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            
+            // 3. 百分比数字 (居下)
             Text(
-              '正在搬运家具元件... ${((_controller.loadingProgress * 100).toInt())}%',
+              '${((_controller.loadingProgress * 100).toInt())}%',
               style: const TextStyle(
-                color: Color(0xFF8B5E3C), // 文字颜色改为深褐色
-                fontSize: 14,
-                letterSpacing: 1.2,
+                color: Color(0xFF8B5E3C),
+                fontSize: 13,
+                fontFamily: 'monospace',
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -250,6 +290,14 @@ class _DecorationPageState extends State<DecorationPage>
         ),
       ),
     );
+  }
+
+  String _getCurrentMessage() {
+    if (_shuffledMessages.isEmpty) return '正在搬运家具元件...';
+    // 根据进度计算当前显示的文案索引
+    int index = (_controller.loadingProgress * (_shuffledMessages.length - 1)).floor();
+    index = index.clamp(0, _shuffledMessages.length - 1);
+    return _shuffledMessages[index];
   }
 
   void _handleZoom(double delta) {

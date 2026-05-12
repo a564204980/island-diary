@@ -77,13 +77,7 @@ class DecorationController extends ChangeNotifier {
       );
     }
 
-    // 初始化数据库并读取数据
-    try {
-      await FurnitureDbService.init();
-      _availableItems = await FurnitureDbService.getAllItems();
-    } catch (e) {
-      debugPrint('Database initialization error: $e');
-    }
+    _availableItems = FurnitureDbService.getAllItems();
 
     // 加载已保存的家具布局
     final saved = UserState().placedFurniture.value;
@@ -161,9 +155,17 @@ class DecorationController extends ChangeNotifier {
     // 加载墙面颜色官方推荐色
     wallColorLeft = UserState().wallColorLeft.value;
     wallColorRight = UserState().wallColorRight.value;
-    wallPattern = WallPattern.values[UserState().wallPattern.value.clamp(0, WallPattern.values.length - 1)];
+    wallPattern =
+        WallPattern.values[UserState().wallPattern.value.clamp(
+          0,
+          WallPattern.values.length - 1,
+        )];
     floorColor = UserState().floorColor.value;
-    floorPattern = FloorPattern.values[UserState().floorPattern.value.clamp(0, FloorPattern.values.length - 1)];
+    floorPattern =
+        FloorPattern.values[UserState().floorPattern.value.clamp(
+          0,
+          FloorPattern.values.length - 1,
+        )];
 
     isInitializing = false;
     notifyListeners();
@@ -227,10 +229,10 @@ class DecorationController extends ChangeNotifier {
         item: pf.item.copyWith(imagePath: newImagePath),
       );
       _placedFurniture[index] = updatedPF;
-      
+
       // 增加版本号以触发重绘
       dyeVersion++;
-      
+
       if (selectedFurniture == pf) {
         selectedFurniture = updatedPF;
       }
@@ -239,12 +241,14 @@ class DecorationController extends ChangeNotifier {
       // 2. 预加载新贴图，加载完成后再次触发重绘确保显示
       final image = AssetImage(newImagePath);
       final stream = image.resolve(ImageConfiguration.empty);
-      stream.addListener(ImageStreamListener((ImageInfo info, bool _) {
-        // 将图片存入缓存池
-        SpritePainter.cacheImage(newImagePath, info.image);
-        // 图片准备好了，第二次通知：强制场景重绘以显示新贴图
-        notifyListeners();
-      }));
+      stream.addListener(
+        ImageStreamListener((ImageInfo info, bool _) {
+          // 将图片存入缓存池
+          SpritePainter.cacheImage(newImagePath, info.image);
+          // 图片准备好了，第二次通知：强制场景重绘以显示新贴图
+          notifyListeners();
+        }),
+      );
     }
   }
 
@@ -304,7 +308,10 @@ class DecorationController extends ChangeNotifier {
         dragZOffset = ghostZ - touchZ;
       }
 
-      final double maxAllowedZ = math.max(0.0, (kWallGridHeight - draggingItem!.gridH).toDouble());
+      final double maxAllowedZ = math.max(
+        0.0,
+        (kWallGridHeight - draggingItem!.gridH).toDouble(),
+      );
       final double oldZ = ghostZ;
       ghostZ = (touchZ + dragZOffset).clamp(0.0, maxAllowedZ).roundToDouble();
 
@@ -313,7 +320,9 @@ class DecorationController extends ChangeNotifier {
           ? ((wallCell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw), 0)
           : (0, (wallCell.$2 - (gw / 2).floor()).clamp(0, kGridCols - gw));
 
-      if (centeredCell != ghostCell || draggingRotation != targetRotation || ghostZ != oldZ) {
+      if (centeredCell != ghostCell ||
+          draggingRotation != targetRotation ||
+          ghostZ != oldZ) {
         ghostCell = centeredCell;
         draggingRotation = targetRotation;
         isInteracting = true;
@@ -323,7 +332,7 @@ class DecorationController extends ChangeNotifier {
       // 1. 获取稳定、不受高度影响的基础控制网格(光标直射地面)，以此作为承托面侦测依据，绝对消除边缘跨层抖动。
       var cell0 = converter.getGridCell(localPos, z: 0.0);
       if (cell0 != null && isCellExcluded(cell0.$1, cell0.$2)) cell0 = null;
-      
+
       if (cell0 != null) {
         int gw = draggingRotation % 2 == 0
             ? draggingItem!.gridW
@@ -331,12 +340,12 @@ class DecorationController extends ChangeNotifier {
         int gh = draggingRotation % 2 == 0
             ? draggingItem!.gridH
             : draggingItem!.gridW;
-            
+
         final centeredCell0 = (
           (cell0.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
           (cell0.$2 - (gh / 2).floor()).clamp(0, kGridCols - gh),
         );
-        
+
         // --- 靠墙/高台家具动态高度吸附逻辑 ---
         double targetZ = 0.0;
         bool isDecoration =
@@ -728,36 +737,38 @@ class DecorationController extends ChangeNotifier {
     Offset localPos,
     IsometricCoordinateConverter converter,
   ) {
-    final sorted = List<PlacedFurniture>.from(_placedFurniture.where((pf) => !pf.item.isFloor))
-      ..sort((a, b) {
-        // 1. 基础分类优先级：墙面 > 地面 (家具/装饰) > 地板
-        if (a.item.isWall != b.item.isWall) return a.item.isWall ? -1 : 1;
-        if (a.item.isFloor != b.item.isFloor) return a.item.isFloor ? 1 : -1;
+    final sorted =
+        List<PlacedFurniture>.from(
+          _placedFurniture.where((pf) => !pf.item.isFloor),
+        )..sort((a, b) {
+          // 1. 基础分类优先级：墙面 > 地面 (家具/装饰) > 地板
+          if (a.item.isWall != b.item.isWall) return a.item.isWall ? -1 : 1;
+          if (a.item.isFloor != b.item.isFloor) return a.item.isFloor ? 1 : -1;
 
-        // 2. 软装/饰品（通常在上方）具有更高点击优先级
-        bool aIsSoft = a.item.subCategory == '软装' || a.item.category == '装饰';
-        bool bIsSoft = b.item.subCategory == '软装' || b.item.category == '装饰';
-        if (aIsSoft != bIsSoft) return aIsSoft ? -1 : 1;
+          // 2. 软装/饰品（通常在上方）具有更高点击优先级
+          bool aIsSoft = a.item.subCategory == '软装' || a.item.category == '装饰';
+          bool bIsSoft = b.item.subCategory == '软装' || b.item.category == '装饰';
+          if (aIsSoft != bIsSoft) return aIsSoft ? -1 : 1;
 
-        // 3. 核心排序：由近及远 (Front-to-Back)
-        // 在等轴测投影中，r+c 较大代表物体更靠近观察者，应优先检测
-        int gwA = a.rotation % 2 == 0 ? a.item.gridW : a.item.gridH;
-        int ghA = a.rotation % 2 == 0 ? a.item.gridH : a.item.gridW;
-        int gwB = b.rotation % 2 == 0 ? b.item.gridW : b.item.gridH;
-        int ghB = b.rotation % 2 == 0 ? b.item.gridH : b.item.gridW;
+          // 3. 核心排序：由近及远 (Front-to-Back)
+          // 在等轴测投影中，r+c 较大代表物体更靠近观察者，应优先检测
+          int gwA = a.rotation % 2 == 0 ? a.item.gridW : a.item.gridH;
+          int ghA = a.rotation % 2 == 0 ? a.item.gridH : a.item.gridW;
+          int gwB = b.rotation % 2 == 0 ? b.item.gridW : b.item.gridH;
+          int ghB = b.rotation % 2 == 0 ? b.item.gridH : b.item.gridW;
 
-        // 如果 a 严格在 b 的前方，则 a 优先
-        if (a.r >= b.r + gwB || a.c >= b.c + ghB) return -1;
-        // 如果 b 严格在 a 的前方，则 b 优先
-        if (b.r >= a.r + gwA || b.c >= a.c + ghA) return 1;
+          // 如果 a 严格在 b 的前方，则 a 优先
+          if (a.r >= b.r + gwB || a.c >= b.c + ghB) return -1;
+          // 如果 b 严格在 a 的前方，则 b 优先
+          if (b.r >= a.r + gwA || b.c >= a.c + ghA) return 1;
 
-        // 4. 重叠情况下的细节判定 (高度、位置)
-        // 如果在同一格或重叠，Z 轴（高度）大的优先
-        if (a.z != b.z) return b.z.compareTo(a.z);
+          // 4. 重叠情况下的细节判定 (高度、位置)
+          // 如果在同一格或重叠，Z 轴（高度）大的优先
+          if (a.z != b.z) return b.z.compareTo(a.z);
 
-        // 最后根据网格中心深度降序排列
-        return (b.r + b.c).compareTo(a.r + a.c);
-      });
+          // 最后根据网格中心深度降序排列
+          return (b.r + b.c).compareTo(a.r + a.c);
+        });
 
     for (var pf in sorted) {
       if (pf.item.isWall) {
@@ -825,7 +836,7 @@ class DecorationController extends ChangeNotifier {
           // 1. 用矩形实际尺寸与 intrinsic 尺寸的比例来映射：
           //    避免除零
           if (rect.width == 0 || rect.height == 0) continue;
-          
+
           double ix = dx * pf.item.intrinsicWidth / rect.width;
           double iy = dy * pf.item.intrinsicHeight / rect.height;
 

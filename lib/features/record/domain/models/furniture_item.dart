@@ -1,72 +1,81 @@
 import 'package:flutter/material.dart';
-import 'package:isar/isar.dart';
 
-part 'furniture_item.g.dart';
-
-@embedded
 class FurnitureColorVariant {
-  String id = '';
-  String name = '';
-  String imagePath = '';
-  int colorValue = 0;
-  int dyeCost = 1;
-  int goldCost = 100;
+  final String id;
+  final String name;
+  final String imagePath;
+  final int colorValue;
+  final int dyeCost;
+  final int goldCost;
+
+  Color get color => Color(colorValue);
 
   FurnitureColorVariant({
-    this.id = '',
-    this.name = '',
-    this.imagePath = '',
-    this.colorValue = 0,
+    required this.id,
+    required this.name,
+    required this.imagePath,
+    int? colorValue,
+    Color? color,
     this.dyeCost = 1,
     this.goldCost = 100,
-    @ignore Color? color,
-  }) {
-    if (color != null) {
-      colorValue = color.value;
-    }
+  }) : colorValue = colorValue ?? (color?.toARGB32() ?? 0);
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'imagePath': imagePath,
+      'colorValue': colorValue,
+      'dyeCost': dyeCost,
+      'goldCost': goldCost,
+    };
   }
 
-  @ignore
-  Color get color => Color(colorValue);
+  factory FurnitureColorVariant.fromMap(Map<String, dynamic> map) {
+    return FurnitureColorVariant(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      imagePath: map['imagePath'] ?? '',
+      colorValue: map['colorValue'] as int?,
+      dyeCost: map['dyeCost'] as int? ?? 1,
+      goldCost: map['goldCost'] as int? ?? 100,
+    );
+  }
 }
 
-@Collection()
 class FurnitureItem {
-  Id isarId = Isar.autoIncrement;
+  String id;
+  String name;
+  String imagePath;
 
-  @Index(unique: true, replace: true)
-  String id = '';
-  String name = '';
-  String imagePath = '';
-  
-  double rectLeft = 0;
-  double rectTop = 0;
-  double rectWidth = 1;
-  double rectHeight = 1;
+  double rectLeft;
+  double rectTop;
+  double rectWidth;
+  double rectHeight;
 
-  int gridW = 1;
-  int gridH = 1;
-  double intrinsicWidth = 1;
-  double intrinsicHeight = 1;
-  String category = '';
-  String subCategory = '';
-  double visualScale = 1.0;
-  
-  double vOffsetX = 0;
-  double vOffsetY = 0;
+  int gridW;
+  int gridH;
+  double intrinsicWidth;
+  double intrinsicHeight;
+  String category;
+  String subCategory;
+  double visualScale;
 
-  double visualRotationX = 0;
-  double visualRotationY = 0;
-  double visualRotationZ = 0;
-  
-  double vPivotX = 0;
-  double vPivotY = 0;
+  double vOffsetX;
+  double vOffsetY;
 
-  double tbOffsetX = 0;
-  double tbOffsetY = 0;
+  double visualRotationX;
+  double visualRotationY;
+  double visualRotationZ;
 
-  bool canBeDyed = false;
-  List<FurnitureColorVariant> colorVariants = [];
+  double vPivotX;
+  double vPivotY;
+
+  double tbOffsetX;
+  double tbOffsetY;
+
+  bool canBeDyed;
+  List<FurnitureColorVariant> colorVariants;
 
   double? flippedVisualScale;
   double? fvOffsetX;
@@ -77,13 +86,13 @@ class FurnitureItem {
   double? fvPivotX;
   double? fvPivotY;
 
-  int quantity = 3;
+  int quantity;
 
   FurnitureItem({
     this.id = '',
     this.name = '',
     this.imagePath = '',
-    @ignore Rect? spriteRect,
+    Rect? spriteRect,
     this.rectLeft = 0,
     this.rectTop = 0,
     this.rectWidth = 1,
@@ -96,26 +105,26 @@ class FurnitureItem {
     this.intrinsicHeight = 1,
     this.quantity = 3,
     this.visualScale = 1.0,
-    @ignore Offset? visualOffset,
+    Offset? visualOffset,
     this.vOffsetX = 0,
     this.vOffsetY = 0,
     this.visualRotationX = 0,
     this.visualRotationY = 0,
     this.visualRotationZ = 0,
-    @ignore Offset? visualPivot,
+    Offset? visualPivot,
     this.vPivotX = 0,
     this.vPivotY = 0,
     this.flippedVisualScale,
-    @ignore Offset? flippedVisualOffset,
+    Offset? flippedVisualOffset,
     this.fvOffsetX,
     this.fvOffsetY,
     this.flippedVisualRotationX,
     this.flippedVisualRotationY,
     this.flippedVisualRotationZ,
-    @ignore Offset? flippedVisualPivot,
+    Offset? flippedVisualPivot,
     this.fvPivotX,
     this.fvPivotY,
-    @ignore Offset? toolbarOffset,
+    Offset? toolbarOffset,
     this.tbOffsetX = 0,
     this.tbOffsetY = 0,
     this.canBeDyed = false,
@@ -149,27 +158,31 @@ class FurnitureItem {
     }
   }
 
-  @ignore
-  Rect get spriteRect => Rect.fromLTWH(rectLeft, rectTop, rectWidth, rectHeight);
-  
-  @ignore
+  Rect get spriteRect =>
+      Rect.fromLTWH(rectLeft, rectTop, rectWidth, rectHeight);
+
   Offset get visualOffset => Offset(vOffsetX, vOffsetY);
-  
-  @ignore
+
   Offset get visualPivot => Offset(vPivotX, vPivotY);
-  
-  @ignore
+
   Offset get toolbarOffset => Offset(tbOffsetX, tbOffsetY);
 
-  @ignore
-  Offset? get flippedVisualOffset => (fvOffsetX != null && fvOffsetY != null) 
-      ? Offset(fvOffsetX!, fvOffsetY!) 
+  Offset? get flippedVisualOffset => (fvOffsetX != null && fvOffsetY != null)
+      ? Offset(fvOffsetX!, fvOffsetY!)
       : null;
-      
-  @ignore
+
   Offset? get flippedVisualPivot => (fvPivotX != null && fvPivotY != null)
       ? Offset(fvPivotX!, fvPivotY!)
       : null;
+
+  bool get isFloor =>
+      category.contains('地板') || id.toLowerCase().startsWith('floor');
+
+  bool get isWall =>
+      category.contains('墙') ||
+      id.toLowerCase().contains('wall') ||
+      name.contains('挂') ||
+      subCategory.contains('挂');
 
   Map<String, dynamic> toMap() {
     return {
@@ -206,9 +219,7 @@ class FurnitureItem {
     };
   }
 
-  FurnitureItem copyWith({
-    String? imagePath,
-  }) {
+  FurnitureItem copyWith({String? imagePath}) {
     return FurnitureItem(
       id: id,
       name: name,
@@ -299,20 +310,8 @@ class FurnitureItem {
       canBeDyed: map['canBeDyed'] ?? false,
     );
   }
-
-  @ignore
-  bool get isFloor =>
-      category.contains('地板') || id.toLowerCase().startsWith('floor');
-  
-  @ignore
-  bool get isWall =>
-      category.contains('墙') ||
-      id.toLowerCase().contains('wall') ||
-      name.contains('挂') ||
-      subCategory.contains('挂');
 }
 
 bool isCellExcluded(int i, int j) {
-  // 不再屏蔽任何区域
   return false;
 }

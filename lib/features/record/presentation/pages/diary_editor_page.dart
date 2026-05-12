@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
-import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_core_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_media_mixin.dart';
@@ -61,9 +60,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
 
   @override
   Widget build(BuildContext context) {
-    final mood = (currentMoodIndex != null && currentMoodIndex! >= 0)
-        ? kMoods[currentMoodIndex!]
-        : null;
     final double viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
     
     // 实时捕捉并记忆最大键盘高度
