@@ -126,7 +126,6 @@ class _RecordPageState extends State<RecordPage>
                     ),
                   ),
 
-                  
                   Positioned.fill(
                     child: ValueListenableBuilder<Uint8List?>(
                       valueListenable: UserState().decorationSnapshot,

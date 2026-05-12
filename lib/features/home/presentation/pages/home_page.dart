@@ -16,6 +16,7 @@ import 'package:island_diary/shared/widgets/barrage/mood_barrage_wall.dart';
 import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/statistics/presentation/pages/statistics_page.dart';
+import 'package:island_diary/shared/widgets/frosted_rainbow.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -457,7 +458,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            if (!_isLandscape)
+            // 装饰层：磨砂彩虹 (位于背景之上，云朵和岛屿之下)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: FrostedRainbow(
+                width: double.infinity,
+                height: MediaQuery.of(context).size.height * 0.55,
+                opacity: 0.8,
+              ),
+            ),
+          ),
+          if (!_isLandscape)
               Positioned.fill(
                 child: FloatingClouds(
                   isNight: isNight,
@@ -555,10 +569,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         // 移除了内部的顶部操作栏，已提升至上层 Stack
       ],
-        );
-      },
     );
-  }
+  },
+);
+}
 
   Widget _buildBarrageLayer() {
     return Stack(

@@ -318,4 +318,17 @@ final List<FurnitureItem> kitchenItems = [
     quantity: 5,
     visualScale: 0.9,
   ),
+  FurnitureItem(
+    id: 'cabinet_single_unit',
+    name: '单橱柜',
+    imagePath: 'assets/images/decoration/furniture/cabinet7.png',
+    category: '家具',
+    subCategory: '柜子',
+    gridW: 3,
+    gridH: 3,
+    intrinsicWidth: 242,
+    intrinsicHeight: 298,
+    quantity: 5,
+    visualScale: 0.82,
+  ),
 ];
