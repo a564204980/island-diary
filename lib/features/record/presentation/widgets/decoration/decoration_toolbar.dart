@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../domain/models/placed_furniture.dart';
 import '../../utils/isometric_coordinate_utils.dart';
+import '../../pages/decoration_page_constants.dart';
 
 /// 家具操作工具栏组件，包含旋转和删除功能。
 class DecorationToolbar extends StatelessWidget {
@@ -83,7 +84,7 @@ class DecorationToolbar extends StatelessWidget {
           wallBasePadding +
           vOffset.dy -
           spriteH -
-          45.0 -
+          kToolbarGlobalPadding -
           (spriteH * pf.item.toolbarOffset.dy);
     } else {
       // 地面家具：计算贴图显示的视觉宽度
@@ -99,7 +100,7 @@ class DecorationToolbar extends StatelessWidget {
           footprintOffset +
           vOffset.dy -
           spriteH -
-          45.0 -
+          kToolbarGlobalPadding -
           (spriteH * pf.item.toolbarOffset.dy);
     }
 

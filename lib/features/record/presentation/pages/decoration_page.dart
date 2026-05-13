@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:ui' as ui;
+import 'dart:async';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/presentation/utils/isometric_coordinate_utils.dart';
 import '../controllers/decoration_controller.dart';
@@ -28,6 +29,8 @@ class _DecorationPageState extends State<DecorationPage>
   bool _isTrayExpanded = true;
   bool _isInitialized = false;
   bool _showColorPicker = false;
+  int _messageIndex = 0;
+  Timer? _messageTimer;
   
   // 趣味加载文案列表
   static const List<String> _allLoadingMessages = [
@@ -72,6 +75,7 @@ class _DecorationPageState extends State<DecorationPage>
     
     // 初始化并随机洗牌文案
     _shuffledMessages = List.from(_allLoadingMessages)..shuffle();
+    _startMessageTimer();
     _zoomAnimationController!.addListener(() {
       if (_zoomAnimationController!.isAnimating) {
         final double t = CurvedAnimation(
@@ -105,6 +109,7 @@ class _DecorationPageState extends State<DecorationPage>
 
   @override
   void dispose() {
+    _messageTimer?.cancel();
     _controller.removeListener(_onControllerUpdate);
     _zoomAnimationController?.dispose();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -201,6 +206,19 @@ class _DecorationPageState extends State<DecorationPage>
     );
   }
 
+  void _startMessageTimer() {
+    _messageTimer?.cancel();
+    _messageTimer = Timer.periodic(const Duration(milliseconds: 2500), (timer) {
+      if (mounted && _controller.isInitializing) {
+        setState(() {
+          _messageIndex = (_messageIndex + 1) % _shuffledMessages.length;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
   IsometricCoordinateConverter _getConverter(BuildContext context) {
     final double screenW = MediaQuery.of(context).size.width;
     final double screenH = MediaQuery.of(context).size.height;
@@ -239,14 +257,21 @@ class _DecorationPageState extends State<DecorationPage>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // 1. 趣味文案 (居上)
-            Text(
-              _getCurrentMessage(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF8B5E3C),
-                fontSize: 15,
-                letterSpacing: 1.1,
-                fontWeight: FontWeight.w500,
+            SizedBox(
+              height: 40,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 500),
+                child: Text(
+                  _shuffledMessages[_messageIndex],
+                  key: ValueKey<int>(_messageIndex),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF8B5E3C),
+                    fontSize: 15,
+                    letterSpacing: 1.1,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -265,11 +290,16 @@ class _DecorationPageState extends State<DecorationPage>
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(5),
-                child: LinearProgressIndicator(
-                  value: _controller.loadingProgress,
-                  backgroundColor: Colors.transparent,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF8B5E3C),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: _controller.loadingProgress),
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeOut,
+                  builder: (context, value, _) => LinearProgressIndicator(
+                    value: value,
+                    backgroundColor: Colors.transparent,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Color(0xFF8B5E3C),
+                    ),
                   ),
                 ),
               ),
@@ -292,18 +322,10 @@ class _DecorationPageState extends State<DecorationPage>
     );
   }
 
-  String _getCurrentMessage() {
-    if (_shuffledMessages.isEmpty) return '正在搬运家具元件...';
-    // 根据进度计算当前显示的文案索引
-    int index = (_controller.loadingProgress * (_shuffledMessages.length - 1)).floor();
-    index = index.clamp(0, _shuffledMessages.length - 1);
-    return _shuffledMessages[index];
-  }
-
   void _handleZoom(double delta) {
     if (_controller.selectedFurniture != null) return;
     _zoomStartScale = _controller.currentScale;
-    _zoomEndScale = (_zoomStartScale + delta).clamp(0.2, 0.5);
+    _zoomEndScale = (_zoomStartScale + delta).clamp(0.2, 1.0);
     _zoomAnimationController!.forward(from: 0);
   }
 

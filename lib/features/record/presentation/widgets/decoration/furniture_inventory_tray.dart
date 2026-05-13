@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../domain/models/furniture_item.dart';
 import '../furniture_sprite.dart';
+import 'floor_pattern_thumbnail.dart';
+import 'wall_pattern_thumbnail.dart';
 
 class FurnitureInventoryTray extends StatelessWidget {
   final List<FurnitureItem> availableItems;

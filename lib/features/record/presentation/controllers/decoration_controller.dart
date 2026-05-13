@@ -82,6 +82,7 @@ class DecorationController extends ChangeNotifier {
     // 加载已保存的家具布局
     final saved = UserState().placedFurniture.value;
     if (saved.isNotEmpty) {
+      final Set<String> floorDeductedIds = {};
       for (var sf in saved) {
         final masterItem = _availableItems.cast<FurnitureItem?>().firstWhere(
           (it) => it?.id == sf.item.id,
@@ -97,10 +98,24 @@ class DecorationController extends ChangeNotifier {
               rotation: sf.rotation,
             ),
           );
-          masterItem.quantity--;
+          if (masterItem.isFloor) {
+            if (!floorDeductedIds.contains(masterItem.id)) {
+              masterItem.quantity--;
+              floorDeductedIds.add(masterItem.id);
+            }
+          } else {
+            masterItem.quantity--;
+          }
         }
       }
     }
+
+    // 加载已保存的墙面与地板样式
+    wallColorLeft = UserState().wallColorLeft.value;
+    wallColorRight = UserState().wallColorRight.value;
+    wallPattern = WallPattern.values[UserState().wallPattern.value.clamp(0, WallPattern.values.length - 1)];
+    floorColor = UserState().floorColor.value;
+    floorPattern = FloorPattern.values[UserState().floorPattern.value.clamp(0, FloorPattern.values.length - 1)];
 
     // 预加载必需资源
     await _preloadAssets(context);
@@ -146,12 +161,12 @@ class DecorationController extends ChangeNotifier {
       loadingProgress = loadedCount / totalToLoad;
       notifyListeners();
 
-      // 给 UI 线程喘息的机会，确保进度条文字能渲染出来
-      await Future.delayed(Duration.zero);
+      // 给 UI 线程喘息的机会，并稍微拉长节奏，确保进度条和文字能被看清
+      await Future.delayed(const Duration(milliseconds: 60));
     }
 
-    // 额外的微小延迟确保 UI 平滑过渡
-    await Future.delayed(const Duration(milliseconds: 300));
+    // 额外的平滑延迟，避免加载过快导致的闪烁
+    await Future.delayed(const Duration(milliseconds: 400));
     // 加载墙面颜色官方推荐色
     wallColorLeft = UserState().wallColorLeft.value;
     wallColorRight = UserState().wallColorRight.value;
@@ -221,14 +236,22 @@ class DecorationController extends ChangeNotifier {
 
   int dyeVersion = 0; // 用于强制触发重绘的版本号
 
-  void updatePlacedFurnitureVariant(PlacedFurniture pf, String newImagePath) {
+  void updatePlacedFurnitureVariant(
+    PlacedFurniture pf,
+    FurnitureColorVariant variant,
+  ) {
     final index = _placedFurniture.indexOf(pf);
     if (index != -1) {
       // 1. 先更新模型数据
       final updatedPF = pf.copyWith(
-        item: pf.item.copyWith(imagePath: newImagePath),
+        item: pf.item.copyWith(imagePath: variant.imagePath),
       );
       _placedFurniture[index] = updatedPF;
+
+      // 如果是地板类物品，同步更新场景的 floorColor
+      if (pf.item.isFloor) {
+        setFloorColor(variant.color);
+      }
 
       // 增加版本号以触发重绘
       dyeVersion++;
@@ -239,12 +262,12 @@ class DecorationController extends ChangeNotifier {
       notifyListeners(); // 第一次通知：数据已变
 
       // 2. 预加载新贴图，加载完成后再次触发重绘确保显示
-      final image = AssetImage(newImagePath);
+      final image = AssetImage(variant.imagePath);
       final stream = image.resolve(ImageConfiguration.empty);
       stream.addListener(
         ImageStreamListener((ImageInfo info, bool _) {
           // 将图片存入缓存池
-          SpritePainter.cacheImage(newImagePath, info.image);
+          SpritePainter.cacheImage(variant.imagePath, info.image);
           // 图片准备好了，第二次通知：强制场景重绘以显示新贴图
           notifyListeners();
         }),
@@ -485,6 +508,10 @@ class DecorationController extends ChangeNotifier {
         setWallPattern(WallPattern.gradient);
       } else if (item.id.contains('sparkle')) {
         setWallPattern(WallPattern.sparkle);
+      } else if (item.id.contains('melting_drips')) {
+        setWallPattern(WallPattern.meltingDrips);
+      } else if (item.id.contains('green_hills')) {
+        setWallPattern(WallPattern.greenHills);
       } else {
         setWallPattern(WallPattern.none);
       }
@@ -492,8 +519,23 @@ class DecorationController extends ChangeNotifier {
     }
 
     if (item.subCategory == '地板') {
-      if (item.id.contains('herringbone')) {
+      if (item.id.contains('triple_herringbone')) {
+        // 1. 清除所有现有的图片地板并归还库存
+        _clearExistingFloorsToInventory();
+        // 2. 设置特定的底色
+        if (item.id.contains('mint')) {
+          setFloorColor(const Color(0xFFB9DCC8));
+        } else if (item.id.contains('sage')) {
+          setFloorColor(const Color(0xFFA8B49F));
+        }
+        // 3. 设置代码纹理
+        setFloorPattern(FloorPattern.tripleHerringbone);
+      } else if (item.id.contains('herringbone')) {
+        _clearExistingFloorsToInventory();
         setFloorPattern(FloorPattern.herringbone);
+      } else if (item.id.contains('plaid')) {
+        _clearExistingFloorsToInventory();
+        setFloorPattern(FloorPattern.plaid);
       } else {
         // 如果是普通地板图层，则重置代码生成的纹理并自动铺满
         setFloorPattern(FloorPattern.none);
@@ -515,8 +557,16 @@ class DecorationController extends ChangeNotifier {
   }
 
   void deleteFurniture(PlacedFurniture pf) {
+    if (pf.item.isFloor) {
+      // 地板作为整体处理：如果是删除最后一块同类地板，才归还 1 个库存
+      final otherSameFloors = _placedFurniture.where((item) => item != pf && item.item.id == pf.item.id);
+      if (otherSameFloors.isEmpty) {
+        pf.item.quantity++;
+      }
+    } else {
+      pf.item.quantity++;
+    }
     _placedFurniture.remove(pf);
-    pf.item.quantity++;
     selectedFurniture = null;
     UserState().savePlacedFurniture(_placedFurniture);
     notifyListeners();
@@ -608,8 +658,17 @@ class DecorationController extends ChangeNotifier {
   }
 
   void clearAll() {
+    // 按 ID 归还库存，确保地板类只归还 1 个
+    final Set<String> returnedIds = {};
     for (var pf in _placedFurniture) {
-      pf.item.quantity++;
+      if (pf.item.isFloor) {
+        if (!returnedIds.contains(pf.item.id)) {
+          pf.item.quantity++;
+          returnedIds.add(pf.item.id);
+        }
+      } else {
+        pf.item.quantity++;
+      }
     }
     _placedFurniture.clear();
     selectedFurniture = null;
@@ -619,30 +678,29 @@ class DecorationController extends ChangeNotifier {
   }
 
   void handleFillAll(FurnitureItem item) {
-    // 1. 将所有现有的地板归还库存
-    for (var pf in _placedFurniture.where((pf) => pf.item.isFloor)) {
-      pf.item.quantity++;
-    }
-    // 2. 移除所有地板
+    // 1. 将所有现有的地板归还库存（作为整体归还 1 个）
+    _clearExistingFloorsToInventory();
+
+    // 2. 移除所有地板 (已经在 _clearExistingFloorsToInventory 处理了，但为了严谨这里保留 removeWhere)
     _placedFurniture.removeWhere((pf) => pf.item.isFloor);
 
     // 3. 计算铺满需要的行列数
     final int rows = (kGridRows / item.gridW).ceil();
     final int cols = (kGridCols / item.gridH).ceil();
 
-    // 4. 批量添加
+    // 4. 批量添加（不论库存，强行铺满）
     for (int i = 0; i < rows; i++) {
       for (int j = 0; j < cols; j++) {
-        if (item.quantity > 0) {
-          final int r = (i * item.gridW).toInt();
-          final int jCol = (j * item.gridH).toInt();
-          _placedFurniture.add(
-            PlacedFurniture(item: item, r: r, c: jCol, rotation: 0),
-          );
-          item.quantity--;
-        }
+        final int r = (i * item.gridW).toInt();
+        final int jCol = (j * item.gridH).toInt();
+        _placedFurniture.add(
+          PlacedFurniture(item: item, r: r, c: jCol, rotation: 0),
+        );
       }
     }
+    // 整体消耗 1 个
+    item.quantity--;
+
     UserState().savePlacedFurniture(_placedFurniture);
     notifyListeners();
   }
@@ -891,5 +949,21 @@ class DecorationController extends ChangeNotifier {
   void updateSceneOffset(Offset delta) {
     sceneOffset += delta;
     notifyListeners();
+  }
+
+  /// 私有方法：清理当前场景中的所有地板并正确归还库存数量（整体归还逻辑）
+  void _clearExistingFloorsToInventory() {
+    final existingFloors =
+        _placedFurniture.where((pf) => pf.item.isFloor).toList();
+    if (existingFloors.isEmpty) return;
+
+    final Set<String> returnedIds = {};
+    for (var pf in existingFloors) {
+      if (!returnedIds.contains(pf.item.id)) {
+        pf.item.quantity++;
+        returnedIds.add(pf.item.id);
+      }
+    }
+    _placedFurniture.removeWhere((pf) => pf.item.isFloor);
   }
 }

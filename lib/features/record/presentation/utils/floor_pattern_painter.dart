@@ -36,6 +36,24 @@ class FloorPatternPainter {
           baseColor: baseColor,
         );
         break;
+      case FloorPattern.tripleHerringbone:
+        _drawTripleHerringbone(
+          canvas: canvas,
+          converter: converter,
+          rows: rows,
+          cols: cols,
+          baseColor: baseColor,
+        );
+        break;
+      case FloorPattern.plaid:
+        _drawPlaid(
+          canvas: canvas,
+          converter: converter,
+          rows: rows,
+          cols: cols,
+          baseColor: baseColor,
+        );
+        break;
       default:
         break;
     }
@@ -110,5 +128,105 @@ class FloorPatternPainter {
     
     // 2. 再绘制边框
     canvas.drawPath(path, strokePaint);
+  }
+
+  /// 绘制三重人字拼（Triple Herringbone）
+  static void _drawTripleHerringbone({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required int rows,
+    required int cols,
+    required Color baseColor,
+  }) {
+    final hsl = HSLColor.fromColor(baseColor);
+    // 增加线条对比度，模仿图像中的深色勾线
+    final lineColor = hsl
+        .withLightness((hsl.lightness - 0.2).clamp(0.0, 1.0))
+        .toColor();
+
+    final paint = Paint()
+      ..color = lineColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.6
+      ..strokeCap = StrokeCap.round;
+
+    // 单块木板长度 L=6，宽度 W=1
+    // 一组 3 块，总宽度为 3
+    const int L = 6;
+    const int W = 3;
+
+    for (int j = -cols - L * 2; j < cols + L * 2; j += W) {
+      final bool isHorizontal = (j ~/ W) % 2 == 0;
+      final int shift = -((j ~/ W) ~/ 2) * W;
+
+      for (int i = -rows - L * 4; i < rows + L * 4; i += L) {
+        if (isHorizontal) {
+          // 绘制横向三连板
+          _drawPlankInternal(canvas, converter, (i + shift).toDouble(), j.toDouble(), L.toDouble(), 1.0, baseColor, lineColor, paint);
+          _drawPlankInternal(canvas, converter, (i + shift).toDouble(), (j + 1).toDouble(), L.toDouble(), 1.0, baseColor, lineColor, paint);
+          _drawPlankInternal(canvas, converter, (i + shift).toDouble(), (j + 2).toDouble(), L.toDouble(), 1.0, baseColor, lineColor, paint);
+        } else {
+          // 绘制纵向三连板
+          final double baseR = (i + shift + L - W).toDouble();
+          _drawPlankInternal(canvas, converter, baseR, j.toDouble(), 1.0, L.toDouble(), baseColor, lineColor, paint);
+          _drawPlankInternal(canvas, converter, baseR + 1, j.toDouble(), 1.0, L.toDouble(), baseColor, lineColor, paint);
+          _drawPlankInternal(canvas, converter, baseR + 2, j.toDouble(), 1.0, L.toDouble(), baseColor, lineColor, paint);
+        }
+      }
+    }
+  }
+
+  /// 绘制格纹地板 (Plaid / Gingham)
+  static void _drawPlaid({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required int rows,
+    required int cols,
+    required Color baseColor,
+  }) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    
+    // 用户指定的精确颜色
+    final lightBlue = const Color(0xFFC0E0F0);
+    // 交叉点深蓝色块颜色 (基于用户蓝色进行加深，增加层次感)
+    final darkBlue = const Color(0xFFA8C8D8).withValues(alpha: 0.6);
+
+    const int step = 2; // 适度增大方格尺寸，每 2x2 为一个色块
+
+    // 1. 绘制基础棋盘格 (Step x Step 网格)
+    for (int i = 0; i < rows; i += step) {
+      for (int j = 0; j < cols; j += step) {
+        final p1 = converter.getScreenPoint(i.toDouble(), j.toDouble());
+        final p2 = converter.getScreenPoint((i + step).toDouble(), j.toDouble());
+        final p3 = converter.getScreenPoint((i + step).toDouble(), (j + step).toDouble());
+        final p4 = converter.getScreenPoint(i.toDouble(), (j + step).toDouble());
+        
+        final path = Path()..addPolygon([p1, p2, p3, p4], true);
+        
+        // 间隔着色 (强制使用白色和浅蓝色，不依赖 baseColor)
+        if (((i / step).floor() + (j / step).floor()) % 2 == 0) {
+          paint.color = Colors.white; // 强制白色
+        } else {
+          paint.color = lightBlue; // 浅蓝色
+        }
+        canvas.drawPath(path, paint);
+      }
+    }
+
+    // 2. 绘制四个色块交汇处的深色小方块
+    for (int i = 0; i <= rows; i += step) {
+      for (int j = 0; j <= cols; j += step) {
+        // 小方块半径 (适度增大到 0.4 原始网格单位)
+        const double r = 0.4;
+        final cp1 = converter.getScreenPoint(i - r, j - r);
+        final cp2 = converter.getScreenPoint(i + r, j - r);
+        final cp3 = converter.getScreenPoint(i + r, j + r);
+        final cp4 = converter.getScreenPoint(i - r, j + r);
+
+        final cPath = Path()..addPolygon([cp1, cp2, cp3, cp4], true);
+        paint.color = darkBlue;
+        canvas.drawPath(cPath, paint);
+      }
+    }
   }
 }

@@ -216,6 +216,7 @@ class FurnitureItem {
       'fvPivot': fvPivotX != null ? {'x': fvPivotX, 'y': fvPivotY} : null,
       'toolbarOffset': {'x': tbOffsetX, 'y': tbOffsetY},
       'canBeDyed': canBeDyed,
+      'colorVariants': colorVariants.map((v) => v.toMap()).toList(),
     };
   }
 
@@ -308,6 +309,10 @@ class FurnitureItem {
             )
           : Offset.zero,
       canBeDyed: map['canBeDyed'] ?? false,
+      colorVariants: (map['colorVariants'] as List?)
+              ?.map((v) => FurnitureColorVariant.fromMap(v))
+              .toList() ??
+          const [],
     );
   }
 }

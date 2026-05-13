@@ -35,7 +35,7 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -81,7 +81,6 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay>
                 tabs: const [
                   Tab(text: '左墙上色'),
                   Tab(text: '右墙上色'),
-                  Tab(text: '地板上色'),
                 ],
               ),
 
@@ -91,7 +90,6 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay>
                   children: [
                     _buildColorGrid(0),
                     _buildColorGrid(1),
-                    _buildColorGrid(2),
                   ],
                 ),
               ),

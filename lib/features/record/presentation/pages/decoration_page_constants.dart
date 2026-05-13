@@ -12,5 +12,6 @@ const double kSceneScaleFactor = 2.0;
 const int kWallGridHeight = 14;
 const double kWallThickness = 0.6;
 
-enum WallPattern { none, stripes, dualColor, lavenderStripes, wainscoting, clouds, gradient, sparkle }
-enum FloorPattern { none, herringbone }
+enum WallPattern { none, stripes, dualColor, lavenderStripes, wainscoting, clouds, gradient, sparkle, meltingDrips, greenHills }
+enum FloorPattern { none, herringbone, tripleHerringbone, plaid }
+const double kToolbarGlobalPadding = 45.0; // 工具栏与物品顶部的基础间距

@@ -458,7 +458,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            // 装饰层：磨砂彩虹 (位于背景之上，云朵和岛屿之下)
+          if (!_isLandscape)
+              Positioned.fill(
+                child: FloatingClouds(
+                  isNight: isNight,
+                  shouldAnimate: _currentNavIndex == 0,
+                ),
+              ),
+            
+          // 装饰层：磨砂彩虹 (位于背景云朵之上，前景云朵和岛屿之下)
           Positioned(
             top: 0,
             left: 0,
@@ -471,13 +479,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             ),
           ),
-          if (!_isLandscape)
-              Positioned.fill(
-                child: FloatingClouds(
-                  isNight: isNight,
-                  shouldAnimate: _currentNavIndex == 0,
-                ),
-              ),
             // ... rest of the interactive content
         Positioned.fill(
           child: InteractiveViewer(

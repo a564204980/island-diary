@@ -261,7 +261,7 @@ class DecorationScene extends StatelessWidget {
                                     onVariantSelected: (variant) {
                                       controller.updatePlacedFurnitureVariant(
                                         controller.selectedFurniture!,
-                                        variant.imagePath,
+                                        variant,
                                       );
                                     },
                                   ),

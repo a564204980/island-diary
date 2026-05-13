@@ -138,6 +138,24 @@ class WallPatternPainter {
           lightColor: const Color(0xFFDCCFF2),
         );
         break;
+      case WallPattern.meltingDrips:
+        _drawMeltingDrips(
+          canvas: canvas,
+          converter: converter,
+          isLeft: isLeft,
+          rows: rows,
+          cols: cols,
+        );
+        break;
+      case WallPattern.greenHills:
+        _drawGreenHills(
+          canvas: canvas,
+          converter: converter,
+          isLeft: isLeft,
+          rows: rows,
+          cols: cols,
+        );
+        break;
     }
 
     canvas.restore();
@@ -600,4 +618,239 @@ class WallPatternPainter {
       );
     }
   }
+
+  /// 绘制熔岩滴落/甜品风格墙面
+  static void _drawMeltingDrips({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required bool isLeft,
+    required int rows,
+    required int cols,
+  }) {
+    final count = isLeft ? rows : cols;
+    final random = math.Random(88); // 固定种子保证渲染一致性
+
+    // 1. 绘制底色 (米黄色)
+    _drawSolidColor(
+      canvas: canvas,
+      converter: converter,
+      isLeft: isLeft,
+      rows: rows,
+      cols: cols,
+      color: const Color(0xFFF3E9D2),
+    );
+
+    // 2. 绘制彩色垂直细条纹
+    final List<Color> stripeColors = [
+      const Color(0xFFE8D5B5),
+      const Color(0xFFF0C9CF),
+      const Color(0xFFC5E0D8),
+      const Color(0xFFF5E6C8),
+    ];
+
+    final stripePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    for (double i = 0.5; i < count; i += 0.8) {
+      final p1 = isLeft
+          ? converter.getScreenPoint(i, 0, 0)
+          : converter.getScreenPoint(0, i, 0);
+      final p2 = isLeft
+          ? converter.getScreenPoint(i, 0, kWallGridHeight.toDouble())
+          : converter.getScreenPoint(0, i, kWallGridHeight.toDouble());
+
+      stripePaint.color = stripeColors[random.nextInt(stripeColors.length)]
+          .withValues(alpha: 0.6);
+      canvas.drawLine(p1, p2, stripePaint);
+    }
+
+    // 3. 绘制彩豆 (Sprinkles)
+    final sprinkleColors = [
+      const Color(0xFFF08080), // 珊瑚红
+      const Color(0xFF87CEEB), // 天空蓝
+      const Color(0xFFFFD700), // 金色
+      const Color(0xFF98FB98), // 浅绿
+    ];
+
+    for (int i = 0; i < 20; i++) {
+      final double r = random.nextDouble() * count;
+      final double z = random.nextDouble() * (kWallGridHeight - 4);
+      final center = isLeft
+          ? converter.getScreenPoint(r, 0, z)
+          : converter.getScreenPoint(0, r, z);
+
+      final paint = Paint()
+        ..color = sprinkleColors[random.nextInt(sprinkleColors.length)]
+            .withValues(alpha: 0.8)
+        ..style = PaintingStyle.fill;
+
+      // 绘制小椭圆豆子
+      canvas.save();
+      canvas.translate(center.dx, center.dy);
+      canvas.rotate(random.nextDouble() * math.pi);
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset.zero, width: 6, height: 10),
+        paint,
+      );
+      canvas.restore();
+    }
+
+    // 4. 绘制顶部滴落效果 (薄荷绿)
+    final dripPaint = Paint()
+      ..color = const Color(0xFFAEEEEE) // 薄荷蓝绿
+      ..style = PaintingStyle.fill;
+
+    final dripPath = Path();
+    // 顶部起始线
+    final pStart = isLeft
+        ? converter.getScreenPoint(0, 0, kWallGridHeight.toDouble())
+        : converter.getScreenPoint(0, 0, kWallGridHeight.toDouble());
+    dripPath.moveTo(pStart.dx, pStart.dy);
+
+    // 沿着墙顶绘制波浪和滴落
+    for (double i = 0; i <= count; i += 0.5) {
+      // 随机波动高度 (0.5 - 1.5 之间)
+      final double waveZ = kWallGridHeight - 1.0 - random.nextDouble() * 1.5;
+      final p = isLeft
+          ? converter.getScreenPoint(i, 0, waveZ)
+          : converter.getScreenPoint(0, i, waveZ);
+      dripPath.lineTo(p.dx, p.dy);
+
+      // 每隔一段距离画一个长滴落
+      if (i % 2.5 == 0 && i > 0) {
+        final double dripLen = 3.0 + random.nextDouble() * 4.0;
+        final double dripZ = kWallGridHeight - dripLen;
+        final pBottom = isLeft
+            ? converter.getScreenPoint(i, 0, dripZ)
+            : converter.getScreenPoint(0, i, dripZ);
+
+        // 绘制滴落圆头
+        canvas.drawCircle(pBottom, 6, dripPaint);
+        // 绘制连接的长柱 (简化处理：在 Path 中连线)
+      }
+    }
+
+    // 封闭顶部路径
+    final pEndTop = isLeft
+        ? converter.getScreenPoint(count.toDouble(), 0, kWallGridHeight.toDouble())
+        : converter.getScreenPoint(0, count.toDouble(), kWallGridHeight.toDouble());
+    dripPath.lineTo(pEndTop.dx, pEndTop.dy);
+    dripPath.close();
+
+    canvas.drawPath(dripPath, dripPaint);
+
+    // 5. 补全长滴落的连接柱体
+    for (double i = 2.5; i < count; i += 2.5) {
+      final double dripLen = 3.0 + random.nextDouble() * 4.0;
+      final double dripZ = kWallGridHeight - dripLen;
+      final pTop = isLeft
+          ? converter.getScreenPoint(i, 0, kWallGridHeight.toDouble())
+          : converter.getScreenPoint(0, i, kWallGridHeight.toDouble());
+      final pBottom = isLeft
+          ? converter.getScreenPoint(i, 0, dripZ)
+          : converter.getScreenPoint(0, i, dripZ);
+
+      canvas.drawRect(
+        Rect.fromLTRB(pTop.dx - 4, pTop.dy, pTop.dx + 4, pBottom.dy),
+        dripPaint,
+      );
+    }
+  }
+
+  /// 绘制青翠山峦效果
+  static void _drawGreenHills({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required bool isLeft,
+    required int rows,
+    required int cols,
+  }) {
+    // 1. 绘制背景底色 (极淡的青色)
+    _drawSolidColor(
+      canvas: canvas,
+      converter: converter,
+      isLeft: isLeft,
+      rows: rows,
+      cols: cols,
+      color: const Color(0xFFF2F9F5),
+    );
+
+    final paint = Paint()..style = PaintingStyle.fill;
+    final count = isLeft ? rows : cols;
+
+    // 定义三层山的颜色和参数
+    final layers = [
+      // 后层 (最高, 最淡)
+      _HillLayer(
+        color: const Color(0xFFDFEBE0),
+        baseHeight: 5.0,
+        amplitude: 1.5,
+        frequency: 0.6,
+        phase: 0.0,
+      ),
+      // 中层
+      _HillLayer(
+        color: const Color(0xFFCBE0C8),
+        baseHeight: 3.5,
+        amplitude: 1.2,
+        frequency: 0.8,
+        phase: 2.0,
+      ),
+      // 前层 (最低, 最深)
+      _HillLayer(
+        color: const Color(0xFFB6D6B0),
+        baseHeight: 2.0,
+        amplitude: 0.8,
+        frequency: 1.2,
+        phase: 4.5,
+      ),
+    ];
+
+    for (var layer in layers) {
+      paint.color = layer.color;
+      final path = Path();
+      
+      // 起点 (左下角)
+      final start = isLeft 
+          ? converter.getScreenPoint(0, 0, 0)
+          : converter.getScreenPoint(0, 0, 0);
+      path.moveTo(start.dx, start.dy);
+
+      // 沿墙面水平方向绘制波浪
+      for (double i = 0; i <= count; i += 0.2) {
+        // 计算当前高度 (z)
+        final z = layer.baseHeight + math.sin(i * layer.frequency + layer.phase) * layer.amplitude;
+        final p = isLeft
+            ? converter.getScreenPoint(i, 0, z)
+            : converter.getScreenPoint(0, i, z);
+        path.lineTo(p.dx, p.dy);
+      }
+
+      // 闭合路径 (到右下角再回到起点)
+      final endBase = isLeft
+          ? converter.getScreenPoint(count.toDouble(), 0, 0)
+          : converter.getScreenPoint(0, count.toDouble(), 0);
+      path.lineTo(endBase.dx, endBase.dy);
+      path.close();
+
+      canvas.drawPath(path, paint);
+    }
+  }
+}
+
+class _HillLayer {
+  final Color color;
+  final double baseHeight;
+  final double amplitude;
+  final double frequency;
+  final double phase;
+
+  _HillLayer({
+    required this.color,
+    required this.baseHeight,
+    required this.amplitude,
+    required this.frequency,
+    required this.phase,
+  });
 }
