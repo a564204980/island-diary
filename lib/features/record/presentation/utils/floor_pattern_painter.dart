@@ -1,4 +1,6 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+
 import '../pages/decoration_page_constants.dart';
 import './isometric_coordinate_utils.dart';
 
@@ -53,6 +55,18 @@ class FloorPatternPainter {
           cols: cols,
           baseColor: baseColor,
         );
+        break;
+      case FloorPattern.randomWood:
+        _drawRandomWood(
+          canvas: canvas,
+          converter: converter,
+          rows: rows,
+          cols: cols,
+          baseColor: baseColor,
+        );
+        break;
+      case FloorPattern.harlequin:
+        _drawHarlequin(canvas, converter, rows, cols);
         break;
       default:
         break;
@@ -226,6 +240,110 @@ class FloorPatternPainter {
         final cPath = Path()..addPolygon([cp1, cp2, cp3, cp4], true);
         paint.color = darkBlue;
         canvas.drawPath(cPath, paint);
+      }
+    }
+  }
+
+  /// 绘制随机木质地板（Random Wood Plank）
+  static void _drawRandomWood({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required int rows,
+    required int cols,
+    required Color baseColor,
+  }) {
+    // 1. 定义颜色池（提取自用户提供的图片）
+    final woodColors = [
+      const Color(0xFFA39074), // 灰褐色
+      const Color(0xFFB6A68A), // 浅木色
+      const Color(0xFF8E8B75), // 灰绿色调
+      const Color(0xFFD2C4AE), // 米黄色
+      const Color(0xFFC0B199), // 浅褐色
+    ];
+
+    final hsl = HSLColor.fromColor(baseColor);
+    final lineColor = hsl.withLightness((hsl.lightness - 0.15).clamp(0.0, 1.0)).toColor();
+
+    final paint = Paint()
+      ..color = lineColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5
+      ..strokeCap = StrokeCap.round;
+
+    // 使用固定种子，确保渲染结果稳定
+    final random = math.Random(42);
+
+    const double minL = 3.0; // 木板最小长度
+    const double maxL = 7.0; // 木板最大长度
+    const int step = 1;      // 每行宽度
+
+    // 遍历每一行 (j 轴)
+    for (int j = -cols; j < cols + 2; j += step) {
+      double r = -rows.toDouble() - 10; // 从画面外开始
+      
+      // 每一行的起始偏移随机化，形成错缝效果
+      r += random.nextDouble() * -5;
+
+      while (r < rows + 10) {
+        final double plankL = minL + random.nextDouble() * (maxL - minL);
+        final Color plankColor = woodColors[random.nextInt(woodColors.length)];
+
+        // 绘制木板（在 r-j 平面上）
+        _drawPlankInternal(
+          canvas,
+          converter,
+          r,
+          j.toDouble(),
+          plankL,
+          step.toDouble(),
+          plankColor,
+          lineColor,
+          paint,
+        );
+
+        r += plankL;
+      }
+    }
+  }
+
+  /// 绘制马卡龙菱格地板 (Harlequin/Diamond Pattern)
+  static void _drawHarlequin(
+    Canvas canvas,
+    IsometricCoordinateConverter converter,
+    int rows,
+    int cols,
+  ) {
+    final palette = [
+      const Color(0xFFF4EBEB), // 极淡粉
+      const Color(0xFFE8D7D7), //  dusty rose
+      const Color(0xFFF2F0E6), // 奶油白
+      const Color(0xFFE2DCE6), // 淡紫灰
+    ];
+
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+        // 使用 (i + j) 逻辑来交错颜色
+        final colorIndex = (i + j) % palette.length;
+        final color = palette[colorIndex];
+
+        final path = Path();
+        path.addPolygon([
+          converter.getScreenPoint(i.toDouble(), j.toDouble(), 0),
+          converter.getScreenPoint((i + 1).toDouble(), j.toDouble(), 0),
+          converter.getScreenPoint((i + 1).toDouble(), (j + 1).toDouble(), 0),
+          converter.getScreenPoint(i.toDouble(), (j + 1).toDouble(), 0),
+        ], true);
+
+        canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.fill);
+        
+        // 绘制极细的分割线，增加精致感
+        canvas.drawPath(
+          path, 
+          Paint()
+            ..color = Colors.white.withOpacity(0.3)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.5
+        );
       }
     }
   }

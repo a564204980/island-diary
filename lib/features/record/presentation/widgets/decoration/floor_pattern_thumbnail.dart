@@ -25,6 +25,10 @@ class FloorPatternThumbnail extends StatelessWidget {
     } else if (itemId.contains('plaid')) {
       pattern = FloorPattern.plaid;
       color = Colors.white;
+    } else if (itemId.contains('random_wood')) {
+      pattern = FloorPattern.randomWood;
+    } else if (itemId.contains('harlequin')) {
+      pattern = FloorPattern.harlequin;
     } else if (itemId.contains('herringbone')) {
       pattern = FloorPattern.herringbone;
     }

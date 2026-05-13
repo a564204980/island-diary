@@ -512,6 +512,16 @@ class DecorationController extends ChangeNotifier {
         setWallPattern(WallPattern.meltingDrips);
       } else if (item.id.contains('green_hills')) {
         setWallPattern(WallPattern.greenHills);
+      } else if (item.id.contains('vintage_floral')) {
+        setWallPattern(WallPattern.vintageFloral);
+        // 设置底色为浅青绿
+        setWallColor(true, const Color(0xFFE2EBD5));
+        setWallColor(false, const Color(0xFFE2EBD5));
+      } else if (item.id.contains('ivy_skirting')) {
+        setWallPattern(WallPattern.ivySkirting);
+        // 设置底色为淡米黄
+        setWallColor(true, const Color(0xFFF7F5E4));
+        setWallColor(false, const Color(0xFFF7F5E4));
       } else {
         setWallPattern(WallPattern.none);
       }
@@ -533,9 +543,15 @@ class DecorationController extends ChangeNotifier {
       } else if (item.id.contains('herringbone')) {
         _clearExistingFloorsToInventory();
         setFloorPattern(FloorPattern.herringbone);
+      } else if (item.id.contains('random_wood')) {
+        _clearExistingFloorsToInventory();
+        setFloorPattern(FloorPattern.randomWood);
       } else if (item.id.contains('plaid')) {
         _clearExistingFloorsToInventory();
         setFloorPattern(FloorPattern.plaid);
+      } else if (item.id.contains('harlequin')) {
+        _clearExistingFloorsToInventory();
+        setFloorPattern(FloorPattern.harlequin);
       } else {
         // 如果是普通地板图层，则重置代码生成的纹理并自动铺满
         setFloorPattern(FloorPattern.none);

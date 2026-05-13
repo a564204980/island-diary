@@ -156,6 +156,26 @@ class WallPatternPainter {
           cols: cols,
         );
         break;
+      case WallPattern.vintageFloral:
+        _drawVintageFloral(
+          canvas: canvas,
+          converter: converter,
+          isLeft: isLeft,
+          rows: rows,
+          cols: cols,
+          baseColor: baseColor,
+        );
+        break;
+      case WallPattern.ivySkirting:
+        _drawIvySkirting(
+          canvas: canvas,
+          converter: converter,
+          isLeft: isLeft,
+          rows: rows,
+          cols: cols,
+          baseColor: baseColor,
+        );
+        break;
     }
 
     canvas.restore();
@@ -836,6 +856,255 @@ class WallPatternPainter {
 
       canvas.drawPath(path, paint);
     }
+  }
+
+  /// 绘制法式复古碎花墙纸 (Vintage Floral with Wainscoting)
+  static void _drawVintageFloral({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required bool isLeft,
+    required int rows,
+    required int cols,
+    required Color baseColor,
+  }) {
+    final double wallH = kWallGridHeight + 0.0;
+    const double wainscotH = 4.5; // 护墙板高度
+    final count = isLeft ? rows : cols;
+    final random = math.Random(42);
+
+    // 1. 绘制上半部分底色 (淡青绿)
+    _drawSolidColor(
+      canvas: canvas,
+      converter: converter,
+      isLeft: isLeft,
+      rows: rows,
+      cols: cols,
+      color: baseColor,
+    );
+
+    // 2. 绘制下半部分护墙板 (随机色木条)
+    final woodColors = [
+      const Color(0xFFA39074), // 灰褐色
+      const Color(0xFFB6A68A), // 浅木色
+      const Color(0xFF8E8B75), // 灰绿色调
+      const Color(0xFFD2C4AE), // 米黄色
+      const Color(0xFFC0B199), // 浅褐色
+    ];
+
+    for (double i = 0; i < count; i += 0.8) {
+      final Color plankColor = woodColors[random.nextInt(woodColors.length)];
+      final path = Path();
+      final double width = 0.8;
+      if (isLeft) {
+        path.addPolygon([
+          converter.getScreenPoint(i, 0, 0),
+          converter.getScreenPoint(i + width, 0, 0),
+          converter.getScreenPoint(i + width, 0, wainscotH),
+          converter.getScreenPoint(i, 0, wainscotH),
+        ], true);
+      } else {
+        path.addPolygon([
+          converter.getScreenPoint(0, i, 0),
+          converter.getScreenPoint(0, i + width, 0),
+          converter.getScreenPoint(0, i + width, wainscotH),
+          converter.getScreenPoint(0, i, wainscotH),
+        ], true);
+      }
+      canvas.drawPath(path, Paint()..color = plankColor..style = PaintingStyle.fill);
+      
+      // 绘制木纹细线
+      final linePaint = Paint()..color = Colors.black.withOpacity(0.05)..style = PaintingStyle.stroke..strokeWidth = 0.5;
+      canvas.drawPath(path, linePaint);
+    }
+
+    // 3. 绘制护墙板顶边线 (Top Rail)
+    final railPaint = Paint()..color = const Color(0xFF8B7355)..style = PaintingStyle.fill;
+    final railPath = Path();
+    const double railH = 0.4;
+    if (isLeft) {
+      railPath.addPolygon([
+        converter.getScreenPoint(0, 0, wainscotH),
+        converter.getScreenPoint(rows.toDouble(), 0, wainscotH),
+        converter.getScreenPoint(rows.toDouble(), 0, wainscotH + railH),
+        converter.getScreenPoint(0, 0, wainscotH + railH),
+      ], true);
+    } else {
+      railPath.addPolygon([
+        converter.getScreenPoint(0, 0, wainscotH),
+        converter.getScreenPoint(0, cols.toDouble(), wainscotH),
+        converter.getScreenPoint(0, cols.toDouble(), wainscotH + railH),
+        converter.getScreenPoint(0, 0, wainscotH + railH),
+      ], true);
+    }
+    canvas.drawPath(railPath, railPaint);
+
+    // 4. 绘制藤蔓与花簇
+    final lacePaint = Paint()
+      ..color = Colors.white.withOpacity(0.5)
+      ..style = PaintingStyle.fill;
+    
+    final leafPaint = Paint()
+      ..color = const Color(0xFFC4D5B4).withOpacity(0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    final flowerPaint = Paint()..style = PaintingStyle.fill;
+    final flowerRandom = math.Random(isLeft ? 123 : 456);
+    final double scaleFactor = converter.tw / 25; // 根据网格大小优化缩放因子
+
+    // 每 5 个单位一列藤蔓
+    for (double i = 2.0; i < count; i += 5.0) {
+      // A. 绘制右侧的蕾丝边 (波浪形状)
+      for (double z = wainscotH + railH; z < wallH; z += 1.2) {
+        final center = isLeft ? converter.getScreenPoint(i + 1.2, 0, z) : converter.getScreenPoint(0, i + 1.2, z);
+        canvas.drawCircle(center, 2.5 * scaleFactor, lacePaint);
+      }
+
+      // B. 绘制纵向藤蔓枝叶
+      final leafPath = Path();
+      bool first = true;
+      for (double z = wainscotH + railH; z < wallH; z += 0.5) {
+        final double xOffset = math.sin(z * 1.5) * 0.4;
+        final p = isLeft ? converter.getScreenPoint(i + xOffset, 0, z) : converter.getScreenPoint(0, i + xOffset, z);
+        if (first) {
+          leafPath.moveTo(p.dx, p.dy);
+          first = false;
+        } else {
+          leafPath.lineTo(p.dx, p.dy);
+        }
+        
+        if (flowerRandom.nextDouble() < 0.3) {
+          canvas.drawCircle(p, 1.5 * scaleFactor, leafPaint..style = PaintingStyle.fill);
+        }
+      }
+      canvas.drawPath(leafPath, leafPaint..style = PaintingStyle.stroke);
+
+      // C. 绘制花簇
+      for (double z = wainscotH + railH + 1.5; z < wallH - 1.0; z += 3.5) {
+        final double xOffset = math.sin(z * 1.5) * 0.8;
+        final flowerCenter = isLeft ? converter.getScreenPoint(i + xOffset, 0, z) : converter.getScreenPoint(0, i + xOffset, z);
+
+        final int clusterSize = 2 + flowerRandom.nextInt(2);
+        for (int c = 0; c < clusterSize; c++) {
+          final clusterOffset = Offset(
+            (flowerRandom.nextDouble() - 0.5) * 6 * scaleFactor,
+            (flowerRandom.nextDouble() - 0.5) * 6 * scaleFactor,
+          );
+          final double scale = (0.7 + flowerRandom.nextDouble() * 0.4) * scaleFactor;
+
+          // 花瓣
+          flowerPaint.color = const Color(0xFFE5989B);
+          for (int k = 0; k < 5; k++) {
+            final double angle = k * (2 * math.pi / 5);
+            final petalOffset = Offset(math.cos(angle) * 3 * scale, math.sin(angle) * 3 * scale);
+            canvas.drawCircle(flowerCenter + clusterOffset + petalOffset, 2.5 * scale, flowerPaint);
+          }
+          // 花蕊
+          flowerPaint.color = const Color(0xFFFFD166);
+          canvas.drawCircle(flowerCenter + clusterOffset, 1.5 * scale, flowerPaint);
+        }
+      }
+    }
+  }
+
+  /// 绘制常春藤与条纹踢脚线 (Ivy with Skirting)
+  static void _drawIvySkirting({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required bool isLeft,
+    required int rows,
+    required int cols,
+    required Color baseColor,
+  }) {
+    final double wallH = kWallGridHeight + 0.0;
+    final count = isLeft ? rows : cols;
+
+    // 1. 绘制墙面底色 (淡米黄)
+    _drawSolidColor(
+      canvas: canvas,
+      converter: converter,
+      isLeft: isLeft,
+      rows: rows,
+      cols: cols,
+      color: baseColor,
+    );
+
+    // 2. 绘制底部的宽大踢脚线 (白色)
+    const double skirtingH = 2.2;
+    final skirtingPath = Path();
+    if (isLeft) {
+      skirtingPath.addPolygon([
+        converter.getScreenPoint(0, 0, 0),
+        converter.getScreenPoint(rows.toDouble(), 0, 0),
+        converter.getScreenPoint(rows.toDouble(), 0, skirtingH),
+        converter.getScreenPoint(0, 0, skirtingH),
+      ], true);
+    } else {
+      skirtingPath.addPolygon([
+        converter.getScreenPoint(0, 0, 0),
+        converter.getScreenPoint(0, cols.toDouble(), 0),
+        converter.getScreenPoint(0, cols.toDouble(), skirtingH),
+        converter.getScreenPoint(0, 0, skirtingH),
+      ], true);
+    }
+    canvas.drawPath(skirtingPath, Paint()..color = const Color(0xFFF9FBFB)..style = PaintingStyle.fill);
+
+    // 3. 绘制踢脚线上的平行细线 (浅蓝色)
+    final linePaint = Paint()
+      ..color = const Color(0xFFD8E5E8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+    
+    for (double h = 0.4; h < skirtingH; h += 0.5) {
+      final p1 = isLeft ? converter.getScreenPoint(0, 0, h) : converter.getScreenPoint(0, 0, h);
+      final p2 = isLeft ? converter.getScreenPoint(rows.toDouble(), 0, h) : converter.getScreenPoint(0, cols.toDouble(), h);
+      canvas.drawLine(p1, p2, linePaint);
+    }
+
+    // 4. 绘制顶部的常春藤藤蔓 (Ivy)
+    final ivyPaint = Paint()
+      ..color = const Color(0xFF8B5A2B).withOpacity(0.4) // 浅褐色藤蔓
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    
+    final leafPaint = Paint()..style = PaintingStyle.fill;
+    final random = math.Random(isLeft ? 777 : 888);
+
+    // 绘制主藤蔓 (沿着墙顶波动)
+    final ivyPath = Path();
+    bool first = true;
+    for (double i = 0; i <= count; i += 0.5) {
+      // 在墙顶 1.5 单位范围内波动
+      final double zOffset = wallH - 0.2 - random.nextDouble() * 0.8;
+      final p = isLeft ? converter.getScreenPoint(i, 0, zOffset) : converter.getScreenPoint(0, i, zOffset);
+      if (first) {
+        ivyPath.moveTo(p.dx, p.dy);
+        first = false;
+      } else {
+        ivyPath.lineTo(p.dx, p.dy);
+      }
+
+      // 绘制叶子
+      if (random.nextDouble() < 0.6) {
+        final leafColor = random.nextBool() 
+          ? const Color(0xFFC4D5B4) // 浅绿
+          : const Color(0xFFA5B88E); // 深一点的绿
+        
+        leafPaint.color = leafColor.withOpacity(0.9);
+        
+        canvas.save();
+        canvas.translate(p.dx, p.dy);
+        canvas.rotate(random.nextDouble() * math.pi);
+        
+        // 绘制心形或椭圆形叶片 (由两个小圆/椭圆重叠组成)
+        final double leafSize = 4.0 + random.nextDouble() * 4.0;
+        canvas.drawOval(Rect.fromCenter(center: const Offset(-2, 0), width: leafSize, height: leafSize * 1.2), leafPaint);
+        canvas.drawOval(Rect.fromCenter(center: const Offset(2, 0), width: leafSize, height: leafSize * 1.2), leafPaint);
+        
+        canvas.restore();
+      }
+    }
+    canvas.drawPath(ivyPath, ivyPaint);
   }
 }
 
