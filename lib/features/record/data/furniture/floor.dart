@@ -93,4 +93,18 @@ final List<FurnitureItem> floorItems = [
     intrinsicHeight: 577,
     quantity: 1,
   ),
+  FurnitureItem(
+    id: 'floor_terrazzo_vintage',
+    name: '复古水磨石地板',
+    imagePath: 'assets/images/decoration/door/door9.png',
+    category: '硬装',
+    subCategory: '地板',
+    gridW: 1,
+    gridH: 1,
+    intrinsicWidth: 1000,
+    intrinsicHeight: 577,
+    quantity: 1,
+    description: '具有细腻碎石质感和复古花纹的水磨石地板。',
+    style: '复古',
+  ),
 ];

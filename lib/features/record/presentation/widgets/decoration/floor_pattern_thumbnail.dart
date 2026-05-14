@@ -31,10 +31,13 @@ class FloorPatternThumbnail extends StatelessWidget {
       pattern = FloorPattern.harlequin;
     } else if (itemId.contains('herringbone')) {
       pattern = FloorPattern.herringbone;
+    } else if (itemId.contains('terrazzo')) {
+      pattern = FloorPattern.terrazzo;
+      color = const Color(0xFFCED4BC); // 匹配图片基准色
     }
 
-    // 只有在不是格纹地板时，才根据 ID 应用特定颜色或默认色
-    if (pattern != FloorPattern.plaid) {
+    // 只有在不是格纹地板和水磨石地板时，才根据 ID 应用特定颜色或默认色
+    if (pattern != FloorPattern.plaid && pattern != FloorPattern.terrazzo) {
       if (itemId.contains('mint')) {
         color = const Color(0xFFB9DCC8);
       } else if (itemId.contains('sage')) {

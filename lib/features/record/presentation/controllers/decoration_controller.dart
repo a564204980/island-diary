@@ -509,6 +509,11 @@ class DecorationController extends ChangeNotifier {
         // 设置底色为淡米黄
         setWallColor(true, const Color(0xFFF7F5E4));
         setWallColor(false, const Color(0xFFF7F5E4));
+      } else if (item.id.contains('sakura')) {
+        setWallPattern(WallPattern.sakura);
+        // 设置底色为柔和粉色
+        setWallColor(true, const Color(0xFFFDE8E9));
+        setWallColor(false, const Color(0xFFFDE8E9));
       } else {
         setWallPattern(WallPattern.none);
       }
@@ -539,6 +544,10 @@ class DecorationController extends ChangeNotifier {
       } else if (item.id.contains('harlequin')) {
         _clearExistingFloorsToInventory();
         setFloorPattern(FloorPattern.harlequin);
+      } else if (item.id.contains('terrazzo')) {
+        _clearExistingFloorsToInventory();
+        setFloorPattern(FloorPattern.terrazzo);
+        setFloorColor(const Color(0xFFCED4BC)); // 匹配图片的浅绿色基底
       } else {
         // 如果是普通地板图层，则重置代码生成的纹理并自动铺满
         setFloorPattern(FloorPattern.none);

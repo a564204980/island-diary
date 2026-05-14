@@ -60,6 +60,8 @@ class FurnitureItem {
   String category;
   String subCategory;
   double visualScale;
+  String description;
+  String style;
   double? surfaceHeight; // 家具表面的高度
   bool canStack; // 是否可以堆叠在其他家具上
 
@@ -131,6 +133,8 @@ class FurnitureItem {
     this.tbOffsetY = 0,
     this.canBeDyed = false,
     this.colorVariants = const [],
+    this.description = '',
+    this.style = '常规',
     this.surfaceHeight,
     this.canStack = false,
   }) {
@@ -209,6 +213,8 @@ class FurnitureItem {
       'visualScale': visualScale,
       'surfaceHeight': surfaceHeight,
       'canStack': canStack,
+      'description': description,
+      'style': style,
       'visualOffset': {'x': vOffsetX, 'y': vOffsetY},
       'vRotationX': visualRotationX,
       'vRotationY': visualRotationY,
@@ -232,6 +238,8 @@ class FurnitureItem {
     String? subCategory,
     double? surfaceHeight,
     bool? canStack,
+    String? description,
+    String? style,
   }) {
     return FurnitureItem(
       id: id,
@@ -249,6 +257,8 @@ class FurnitureItem {
       visualOffset: visualOffset,
       surfaceHeight: surfaceHeight ?? this.surfaceHeight,
       canStack: canStack ?? this.canStack,
+      description: description ?? this.description,
+      style: style ?? this.style,
       visualRotationX: visualRotationX,
       visualRotationY: visualRotationY,
       visualRotationZ: visualRotationZ,
@@ -287,6 +297,8 @@ class FurnitureItem {
       visualScale: (map['visualScale'] as num?)?.toDouble() ?? 1.0,
       surfaceHeight: (map['surfaceHeight'] as num?)?.toDouble(),
       canStack: map['canStack'] ?? false,
+      description: map['description'] ?? '',
+      style: map['style'] ?? '常规',
       visualOffset: map['visualOffset'] != null
           ? Offset(
               (map['visualOffset']['x'] as num).toDouble(),

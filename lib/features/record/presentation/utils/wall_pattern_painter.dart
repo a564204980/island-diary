@@ -14,7 +14,9 @@ class WallPatternPainter {
     required int cols,
     required Color baseColor,
   }) {
-    if (pattern == WallPattern.none) return;
+    if (pattern == WallPattern.none) {
+      return;
+    }
 
     // --- 1. 建立墙面裁剪路径，防止花纹溢出到墙外 ---
     final wallPath = isLeft
@@ -176,6 +178,16 @@ class WallPatternPainter {
           baseColor: baseColor,
         );
         break;
+      case WallPattern.sakura:
+        _drawSakura(
+          canvas: canvas,
+          converter: converter,
+          isLeft: isLeft,
+          rows: rows,
+          cols: cols,
+          baseColor: baseColor,
+        );
+        break;
     }
 
     canvas.restore();
@@ -213,7 +225,7 @@ class WallPatternPainter {
 
     // 2. 绘制装饰虚线 (在中部建立投影)
     final dashPaint = Paint()
-      ..color = Colors.white.withOpacity(0.7)
+      ..color = Colors.white.withValues(alpha: 0.7)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
     
@@ -228,7 +240,7 @@ class WallPatternPainter {
     }
 
     // 3. 绘制投影云朵
-    final cloudPaint = Paint()..color = Colors.white.withOpacity(0.9)..style = PaintingStyle.fill;
+    final cloudPaint = Paint()..color = Colors.white.withValues(alpha: 0.9)..style = PaintingStyle.fill;
     
     final List<(double, double, double)> cloudConfigs = [
       (2.0, 10.0, 1.2),
@@ -239,7 +251,9 @@ class WallPatternPainter {
     ];
 
     for (var config in cloudConfigs) {
-      if (config.$1 >= count) continue;
+      if (config.$1 >= count) {
+        continue;
+      }
       
       // 这里的 x, y 是墙面坐标系下的坐标
       final double wallX = config.$1;
@@ -276,8 +290,11 @@ class WallPatternPainter {
         final angle = i * (2 * math.pi / 32);
         // 修正：在空间内使用 1:1 比例，投影矩阵会自动处理 30 度透视变形
         final p = project(dx + radius * math.cos(angle), dz + radius * math.sin(angle));
-        if (i == 0) path.moveTo(p.dx, p.dy);
-        else path.lineTo(p.dx, p.dy);
+        if (i == 0) {
+          path.moveTo(p.dx, p.dy);
+        } else {
+          path.lineTo(p.dx, p.dy);
+        }
       }
       canvas.drawPath(path, paint);
     }
@@ -348,7 +365,7 @@ class WallPatternPainter {
 
     // 4. 绘制腰线 (两条细白线)
     final dividerPaint = Paint()
-      ..color = Colors.white.withOpacity(0.9)
+      ..color = Colors.white.withValues(alpha: 0.9)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8;
     
@@ -360,7 +377,7 @@ class WallPatternPainter {
 
     // 5. 绘制波点 (Polka Dots)
     final dotPaint = Paint()
-      ..color = Colors.white.withOpacity(0.6)
+      ..color = Colors.white.withValues(alpha: 0.6)
       ..style = PaintingStyle.fill;
     
     // 使用数学偏移实现交错排列
@@ -371,7 +388,9 @@ class WallPatternPainter {
       final bool isShifted = (v ~/ stepV) % 2 == 0;
       for (double h = 0.5; h < count; h += stepH) {
         final double posH = h + (isShifted ? stepH / 2 : 0);
-        if (posH >= count) continue;
+        if (posH >= count) {
+          continue;
+        }
 
         final center = isLeft ? converter.getScreenPoint(posH, 0, v) : converter.getScreenPoint(0, posH, v);
         
@@ -456,7 +475,7 @@ class WallPatternPainter {
               ], true);
             canvas.drawPath(
               path,
-              Paint()..color = lightColor.withOpacity(0.2 + random.nextDouble() * 0.6),
+              Paint()..color = lightColor.withValues(alpha: 0.2 + random.nextDouble() * 0.6),
             );
           }
         }
@@ -475,7 +494,7 @@ class WallPatternPainter {
               ], true);
             canvas.drawPath(
               path,
-              Paint()..color = lightColor.withOpacity(0.2 + random.nextDouble() * 0.6),
+              Paint()..color = lightColor.withValues(alpha: 0.2 + random.nextDouble() * 0.6),
             );
           }
         }
@@ -913,7 +932,7 @@ class WallPatternPainter {
       canvas.drawPath(path, Paint()..color = plankColor..style = PaintingStyle.fill);
       
       // 绘制木纹细线
-      final linePaint = Paint()..color = Colors.black.withOpacity(0.05)..style = PaintingStyle.stroke..strokeWidth = 0.5;
+      final linePaint = Paint()..color = Colors.black.withValues(alpha: 0.05)..style = PaintingStyle.stroke..strokeWidth = 0.5;
       canvas.drawPath(path, linePaint);
     }
 
@@ -939,12 +958,12 @@ class WallPatternPainter {
     canvas.drawPath(railPath, railPaint);
 
     // 4. 绘制藤蔓与花簇
-    final lacePaint = Paint()
-      ..color = Colors.white.withOpacity(0.5)
+    final dotPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.5)
       ..style = PaintingStyle.fill;
     
-    final leafPaint = Paint()
-      ..color = const Color(0xFFC4D5B4).withOpacity(0.6)
+    final petalPaint = Paint()
+      ..color = const Color(0xFFC4D5B4).withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
@@ -957,7 +976,7 @@ class WallPatternPainter {
       // A. 绘制右侧的蕾丝边 (波浪形状)
       for (double z = wainscotH + railH; z < wallH; z += 1.2) {
         final center = isLeft ? converter.getScreenPoint(i + 1.2, 0, z) : converter.getScreenPoint(0, i + 1.2, z);
-        canvas.drawCircle(center, 2.5 * scaleFactor, lacePaint);
+        canvas.drawCircle(center, 2.5 * scaleFactor, dotPaint);
       }
 
       // B. 绘制纵向藤蔓枝叶
@@ -974,10 +993,10 @@ class WallPatternPainter {
         }
         
         if (flowerRandom.nextDouble() < 0.3) {
-          canvas.drawCircle(p, 1.5 * scaleFactor, leafPaint..style = PaintingStyle.fill);
+          canvas.drawCircle(p, 1.5 * scaleFactor, petalPaint..style = PaintingStyle.fill);
         }
       }
-      canvas.drawPath(leafPath, leafPaint..style = PaintingStyle.stroke);
+      canvas.drawPath(leafPath, petalPaint..style = PaintingStyle.stroke);
 
       // C. 绘制花簇
       for (double z = wainscotH + railH + 1.5; z < wallH - 1.0; z += 3.5) {
@@ -1063,7 +1082,7 @@ class WallPatternPainter {
 
     // 4. 绘制顶部的常春藤藤蔓 (Ivy)
     final ivyPaint = Paint()
-      ..color = const Color(0xFF8B5A2B).withOpacity(0.4) // 浅褐色藤蔓
+      ..color = const Color(0xFF8B5A2B).withValues(alpha: 0.4) // 浅褐色枝干藤蔓
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
     
@@ -1090,7 +1109,7 @@ class WallPatternPainter {
           ? const Color(0xFFC4D5B4) // 浅绿
           : const Color(0xFFA5B88E); // 深一点的绿
         
-        leafPaint.color = leafColor.withOpacity(0.9);
+        leafPaint.color = leafColor.withValues(alpha: 0.9);
         
         canvas.save();
         canvas.translate(p.dx, p.dy);
@@ -1105,6 +1124,101 @@ class WallPatternPainter {
       }
     }
     canvas.drawPath(ivyPath, ivyPaint);
+  }
+
+  /// 绘制樱花墙面效果
+  static void _drawSakura({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required bool isLeft,
+    required int rows,
+    required int cols,
+    required Color baseColor,
+  }) {
+    final count = isLeft ? rows : cols;
+    final random = math.Random(123); // 固定种子
+
+    // 1. 绘制背景底色 (柔和粉色)
+    _drawSolidColor(
+      canvas: canvas,
+      converter: converter,
+      isLeft: isLeft,
+      rows: rows,
+      cols: cols,
+      color: baseColor,
+    );
+
+    // 2. 绘制花瓣/花朵
+    final flowerPaint = Paint()..color = Colors.white.withValues(alpha: 0.6)..style = PaintingStyle.fill;
+    
+    // 获取墙面投影参数
+    final pOrigin = converter.getScreenPoint(0, 0, 0);
+    final pHorizontal = isLeft ? converter.getScreenPoint(1, 0, 0) : converter.getScreenPoint(0, 1, 0);
+    final pVertical = converter.getScreenPoint(0, 0, 1);
+    final vx = Offset(pHorizontal.dx - pOrigin.dx, pHorizontal.dy - pOrigin.dy);
+    final vy = Offset(pVertical.dx - pOrigin.dx, pVertical.dy - pOrigin.dy);
+
+    for (int i = 0; i < 35; i++) {
+      final double r = random.nextDouble() * count;
+      final double z = random.nextDouble() * kWallGridHeight;
+      final double scale = 0.4 + random.nextDouble() * 0.6;
+      final double rotation = random.nextDouble() * 2 * math.pi;
+
+      _drawSingleSakuraProjected(canvas, pOrigin, vx, vy, r, z, scale, rotation, flowerPaint);
+    }
+  }
+
+  /// 在墙面投影空间绘制单个樱花
+  static void _drawSingleSakuraProjected(
+    Canvas canvas, 
+    Offset origin, 
+    Offset vx, 
+    Offset vy, 
+    double x, 
+    double z, 
+    double scale, 
+    double rotation,
+    Paint paint
+  ) {
+    Offset project(double dx, double dz) {
+      // 这里的 dx, dz 是花朵局部坐标系下的偏移
+      // 需要先进行旋转，再应用投影
+      final cosR = math.cos(rotation);
+      final sinR = math.sin(rotation);
+      final rx = dx * cosR - dz * sinR;
+      final rz = dx * sinR + dz * cosR;
+
+      return Offset(
+        origin.dx + (x + rx) * vx.dx + (z + rz) * vy.dx,
+        origin.dy + (x + rx) * vx.dy + (z + rz) * vy.dy,
+      );
+    }
+
+    // 简化版樱花：5个花瓣
+    for (int i = 0; i < 5; i++) {
+      final angle = i * (2 * math.pi / 5);
+      final petalPath = Path();
+      const int segments = 12;
+      for (int j = 0; j <= segments; j++) {
+        final t = j / segments;
+        // 花瓣形状：水滴形简化
+        final double r = (0.5 + 0.5 * math.sin(t * math.pi)) * scale;
+        final double petalAngle = angle + (t - 0.5) * 0.8;
+        final p = project(r * math.cos(petalAngle), r * math.sin(petalAngle));
+        if (j == 0) {
+          petalPath.moveTo(p.dx, p.dy);
+        } else {
+          petalPath.lineTo(p.dx, p.dy);
+        }
+      }
+      petalPath.close();
+      canvas.drawPath(petalPath, paint);
+    }
+    
+    // 花蕊
+    final center = project(0, 0);
+    canvas.drawCircle(center, 0.2 * scale, paint..color = Colors.white.withValues(alpha: 0.8));
+    paint.color = Colors.white.withValues(alpha: 0.6); // 恢复透明度
   }
 }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../domain/models/furniture_item.dart';
 import '../furniture_sprite.dart';
+import 'furniture_detail_dialog.dart';
 
 
 class FurnitureInventoryTray extends StatelessWidget {
@@ -30,9 +31,10 @@ class FurnitureInventoryTray extends StatelessWidget {
     '墙饰': 2,
     '摆件': 3,
     '地饰': 4,
-    '花盆': 5,
-    '室外': 6,
+    '宠物': 5,
+    '植物': 6,
     '硬装': 7,
+    '室外': 8,
   };
 
   @override
@@ -99,14 +101,14 @@ class FurnitureInventoryTray extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.78,
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 6,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 1.0,
                         ),
                     itemCount: filteredItems.length,
                     itemBuilder: (context, index) {
-                      return _buildFurnitureCard(filteredItems[index], index);
+                      return _buildFurnitureCard(context, filteredItems[index], index);
                     },
                   ),
                 ),
@@ -234,10 +236,19 @@ class FurnitureInventoryTray extends StatelessWidget {
     );
   }
 
-  Widget _buildFurnitureCard(FurnitureItem item, int index) {
+  Widget _buildFurnitureCard(BuildContext context, FurnitureItem item, int index) {
     return _FurnitureCard(
       item: item,
       onTap: () => onItemTap(item),
+      onInfoTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => FurnitureDetailDialog(
+            item: item,
+            onPlace: () => onItemTap(item),
+          ),
+        );
+      },
       onDragStarted: () => onDragStarted(item),
       onDragEnd: onDragEnd,
     );
@@ -252,13 +263,15 @@ class FurnitureInventoryTray extends StatelessWidget {
       case '摆件':
         return Icons.auto_awesome_rounded;
       case '地饰':
-        return Icons.layers_rounded;
-      case '花盆':
+        return Icons.grid_view_rounded;
+      case '宠物':
+        return Icons.pets_rounded;
+      case '植物':
         return Icons.local_florist_rounded;
-      case '室外':
-        return Icons.deck_rounded;
       case '硬装':
         return Icons.construction_rounded;
+      case '室外':
+        return Icons.directions_car_rounded;
       default:
         return Icons.category;
     }
@@ -268,12 +281,14 @@ class FurnitureInventoryTray extends StatelessWidget {
 class _FurnitureCard extends StatefulWidget {
   final FurnitureItem item;
   final VoidCallback onTap;
+  final VoidCallback onInfoTap;
   final VoidCallback onDragStarted;
   final VoidCallback? onDragEnd;
 
   const _FurnitureCard({
     required this.item,
     required this.onTap,
+    required this.onInfoTap,
     required this.onDragStarted,
     this.onDragEnd,
   });
@@ -354,7 +369,7 @@ class _FurnitureCardState extends State<_FurnitureCard>
                     children: [
                       Center(
                         child: Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(6),
                           child: AspectRatio(
                             aspectRatio:
                                 widget.item.intrinsicWidth /
@@ -409,22 +424,20 @@ class _FurnitureCardState extends State<_FurnitureCard>
                           ),
                         ),
                       ),
+                      // 信息图标 (左下角)
+                      Positioned(
+                        bottom: 6,
+                        left: 6,
+                        child: GestureDetector(
+                          onTap: widget.onInfoTap,
+                          child: Icon(
+                            Icons.info_outline_rounded,
+                            color: const Color(0xFF8B5E3C).withValues(alpha: 0.5),
+                            size: 16,
+                          ),
+                        ),
+                      ),
                     ],
-                  ),
-                ),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    widget.item.name,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF8B5E3C),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
                   ),
                 ),
               ],

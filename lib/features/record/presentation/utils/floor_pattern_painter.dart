@@ -68,6 +68,15 @@ class FloorPatternPainter {
       case FloorPattern.harlequin:
         _drawHarlequin(canvas, converter, rows, cols);
         break;
+      case FloorPattern.terrazzo:
+        _drawTerrazzo(
+          canvas: canvas,
+          converter: converter,
+          rows: rows,
+          cols: cols,
+          baseColor: baseColor,
+        );
+        break;
       default:
         break;
     }
@@ -346,5 +355,111 @@ class FloorPatternPainter {
         );
       }
     }
+  }
+
+  /// 绘制水磨石地板 (Terrazzo)
+  static void _drawTerrazzo({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required int rows,
+    required int cols,
+    required Color baseColor,
+  }) {
+    final random = math.Random(42);
+    
+    // 1. 绘制背景杂点 (Terrazzo Speckles)
+    // 提取自用户图片的颗粒色：深灰蓝、土黄、红褐
+    final speckleColors = [
+      const Color(0xFF5A6368).withValues(alpha: 0.4), // 深灰蓝
+      const Color(0xFFD4B483).withValues(alpha: 0.3), // 土黄
+      const Color(0xFFA67C52).withValues(alpha: 0.3), // 红褐
+      const Color(0xFF8B9E9B).withValues(alpha: 0.3), // 浅灰绿
+    ];
+    
+    // 增加点密度
+    for (int i = 0; i < 800; i++) {
+      final r = random.nextDouble() * rows;
+      final c = random.nextDouble() * cols;
+      final p = converter.getScreenPoint(r, c);
+      final size = 0.5 + random.nextDouble() * 1.5;
+      
+      // 随机绘制圆形或不规则多边形作为碎屑
+      if (random.nextBool()) {
+        canvas.drawCircle(p, size, Paint()..color = speckleColors[random.nextInt(speckleColors.length)]);
+      } else {
+        final double angle = random.nextDouble() * math.pi * 2;
+        final double dist = size * 1.5;
+        final p2 = Offset(p.dx + math.cos(angle) * dist, p.dy + math.sin(angle) * dist);
+        final p3 = Offset(p.dx + math.cos(angle + 1) * dist, p.dy + math.sin(angle + 1) * dist);
+        canvas.drawPath(
+          Path()..addPolygon([p, p2, p3], true),
+          Paint()..color = speckleColors[random.nextInt(speckleColors.length)]
+        );
+      }
+    }
+
+    // 2. 绘制网格线 (Isometric Diamond Grid)
+    // 线条颜色：深咖啡色，较细
+    final linePaint = Paint()
+      ..color = const Color(0xFF7A6A53).withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.6;
+      
+    const int step = 4; // 适中网格大小
+    
+    for (int i = -step; i <= rows + step; i += step) {
+      canvas.drawLine(
+        converter.getScreenPoint(i.toDouble(), -step.toDouble()),
+        converter.getScreenPoint(i.toDouble(), (cols + step).toDouble()),
+        linePaint,
+      );
+    }
+    for (int j = -step; j <= cols + step; j += step) {
+      canvas.drawLine(
+        converter.getScreenPoint(-step.toDouble(), j.toDouble()),
+        converter.getScreenPoint((rows + step).toDouble(), j.toDouble()),
+        linePaint,
+      );
+    }
+
+    // 3. 绘制交汇处的装饰花纹 (Intersection Motif)
+    final orangePaint = Paint()..color = const Color(0xFFC67D55)..style = PaintingStyle.fill;
+    final yellowPaint = Paint()..color = const Color(0xFFE5C171)..style = PaintingStyle.fill;
+
+    for (int i = 0; i <= rows; i += step) {
+      for (int j = 0; j <= cols; j += step) {
+        // 绘制黄色“翼状”花纹
+        // 它们稍微偏离中心，呈叶片状
+        const double wingW = 0.6;
+        const double wingH = 0.4;
+        
+        // 左上翼
+        _drawDiamond(canvas, converter, i.toDouble() - 0.35, j.toDouble() - 0.35, wingW, wingH, yellowPaint);
+        // 右下翼
+        _drawDiamond(canvas, converter, i.toDouble() + 0.35, j.toDouble() + 0.35, wingW, wingH, yellowPaint);
+
+        // 绘制中心红褐矩形
+        const double centerSize = 0.35;
+        _drawDiamond(canvas, converter, i.toDouble(), j.toDouble(), centerSize, centerSize, orangePaint);
+      }
+    }
+  }
+
+  /// 绘制等距菱形辅助方法
+  static void _drawDiamond(
+    Canvas canvas,
+    IsometricCoordinateConverter converter,
+    double r,
+    double c,
+    double wr,
+    double wc,
+    Paint paint,
+  ) {
+    final p1 = converter.getScreenPoint(r - wr / 2, c - wc / 2);
+    final p2 = converter.getScreenPoint(r + wr / 2, c - wc / 2);
+    final p3 = converter.getScreenPoint(r + wr / 2, c + wc / 2);
+    final p4 = converter.getScreenPoint(r - wr / 2, c + wc / 2);
+    
+    canvas.drawPath(Path()..addPolygon([p1, p2, p3, p4], true), paint);
   }
 }
