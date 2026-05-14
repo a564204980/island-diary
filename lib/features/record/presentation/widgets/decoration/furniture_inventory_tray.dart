@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../domain/models/furniture_item.dart';
 import '../furniture_sprite.dart';
-import 'floor_pattern_thumbnail.dart';
-import 'wall_pattern_thumbnail.dart';
+
 
 class FurnitureInventoryTray extends StatelessWidget {
   final List<FurnitureItem> availableItems;
@@ -38,7 +37,7 @@ class FurnitureInventoryTray extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categories = availableItems.map((e) => e.category).toSet().toList();
+    final categories = availableItems.map((e) => e.category).toSet().toList().cast<String>();
     categories.sort((a, b) {
       final orderA = _categoryOrder[a] ?? 999;
       final orderB = _categoryOrder[b] ?? 999;

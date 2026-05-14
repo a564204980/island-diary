@@ -151,6 +151,7 @@ class DecorationController extends ChangeNotifier {
 
     // 按顺序逐个加载资源，减少内存峰值并让进度更新更平滑
     for (final id in itemsToPreload) {
+      if (!context.mounted) return;
       final item = _availableItems.firstWhere((it) => it.id == id);
       try {
         await FurnitureSprite.precacheItem(item, context);
@@ -371,29 +372,28 @@ class DecorationController extends ChangeNotifier {
 
         // --- 靠墙/高台家具动态高度吸附逻辑 ---
         double targetZ = 0.0;
-        bool isDecoration =
-            draggingItem!.category == '装饰' ||
-            draggingItem!.subCategory == '软装' ||
-            draggingItem!.subCategory == '饰品' ||
-            draggingItem!.subCategory == '盆栽';
 
-        if (isDecoration) {
+        if (draggingItem!.canStack) {
           double foundSurfaceZ = 0.0;
           for (final pf in _placedFurniture) {
-            if (pf.item.isFloor || pf.item.isWall || pf == draggingOriginalPF)
+            if (pf.item.isFloor || pf.item.isWall || pf == draggingOriginalPF) {
               continue;
+            }
 
-            int pgw = pf.rotation % 2 == 0 ? pf.item.gridW : pf.item.gridH;
-            int pgh = pf.rotation % 2 == 0 ? pf.item.gridH : pf.item.gridW;
+            // 如果底层家具有表面高度
+            if (pf.item.surfaceHeight != null) {
+              int pgw = pf.rotation % 2 == 0 ? pf.item.gridW : pf.item.gridH;
+              int pgh = pf.rotation % 2 == 0 ? pf.item.gridH : pf.item.gridW;
 
-            // 碰撞检测使用基础探测网格：只要光标下方实际有支持面，无论最终视觉偏多少都视作落在桌上
-            if (centeredCell0.$1 < pf.r + pgw &&
-                centeredCell0.$1 + gw > pf.r &&
-                centeredCell0.$2 < pf.c + pgh &&
-                centeredCell0.$2 + gh > pf.c) {
-              final height = _furnitureSurfaceHeights[pf.item.id] ?? 0.0;
-              if (height > foundSurfaceZ) {
-                foundSurfaceZ = height;
+              // 碰撞检测使用基础探测网格
+              if (centeredCell0.$1 < pf.r + pgw &&
+                  centeredCell0.$1 + gw > pf.r &&
+                  centeredCell0.$2 < pf.c + pgh &&
+                  centeredCell0.$2 + gh > pf.c) {
+                final height = pf.item.surfaceHeight!;
+                if (height > foundSurfaceZ) {
+                  foundSurfaceZ = height;
+                }
               }
             }
           }
@@ -425,20 +425,7 @@ class DecorationController extends ChangeNotifier {
     }
   }
 
-  // --- 家具表面高度配置表 ---
-  static const Map<String, double> _furnitureSurfaceHeights = {
-    'cabinet_1': 4.0, // 橱柜
-    'cabinet_2': 4.0, // 奶酪色拼色地柜
-    'cabinet_3': 4.0, // 奶酪色拼色转角地柜
-    'table_1': 2.2, // 桌子 1
-    'table_2': 2.2, // 桌子 2
-    'table_3': 1.8, // 桌子 3 (较矮)
-    'sofa_1': 1.2, // 沙发
-    'sofa_2': 1.2,
-    'sofa_3': 1.2,
-    'sofa_4': 1.2,
-    'bookcase_1': 3.0, // 书柜台面
-  };
+
 
   void placeFurniture(
     FurnitureItem item, {
@@ -791,17 +778,25 @@ class DecorationController extends ChangeNotifier {
           continue;
         }
 
-        // [修正] 如果放的是“饰品/装饰”或“软装”，则允许与除地板外的任何家具（包括其他饰品）重叠
-        bool isDecorator = item.category == '装饰' || item.subCategory == '软装';
-        bool isExistingDecorator =
-            pf.item.category == '装饰' || pf.item.subCategory == '软装';
+        // [修正] 如果放的是“可叠放”物品，则允许与具有表面高度的家具重叠
+        bool isDecorator = item.canStack;
+        bool isExistingSurface = pf.item.surfaceHeight != null;
 
+        if ((isDecorator && isExistingSurface) ||
+            (item.surfaceHeight != null && pf.item.canStack)) {
+          continue;
+        }
+
+        // 兼容原有的装饰类允许重叠逻辑
+        bool isExistingDecorator = pf.item.canStack;
         if ((isDecorator && !pf.item.isFloor) ||
             (isExistingDecorator && !item.isFloor)) {
           continue;
         }
 
-        if (z < pf.z + pf.item.gridH && z + item.gridH > pf.z) return false;
+        if (z < pf.z + pf.item.gridH && z + item.gridH > pf.z) {
+          return false;
+        }
       }
     }
     return true;

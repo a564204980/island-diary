@@ -60,6 +60,8 @@ class FurnitureItem {
   String category;
   String subCategory;
   double visualScale;
+  double? surfaceHeight; // 家具表面的高度
+  bool canStack; // 是否可以堆叠在其他家具上
 
   double vOffsetX;
   double vOffsetY;
@@ -129,6 +131,8 @@ class FurnitureItem {
     this.tbOffsetY = 0,
     this.canBeDyed = false,
     this.colorVariants = const [],
+    this.surfaceHeight,
+    this.canStack = false,
   }) {
     if (spriteRect != null) {
       rectLeft = spriteRect.left;
@@ -189,6 +193,8 @@ class FurnitureItem {
       'id': id,
       'name': name,
       'imagePath': imagePath,
+      'category': category,
+      'subCategory': subCategory,
       'spriteRect': {
         'l': rectLeft,
         't': rectTop,
@@ -199,10 +205,10 @@ class FurnitureItem {
       'gridH': gridH,
       'intrinsicWidth': intrinsicWidth,
       'intrinsicHeight': intrinsicHeight,
-      'category': category,
-      'subCategory': subCategory,
       'quantity': quantity,
       'visualScale': visualScale,
+      'surfaceHeight': surfaceHeight,
+      'canStack': canStack,
       'visualOffset': {'x': vOffsetX, 'y': vOffsetY},
       'vRotationX': visualRotationX,
       'vRotationY': visualRotationY,
@@ -220,14 +226,20 @@ class FurnitureItem {
     };
   }
 
-  FurnitureItem copyWith({String? imagePath}) {
+  FurnitureItem copyWith({
+    String? imagePath,
+    String? category,
+    String? subCategory,
+    double? surfaceHeight,
+    bool? canStack,
+  }) {
     return FurnitureItem(
       id: id,
       name: name,
       imagePath: imagePath ?? this.imagePath,
       spriteRect: spriteRect,
-      category: category,
-      subCategory: subCategory,
+      category: category ?? this.category,
+      subCategory: subCategory ?? this.subCategory,
       gridW: gridW,
       gridH: gridH,
       intrinsicWidth: intrinsicWidth,
@@ -235,6 +247,8 @@ class FurnitureItem {
       quantity: quantity,
       visualScale: visualScale,
       visualOffset: visualOffset,
+      surfaceHeight: surfaceHeight ?? this.surfaceHeight,
+      canStack: canStack ?? this.canStack,
       visualRotationX: visualRotationX,
       visualRotationY: visualRotationY,
       visualRotationZ: visualRotationZ,
@@ -257,6 +271,8 @@ class FurnitureItem {
       id: map['id'] ?? '',
       name: map['name'] ?? '',
       imagePath: map['imagePath'] ?? '',
+      category: map['category'] ?? '',
+      subCategory: map['subCategory'] ?? '',
       spriteRect: Rect.fromLTWH(
         (rect['l'] as num).toDouble(),
         (rect['t'] as num).toDouble(),
@@ -266,11 +282,11 @@ class FurnitureItem {
       gridW: map['gridW'] ?? 1,
       gridH: map['gridH'] ?? 1,
       intrinsicWidth: (map['intrinsicWidth'] as num).toDouble(),
-      intrinsicHeight: (map['intrinsicHeight'] as num).toDouble(),
-      category: map['category'] ?? '',
-      subCategory: map['subCategory'] ?? '',
+      intrinsicHeight: (map['intrinsicHeight'] as num?)?.toDouble() ?? 1.0,
       quantity: map['quantity'] ?? 3,
       visualScale: (map['visualScale'] as num?)?.toDouble() ?? 1.0,
+      surfaceHeight: (map['surfaceHeight'] as num?)?.toDouble(),
+      canStack: map['canStack'] ?? false,
       visualOffset: map['visualOffset'] != null
           ? Offset(
               (map['visualOffset']['x'] as num).toDouble(),

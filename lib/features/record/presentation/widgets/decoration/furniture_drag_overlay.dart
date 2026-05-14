@@ -15,13 +15,13 @@ class _FurniturePathClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant _FurniturePathClipper oldClipper) => true;
 }
 
-/// 瀹跺叿鎷栨嫿鐑尯閬僵缁勪欢锛屾彁渚涢€変腑鍚庣殑閫忔槑浜や簰灞傘€?
 class FurnitureDragOverlay extends StatelessWidget {
   final PlacedFurniture pf;
   final IsometricCoordinateConverter converter;
   final Function(FurnitureItem item, int rotation, (int, int) cell)
   onDragStarted;
   final VoidCallback onDragCanceled;
+  final Offset sceneOffset;
 
   const FurnitureDragOverlay({
     super.key,
@@ -29,6 +29,7 @@ class FurnitureDragOverlay extends StatelessWidget {
     required this.converter,
     required this.onDragStarted,
     required this.onDragCanceled,
+    this.sceneOffset = Offset.zero,
   });
 
   @override
@@ -66,8 +67,8 @@ class FurnitureDragOverlay extends StatelessWidget {
         );
 
       return Positioned(
-        left: minX,
-        top: minY,
+        left: minX + sceneOffset.dx,
+        top: minY + sceneOffset.dy,
         width: maxX - minX,
         height: maxY - minY,
         child: ClipPath(
@@ -80,7 +81,7 @@ class FurnitureDragOverlay extends StatelessWidget {
             feedback: const SizedBox.shrink(),
             onDragStarted: () =>
                 onDragStarted(pf.item, pf.rotation, (pf.r, pf.c)),
-            onDraggableCanceled: (_, __) => onDragCanceled(),
+            onDraggableCanceled: (_, _) => onDragCanceled(),
             child: Container(color: Colors.transparent),
           ),
         ),
@@ -94,14 +95,8 @@ class FurnitureDragOverlay extends StatelessWidget {
       gh = pf.item.gridW;
     }
 
-    // 璁＄畻涓績瀹氫綅鐐?
-    final pt = converter.getScreenPoint(
-      pf.r + gw / 2.0,
-      pf.c + gh / 2.0,
-      pf.z,
-    ); // Added pf.z here for accuracy
+    final pt = converter.getScreenPoint(pf.r + gw / 2.0, pf.c + gh / 2.0, pf.z);
 
-    // 璁＄畻瑙嗚灏哄锛岀敤浜庣‘瀹氱偣鍑荤儹鍖?(涓?getFurnitureRect 閫昏緫鍚屾)
     final double visualW = converter.estimateVisualWidth(
       gw,
       gh,
@@ -115,8 +110,14 @@ class FurnitureDragOverlay extends StatelessWidget {
     final double overlayH = spriteH + 60;
 
     return Positioned(
-      left: pt.dx - visualW / 2 + pf.item.visualOffset.dx,
-      top: pt.dy + verticalOffset - spriteH - 30 + pf.item.visualOffset.dy,
+      left: pt.dx - visualW / 2 + pf.item.visualOffset.dx + sceneOffset.dx,
+      top:
+          pt.dy +
+          verticalOffset -
+          spriteH -
+          30 +
+          pf.item.visualOffset.dy +
+          sceneOffset.dy,
       width: visualW,
       height: overlayH,
       child: LongPressDraggable<FurnitureItem>(
@@ -126,7 +127,7 @@ class FurnitureDragOverlay extends StatelessWidget {
         data: pf.item,
         feedback: const SizedBox.shrink(),
         onDragStarted: () => onDragStarted(pf.item, pf.rotation, (pf.r, pf.c)),
-        onDraggableCanceled: (_, __) => onDragCanceled(),
+        onDraggableCanceled: (_, _) => onDragCanceled(),
         child: Container(color: Colors.transparent),
       ),
     );

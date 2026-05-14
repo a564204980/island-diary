@@ -946,7 +946,7 @@ final List<FurnitureItem> bedroomItems = [
     name: '浅木办公椅',
     imagePath: 'assets/images/decoration/sofa/sofa21.png',
     category: '家具',
-    subCategory: '沙发椅子',
+    subCategory: '沙发',
     gridW: 2,
     gridH: 2,
     intrinsicWidth: 414,

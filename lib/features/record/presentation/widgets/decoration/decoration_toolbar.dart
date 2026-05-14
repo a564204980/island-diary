@@ -12,7 +12,7 @@ class DecorationToolbar extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onFillAll;
   final VoidCallback onDye;
-  final Offset layoutOffset;
+  final Offset sceneOffset;
 
   const DecorationToolbar({
     super.key,
@@ -22,7 +22,7 @@ class DecorationToolbar extends StatelessWidget {
     required this.onDelete,
     required this.onFillAll,
     required this.onDye,
-    this.layoutOffset = Offset.zero,
+    this.sceneOffset = Offset.zero,
   });
 
   @override
@@ -60,7 +60,7 @@ class DecorationToolbar extends StatelessWidget {
     } else {
       centerR = pf.r + gw / 2.0;
       centerC = pf.c + gh / 2.0;
-      wallZ = pf.z; // 鍚堢悊鏀寔鍦伴潰瀹跺叿鐨?Z 杞?
+      wallZ = pf.z;
     }
 
     final pt = converter.getScreenPoint(centerR, centerC, wallZ);
@@ -90,10 +90,10 @@ class DecorationToolbar extends StatelessWidget {
       // 地面家具：计算贴图显示的视觉宽度
       final double unscaledItemW = converter.tw * (gw + gh) * s * 0.5;
       final double footprintOffset = unscaledItemW / 4.0;
-      
+
       visualW = unscaledItemW * vScale;
       spriteH = visualW * (pf.item.intrinsicHeight / pf.item.intrinsicWidth);
-      
+
       // 在顶部上方保留固定的 45 物理像素间隙
       finalTop =
           pt.dy +
@@ -109,10 +109,11 @@ class DecorationToolbar extends StatelessWidget {
     return Positioned(
       left:
           pt.dx -
-          55 +
+          80 +
           vOffset.dx +
-          (pf.item.toolbarOffset.dx * visualW),
-      top: finalTop,
+          (pf.item.toolbarOffset.dx * visualW) +
+          sceneOffset.dx,
+      top: finalTop + sceneOffset.dy,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(

@@ -14,6 +14,7 @@ final List<FurnitureItem> kitchenItems = [
     intrinsicHeight: 255,
     quantity: 1,
     visualScale: 0.82,
+    canStack: true,
   ),
   FurnitureItem(
     id: 'stand_mixer_1',
@@ -27,6 +28,7 @@ final List<FurnitureItem> kitchenItems = [
     intrinsicHeight: 242,
     quantity: 2,
     visualScale: 0.76,
+    canStack: true,
   ),
   FurnitureItem(
     id: 'cutting_board_1',
@@ -40,6 +42,7 @@ final List<FurnitureItem> kitchenItems = [
     intrinsicHeight: 161,
     quantity: 2,
     visualScale: 0.84,
+    canStack: true,
   ),
 
   FurnitureItem(
@@ -54,6 +57,7 @@ final List<FurnitureItem> kitchenItems = [
     intrinsicHeight: 379,
     quantity: 2,
     visualScale: 1.2,
+    canStack: true,
   ),
   FurnitureItem(
     id: 'bread_basket_1',
@@ -95,6 +99,7 @@ final List<FurnitureItem> kitchenItems = [
     visualScale: 1,
     visualOffset: const Offset(0, 0),
     flippedVisualOffset: const Offset(0, 0),
+    surfaceHeight: 4.0,
   ),
 
   FurnitureItem(

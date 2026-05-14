@@ -215,68 +215,70 @@ class DecorationScene extends StatelessWidget {
                     },
                   ),
                 ),
-
-                // 4. UI 覆盖层 (独立于底层交互层)
-                IgnorePointer(
-                  ignoring: controller.selectedFurniture == null,
-                  child: Transform.translate(
-                    offset: controller.sceneOffset,
-                    child: SizedBox(
-                      width: w,
-                      height: h,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          if (controller.selectedFurniture != null) ...[
-                            FurnitureDragOverlay(
-                              pf: controller.selectedFurniture!,
-                              converter: converter,
-                              onDragStarted: (item, rot, cell) {
-                                controller.draggingItem = item;
-                                controller.draggingRotation = rot;
-                                controller.ghostCell = cell;
-                                controller.ghostZ =
-                                    controller.selectedFurniture?.z ?? 0.0;
-                                controller.draggingOriginalPF =
-                                    controller.selectedFurniture;
-                                controller.selectFurniture(null);
-                              },
-                              onDragCanceled: controller.cancelDragging,
-                            ),
-                            DecorationToolbar(
-                              pf: controller.selectedFurniture!,
-                              converter: converter,
-                              layoutOffset: Offset.zero,
-                              onRotate: () =>
-                                  controller.rotateFurniture(converter),
-                              onDelete: () => controller.deleteFurniture(
-                                controller.selectedFurniture!,
-                              ),
-                              onFillAll: () => {},
-                              onDye: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => FurnitureDyeingDialog(
-                                    pf: controller.selectedFurniture!,
-                                    onVariantSelected: (variant) {
-                                      controller.updatePlacedFurnitureVariant(
-                                        controller.selectedFurniture!,
-                                        variant,
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
+          // 4. UI 覆盖层：通过 gridKey 直接获取场景 SizedBox 的屏幕原点，
+          // 避免任何手动坐标计算误差，确保工具栏精准对齐。
+          () {
+            final RenderBox? sceneBox =
+                gridKey.currentContext?.findRenderObject() as RenderBox?;
+            final Offset sceneOrigin =
+                sceneBox?.localToGlobal(Offset.zero) ?? Offset.zero;
+            return Positioned.fill(
+              child: IgnorePointer(
+                ignoring: controller.selectedFurniture == null,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    if (controller.selectedFurniture != null) ...[
+                      FurnitureDragOverlay(
+                        pf: controller.selectedFurniture!,
+                        converter: converter,
+                        sceneOffset: sceneOrigin,
+                        onDragStarted: (item, rot, cell) {
+                          controller.draggingItem = item;
+                          controller.draggingRotation = rot;
+                          controller.ghostCell = cell;
+                          controller.ghostZ =
+                              controller.selectedFurniture?.z ?? 0.0;
+                          controller.draggingOriginalPF =
+                              controller.selectedFurniture;
+                          controller.selectFurniture(null);
+                        },
+                        onDragCanceled: controller.cancelDragging,
+                      ),
+                      DecorationToolbar(
+                        pf: controller.selectedFurniture!,
+                        converter: converter,
+                        sceneOffset: sceneOrigin,
+                        onRotate: () =>
+                            controller.rotateFurniture(converter),
+                        onDelete: () => controller.deleteFurniture(
+                          controller.selectedFurniture!,
+                        ),
+                        onFillAll: () => {},
+                        onDye: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => FurnitureDyeingDialog(
+                              pf: controller.selectedFurniture!,
+                              onVariantSelected: (variant) {
+                                controller.updatePlacedFurnitureVariant(
+                                  controller.selectedFurniture!,
+                                  variant,
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          }(),
         ],
       ),
     );
