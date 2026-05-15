@@ -17,6 +17,10 @@ import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/statistics/presentation/pages/statistics_page.dart';
 import 'package:island_diary/shared/widgets/frosted_rainbow.dart';
+import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
+import 'package:island_diary/features/record/presentation/widgets/scrolling_sun_background.dart';
+import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -354,21 +358,103 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   ).animate(target: isOpen ? 0 : 1).fade(duration: 400.ms);
                                 },
                               )
-                            : const SizedBox.shrink(),
+                            : (_currentNavIndex == 1 
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        "我的岛屿日记",
+                                        style: TextStyle(
+                                          color: isNight ? Colors.white : const Color(0xFF060606),
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        "${UserState().userName.value} 的小岛·第 ${UserState().savedDiaries.value.length} 天",
+                                        style: TextStyle(
+                                          color: isNight ? Colors.white54 : Colors.black54,
+                                          fontSize: 12,
+                                          fontFamily: 'LXGWWenKai',
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : const SizedBox.shrink()),
                           
                           Row(
                             children: [
-                              _buildTopIconButton(
-                                icon: _isLandscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
-                                isNight: isNight,
-                                onTap: _toggleOrientation,
-                              ),
                               if (_currentNavIndex == 0) ...[
-                                const SizedBox(width: 16),
                                 _buildTopIconButton(
-                                  icon: Icons.palette_outlined,
+                                  icon: _isLandscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
                                   isNight: isNight,
                                   onTap: _toggleOrientation,
+                                ),
+                                const SizedBox(width: 16),
+                                ValueListenableBuilder<String>(
+                                  valueListenable: UserState().homeDisplayMode,
+                                  builder: (context, mode, _) {
+                                    return Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (mode == 'house') ...[
+                                          _buildTopIconButton(
+                                            icon: Icons.chair_outlined,
+                                            isNight: isNight,
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(builder: (context) => const DecorationPage()),
+                                              );
+                                            },
+                                          ),
+                                          const SizedBox(width: 16),
+                                        ],
+                                        _buildTopIconButton(
+                                          icon: mode == 'island' ? Icons.cottage_outlined : Icons.landscape_outlined,
+                                          isNight: isNight,
+                                          onTap: () {
+                                            final nextMode = mode == 'island' ? 'house' : 'island';
+                                            UserState().setHomeDisplayMode(nextMode);
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ],
+                              if (_currentNavIndex == 1) ...[
+                                ValueListenableBuilder<int>(
+                                  valueListenable: UserState().diaryLayoutMode,
+                                  builder: (context, modeIndex, _) {
+                                    final mode = DiaryLayoutMode.values[modeIndex];
+                                    IconData icon;
+                                    if (mode == DiaryLayoutMode.calendar) {
+                                      icon = Icons.format_list_bulleted_rounded;
+                                    } else if (mode == DiaryLayoutMode.moments) {
+                                      icon = Icons.calendar_month_rounded;
+                                    } else {
+                                      icon = Icons.camera_rounded; // 朋友圈图标 (Moments)
+                                    }
+
+                                    return _buildTopIconButton(
+                                      icon: icon,
+                                      isNight: isNight,
+                                      onTap: () {
+                                        // 循环切换: 时间轴 -> 朋友圈 -> 日历
+                                        DiaryLayoutMode nextMode;
+                                        if (mode == DiaryLayoutMode.timeline) {
+                                          nextMode = DiaryLayoutMode.moments;
+                                        } else if (mode == DiaryLayoutMode.moments) {
+                                          nextMode = DiaryLayoutMode.calendar;
+                                        } else {
+                                          nextMode = DiaryLayoutMode.timeline;
+                                        }
+                                        UserState().setDiaryLayoutMode(nextMode.index);
+                                      },
+                                    );
+                                  },
                                 ),
                               ],
                             ],
@@ -434,13 +520,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildHomeContent(bool isNight, bool isWide) {
-    final islandPath = _getIslandImageForCurrentTime();
+    return MultiValueListenableBuilder(
+      listenables: [UserState().currentBackgroundPath, UserState().homeDisplayMode],
+      builder: (context, values, _) {
+        final currentBgPath = values[0] as String;
+        final displayMode = values[1] as String;
+        final islandPath = _getIslandImageForCurrentTime();
 
-    return ValueListenableBuilder<String>(
-      valueListenable: UserState().currentBackgroundPath,
-      builder: (context, currentBgPath, _) {
-        return Stack(
-          key: const ValueKey('HomeContent'),
+        return IndexedStack(
+          index: displayMode == 'house' ? 1 : 0,
+          children: [
+            _buildIslandContent(isNight, isWide, currentBgPath, islandPath),
+            _buildHouseContent(isNight, isWide),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildIslandContent(bool isNight, bool isWide, String currentBgPath, String islandPath) {
+    return Stack(
+      key: const ValueKey('island'),
           children: [
             Positioned.fill(
               child: AnimatedSwitcher(
@@ -462,7 +562,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               Positioned.fill(
                 child: FloatingClouds(
                   isNight: isNight,
-                  shouldAnimate: _currentNavIndex == 0,
+                  shouldAnimate: _currentNavIndex == 0 && UserState().homeDisplayMode.value == 'island',
                 ),
               ),
             
@@ -565,15 +665,101 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: FloatingClouds(
               isNight: isNight,
               isForeground: true,
-              shouldAnimate: _currentNavIndex == 0,
+              shouldAnimate: _currentNavIndex == 0 && UserState().homeDisplayMode.value == 'island',
             ),
           ),
         // 移除了内部的顶部操作栏，已提升至上层 Stack
       ],
     );
-  },
-);
-}
+  }
+
+  Widget _buildHouseContent(bool isNight, bool isWide) {
+    return ValueListenableBuilder<Uint8List?>(
+      valueListenable: UserState().decorationSnapshot,
+      builder: (context, snapshot, _) {
+        return Stack(
+          key: const ValueKey('house'),
+          children: [
+            // 1. 背景层
+            Positioned.fill(
+              child: ScrollingSunBackground(isNight: isNight),
+            ),
+            // 2. 气氛滤镜
+            Positioned.fill(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 1000),
+                decoration: BoxDecoration(
+                  gradient: isNight
+                      ? LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            const Color(0xFF2D1B10).withValues(alpha: 0.35), 
+                            const Color(0xFF1A0F0A).withValues(alpha: 0.55),
+                          ],
+                        )
+                      : LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            const Color(0xFFFFFFFF).withValues(alpha: 0.1),
+                            const Color(0xFFE5DED4).withValues(alpha: 0.35),
+                          ],
+                        ),
+                ),
+              ),
+            ),
+            // 3. 房屋快照
+            Positioned.fill(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  if (snapshot == null) {
+                    return Center(
+                      child: Text(
+                        "小屋还在装修中...",
+                        style: TextStyle(
+                          color: isNight ? Colors.white30 : Colors.black26,
+                          fontFamily: 'LXGWWenKai',
+                        ),
+                      ),
+                    );
+                  }
+
+                  // 复用类似 RecordPage 的比例计算，但为了首页美感稍作调整
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 60),
+                      child: AspectRatio(
+                        aspectRatio: 1.0, // 强制 1:1 容器
+                        child: Container(
+                          decoration: isNight ? BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF818CF8).withValues(alpha: 0.15),
+                                blurRadius: 100,
+                                spreadRadius: 20,
+                              ),
+                            ],
+                          ) : null,
+                          child: Center(
+                            child: Image.memory(
+                              snapshot,
+                              fit: BoxFit.contain,
+                            ).animate().fadeIn(duration: 800.ms).scale(begin: const Offset(0.95, 0.95)),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Widget _buildBarrageLayer() {
     return Stack(
@@ -661,9 +847,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               shape: BoxShape.circle,
               border: Border.all(
                 color: isNight 
-                  ? Colors.white.withValues(alpha: 0.1) 
+                  ? const Color(0xFFD4A373).withValues(alpha: 0.25) 
                   : Colors.black.withValues(alpha: 0.05),
-                width: 0.5,
+                width: 0.8,
               ),
             ),
             child: Icon(

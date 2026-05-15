@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/constants/legal_text.dart';
+import 'package:island_diary/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/shared/services/backup_service.dart';
 
@@ -155,6 +156,43 @@ class SettingsPage extends StatelessWidget {
                           ),
                         ],
                       ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0),
+                    ),
+                    
+                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                    // 危险区域
+                    SliverToBoxAdapter(
+                      child: _buildSection(
+                        title: '危险区域',
+                        isNight: isNight,
+                        children: [
+                          _buildPremiumTile(
+                            context,
+                            '抹除所有回忆',
+                            Icons.delete_forever_rounded,
+                            const Color(0xFFEF4444),
+                            isNight,
+                            onTap: () {
+                              _showActionDialog(
+                                context,
+                                '抹除所有回忆',
+                                '警告：此操作将永久删除该岛屿上的所有人生线、日记、房间布局及偏好设置。执行后岛屿将重回最初的状态。',
+                                isNight,
+                                onConfirm: () async {
+                                  await UserState().factoryReset();
+                                  if (context.mounted) {
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => const OnboardingPage()),
+                                      (route) => false,
+                                    );
+                                  }
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1, end: 0),
                     ),
                     
                     const SliverToBoxAdapter(child: SizedBox(height: 80)),

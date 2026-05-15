@@ -1,15 +1,19 @@
 import 'dart:async';
-import 'dart:ui';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
-
-import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
-import 'package:island_diary/features/record/presentation/pages/diary_photo_wall_page.dart';
-
-import '../widgets/scrolling_sun_background.dart';
+import 'package:island_diary/features/record/domain/models/diary_entry.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_search_panel.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_calendar_panel.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_share_card_builder.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_masonry_header.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_masonry_card.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_featured_card.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart'; 
+import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
@@ -18,401 +22,387 @@ class RecordPage extends StatefulWidget {
   State<RecordPage> createState() => _RecordPageState();
 }
 
-class _RecordPageState extends State<RecordPage>
-    with SingleTickerProviderStateMixin {
-  late ScrollController _scrollController;
-  late final ValueNotifier<double> _scrollOffsetNotifier;
-  double _aspectRatio = 1.0;
-  Timer? _thoughtTimer; 
+class _RecordPageState extends State<RecordPage> {
+  DateTime? _selectedDate;
+  String _searchQuery = "";
+  int? _filterMoodIndex;
+
+  late DiaryLayoutMode _layoutMode;
+  final GlobalKey _shareKey = GlobalKey();
+  bool _isCapturing = false;
+  List<DiaryEntry> _shareEntries = [];
+  String _shareTitle = "";
+  bool _isMonthShare = false;
+  bool _isBookShare = false;
+
+  late final ScrollController _scrollController;
+  late final ValueNotifier<DateTime> _headerDate;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    _scrollOffsetNotifier = ValueNotifier<double>(0.0);
-    _resolveImageSize();
-    UserState().decorationSnapshot.addListener(_onSnapshotChanged);
-  }
-
-  void _onSnapshotChanged() {
-    if (mounted) {
-      _resolveImageSize();
-    }
-  }
-
-  void _resolveImageSize() {
-    final snapshot = UserState().decorationSnapshot.value;
-    if (snapshot != null) {
-      final image = Image.memory(snapshot).image;
-      image
-          .resolve(ImageConfiguration.empty)
-          .addListener(
-            ImageStreamListener((ImageInfo info, bool _) {
-              if (mounted) {
-                setState(() {
-                  _aspectRatio = info.image.width / info.image.height;
-                });
-                _centerBackground();
-              }
-            }),
-          );
-    } else {
-      _aspectRatio = 16 / 9; // 默认比例
-      _centerBackground();
-    }
-  }
-
-  void _centerBackground() {
-    if (!mounted) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (_scrollController.hasClients &&
-          _scrollController.position.hasContentDimensions &&
-          _scrollController.position.maxScrollExtent > 0) {
-        final double maxScroll = _scrollController.position.maxScrollExtent;
-        _scrollController.jumpTo(maxScroll / 2);
-      }
-    });
+    _headerDate = ValueNotifier<DateTime>(DateTime.now());
+    _layoutMode = DiaryLayoutMode.values[UserState().diaryLayoutMode.value];
   }
 
   @override
   void dispose() {
-    _thoughtTimer?.cancel();
     _scrollController.dispose();
-    _scrollOffsetNotifier.dispose();
-    UserState().decorationSnapshot.removeListener(_onSnapshotChanged);
+    _headerDate.dispose();
     super.dispose();
+  }
+
+  void _setLayoutMode(DiaryLayoutMode mode) {
+    setState(() {
+      _layoutMode = mode;
+      UserState().setDiaryLayoutMode(mode.index);
+    });
+  }
+
+  void _cycleLayoutMode() {
+    setState(() {
+      if (_layoutMode == DiaryLayoutMode.calendar) {
+        _layoutMode = DiaryLayoutMode.timeline;
+      } else {
+        _layoutMode = DiaryLayoutMode.calendar;
+      }
+      UserState().setDiaryLayoutMode(_layoutMode.index);
+    });
+  }
+
+  IconData _getLayoutIcon() {
+    return _layoutMode == DiaryLayoutMode.calendar
+        ? Icons.format_list_bulleted_rounded
+        : Icons.calendar_month_rounded;
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<String>(
-      valueListenable: UserState().themeMode,
-      builder: (context, themeMode, _) {
-        return ValueListenableBuilder<Color>(
-          valueListenable: UserState().currentThemeColor,
-          builder: (context, themeColor, _) {
-            return Scaffold(
-              backgroundColor: themeColor,
-              body: Stack(
-                children: [
-                  // 1. 动态滚动太阳背景
-                  Positioned.fill(
-                    child: ScrollingSunBackground(isNight: UserState().isNight),
+    return MultiValueListenableBuilder(
+      listenables: [
+        UserState().themeMode,
+        UserState().diaryLayoutMode,
+      ],
+      builder: (context, values, _) {
+        final String themeMode = values[0] as String;
+        final int layoutIndex = values[1] as int;
+        
+        final bool isMoments = layoutIndex == DiaryLayoutMode.moments.index;
+        final bool isCalendar = layoutIndex == DiaryLayoutMode.calendar.index;
+        final bool isNight = UserState().isNight;
+
+        return Scaffold(
+          backgroundColor: isNight ? const Color(0xFF0D1B2A) : const Color(0xFFF7F5F0),
+          body: Stack(
+            children: [
+              // 背景层 (适配不同模式)
+              Positioned.fill(
+                child: AnimatedContainer(
+                  duration: 500.ms,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: isNight 
+                          ? [const Color(0xFF0D1B2A), const Color(0xFF13131F)]
+                          : [const Color(0xFFF7F2EC), const Color(0xFFF5F1EB)],
+                    ),
                   ),
-                  // 2. 气氛滤镜层 (支持昼夜动态过渡)
-                  Positioned.fill(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 1000),
-                      decoration: BoxDecoration(
-                        gradient: UserState().isNight
-                            ? LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  const Color(0xFF2D1B10).withValues(alpha: 0.35), 
-                                  const Color(0xFF1A0F0A).withValues(alpha: 0.55),
-                                ],
-                              )
-                            : LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  const Color(0xFFFFFFFF).withValues(alpha: 0.1),
-                                  const Color(0xFFE5DED4).withValues(alpha: 0.35),
-                                ],
+                ),
+              ),
+              // ... rest of the stack
+          
+          SafeArea(
+            child: Column(
+              children: [
+                // 留出空间给全局顶栏 (避免重叠)
+                const SizedBox(height: 80),
+                // 顶部标题与统计
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!isMoments && !isCalendar)
+                          ValueListenableBuilder<DateTime>(
+                            valueListenable: _headerDate,
+                            builder: (context, headerDate, _) {
+                              return DiaryMasonryHeader(
+                                isNight: isNight,
+                                userName: UserState().userName.value.isEmpty ? "我" : UserState().userName.value,
+                                islandDays: UserState().savedDiaries.value.length, // 暂时用日记数量模拟
+                                currentDate: headerDate,
+                                onCalendarTap: () => _setLayoutMode(DiaryLayoutMode.calendar),
+                              );
+                            },
+                          )
+                        else if (isCalendar)
+                          const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
+
+                Expanded(
+                  child: Center(
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 800),
+                      child: ValueListenableBuilder<List<DiaryEntry>>(
+                        valueListenable: UserState().savedDiaries,
+                        builder: (context, diaries, _) {
+                          if (isCalendar) {
+                            return DiaryCalendarPanel(
+                              isNight: isNight,
+                              onDateSelected: (date) {
+                                setState(() {
+                                  _selectedDate = date;
+                                  _headerDate.value = date;
+                                  _setLayoutMode(DiaryLayoutMode.timeline);
+                                });
+                              },
+                              onShareMonth: _shareCurrentMonth,
+                            );
+                          }
+
+                          final filtered = diaries.where((d) {
+                            final matchesDate = _selectedDate == null ||
+                                (d.dateTime.year == _selectedDate!.year &&
+                                    d.dateTime.month == _selectedDate!.month &&
+                                    d.dateTime.day == _selectedDate!.day);
+                            final matchesSearch = _searchQuery.isEmpty || d.content.contains(_searchQuery);
+                            final matchesMood = _filterMoodIndex == null || d.moodIndex == _filterMoodIndex;
+                            return matchesDate && matchesSearch && matchesMood;
+                          }).toList();
+
+                          if (filtered.isEmpty && !isMoments) {
+                            return Center(
+                              child: Text(
+                                _searchQuery.isEmpty ? "还没有心情记录呢..." : "没找到相关记录哦~",
+                                style: TextStyle(
+                                  color: isNight ? Colors.white30 : Colors.black26,
+                                  fontFamily: 'ArphicKaiti',
+                                ),
                               ),
+                            );
+                          }
+
+                          return NotificationListener<ScrollNotification>(
+                            onNotification: (notification) {
+                              if (filtered.isEmpty) return false;
+                              final double offset = _scrollController.offset;
+                              final int crossAxisCount = MediaQuery.of(context).size.width > 800 ? 3 : 2;
+                              int index = 0;
+                              if (offset < 260) {
+                                index = 0;
+                              } else {
+                                double masonryOffset = offset - 260;
+                                int row = (masonryOffset / 220).floor(); 
+                                index = 1 + row * crossAxisCount;
+                              }
+                              if (index >= filtered.length) index = filtered.length - 1;
+                              if (index < 0) index = 0;
+                              final targetDate = filtered[index].dateTime;
+                              if (_headerDate.value.day != targetDate.day) {
+                                _headerDate.value = targetDate;
+                              }
+                              return false;
+                            },
+                            child: CustomScrollView(
+                              controller: _scrollController,
+                              slivers: [
+                                if (filtered.isNotEmpty)
+                                  SliverToBoxAdapter(
+                                    child: DiaryFeaturedCard(
+                                      entry: filtered.first,
+                                      isNight: isNight,
+                                    ),
+                                  ),
+                                SliverPadding(
+                                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                                  sliver: SliverMasonryGrid.count(
+                                    crossAxisCount: MediaQuery.of(context).size.width > 800 ? 3 : 2,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                    childCount: filtered.length > 1 ? filtered.length - 1 : 0,
+                                    itemBuilder: (context, index) {
+                                      return DiaryMasonryCard(
+                                        entry: filtered[index + 1],
+                                        isNight: isNight,
+                                        index: index + 1,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
+                ),
+              ],
+            ),
+          ),
 
-                  Positioned.fill(
-                    child: ValueListenableBuilder<Uint8List?>(
-                      valueListenable: UserState().decorationSnapshot,
-                      builder: (context, snapshot, _) {
-                        return LayoutBuilder(
-                          builder: (context, constraints) {
-                            if (constraints.maxHeight <= 0 ||
-                                constraints.maxWidth <= 0) {
-                              return const SizedBox.shrink();
-                            }
+          // 右下角工具栏
+          Positioned(
+            right: 20,
+            bottom: 100,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildFloatingToolBtn(
+                  icon: Icons.search_rounded,
+                  onTap: _showSearch,
+                  isNight: isNight,
+                  label: "搜索",
+                ),
+              ],
+            ),
+          ),
 
-                            final isLandscape =
-                                constraints.maxWidth > constraints.maxHeight;
-                            double scale = isLandscape ? 1.4 : 1.0;
-
-                            if (snapshot != null) {
-                              double targetH = constraints.maxHeight * 0.68; // 提升显示比例
-                              double targetW = targetH * _aspectRatio;
-
-                              if (targetW > constraints.maxWidth * 0.95) {
-                                targetW = constraints.maxWidth * 0.95;
-                                targetH = targetW / _aspectRatio;
-                              }
-                              scale = targetH / constraints.maxHeight;
-                            }
-
-                            final h = constraints.maxHeight * scale;
-                            final fullWidth = h * _aspectRatio;
-
-                            return Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // 1. 房屋快照容器
-                                  Container(
-                                    width: double.infinity,
-                                    height: constraints.maxHeight * 0.65,
-                                    decoration: UserState().isNight ? BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFF818CF8).withValues(alpha: 0.15),
-                                          blurRadius: 100,
-                                          spreadRadius: 20,
-                                        ),
-                                      ],
-                                    ) : null,
-                                    child: Center(
-                                      child: SizedBox(
-                                        width: fullWidth,
-                                        height: h,
-                                        child: _buildBackground(
-                                          null,
-                                          snapshot,
-                                          h,
-                                          fullWidth,
-                                          Colors.transparent,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+          if (_isCapturing)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black54,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(color: Colors.white),
+                      const SizedBox(height: 16),
+                      Text(
+                        _isBookShare ? "正在编撰岁月之书..." : "正在制作分享卡片...",
+                        style: const TextStyle(color: Colors.white, fontFamily: 'ArphicKaiti'),
+                      ),
+                    ],
                   ),
-                  
-                  // 3. 侧边功能缎带 (方案 A)
-                  _buildSideActionRibbon(),
-                ],
+                ),
               ),
-            );
-          },
-        );
+            ),
+            
+          if (_isCapturing)
+            Positioned(
+              left: -2000,
+              top: 0,
+              child: DiaryShareCardBuilder(
+                boundaryKey: _shareKey,
+                entries: _shareEntries,
+                title: _shareTitle,
+                isMonthMode: _isMonthShare,
+                isBookMode: _isBookShare,
+              ),
+            ),
+        ],
+      ),
+    );
       },
     );
   }
 
-
-
-
-  Widget _buildSideActionRibbon() {
-    return Positioned(
-      right: 12,
-      top: 0,
-      bottom: 0,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildStampItem(
-              icon: Icons.auto_stories_rounded,
-              label: "回忆",
-              onTap: () => _openHistoryTimeline(),
-              delay: 300.ms,
+  Widget _buildFloatingToolBtn({
+    required IconData icon,
+    required VoidCallback onTap,
+    required bool isNight,
+    required String label,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: isNight ? const Color(0xFF2C2E30) : Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            _buildStampItem(
-              icon: Icons.collections_rounded,
-              label: "照片墙",
-              onTap: () => _openPhotoWall(),
-              delay: 400.ms,
+            child: Icon(icon, size: 24, color: isNight ? Colors.white70 : Colors.black87),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: isNight ? Colors.white54 : Colors.black45,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 16),
-            _buildStampItem(
-              icon: Icons.bar_chart_rounded,
-              label: "统计",
-              onTap: () {},
-              delay: 500.ms,
-              opacity: 0.5,
-            ),
-            const SizedBox(height: 16),
-            _buildStampItem(
-              icon: Icons.emoji_events_rounded,
-              label: "成就",
-              onTap: () {},
-              delay: 600.ms,
-              opacity: 0.5,
-            ),
-            const SizedBox(height: 16),
-            _buildStampItem(
-              icon: Icons.chair_outlined,
-              label: "装修",
-              onTap: () => _openDecorationPage(),
-              delay: 750.ms,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildStampItem({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    required Duration delay,
-    double opacity = 1.0,
-  }) {
-    final isNight = UserState().isNight;
-    final primaryColor = isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF5D4037);
-    
-    return Opacity(
-      opacity: opacity,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isNight 
-                    ? Colors.white.withValues(alpha: 0.1) 
-                    : Colors.white.withValues(alpha: 0.65),
-                border: Border.all(
-                  color: isNight 
-                      ? Colors.white.withValues(alpha: 0.2) 
-                      : const Color(0xFF5D4037).withValues(alpha: 0.15),
-                  width: 1.0,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isNight 
-                        ? const Color(0xFF818CF8).withValues(alpha: 0.3) // 夜晚使用月光蓝发光
-                        : Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 12,
-                    offset: isNight ? Offset.zero : const Offset(0, 5),
-                    spreadRadius: isNight ? 2 : 0,
-                  ),
-                ],
-              ),
-              child: ClipOval(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Center(
-                    child: Icon(
-                      icon,
-                      color: primaryColor,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: primaryColor.withValues(alpha: 0.8),
-                fontFamily: 'LXGWWenKai',
-                letterSpacing: 1.0,
-              ),
-            ),
-          ],
-        ),
-      ).animate().fadeIn(duration: 600.ms, delay: delay).scale(begin: const Offset(0.8, 0.8)),
-    );
-  }
-
-  Widget _buildBackground(
-    String? bgPath,
-    Uint8List? snapshot,
-    double h,
-    double w,
-    Color bgColor,
-  ) {
-    return _ParallaxBackground(
-      bgPath: bgPath,
-      snapshot: snapshot,
-      h: h,
-      w: w,
-      bgColor: bgColor,
-    );
-  }
-
-  Future<void> _openDecorationPage() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const DecorationPage()),
-    );
-  }
-
-  Future<void> _openPhotoWall() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const DiaryPhotoWallPage()),
-    );
-  }
-
-  Future<void> _openHistoryTimeline() async {
-    await showGeneralDialog(
+  void _showSearch() {
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: true,
-      barrierLabel: 'HistoryTimeline',
-      barrierColor: Colors.black.withValues(alpha: 0.4),
-      transitionDuration: const Duration(milliseconds: 600),
-      pageBuilder: (context, anim1, anim2) {
-        return DiaryHistoryOverlay(onClose: () => Navigator.pop(context));
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(opacity: animation, child: child);
-      },
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => DiarySearchPanel(
+        isNight: UserState().isNight,
+        initialDate: _selectedDate,
+        onSearch: (q, m, d) {
+          setState(() {
+            _searchQuery = q;
+            _filterMoodIndex = m;
+            if (d != null) {
+              _selectedDate = d;
+              _headerDate.value = d;
+            }
+          });
+        },
+        onClear: () {
+          setState(() {
+            _searchQuery = "";
+            _filterMoodIndex = null;
+            _selectedDate = null;
+          });
+        },
+      ),
     );
   }
-}
 
-class _ParallaxBackground extends StatelessWidget {
-  final String? bgPath;
-  final Uint8List? snapshot;
-  final double h;
-  final double w;
-  final Color bgColor;
 
-  const _ParallaxBackground({
-    this.bgPath,
-    this.snapshot,
-    required this.h,
-    required this.w,
-    required this.bgColor,
-  });
+  Future<void> _shareCurrentMonth([DateTime? date]) async {
+    final now = date ?? _selectedDate ?? DateTime.now();
+    final monthEntries = UserState().savedDiaries.value
+        .where((d) => d.dateTime.year == now.year && d.dateTime.month == now.month)
+        .toList();
+    if (monthEntries.isEmpty) return;
+    setState(() {
+      _shareEntries = monthEntries;
+      _shareTitle = "${now.year}年${now.month}月度总结";
+      _isMonthShare = true;
+      _isBookShare = false;
+      _isCapturing = true;
+    });
+    await _executeCaptureAndShare("diary_month_${now.millisecondsSinceEpoch}.png");
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // 1. 背景材质/图片
-        if (bgPath != null)
-          Positioned.fill(
-            child: Image.asset(bgPath!, fit: BoxFit.cover),
-          )
-        else
-          Positioned.fill(child: Container(color: bgColor)),
-
-        // 2. 房屋快照
-        if (snapshot != null)
-          Positioned.fill(
-            child: Image.memory(snapshot!, fit: BoxFit.cover),
-          ),
-      ],
-    );
+  Future<void> _executeCaptureAndShare(String fileName) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final bytes = await DiaryUtils.captureWidgetToImage(_shareKey);
+    if (bytes == null) {
+      setState(() => _isCapturing = false);
+      return;
+    }
+    final path = await DiaryUtils.saveImageToTempFile(bytes, fileName: fileName);
+    setState(() => _isCapturing = false);
+    if (path != null) {
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(path)], text: '分享我在岛屿日记的点滴记录 ✨'),
+      );
+    }
   }
 }

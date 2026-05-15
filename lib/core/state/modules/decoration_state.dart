@@ -11,33 +11,33 @@ mixin DecorationMixin {
   final ValueNotifier<Uint8List?> decorationSnapshot = ValueNotifier<Uint8List?>(null);
 
   Future<void> loadDecoration(SharedPreferences prefs) async {
-    final snapshotBase64 = prefs.getString(_K.decorationSnapshot);
+    final snapshotBase64 = prefs.getString(UserState().n(_K.decorationSnapshot));
     if (snapshotBase64 != null) {
       try {
         decorationSnapshot.value = base64Decode(snapshotBase64);
       } catch (_) {}
     }
-    final l = prefs.getInt(_K.wallColorLeft);
+    final l = prefs.getInt(UserState().n(_K.wallColorLeft));
     if (l != null) {
       wallColorLeft.value = Color(l);
     }
-    final r = prefs.getInt(_K.wallColorRight);
+    final r = prefs.getInt(UserState().n(_K.wallColorRight));
     if (r != null) {
       wallColorRight.value = Color(r);
     }
-    final pattern = prefs.getInt(_K.wallPattern);
+    final pattern = prefs.getInt(UserState().n(_K.wallPattern));
     if (pattern != null) {
       wallPattern.value = pattern;
     }
-    final floor = prefs.getInt(_K.floorColor);
+    final floor = prefs.getInt(UserState().n(_K.floorColor));
     if (floor != null) {
       floorColor.value = Color(floor);
     }
-    final fPattern = prefs.getInt(_K.floorPattern);
+    final fPattern = prefs.getInt(UserState().n(_K.floorPattern));
     if (fPattern != null) {
       floorPattern.value = fPattern;
     }
-    final f = prefs.getString(_K.placedFurniture);
+    final f = prefs.getString(UserState().n(_K.placedFurniture));
     if (f != null) {
       try {
         final decoded = jsonDecode(f) as List;
@@ -49,13 +49,13 @@ mixin DecorationMixin {
   Future<void> setDecorationSnapshot(Uint8List? bytes) async {
     decorationSnapshot.value = bytes;
     final prefs = await SharedPreferences.getInstance();
-    bytes != null ? await prefs.setString(_K.decorationSnapshot, base64Encode(bytes)) : await prefs.remove(_K.decorationSnapshot);
+    bytes != null ? await prefs.setString(UserState().n(_K.decorationSnapshot), base64Encode(bytes)) : await prefs.remove(UserState().n(_K.decorationSnapshot));
   }
 
   Future<void> savePlacedFurniture(List<PlacedFurniture> list) async {
     placedFurniture.value = list;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_K.placedFurniture, jsonEncode(list.map((e) => e.toMap()).toList()));
+    await prefs.setString(UserState().n(_K.placedFurniture), jsonEncode(list.map((e) => e.toMap()).toList()));
   }
 
   Future<void> saveSceneColors(Color left, Color right, Color floor) async {
@@ -63,11 +63,11 @@ mixin DecorationMixin {
     wallColorRight.value = right;
     floorColor.value = floor;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_K.wallColorLeft, left.toARGB32());
-    await prefs.setInt(_K.wallColorRight, right.toARGB32());
-    await prefs.setInt(_K.wallPattern, wallPattern.value);
-    await prefs.setInt(_K.floorColor, floor.toARGB32());
-    await prefs.setInt(_K.floorPattern, floorPattern.value);
+    await prefs.setInt(UserState().n(_K.wallColorLeft), left.toARGB32());
+    await prefs.setInt(UserState().n(_K.wallColorRight), right.toARGB32());
+    await prefs.setInt(UserState().n(_K.wallPattern), wallPattern.value);
+    await prefs.setInt(UserState().n(_K.floorColor), floor.toARGB32());
+    await prefs.setInt(UserState().n(_K.floorPattern), floorPattern.value);
   }
 
   Future<void> saveWallColors(Color left, Color right) async {
@@ -77,12 +77,12 @@ mixin DecorationMixin {
   Future<void> saveWallPattern(int pattern) async {
     wallPattern.value = pattern;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_K.wallPattern, pattern);
+    await prefs.setInt(UserState().n(_K.wallPattern), pattern);
   }
 
   Future<void> saveFloorPattern(int pattern) async {
     floorPattern.value = pattern;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_K.floorPattern, pattern);
+    await prefs.setInt(UserState().n(_K.floorPattern), pattern);
   }
 }

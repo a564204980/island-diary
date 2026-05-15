@@ -48,7 +48,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 : const Color(0xFFFDF7E9),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: widget.isNight ? Colors.white10 : const Color(0xFFE8D5B5),
+              color: widget.isNight 
+                ? const Color(0xFFD4A373).withValues(alpha: 0.2) 
+                : const Color(0xFFE8D5B5),
             ),
           ),
           child: Column(
@@ -266,7 +268,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           decoration: BoxDecoration(
             color: barBgColor,
             borderRadius: BorderRadius.circular(27),
-            border: Border.all(color: inkColor.withValues(alpha: 0.1), width: 0.5),
+            border: Border.all(
+              color: isNight 
+                ? const Color(0xFFD4A373).withValues(alpha: 0.15) 
+                : inkColor.withValues(alpha: 0.1), 
+              width: 0.5
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.12),
@@ -433,15 +440,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         CustomPaint(
           size: const Size(double.infinity, 2),
           painter: HandDrawnLinePainter(
-            color: _effectiveIsNight
-                ? DiaryUtils.getInkColor(
-                    _currentEntry.paperStyle,
-                    _effectiveIsNight,
-                  ).withValues(alpha: 0.1)
-                : DiaryUtils.getInkColor(
-                    _currentEntry.paperStyle,
-                    _effectiveIsNight,
-                  ).withValues(alpha: 0.3),
+            color: const Color(0xFFD4A373).withValues(alpha: _effectiveIsNight ? 0.15 : 0.3),
             strokeWidth: 1.5,
           ),
         ),

@@ -6,7 +6,6 @@ import 'package:island_diary/features/home/presentation/pages/home_page.dart';
 import 'package:island_diary/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:island_diary/shared/widgets/security/security_guard.dart';
 
-
 void main() async {
   // 确保 Flutter 底层绑定初始化完毕
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,10 +20,10 @@ void main() async {
 class AppScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-        PointerDeviceKind.trackpad,
-      };
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+  };
 }
 
 class IslandDiaryApp extends StatelessWidget {
@@ -49,6 +48,15 @@ class IslandDiaryApp extends StatelessWidget {
             useMaterial3: true,
             scaffoldBackgroundColor: const Color(0xFFE6F3F5),
             fontFamily: 'ArphicKaiti',
+            bottomSheetTheme: const BottomSheetThemeData(
+              showDragHandle: true,
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              ),
+            ),
           ),
           darkTheme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
@@ -57,20 +65,27 @@ class IslandDiaryApp extends StatelessWidget {
             ),
             useMaterial3: true,
             scaffoldBackgroundColor: const Color(0xFF0D1B2A),
-            fontFamily: 'ArphicKaiti',
+            fontFamily: 'LXGWWenKai',
+            bottomSheetTheme: const BottomSheetThemeData(
+              showDragHandle: true,
+              backgroundColor: Color(0xFF1A1A1A),
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              ),
+            ),
           ),
           themeMode: userState.isNight ? ThemeMode.dark : ThemeMode.light,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('zh', 'CN'),
-      ],
-      locale: const Locale('zh', 'CN'),
-      builder: (context, child) => SecurityGuard(child: child!),
-      home: startWithHome ? const HomePage() : const OnboardingPage(),
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('zh', 'CN')],
+          locale: const Locale('zh', 'CN'),
+          builder: (context, child) => SecurityGuard(child: child!),
+          home: startWithHome ? const HomePage() : const OnboardingPage(),
         );
       },
     );

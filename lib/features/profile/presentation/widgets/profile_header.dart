@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/features/profile/presentation/widgets/life_line_switcher_sheet.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/features/profile/presentation/pages/profile_edit_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/settings_page.dart';
@@ -129,22 +130,43 @@ class ProfileHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        ValueListenableBuilder<String>(
-          valueListenable: userState.userName,
-          builder: (context, name, _) {
-            return Text(
-              name.isEmpty ? '海岛新居民' : name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: isNight ? Colors.white : const Color(0xFF1F2937),
-                fontFamily: 'LXGWWenKai',
-                letterSpacing: 1.5,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            ValueListenableBuilder<String>(
+              valueListenable: userState.userName,
+              builder: (context, name, _) {
+                return Text(
+                  name.isEmpty ? '海岛新居民' : name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: isNight ? Colors.white : const Color(0xFF1F2937),
+                    fontFamily: 'LXGWWenKai',
+                    letterSpacing: 1.5,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(width: 12),
+            GestureDetector(
+              onTap: () => _showLifeLineSwitcher(context),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: isNight ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.alt_route_rounded,
+                  size: 16,
+                  color: isNight ? Colors.white70 : Colors.black54,
+                ),
               ),
-            );
-          },
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         ValueListenableBuilder<String>(
@@ -345,6 +367,13 @@ class ProfileHeader extends StatelessWidget {
       leading: Icon(icon, color: isNight ? Colors.white70 : Colors.black54),
       title: Text(label, style: TextStyle(color: isNight ? Colors.white : Colors.black87, fontFamily: 'LXGWWenKai')),
       onTap: onTap,
+    );
+  }
+  void _showLifeLineSwitcher(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => const LifeLineSwitcherSheet(),
     );
   }
 }

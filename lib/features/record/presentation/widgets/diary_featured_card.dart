@@ -19,18 +19,18 @@ class DiaryFeaturedCard extends StatelessWidget {
     final imagePath = images.isNotEmpty ? images.first['path'] : null;
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
-    
+
     // In full-overlay mode, we generally use white text with a dark gradient overlay
     final Color textColor = Colors.white;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      height: 240, 
+      height: 240,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isNight ? Colors.white.withValues(alpha: 0.15) : Colors.white,
-          width: 2,
+          color: const Color(0xFFD4A373).withValues(alpha: isNight ? 0.8 : 0.6),
+          width: 2.0,
         ),
         boxShadow: [
           BoxShadow(
@@ -58,8 +58,10 @@ class DiaryFeaturedCard extends StatelessWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        mood.glowColor?.withValues(alpha: 0.8) ?? const Color(0xFFD4A373),
-                        mood.glowColor?.withValues(alpha: 0.4) ?? const Color(0xFFD4A373).withValues(alpha: 0.5),
+                        mood.glowColor?.withValues(alpha: 0.8) ??
+                            const Color(0xFFD4A373),
+                        mood.glowColor?.withValues(alpha: 0.4) ??
+                            const Color(0xFFD4A373).withValues(alpha: 0.5),
                       ],
                     ),
                   ),
@@ -114,10 +116,18 @@ class DiaryFeaturedCard extends StatelessWidget {
                   // Tags Row
                   Row(
                     children: [
-                      _buildTag(mood.label, iconPath: mood.iconPath, isOverlay: true),
+                      _buildTag(
+                        mood.label,
+                        iconPath: mood.iconPath,
+                        isOverlay: true,
+                      ),
                       if (entry.tag != null && entry.tag!.isNotEmpty) ...[
                         const SizedBox(width: 8),
-                        _buildTag(entry.tag!, icon: Icons.local_florist_rounded, isOverlay: true),
+                        _buildTag(
+                          entry.tag!,
+                          icon: Icons.local_florist_rounded,
+                          isOverlay: true,
+                        ),
                       ],
                     ],
                   ),
@@ -135,9 +145,14 @@ class DiaryFeaturedCard extends StatelessWidget {
                           fontFamily: 'ArphicKaiti',
                         ),
                       ),
-                      if (entry.weather != null && entry.weather!.isNotEmpty) ...[
+                      if (entry.weather != null &&
+                          entry.weather!.isNotEmpty) ...[
                         const SizedBox(width: 8),
-                        Icon(Icons.wb_sunny_rounded, size: 16, color: Colors.amber.withValues(alpha: 0.9)),
+                        Icon(
+                          Icons.wb_sunny_rounded,
+                          size: 16,
+                          color: Colors.amber.withValues(alpha: 0.9),
+                        ),
                       ],
                     ],
                   ),
@@ -158,7 +173,11 @@ class DiaryFeaturedCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: const Align(
                     alignment: Alignment.topCenter,
-                    child: Icon(Icons.star_rounded, color: Colors.white, size: 18),
+                    child: Icon(
+                      Icons.star_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                 ),
               ),
@@ -184,7 +203,10 @@ class DiaryFeaturedCard extends StatelessWidget {
                     ],
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: DiaryUtils.buildImage(images.last['path'], fit: BoxFit.cover),
+                  child: DiaryUtils.buildImage(
+                    images.last['path'],
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
           ],
@@ -193,7 +215,12 @@ class DiaryFeaturedCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTag(String text, {String? iconPath, IconData? icon, bool isOverlay = false}) {
+  Widget _buildTag(
+    String text, {
+    String? iconPath,
+    IconData? icon,
+    bool isOverlay = false,
+  }) {
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
     final themeColor = mood.glowColor ?? const Color(0xFFD4A373);
@@ -201,11 +228,14 @@ class DiaryFeaturedCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: isOverlay 
-          ? Colors.white.withValues(alpha: 0.15) 
-          : themeColor.withValues(alpha: 0.3),
+        color: isOverlay
+            ? Colors.white.withValues(alpha: 0.15)
+            : themeColor.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
-        border: isOverlay ? Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1) : null,
+        border: Border.all(
+          color: const Color(0xFFD4A373).withValues(alpha: isNight ? 0.6 : 0.4),
+          width: 1.0,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

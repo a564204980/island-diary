@@ -11,6 +11,7 @@ import 'package:island_diary/core/models/daily_task.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/core/models/mascot_event.dart';
+import 'package:island_diary/core/models/life_line_profile.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';
 import 'package:island_diary/features/record/domain/models/placed_furniture.dart';
@@ -24,6 +25,7 @@ part 'modules/decoration_state.dart';
 part 'modules/security_state.dart';
 part 'modules/achievement_state.dart';
 part 'modules/preference_state.dart';
+part 'modules/life_line_state.dart';
 
 class _K {
   static const userName = 'user_name';
@@ -100,10 +102,13 @@ class _K {
   static const isGlassesOverlayEnabled = 'is_glasses_overlay_enabled';
   static const isGlassesAboveHat = 'is_glasses_above_hat';
   static const mascotType = 'selected_mascot_type';
+  static const homeDisplayMode = 'home_display_mode';
+  static const lifeLineList = 'life_line_list';
+  static const currentLifeLineId = 'current_life_line_id';
 }
 
 /// 聚合状态管理类
-class UserState with ProfileMixin, DiaryMixin, DecorationMixin, SecurityMixin, AchievementMixin, PreferenceMixin {
+class UserState with LifeLineMixin, ProfileMixin, DiaryMixin, DecorationMixin, SecurityMixin, AchievementMixin, PreferenceMixin {
   static final UserState _instance = UserState._internal();
   factory UserState() => _instance;
   UserState._internal();
@@ -111,6 +116,7 @@ class UserState with ProfileMixin, DiaryMixin, DecorationMixin, SecurityMixin, A
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
     
+    loadLifeLines(prefs); // 首先加载人生线，以确定命名空间
     loadProfile(prefs);
     await loadDiaries(prefs);
     await loadDecoration(prefs);
@@ -123,19 +129,20 @@ class UserState with ProfileMixin, DiaryMixin, DecorationMixin, SecurityMixin, A
   Future<void> factoryReset() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    
+    // 重置内存状态
     userName.value = '';
-    isVip.value = false;
-    isAppLockEnabled.value = false;
-    appLockPin.value = '';
-    isBiometricEnabled.value = false;
-    isMistModeEnabled.value = false;
-    destructionCode.value = '';
-    customAvatarPath.value = null;
+    userBio.value = '';
+    lifeLines.value = [];
+    currentLifeLineId.value = 'default';
     savedDiaries.value = [];
     placedFurniture.value = [];
-    diaryDraft.value = null;
-    ownedDecorationIds.value = _defaultOwnedIds;
-    unlockedMascotPaths.value = ['assets/images/emoji/marshmallow2.png'];
+    
+    // 重新从空白状态初始化
+    loadLifeLines(prefs);
+    loadProfile(prefs);
+    await loadDiaries(prefs);
+    await loadDecoration(prefs);
   }
 
   void dispose() {

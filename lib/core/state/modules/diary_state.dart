@@ -7,28 +7,28 @@ mixin DiaryMixin on ProfileMixin {
   final ValueNotifier<bool> isDiarySheetOpen = ValueNotifier<bool>(false);
 
   Future<void> loadDiaries(SharedPreferences prefs) async {
-    final draftContent = prefs.getString(_K.draftContent);
+    final draftContent = prefs.getString(UserState().n(_K.draftContent));
     if (draftContent != null) {
-      final blocksJson = prefs.getString(_K.draftBlocks);
+      final blocksJson = prefs.getString(UserState().n(_K.draftBlocks));
       diaryDraft.value = DiaryDraft(
         content: draftContent,
-        moodIndex: prefs.getInt(_K.draftMood),
-        intensity: prefs.getDouble(_K.draftIntensity) ?? 5.0,
-        tag: prefs.getString(_K.draftTag),
-        weather: prefs.getString(_K.draftWeather),
-        temp: prefs.getString(_K.draftTemp),
-        location: prefs.getString(_K.draftLocation),
-        customDate: prefs.getString(_K.draftCustomDate),
-        customTime: prefs.getString(_K.draftCustomTime),
-        dateTime: prefs.getString(_K.draftDateTime) != null ? DateTime.tryParse(prefs.getString(_K.draftDateTime)!) : null,
+        moodIndex: prefs.getInt(UserState().n(_K.draftMood)),
+        intensity: prefs.getDouble(UserState().n(_K.draftIntensity)) ?? 5.0,
+        tag: prefs.getString(UserState().n(_K.draftTag)),
+        weather: prefs.getString(UserState().n(_K.draftWeather)),
+        temp: prefs.getString(UserState().n(_K.draftTemp)),
+        location: prefs.getString(UserState().n(_K.draftLocation)),
+        customDate: prefs.getString(UserState().n(_K.draftCustomDate)),
+        customTime: prefs.getString(UserState().n(_K.draftCustomTime)),
+        dateTime: prefs.getString(UserState().n(_K.draftDateTime)) != null ? DateTime.tryParse(prefs.getString(UserState().n(_K.draftDateTime))!) : null,
         blocks: blocksJson != null ? (jsonDecode(blocksJson) as List).map((e) => Map<String, dynamic>.from(e)).toList() : null,
-        paperStyle: prefs.getString(_K.draftPaperStyle) ?? 'note1',
-        isImageGrid: prefs.getBool(_K.draftIsImageGrid) ?? false,
-        isMixedLayout: prefs.getBool(_K.draftIsMixedLayout) ?? (isVip.value && !(prefs.getBool(_K.draftIsImageGrid) ?? false)),
+        paperStyle: prefs.getString(UserState().n(_K.draftPaperStyle)) ?? 'note1',
+        isImageGrid: prefs.getBool(UserState().n(_K.draftIsImageGrid)) ?? false,
+        isMixedLayout: prefs.getBool(UserState().n(_K.draftIsMixedLayout)) ?? (isVip.value && !(prefs.getBool(UserState().n(_K.draftIsImageGrid)) ?? false)),
       );
     }
     
-    final s = prefs.getString(_K.savedDiaries);
+    final s = prefs.getString(UserState().n(_K.savedDiaries));
     if (s != null) {
       try {
         final decoded = jsonDecode(s) as List;
@@ -55,29 +55,29 @@ mixin DiaryMixin on ProfileMixin {
       paperStyle: paperStyle ?? 'note1', isImageGrid: isImageGrid ?? false, isMixedLayout: isMixedLayout ?? (isVip.value && !(isImageGrid ?? false)),
     );
     final sp = await SharedPreferences.getInstance();
-    await sp.setString(_K.draftContent, content);
-    await sp.setInt(_K.draftMood, moodIndex ?? -1);
-    await sp.setDouble(_K.draftIntensity, intensity);
-    tag != null ? await sp.setString(_K.draftTag, tag) : await sp.remove(_K.draftTag);
+    await sp.setString(UserState().n(_K.draftContent), content);
+    await sp.setInt(UserState().n(_K.draftMood), moodIndex ?? -1);
+    await sp.setDouble(UserState().n(_K.draftIntensity), intensity);
+    tag != null ? await sp.setString(UserState().n(_K.draftTag), tag) : await sp.remove(UserState().n(_K.draftTag));
     if (blocks != null) {
-      await sp.setString(_K.draftBlocks, jsonEncode(blocks));
+      await sp.setString(UserState().n(_K.draftBlocks), jsonEncode(blocks));
     }
-    weather != null ? await sp.setString(_K.draftWeather, weather) : await sp.remove(_K.draftWeather);
-    temp != null ? await sp.setString(_K.draftTemp, temp) : await sp.remove(_K.draftTemp);
-    location != null ? await sp.setString(_K.draftLocation, location) : await sp.remove(_K.draftLocation);
-    customDate != null ? await sp.setString(_K.draftCustomDate, customDate) : await sp.remove(_K.draftCustomDate);
-    customTime != null ? await sp.setString(_K.draftCustomTime, customTime) : await sp.remove(_K.draftCustomTime);
-    dateTime != null ? await sp.setString(_K.draftDateTime, dateTime.toIso8601String()) : await sp.remove(_K.draftDateTime);
-    paperStyle != null ? await sp.setString(_K.draftPaperStyle, paperStyle) : await sp.remove(_K.draftPaperStyle);
-    isImageGrid != null ? await sp.setBool(_K.draftIsImageGrid, isImageGrid) : await sp.remove(_K.draftIsImageGrid);
-    isMixedLayout != null ? await sp.setBool(_K.draftIsMixedLayout, isMixedLayout) : await sp.remove(_K.draftIsMixedLayout);
+    weather != null ? await sp.setString(UserState().n(_K.draftWeather), weather) : await sp.remove(UserState().n(_K.draftWeather));
+    temp != null ? await sp.setString(UserState().n(_K.draftTemp), temp) : await sp.remove(UserState().n(_K.draftTemp));
+    location != null ? await sp.setString(UserState().n(_K.draftLocation), location) : await sp.remove(UserState().n(_K.draftLocation));
+    customDate != null ? await sp.setString(UserState().n(_K.draftCustomDate), customDate) : await sp.remove(UserState().n(_K.draftCustomDate));
+    customTime != null ? await sp.setString(UserState().n(_K.draftCustomTime), customTime) : await sp.remove(UserState().n(_K.draftCustomTime));
+    dateTime != null ? await sp.setString(UserState().n(_K.draftDateTime), dateTime.toIso8601String()) : await sp.remove(UserState().n(_K.draftDateTime));
+    paperStyle != null ? await sp.setString(UserState().n(_K.draftPaperStyle), paperStyle) : await sp.remove(UserState().n(_K.draftPaperStyle));
+    isImageGrid != null ? await sp.setBool(UserState().n(_K.draftIsImageGrid), isImageGrid) : await sp.remove(UserState().n(_K.draftIsImageGrid));
+    isMixedLayout != null ? await sp.setBool(UserState().n(_K.draftIsMixedLayout), isMixedLayout) : await sp.remove(UserState().n(_K.draftIsMixedLayout));
   }
 
   Future<void> clearDraft() async {
     diaryDraft.value = null;
     final sp = await SharedPreferences.getInstance();
     for (var key in [_K.draftContent, _K.draftBlocks, _K.draftMood, _K.draftIntensity, _K.draftTag, _K.draftWeather, _K.draftTemp, _K.draftLocation, _K.draftCustomDate, _K.draftCustomTime, _K.draftDateTime, _K.draftPaperStyle, _K.draftIsImageGrid, _K.draftIsMixedLayout]) {
-      await sp.remove(key);
+      await sp.remove(UserState().n(key));
     }
   }
 
@@ -169,13 +169,13 @@ mixin DiaryMixin on ProfileMixin {
 
   Future<void> _saveDiariesToStorage() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_K.savedDiaries, jsonEncode(savedDiaries.value.map((e) => e.toMap()).toList()));
+    await prefs.setString(UserState().n(_K.savedDiaries), jsonEncode(savedDiaries.value.map((e) => e.toMap()).toList()));
   }
 
   Future<void> clearAllDiaries() async {
     savedDiaries.value = [];
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_K.savedDiaries);
+    await prefs.remove(UserState().n(_K.savedDiaries));
     if (this is AchievementMixin) {
       (this as AchievementMixin).checkAchievements();
     }

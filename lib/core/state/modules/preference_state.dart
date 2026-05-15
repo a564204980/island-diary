@@ -19,34 +19,36 @@ mixin PreferenceMixin on ProfileMixin {
   // 新增：记录最后一次交互是否为眼镜类饰品
   bool _lastInteractedIsGlasses = false;
   final ValueNotifier<String> selectedMascotType = ValueNotifier<String>('assets/images/emoji/marshmallow2.png');
+  final ValueNotifier<String> homeDisplayMode = ValueNotifier<String>('island');
 
   void loadPreference(SharedPreferences prefs) {
-    momentsCoverPath.value = prefs.getString(_K.momentsCover);
-    diaryLayoutMode.value = prefs.getInt(_K.diaryLayoutMode) ?? 0;
-    moodTagHistory.value = prefs.getStringList(_K.moodTagHistory) ?? [];
-    statsOrderWeek.value = prefs.getStringList(_K.statsOrderWeek) ?? [];
-    statsOrderMonth.value = prefs.getStringList(_K.statsOrderMonth) ?? [];
-    statsOrderAll.value = prefs.getStringList(_K.statsOrderAll) ?? [];
-    preferredPaperStyle.value = prefs.getString(_K.preferredPaperStyle) ?? 'note1';
-    preferredFontSize.value = prefs.getDouble(_K.preferredFontSize) ?? 20.0;
-    preferredFontFamily.value = prefs.getString(_K.preferredFontFamily) ?? 'LXGWWenKai';
-    selectedMascotDecoration.value = prefs.getString(_K.mascotDecoration);
-    selectedGlassesDecoration.value = prefs.getString(_K.selectedGlassesDecoration);
-    isGlassesOverlayEnabled.value = prefs.getBool(_K.isGlassesOverlayEnabled) ?? false;
-    isGlassesAboveHat.value = prefs.getBool(_K.isGlassesAboveHat) ?? true;
-    selectedMascotType.value = prefs.getString(_K.mascotType) ?? 'assets/images/emoji/marshmallow2.png';
+    momentsCoverPath.value = prefs.getString(UserState().n(_K.momentsCover));
+    diaryLayoutMode.value = prefs.getInt(UserState().n(_K.diaryLayoutMode)) ?? 0;
+    moodTagHistory.value = prefs.getStringList(UserState().n(_K.moodTagHistory)) ?? [];
+    statsOrderWeek.value = prefs.getStringList(UserState().n(_K.statsOrderWeek)) ?? [];
+    statsOrderMonth.value = prefs.getStringList(UserState().n(_K.statsOrderMonth)) ?? [];
+    statsOrderAll.value = prefs.getStringList(UserState().n(_K.statsOrderAll)) ?? [];
+    preferredPaperStyle.value = prefs.getString(UserState().n(_K.preferredPaperStyle)) ?? 'note1';
+    preferredFontSize.value = prefs.getDouble(UserState().n(_K.preferredFontSize)) ?? 20.0;
+    preferredFontFamily.value = prefs.getString(UserState().n(_K.preferredFontFamily)) ?? 'LXGWWenKai';
+    selectedMascotDecoration.value = prefs.getString(UserState().n(_K.mascotDecoration));
+    selectedGlassesDecoration.value = prefs.getString(UserState().n(_K.selectedGlassesDecoration));
+    isGlassesOverlayEnabled.value = prefs.getBool(UserState().n(_K.isGlassesOverlayEnabled)) ?? false;
+    isGlassesAboveHat.value = prefs.getBool(UserState().n(_K.isGlassesAboveHat)) ?? true;
+    selectedMascotType.value = prefs.getString(UserState().n(_K.mascotType)) ?? 'assets/images/emoji/marshmallow2.png';
+    homeDisplayMode.value = prefs.getString(UserState().n(_K.homeDisplayMode)) ?? 'island';
   }
 
   Future<void> setMomentsCoverPath(String? path) async {
     momentsCoverPath.value = path;
     final p = await SharedPreferences.getInstance();
-    path != null ? await p.setString(_K.momentsCover, path) : await p.remove(_K.momentsCover);
+    path != null ? await p.setString(UserState().n(_K.momentsCover), path) : await p.remove(UserState().n(_K.momentsCover));
   }
 
   Future<void> setDiaryLayoutMode(int mode) async {
     diaryLayoutMode.value = mode;
     final p = await SharedPreferences.getInstance();
-    await p.setInt(_K.diaryLayoutMode, mode);
+    await p.setInt(UserState().n(_K.diaryLayoutMode), mode);
   }
 
   Future<void> addMoodTag(String tag) async {
@@ -60,7 +62,7 @@ mixin PreferenceMixin on ProfileMixin {
     }
     moodTagHistory.value = l;
     final p = await SharedPreferences.getInstance();
-    await p.setStringList(_K.moodTagHistory, l);
+    await p.setStringList(UserState().n(_K.moodTagHistory), l);
   }
 
   Future<void> saveStatsOrder(String range, List<String> order) async {
@@ -75,7 +77,7 @@ mixin PreferenceMixin on ProfileMixin {
     final k = range == 'week'
         ? _K.statsOrderWeek
         : (range == 'month' ? _K.statsOrderMonth : _K.statsOrderAll);
-    await p.setStringList(k, order);
+    await p.setStringList(UserState().n(k), order);
   }
 
   Future<void> resetStatsOrder(String range) async {
@@ -90,32 +92,32 @@ mixin PreferenceMixin on ProfileMixin {
     } else {
       statsOrderAll.value = [];
     }
-    await p.remove(k);
+    await p.remove(UserState().n(k));
   }
 
   Future<void> setPreferredPaperStyle(String s) async {
     preferredPaperStyle.value = s;
     final p = await SharedPreferences.getInstance();
-    await p.setString(_K.preferredPaperStyle, s);
+    await p.setString(UserState().n(_K.preferredPaperStyle), s);
   }
 
   Future<void> setPreferredFontSize(double s) async {
     preferredFontSize.value = s;
     final p = await SharedPreferences.getInstance();
-    await p.setDouble(_K.preferredFontSize, s);
+    await p.setDouble(UserState().n(_K.preferredFontSize), s);
   }
 
   Future<void> setPreferredFontFamily(String f) async {
     preferredFontFamily.value = f;
     final p = await SharedPreferences.getInstance();
-    await p.setString(_K.preferredFontFamily, f);
+    await p.setString(UserState().n(_K.preferredFontFamily), f);
   }
 
   Future<void> setMascotDecoration(String? a) async {
     selectedMascotDecoration.value = a; 
     _lastInteractedIsGlasses = false; 
     final p = await SharedPreferences.getInstance(); 
-    a == null ? await p.remove(_K.mascotDecoration) : await p.setString(_K.mascotDecoration, a); 
+    a == null ? await p.remove(UserState().n(_K.mascotDecoration)) : await p.setString(UserState().n(_K.mascotDecoration), a); 
 
     if (a != null) {
       // 检查每日任务
@@ -133,7 +135,7 @@ mixin PreferenceMixin on ProfileMixin {
     selectedGlassesDecoration.value = a; 
     _lastInteractedIsGlasses = true; 
     final p = await SharedPreferences.getInstance(); 
-    a == null ? await p.remove(_K.selectedGlassesDecoration) : await p.setString(_K.selectedGlassesDecoration, a); 
+    a == null ? await p.remove(UserState().n(_K.selectedGlassesDecoration)) : await p.setString(UserState().n(_K.selectedGlassesDecoration), a); 
 
     if (a != null) {
       // 检查每日任务
@@ -164,18 +166,24 @@ mixin PreferenceMixin on ProfileMixin {
     }
     isGlassesOverlayEnabled.value = enabled; 
     final p = await SharedPreferences.getInstance(); 
-    await p.setBool(_K.isGlassesOverlayEnabled, enabled); 
+    await p.setBool(UserState().n(_K.isGlassesOverlayEnabled), enabled); 
   }
 
   Future<void> setGlassesAboveHat(bool enabled) async { 
     isGlassesAboveHat.value = enabled; 
     final p = await SharedPreferences.getInstance(); 
-    await p.setBool(_K.isGlassesAboveHat, enabled); 
+    await p.setBool(UserState().n(_K.isGlassesAboveHat), enabled); 
   }
 
   Future<void> setMascotType(String path) async {
     selectedMascotType.value = path;
     final p = await SharedPreferences.getInstance();
-    await p.setString(_K.mascotType, path);
+    await p.setString(UserState().n(_K.mascotType), path);
+  }
+
+  Future<void> setHomeDisplayMode(String mode) async {
+    homeDisplayMode.value = mode;
+    final p = await SharedPreferences.getInstance();
+    await p.setString(UserState().n(_K.homeDisplayMode), mode);
   }
 }

@@ -26,7 +26,7 @@ class DiaryTimeline extends StatelessWidget {
         accentColor ??
         (isNight ? const Color(0xFFD4A373) : const Color(0xFF8B5E3C));
 
-    final lineColor = effectiveInkColor.withValues(alpha: 0.1);
+    final lineColor = const Color(0xFFD4A373).withValues(alpha: isNight ? 0.2 : 0.1);
     final tickColor = effectiveAccentColor.withValues(alpha: 0.2);
     final timeColor = effectiveInkColor.withValues(alpha: 0.4);
     final contentColor = effectiveInkColor.withValues(alpha: 0.9);

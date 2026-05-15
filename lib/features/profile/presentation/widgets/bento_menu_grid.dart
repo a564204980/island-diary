@@ -6,6 +6,8 @@ import 'package:island_diary/features/profile/presentation/pages/mascot_decorati
 import 'package:island_diary/features/profile/presentation/pages/achievement_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/about_island_page.dart';
 import 'package:island_diary/features/profile/presentation/widgets/bento_box.dart';
+import 'package:island_diary/features/profile/presentation/widgets/life_line_switcher_sheet.dart';
+import 'package:island_diary/core/models/life_line_profile.dart';
 
 class BentoMenuGrid extends StatelessWidget {
   final bool isNight;
@@ -152,6 +154,9 @@ class BentoMenuGrid extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            // 人生线管理卡片
+            _buildLifeLineBento(context),
             const SizedBox(height: 12),
             // 第三部分：关于小岛 (整合后的新入口)
             _buildMenuActionBento(
@@ -306,6 +311,66 @@ class BentoMenuGrid extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+  Widget _buildLifeLineBento(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          isScrollControlled: true,
+          builder: (context) => const LifeLineSwitcherSheet(),
+        );
+      },
+      child: BentoBox(
+        isNight: isNight,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF818CF8).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.alt_route_rounded, size: 18, color: Color(0xFF818CF8)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '人生线',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: isNight ? Colors.white70 : Colors.black87,
+                      fontFamily: 'LXGWWenKai',
+                    ),
+                  ),
+                  ValueListenableBuilder<String>(
+                    valueListenable: UserState().currentLifeLineId,
+                    builder: (context, id, _) {
+                      final profiles = UserState().lifeLines.value;
+                      final current = profiles.firstWhere((p) => p.id == id, 
+                        orElse: () => LifeLineProfile(id: 'default', name: '海岛新居民', createdAt: 0));
+                      return Text(
+                        '当前: ${current.name}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isNight ? Colors.white38 : Colors.black38,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

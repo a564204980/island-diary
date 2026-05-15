@@ -1,7 +1,7 @@
 part of '../user_state.dart';
 
 /// 1. 用户资料与引导模块
-mixin ProfileMixin {
+mixin ProfileMixin on LifeLineMixin {
   final ValueNotifier<String> userName = ValueNotifier<String>('');
   final ValueNotifier<String> userBio = ValueNotifier<String>('');
   final ValueNotifier<DateTime?> userBirthday = ValueNotifier<DateTime?>(null);
@@ -48,29 +48,29 @@ mixin ProfileMixin {
   }
 
   void loadProfile(SharedPreferences prefs) {
-    userName.value = prefs.getString(_K.userName) ?? '';
-    userBio.value = prefs.getString(_K.userBio) ?? '';
+    userName.value = prefs.getString(UserState().n(_K.userName)) ?? '';
+    userBio.value = prefs.getString(UserState().n(_K.userBio)) ?? '';
     
-    final birthdayStr = prefs.getString(_K.userBirthday);
+    final birthdayStr = prefs.getString(UserState().n(_K.userBirthday));
     if (birthdayStr != null) {
       userBirthday.value = DateTime.tryParse(birthdayStr);
     }
-    userGender.value = prefs.getString(_K.userGender) ?? 'secret';
+    userGender.value = prefs.getString(UserState().n(_K.userGender)) ?? 'secret';
 
-    hasFinishedOnboarding.value = prefs.getBool(_K.onboarding) ?? false;
-    hasSeenRecordGuidance.value = prefs.getBool(_K.recordGuidance) ?? false;
-    final titles = prefs.getStringList(_K.selectedTitles);
+    hasFinishedOnboarding.value = prefs.getBool(UserState().n(_K.onboarding)) ?? false;
+    hasSeenRecordGuidance.value = prefs.getBool(UserState().n(_K.recordGuidance)) ?? false;
+    final titles = prefs.getStringList(UserState().n(_K.selectedTitles));
     if (titles != null) {
       selectedTitles.value = titles;
     } else {
-      final old = prefs.getString('selected_user_title_v1');
+      final old = prefs.getString(UserState().n('selected_user_title_v1'));
       if (old != null && old.isNotEmpty) {
         selectedTitles.value = [old];
       }
     }
-    // Migration: if old isVip was true but vipLevel is 0, set to level 1
-    int level = prefs.getInt(_K.vipLevel) ?? 0;
-    bool oldVip = prefs.getBool(_K.isVip) ?? false;
+    // 迁移逻辑: 如果旧的 isVip 是 true 但 vipLevel 是 0，设为等级 1
+    int level = prefs.getInt(UserState().n(_K.vipLevel)) ?? 0;
+    bool oldVip = prefs.getBool(UserState().n(_K.isVip)) ?? false;
     if (level == 0 && oldVip) {
       level = 1;
     }
@@ -78,26 +78,26 @@ mixin ProfileMixin {
     vipLevel.value = level;
     isVip.value = level > 0;
     
-    themeMode.value = prefs.getString(_K.themeMode) ?? 'auto';
-    deepseekApiKey.value = prefs.getString(_K.deepseekApiKey) ?? 'sk-9860dceeff9240c4a497fb6fb7739d95';
-    final lastVisit = prefs.getString(_K.lastVisit);
+    themeMode.value = prefs.getString(UserState().n(_K.themeMode)) ?? 'auto';
+    deepseekApiKey.value = prefs.getString(UserState().n(_K.deepseekApiKey)) ?? 'sk-9860dceeff9240c4a497fb6fb7739d95';
+    final lastVisit = prefs.getString(UserState().n(_K.lastVisit));
     if (lastVisit != null) {
       lastVisitTime = DateTime.parse(lastVisit);
     }
 
-    final expireStr = prefs.getString(_K.vipExpireTime);
+    final expireStr = prefs.getString(UserState().n(_K.vipExpireTime));
     if (expireStr != null) {
       vipExpireTime.value = DateTime.tryParse(expireStr);
     }
     
-    customAvatarPath.value = prefs.getString(_K.customAvatar);
+    customAvatarPath.value = prefs.getString(UserState().n(_K.customAvatar));
     
     // 加载缓存的 AI 洞见
-    lastSoulInsight.value = prefs.getString(_K.lastSoulInsight);
-    lastSoulInsightDate = prefs.getString(_K.lastSoulInsightDate);
+    lastSoulInsight.value = prefs.getString(UserState().n(_K.lastSoulInsight));
+    lastSoulInsightDate = prefs.getString(UserState().n(_K.lastSoulInsightDate));
     
     // 加载每日任务
-    final taskJson = prefs.getString(_K.currentDailyTask);
+    final taskJson = prefs.getString(UserState().n(_K.currentDailyTask));
     if (taskJson != null) {
       try {
         dailyTask.value = DailyTask.fromMap(jsonDecode(taskJson));
@@ -156,7 +156,7 @@ mixin ProfileMixin {
     // 【调试模式】极其强硬地强制开启劳动节任务，绕过所有判定
     final newTask = DailyTask.getHolidayTask(DateTime(2026, 5, 1))!;
     dailyTask.value = newTask;
-    prefs.setString(_K.currentDailyTask, jsonEncode(newTask.toMap()));
+    prefs.setString(UserState().n(_K.currentDailyTask), jsonEncode(newTask.toMap()));
     debugPrint("DAILY_TASK: 已执行极其强硬的强制重置 -> ${newTask.id}");
   }
 
@@ -182,7 +182,7 @@ mixin ProfileMixin {
       if (this is AchievementMixin) {
         (this as UserState).achievementPoints.value += task.rewardPoints;
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt(_K.achievementPoints, (this as UserState).achievementPoints.value);
+        await prefs.setInt(UserState().n(_K.achievementPoints), (this as UserState).achievementPoints.value);
       }
       
       debugPrint("DAILY_TASK: 奖励已领取 -> +${task.rewardPoints}点");
@@ -192,7 +192,7 @@ mixin ProfileMixin {
   void _saveDailyTask() async {
     if (dailyTask.value != null) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_K.currentDailyTask, jsonEncode(dailyTask.value!.toMap()));
+      await prefs.setString(UserState().n(_K.currentDailyTask), jsonEncode(dailyTask.value!.toMap()));
       // 强制触发通知
       dailyTask.value = dailyTask.value;
     }
@@ -210,9 +210,9 @@ mixin ProfileMixin {
       vipLevel.value = 0;
       isVip.value = false;
       vipExpireTime.value = null;
-      prefs.setInt(_K.vipLevel, 0);
-      prefs.setBool(_K.isVip, false);
-      prefs.remove(_K.vipExpireTime);
+      prefs.setInt(UserState().n(_K.vipLevel), 0);
+      prefs.setBool(UserState().n(_K.isVip), false);
+      prefs.remove(UserState().n(_K.vipExpireTime));
       debugPrint('Member status expired and reset.');
     }
   }
@@ -221,30 +221,36 @@ mixin ProfileMixin {
     final trimmed = name.trim();
     userName.value = trimmed; // Allow empty
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_K.userName, trimmed);
+    await prefs.setString(UserState().n(_K.userName), trimmed);
+    
+    // 同步到人生线列表
+    await updateCurrentProfile(name: trimmed);
   }
 
   Future<void> setUserBio(String bio) async {
     final trimmed = bio.trim();
     userBio.value = trimmed;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_K.userBio, trimmed);
+    await prefs.setString(UserState().n(_K.userBio), trimmed);
+
+    // 同步到人生线列表
+    await updateCurrentProfile(bio: trimmed);
   }
 
   Future<void> setUserBirthday(DateTime? birthday) async {
     userBirthday.value = birthday;
     final prefs = await SharedPreferences.getInstance();
     if (birthday != null) {
-      await prefs.setString(_K.userBirthday, birthday.toIso8601String());
+      await prefs.setString(UserState().n(_K.userBirthday), birthday.toIso8601String());
     } else {
-      await prefs.remove(_K.userBirthday);
+      await prefs.remove(UserState().n(_K.userBirthday));
     }
   }
 
   Future<void> setUserGender(String gender) async {
     userGender.value = gender;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_K.userGender, gender);
+    await prefs.setString(UserState().n(_K.userGender), gender);
   }
 
   Future<void> toggleTitle(String title) async {
@@ -259,7 +265,7 @@ mixin ProfileMixin {
     }
     selectedTitles.value = list;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_K.selectedTitles, list);
+    await prefs.setStringList(UserState().n(_K.selectedTitles), list);
   }
 
   /// 检查今天是否可以领取生日礼物
@@ -272,11 +278,11 @@ mixin ProfileMixin {
     // 检查月和日是否一致
     if (now.month == birthday.month && now.day == birthday.day) {
       final prefs = await SharedPreferences.getInstance();
-      final lastYear = prefs.getInt(_K.lastBirthdayGiftYear) ?? 0;
+      final lastYear = prefs.getInt(UserState().n(_K.lastBirthdayGiftYear)) ?? 0;
       
       if (lastYear < now.year) {
         // 今年还没领过
-        await prefs.setInt(_K.lastBirthdayGiftYear, now.year);
+        await prefs.setInt(UserState().n(_K.lastBirthdayGiftYear), now.year);
         return true;
       }
     }
@@ -287,10 +293,13 @@ mixin ProfileMixin {
     customAvatarPath.value = path;
     final prefs = await SharedPreferences.getInstance();
     if (path != null) {
-      await prefs.setString(_K.customAvatar, path);
+      await prefs.setString(UserState().n(_K.customAvatar), path);
     } else {
-      await prefs.remove(_K.customAvatar);
+      await prefs.remove(UserState().n(_K.customAvatar));
     }
+
+    // 同步到人生线列表
+    await updateCurrentProfile(avatarPath: path);
   }
 
   Future<void> setIsVipLevel(int level) async {
@@ -314,12 +323,12 @@ mixin ProfileMixin {
     vipExpireTime.value = newExpire;
     
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_K.vipLevel, level);
-    await prefs.setBool(_K.isVip, level > 0);
+    await prefs.setInt(UserState().n(_K.vipLevel), level);
+    await prefs.setBool(UserState().n(_K.isVip), level > 0);
     if (newExpire != null) {
-      await prefs.setString(_K.vipExpireTime, newExpire.toIso8601String());
+      await prefs.setString(UserState().n(_K.vipExpireTime), newExpire.toIso8601String());
     } else {
-      await prefs.remove(_K.vipExpireTime);
+      await prefs.remove(UserState().n(_K.vipExpireTime));
     }
   }
 
@@ -331,34 +340,35 @@ mixin ProfileMixin {
   Future<void> setThemeMode(String mode) async {
     if (['auto', 'light', 'dark'].contains(mode)) {
       themeMode.value = mode;
+      updateDynamicBackground(); // 立即触发背景更新
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_K.themeMode, mode);
+      await prefs.setString(UserState().n(_K.themeMode), mode);
     }
   }
 
   Future<void> completeOnboarding() async {
     hasFinishedOnboarding.value = true;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_K.onboarding, true);
+    await prefs.setBool(UserState().n(_K.onboarding), true);
   }
 
   Future<void> completeRecordGuidance() async {
     hasSeenRecordGuidance.value = true;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_K.recordGuidance, true);
+    await prefs.setBool(UserState().n(_K.recordGuidance), true);
   }
 
   Future<void> recordVisit() async {
     final now = DateTime.now();
     lastVisitTime = now;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_K.lastVisit, now.toIso8601String());
+    await prefs.setString(UserState().n(_K.lastVisit), now.toIso8601String());
   }
 
   Future<void> setDeepseekApiKey(String key) async {
     deepseekApiKey.value = key;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_K.deepseekApiKey, key);
+    await prefs.setString(UserState().n(_K.deepseekApiKey), key);
   }
 
   /// 保存 AI 生成的心灵深度分析结果
@@ -370,8 +380,8 @@ mixin ProfileMixin {
     lastSoulInsightDate = dateStr;
     
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_K.lastSoulInsight, insight);
-    await prefs.setString(_K.lastSoulInsightDate, dateStr);
+    await prefs.setString(UserState().n(_K.lastSoulInsight), insight);
+    await prefs.setString(UserState().n(_K.lastSoulInsightDate), dateStr);
     debugPrint("SOUL_INSIGHT: 分析结果已缓存 -> $dateStr");
   }
 

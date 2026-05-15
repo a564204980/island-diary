@@ -50,8 +50,10 @@ class DiaryMasonryCard extends StatelessWidget {
           color: isNight ? const Color(0xFF212831) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isNight ? Colors.white.withValues(alpha: 0.1) : Colors.white,
-            width: 2,
+            color: isNight 
+              ? Colors.white.withValues(alpha: 0.1) 
+              : Colors.black.withValues(alpha: 0.05),
+            width: 1.0,
           ),
           boxShadow: [
             BoxShadow(
