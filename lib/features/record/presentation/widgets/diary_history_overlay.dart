@@ -16,6 +16,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_masonry_header.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_masonry_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_featured_card.dart';
+import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 
 enum DiaryLayoutMode {
   timeline, // 拟物纸张时间轴
@@ -193,6 +194,10 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                   islandDays: 128, // mock
                                   currentDate: headerDate,
                                   onCalendarTap: () => _setLayoutMode(DiaryLayoutMode.calendar),
+                                  onDecorateTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const DecorationPage()),
+                                  ),
                                 );
                               },
                             )

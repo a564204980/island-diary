@@ -19,6 +19,7 @@ mixin ProfileMixin on LifeLineMixin {
   final ValueNotifier<String?> lastSoulInsight = ValueNotifier<String?>(null);
   final ValueNotifier<DailyTask?> dailyTask = ValueNotifier<DailyTask?>(null);
   final ValueNotifier<bool> isEventDrawerUnlocked = ValueNotifier<bool>(false);
+  final ValueNotifier<String> selectedIslandThemeId = ValueNotifier<String>('default');
 
   // 全局背景与主题色
   final ValueNotifier<String> currentBackgroundPath = ValueNotifier<String>('assets/images/home_xiatian_big.png');
@@ -79,6 +80,7 @@ mixin ProfileMixin on LifeLineMixin {
     isVip.value = level > 0;
     
     themeMode.value = prefs.getString(UserState().n(_K.themeMode)) ?? 'auto';
+    selectedIslandThemeId.value = prefs.getString(UserState().n(_K.selectedIslandThemeId)) ?? 'default';
     deepseekApiKey.value = prefs.getString(UserState().n(_K.deepseekApiKey)) ?? 'sk-9860dceeff9240c4a497fb6fb7739d95';
     final lastVisit = prefs.getString(UserState().n(_K.lastVisit));
     if (lastVisit != null) {
@@ -118,6 +120,22 @@ mixin ProfileMixin on LifeLineMixin {
 
   /// 根据时间自动切换背景与主题色
   void updateDynamicBackground() {
+    // 如果不是默认主题，且主题有特定的背景配置，则在此覆盖（后续可扩展主题配置类）
+    // 优先级最高：特定主题背景
+    if (selectedIslandThemeId.value == 'starry_night') {
+      currentBackgroundPath.value = 'assets/images/home_wanshang_big.png';
+      currentThemeColor.value = const Color(0xFF0D1B2A);
+      return;
+    } else if (selectedIslandThemeId.value == 'cotton_candy') {
+      currentBackgroundPath.value = 'assets/images/background/home_3_bg.png';
+      currentThemeColor.value = const Color(0xFFF7E8FF); // 浅粉紫色系主题色
+      return;
+    } else if (selectedIslandThemeId.value == 'lantern_festival') {
+      currentBackgroundPath.value = 'assets/images/background/home_yuanxiaojie_bg.png';
+      currentThemeColor.value = const Color(0xFF2A0D0D); // 深红暖调主题色
+      return;
+    }
+
     if (themeMode.value == 'light') {
       currentBackgroundPath.value = 'assets/images/home_zhongwu_big.png';
       currentThemeColor.value = const Color(0xFFE6F3F5);
@@ -150,6 +168,13 @@ mixin ProfileMixin on LifeLineMixin {
     if (currentThemeColor.value != newColor) {
       currentThemeColor.value = newColor;
     }
+  }
+
+  Future<void> setSelectedIslandThemeId(String id) async {
+    selectedIslandThemeId.value = id;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(UserState().n(_K.selectedIslandThemeId), id);
+    updateDynamicBackground(); // 切换主题后立即尝试更新背景
   }
 
   void _checkAndResetDailyTask(SharedPreferences prefs) {

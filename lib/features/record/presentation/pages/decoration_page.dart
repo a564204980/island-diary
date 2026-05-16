@@ -167,7 +167,11 @@ class _DecorationPageState extends State<DecorationPage>
         builder: (context, _, _) => Stack(
           children: [
             // 0. 动态滚动太阳背景
-            const Positioned.fill(child: ScrollingSunBackground()),
+            Positioned.fill(
+              child: ScrollingSunBackground(
+                themeId: UserState().selectedIslandThemeId.value,
+              ),
+            ),
 
             // 核心场景层
             ListenableBuilder(

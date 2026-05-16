@@ -13,6 +13,7 @@ import 'package:island_diary/features/record/presentation/widgets/diary_masonry_
 import 'package:island_diary/features/record/presentation/widgets/diary_masonry_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_featured_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart'; 
+import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 
 class RecordPage extends StatefulWidget {
@@ -83,6 +84,7 @@ class _RecordPageState extends State<RecordPage> {
       listenables: [
         UserState().themeMode,
         UserState().diaryLayoutMode,
+        UserState().selectedIslandThemeId,
       ],
       builder: (context, values, _) {
         final String themeMode = values[0] as String;
@@ -98,18 +100,32 @@ class _RecordPageState extends State<RecordPage> {
             children: [
               // 背景层 (适配不同模式)
               Positioned.fill(
-                child: AnimatedContainer(
-                  duration: 500.ms,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: isNight 
-                          ? [const Color(0xFF0D1B2A), const Color(0xFF13131F)]
-                          : [const Color(0xFFF7F2EC), const Color(0xFFF5F1EB)],
+                child: Builder(builder: (context) {
+                  final themeId = UserState().selectedIslandThemeId.value;
+                  if (themeId == 'lantern_festival') {
+                    return Image.asset(
+                      'assets/images/background/page_yuanxiaojie_bg.png',
+                      fit: BoxFit.cover,
+                    );
+                  } else if (themeId == 'cotton_candy') {
+                    return Image.asset(
+                      'assets/images/background/page_3_bg.png',
+                      fit: BoxFit.cover,
+                    );
+                  }
+                  return AnimatedContainer(
+                    duration: 500.ms,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: isNight
+                            ? [const Color(0xFF0D1B2A), const Color(0xFF13131F)]
+                            : [const Color(0xFFF7F2EC), const Color(0xFFF5F1EB)],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                }),
               ),
               // ... rest of the stack
           
@@ -135,6 +151,7 @@ class _RecordPageState extends State<RecordPage> {
                                 islandDays: UserState().savedDiaries.value.length, // 暂时用日记数量模拟
                                 currentDate: headerDate,
                                 onCalendarTap: () => _setLayoutMode(DiaryLayoutMode.calendar),
+                                showDecorateIcon: false,
                               );
                             },
                           )

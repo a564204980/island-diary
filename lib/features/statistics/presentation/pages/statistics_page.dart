@@ -16,6 +16,7 @@ import 'package:island_diary/features/statistics/presentation/widgets/mood_poste
 import 'package:island_diary/features/statistics/presentation/widgets/glass_bento.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/seasonal_atmosphere_painter.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/mental_island_card.dart';
+import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 import 'package:island_diary/core/services/ai_service.dart';
 part '../widgets/bento/bento_radar_chart.dart';
 part '../widgets/bento/bento_mood_calendar.dart';
@@ -467,18 +468,33 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<String>(
-      valueListenable: UserState().themeMode,
-      builder: (context, themeMode, _) {
+    return MultiValueListenableBuilder(
+      listenables: [
+        UserState().themeMode,
+        UserState().selectedIslandThemeId,
+      ],
+      builder: (context, values, _) {
         final bool isNight = UserState().isNight;
+        final String themeId = values[1] as String;
         final filteredDiaries = _getFilteredDiaries();
         
         return Scaffold(
           backgroundColor: Colors.transparent,
           body: Stack(
             children: [
+              // 0. 节日特定背景
+              if (themeId == 'lantern_festival' || themeId == 'cotton_candy')
+                Positioned.fill(
+                  child: Image.asset(
+                    themeId == 'lantern_festival'
+                        ? 'assets/images/background/page_yuanxiaojie_bg.png'
+                        : 'assets/images/background/page_3_bg.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+
               // 1. 动态治愈背景
-              if (filteredDiaries.isNotEmpty)
+              if (filteredDiaries.isNotEmpty && themeId != 'lantern_festival')
                 SeasonalAtmosphere(
                   particleType: SoulSeasonLogic.getSeason(filteredDiaries).particleType,
                   isNight: isNight,

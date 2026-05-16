@@ -7,7 +7,8 @@ import 'package:flutter/services.dart';
 /// 一个带有动态滚动小太阳和棋盘格网格的背景组件
 class ScrollingSunBackground extends StatefulWidget {
   final bool isNight;
-  const ScrollingSunBackground({super.key, this.isNight = false});
+  final String? themeId;
+  const ScrollingSunBackground({super.key, this.isNight = false, this.themeId});
 
   @override
   State<ScrollingSunBackground> createState() => _ScrollingSunBackgroundState();
@@ -60,6 +61,7 @@ class _ScrollingSunBackgroundState extends State<ScrollingSunBackground>
             sunImage: _sunImage,
             animationValue: _controller.value,
             isNight: widget.isNight,
+            themeId: widget.themeId,
           ),
           child: const SizedBox.expand(),
         );
@@ -72,21 +74,30 @@ class _SunBackgroundPainter extends CustomPainter {
   final ui.Image? sunImage;
   final double animationValue;
   final bool isNight;
+  final String? themeId;
 
   _SunBackgroundPainter({
     this.sunImage,
     required this.animationValue,
     required this.isNight,
+    this.themeId,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     // 1. 绘制棋盘格背景
     const double squareSize = 60.0;
-    final Paint lightPaint = Paint()
-      ..color = isNight ? const Color(0xFFC9BAA8) : const Color(0xFFF3E9C9);
-    final Paint darkPaint = Paint()
-      ..color = isNight ? const Color(0xFFBBAA96) : const Color(0xFFE9DDB3);
+    Color lightColor = isNight ? const Color(0xFFC9BAA8) : const Color(0xFFF3E9C9);
+    Color darkColor = isNight ? const Color(0xFFBBAA96) : const Color(0xFFE9DDB3);
+
+    // 棉花糖主题配色适配 (粉白棋盘格)
+    if (themeId == 'cotton_candy') {
+      lightColor = const Color(0xFFFFF9F0);
+      darkColor = const Color(0xFFFDE6EF);
+    }
+
+    final Paint lightPaint = Paint()..color = lightColor;
+    final Paint darkPaint = Paint()..color = darkColor;
 
     for (double y = 0; y < size.height; y += squareSize) {
       for (double x = 0; x < size.width; x += squareSize) {
@@ -160,6 +171,7 @@ class _SunBackgroundPainter extends CustomPainter {
   bool shouldRepaint(covariant _SunBackgroundPainter oldDelegate) {
     return oldDelegate.animationValue != animationValue ||
         oldDelegate.sunImage != sunImage ||
-        oldDelegate.isNight != isNight;
+        oldDelegate.isNight != isNight ||
+        oldDelegate.themeId != themeId;
   }
 }

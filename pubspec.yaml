@@ -78,6 +78,8 @@ flutter:
     - assets/images/decoration/clothes/
     - assets/images/note/
     - assets/images/icons/
+    - assets/images/icons/4/
+    - assets/images/icons/5/
     - assets/icons/
     - assets/images/emoji/
     - assets/images/emoji/decorate/
@@ -97,6 +99,7 @@ flutter:
     - assets/images/emoji/dushou/
     - assets/images/emoji/lingxi/
     - assets/images/sticker/
+    - assets/images/background/
 
   fonts:
     - family: FZKai

@@ -416,7 +416,7 @@ final List<FurnitureItem> decorationItems = [
     name: '精美台灯 1',
     imagePath: 'assets/images/decoration/table/tableLamp1.png',
     category: '摆件',
-    subCategory: '客厅',
+    subCategory: '灯',
     gridW: 1,
     gridH: 1,
     intrinsicWidth: 141,

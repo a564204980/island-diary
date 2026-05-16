@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/shared/widgets/bottom_nav_bar.dart';
 import 'package:island_diary/features/home/presentation/widgets/floating_clouds.dart';
+import 'package:island_diary/features/home/presentation/widgets/rising_lanterns.dart';
+import 'package:island_diary/features/home/presentation/widgets/twinkling_stars.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_success_overlay.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
@@ -21,7 +23,7 @@ import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart'
 import 'package:island_diary/features/record/presentation/widgets/scrolling_sun_background.dart';
 import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
-
+import 'package:island_diary/features/home/presentation/widgets/island_theme_picker.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -39,7 +41,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Animation<Matrix4>? _zoomAnimation;
   Timer? _timeChecker;
   bool _isLandscape = false; // 是否全屏横屏模式
-  bool _showGlobalDialogue = false; 
+  bool _showGlobalDialogue = false;
   String _globalDialogueText = "";
   Timer? _thoughtTimer;
 
@@ -74,10 +76,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     _barragePageController = PageController();
     _groupEntriesByDate();
-    
+
     // 监听日记变化，实时更新分组
     UserState().savedDiaries.addListener(_groupEntriesByDate);
-    
+
     // 监听 AI 想法
     UserState().mascotThought.addListener(_onThoughtChanged);
 
@@ -85,10 +87,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         UserState().checkAchievements();
-        
+
         // 我们给 AI 一点时间处理 (2秒内如果 AI 没响，再出保底)
         UserState().checkAppStartEvents();
-        
+
         await Future.delayed(const Duration(seconds: 3));
         if (mounted && !_showGlobalDialogue) {
           _showLocalFallbackDialogue();
@@ -106,7 +108,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           _globalDialogueText = thought;
           _showGlobalDialogue = true;
         });
-        
+
         _thoughtTimer?.cancel();
         _thoughtTimer = Timer(const Duration(seconds: 10), () {
           if (mounted) {
@@ -122,9 +124,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // 只有在没显示 AI 对话且没有待处理对话时，才显示本地兜底
     if (_showGlobalDialogue || UserState().mascotThought.value != null) return;
 
-    final persona = MascotPersona.getByMascotPath(UserState().selectedMascotType.value);
-    final fallback = persona.fallbackQuotes[Random().nextInt(persona.fallbackQuotes.length)];
-    
+    final persona = MascotPersona.getByMascotPath(
+      UserState().selectedMascotType.value,
+    );
+    final fallback =
+        persona.fallbackQuotes[Random().nextInt(persona.fallbackQuotes.length)];
+
     setState(() {
       _globalDialogueText = fallback;
       _showGlobalDialogue = true;
@@ -145,13 +150,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     final Map<String, List<DiaryEntry>> groups = {};
     for (var entry in diaries) {
-      final dateStr = "${entry.dateTime.year}-${entry.dateTime.month}-${entry.dateTime.day}";
+      final dateStr =
+          "${entry.dateTime.year}-${entry.dateTime.month}-${entry.dateTime.day}";
       if (!groups.containsKey(dateStr)) {
         groups[dateStr] = [];
       }
       groups[dateStr]!.add(entry);
     }
-    
+
     // 按日期倒序排列
     final sortedKeys = groups.keys.toList()..sort((a, b) => b.compareTo(a));
     final newGrouped = sortedKeys.map((k) {
@@ -166,8 +172,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
-
   String _getIslandImageForCurrentTime() {
+    final themeId = UserState().selectedIslandThemeId.value;
+    // 如果是星夜灯塔岛主题，强制使用晚上图片
+    if (themeId == 'starry_night') {
+      return 'assets/images/home_small_demo2.png';
+    } else if (themeId == 'cotton_candy') {
+      return 'assets/images/background/home_3.png';
+    } else if (themeId == 'lantern_festival') {
+      return 'assets/images/home5.png';
+    }
+
     if (UserState().themeMode.value == 'light') {
       return 'assets/images/home_small_demo.png';
     }
@@ -183,6 +198,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Color _getIslandGlowColorForCurrentTime() {
+    final themeId = UserState().selectedIslandThemeId.value;
+    if (themeId == 'lantern_festival') {
+      return const Color(0xFFFFD180).withValues(alpha: 0.7); // 温暖金橙光
+    }
+    if (themeId == 'cotton_candy') {
+      return const Color(0xFFFFE8F5).withValues(alpha: 0.8); // 粉紫色柔光
+    }
+
     if (UserState().isNight) {
       return const Color(0xFFFFEFA1).withValues(alpha: 0.65);
     } else {
@@ -191,6 +214,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Color _getIslandBottomLightColorForCurrentTime() {
+    final themeId = UserState().selectedIslandThemeId.value;
+    if (themeId == 'lantern_festival') {
+      return const Color(0xFFFF8A65).withValues(alpha: 0.95); // 暖红橙火光
+    }
+
     if (UserState().isNight) {
       return const Color(0xFFFFB347).withValues(alpha: 0.95);
     } else {
@@ -199,6 +227,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Color _getIslandBottomRockLightColorForCurrentTime() {
+    final themeId = UserState().selectedIslandThemeId.value;
+    if (themeId == 'lantern_festival') {
+      return const Color(0xFFFF8A65).withValues(alpha: 0.7); // 底部岩石映照色
+    }
+
     if (UserState().isNight) {
       return const Color(0xFFFFB347).withValues(alpha: 0.65);
     } else {
@@ -248,15 +281,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ? _getLandscapeMatrix(targetSizeForMatrix)
         : Matrix4.identity();
 
-    _zoomAnimation = Matrix4Tween(
-      begin: _transformationController.value,
-      end: endMatrix,
-    ).animate(
-      CurvedAnimation(
-        parent: _zoomAnimationController,
-        curve: Curves.easeInOutCubic,
-      ),
-    );
+    _zoomAnimation =
+        Matrix4Tween(
+          begin: _transformationController.value,
+          end: endMatrix,
+        ).animate(
+          CurvedAnimation(
+            parent: _zoomAnimationController,
+            curve: Curves.easeInOutCubic,
+          ),
+        );
 
     _zoomAnimationController.forward(from: 0);
 
@@ -274,18 +308,25 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
-
+  void _toggleZoom(BuildContext context, bool isWide) {
+    if (_zoomAnimationController.isAnimating) return;
+    if (_zoomAnimationController.status == AnimationStatus.completed) {
+      _zoomAnimationController.reverse();
+    } else {
+      _zoomAnimationController.forward();
+    }
+  }
 
   Future<void> _showSuccessEffect(List<MascotAchievement> achievements) async {
     if (achievements.isEmpty || !mounted) return;
-    
+
     // 目前一次保存通常触发一个或几个成就，我们展示最重要的那个或者第一个
     final achievement = achievements.first;
 
     // 使用 WidgetsBinding 确保在渲染周期外安全操作 Overlay
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      
+
       OverlayEntry? overlayEntry;
       overlayEntry = OverlayEntry(
         builder: (context) => DiarySuccessOverlay(
@@ -295,35 +336,44 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           },
         ),
       );
-      
+
       Overlay.of(context).insert(overlayEntry);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<String>(
-      valueListenable: UserState().themeMode,
-      builder: (context, themeMode, child) {
+    return MultiValueListenableBuilder(
+      listenables: [UserState().themeMode, UserState().selectedIslandThemeId],
+      builder: (context, values, child) {
+        final String themeMode = values[0] as String;
+        final String themeId = values[1] as String;
         final bool isNight = UserState().isNight;
+        final bool isLantern = themeId == 'lantern_festival';
+        final bool isCottonCandy = themeId == 'cotton_candy';
         final isWide = MediaQuery.of(context).size.width > 600;
 
         return Scaffold(
-          backgroundColor: isNight ? const Color(0xFF0D1B2A) : const Color(0xFFE6F3F5),
+          backgroundColor: isNight
+              ? const Color(0xFF0D1B2A)
+              : const Color(0xFFE6F3F5),
           resizeToAvoidBottomInset: false,
           body: Stack(
             children: [
               Positioned.fill(
                 child: IndexedStack(
-                  index: _currentNavIndex == 4 
-                      ? 3 
-                      : (_currentNavIndex == 3 
-                          ? 2 
-                          : (_currentNavIndex == 1 ? 1 : 0)),
+                  index: _currentNavIndex == 4
+                      ? 3
+                      : (_currentNavIndex == 3
+                            ? 2
+                            : (_currentNavIndex == 1 ? 1 : 0)),
                   children: [
                     _buildHomeContent(isNight, isWide),
                     const RecordPage(key: ValueKey('RecordPage')),
-                    StatisticsPage(key: const ValueKey('StatisticsPage'), isActive: _currentNavIndex == 3),
+                    StatisticsPage(
+                      key: const ValueKey('StatisticsPage'),
+                      isActive: _currentNavIndex == 3,
+                    ),
                     const ProfilePage(key: ValueKey('ProfilePage')),
                   ],
                 ),
@@ -333,61 +383,102 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 Positioned.fill(
                   child: SafeArea(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0,
+                        vertical: 24.0,
+                      ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           // 标题逻辑：仅在首页(0)显示岛屿名称
-                          _currentNavIndex == 0 
-                            ? ValueListenableBuilder<bool>(
-                                valueListenable: UserState().isDiarySheetOpen,
-                                builder: (context, isOpen, child) {
-                                  return Text(
-                                    _isLandscape ? '心情漫游' : '${UserState().userName.value}的小岛',
-                                    style: TextStyle(
-                                      color: isNight ? Colors.white : const Color(0xFF5A3E28),
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      shadows: isNight
-                                          ? [
-                                              Shadow(color: Colors.black.withValues(alpha: 0.3), offset: const Offset(0, 2), blurRadius: 4),
-                                            ]
-                                          : null,
-                                    ),
-                                  ).animate(target: isOpen ? 0 : 1).fade(duration: 400.ms);
-                                },
-                              )
-                            : (_currentNavIndex == 1 
-                                ? Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        "我的岛屿日记",
-                                        style: TextStyle(
-                                          color: isNight ? Colors.white : const Color(0xFF060606),
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        "${UserState().userName.value} 的小岛·第 ${UserState().savedDiaries.value.length} 天",
-                                        style: TextStyle(
-                                          color: isNight ? Colors.white54 : Colors.black54,
-                                          fontSize: 12,
-                                          fontFamily: 'LXGWWenKai',
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : const SizedBox.shrink()),
-                          
+                          _currentNavIndex == 0
+                              ? ValueListenableBuilder<bool>(
+                                  valueListenable: UserState().isDiarySheetOpen,
+                                  builder: (context, isOpen, child) {
+                                    return Text(
+                                          _isLandscape
+                                              ? '心情漫游'
+                                              : '${UserState().userName.value}的小岛',
+                                          style: TextStyle(
+                                            color:
+                                                (isNight ||
+                                                    UserState()
+                                                            .selectedIslandThemeId
+                                                            .value ==
+                                                        'lantern_festival')
+                                                ? Colors.white
+                                                : const Color(0xFF5A3E28),
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.bold,
+                                            shadows: isNight
+                                                ? [
+                                                    Shadow(
+                                                      color: Colors.black
+                                                          .withValues(
+                                                            alpha: 0.3,
+                                                          ),
+                                                      offset: const Offset(
+                                                        0,
+                                                        2,
+                                                      ),
+                                                      blurRadius: 4,
+                                                    ),
+                                                  ]
+                                                : null,
+                                          ),
+                                        )
+                                        .animate(target: isOpen ? 0 : 1)
+                                        .fade(duration: 400.ms);
+                                  },
+                                )
+                              : (_currentNavIndex == 1
+                                    ? Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            "我的岛屿日记",
+                                            style: TextStyle(
+                                              color: isLantern
+                                                  ? const Color(0xFFF6DFA5)
+                                                  : (isCottonCandy
+                                                        ? const Color(0xFF4E3A46)
+                                                        : (isNight
+                                                              ? Colors.white
+                                                              : const Color(
+                                                                  0xFF060606,
+                                                                ))),
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            "${UserState().userName.value} 的小岛·第 ${UserState().savedDiaries.value.length} 天",
+                                            style: TextStyle(
+                                              color: isLantern
+                                                  ? const Color(0xFFE6C78F)
+                                                  : (isCottonCandy
+                                                        ? const Color(0xFF8D7A84)
+                                                        : (isNight
+                                                              ? Colors.white54
+                                                              : Colors.black54)),
+                                              fontSize: 12,
+                                              fontFamily: 'LXGWWenKai',
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : const SizedBox.shrink()),
+
                           Row(
                             children: [
                               if (_currentNavIndex == 0) ...[
                                 _buildTopIconButton(
-                                  icon: _isLandscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                                  icon: _isLandscape
+                                      ? Icons.fullscreen_exit_rounded
+                                      : Icons.fullscreen_rounded,
                                   isNight: isNight,
                                   onTap: _toggleOrientation,
                                 ),
@@ -398,25 +489,45 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                     return Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        if (mode == 'house') ...[
-                                          _buildTopIconButton(
-                                            icon: Icons.chair_outlined,
-                                            isNight: isNight,
-                                            onTap: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(builder: (context) => const DecorationPage()),
-                                              );
-                                            },
-                                          ),
-                                          const SizedBox(width: 16),
-                                        ],
                                         _buildTopIconButton(
-                                          icon: mode == 'island' ? Icons.cottage_outlined : Icons.landscape_outlined,
+                                          icon: Icons.auto_fix_high_rounded,
                                           isNight: isNight,
                                           onTap: () {
-                                            final nextMode = mode == 'island' ? 'house' : 'island';
-                                            UserState().setHomeDisplayMode(nextMode);
+                                            if (mode == 'island') {
+                                              // 室外场景：弹出主题切换底栏
+                                              showModalBottomSheet(
+                                                context: context,
+                                                backgroundColor:
+                                                    Colors.transparent,
+                                                isScrollControlled: true,
+                                                builder: (context) =>
+                                                    const IslandThemePicker(),
+                                              );
+                                            } else {
+                                              // 室内场景：跳转到家具装修页
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      const DecorationPage(),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                        const SizedBox(width: 16),
+                                        _buildTopIconButton(
+                                          icon: mode == 'island'
+                                              ? Icons.cottage_outlined
+                                              : Icons.landscape_outlined,
+                                          isNight: isNight,
+                                          onTap: () {
+                                            final nextMode = mode == 'island'
+                                                ? 'house'
+                                                : 'island';
+                                            UserState().setHomeDisplayMode(
+                                              nextMode,
+                                            );
                                           },
                                         ),
                                       ],
@@ -428,14 +539,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 ValueListenableBuilder<int>(
                                   valueListenable: UserState().diaryLayoutMode,
                                   builder: (context, modeIndex, _) {
-                                    final mode = DiaryLayoutMode.values[modeIndex];
+                                    final mode =
+                                        DiaryLayoutMode.values[modeIndex];
                                     IconData icon;
                                     if (mode == DiaryLayoutMode.calendar) {
                                       icon = Icons.format_list_bulleted_rounded;
-                                    } else if (mode == DiaryLayoutMode.moments) {
+                                    } else if (mode ==
+                                        DiaryLayoutMode.moments) {
                                       icon = Icons.calendar_month_rounded;
                                     } else {
-                                      icon = Icons.camera_rounded; // 朋友圈图标 (Moments)
+                                      icon = Icons
+                                          .camera_rounded; // 朋友圈图标 (Moments)
                                     }
 
                                     return _buildTopIconButton(
@@ -446,12 +560,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                         DiaryLayoutMode nextMode;
                                         if (mode == DiaryLayoutMode.timeline) {
                                           nextMode = DiaryLayoutMode.moments;
-                                        } else if (mode == DiaryLayoutMode.moments) {
+                                        } else if (mode ==
+                                            DiaryLayoutMode.moments) {
                                           nextMode = DiaryLayoutMode.calendar;
                                         } else {
                                           nextMode = DiaryLayoutMode.timeline;
                                         }
-                                        UserState().setDiaryLayoutMode(nextMode.index);
+                                        UserState().setDiaryLayoutMode(
+                                          nextMode.index,
+                                        );
                                       },
                                     );
                                   },
@@ -491,24 +608,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 Positioned(
                   left: 20,
                   right: 20,
-                  bottom: _isLandscape ? 60 : (MediaQuery.of(context).size.width > 600 ? 170 : 150),
+                  bottom: _isLandscape
+                      ? 60
+                      : (MediaQuery.of(context).size.width > 600 ? 170 : 150),
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 400),
-                      child: SpriteDialogue(
-                        text: _globalDialogueText,
-                        useTypewriter: true,
-                        onNext: () {
-                          setState(() => _showGlobalDialogue = false);
-                        },
-                      )
-                      .animate()
-                      .fade(duration: 400.ms)
-                      .scale(
-                        begin: const Offset(0.8, 0.8),
-                        duration: 400.ms,
-                        curve: Curves.easeOutBack,
-                      ),
+                      child:
+                          SpriteDialogue(
+                                text: _globalDialogueText,
+                                useTypewriter: true,
+                                onNext: () {
+                                  setState(() => _showGlobalDialogue = false);
+                                },
+                              )
+                              .animate()
+                              .fade(duration: 400.ms)
+                              .scale(
+                                begin: const Offset(0.8, 0.8),
+                                duration: 400.ms,
+                                curve: Curves.easeOutBack,
+                              ),
                     ),
                   ),
                 ),
@@ -521,36 +641,90 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildHomeContent(bool isNight, bool isWide) {
     return MultiValueListenableBuilder(
-      listenables: [UserState().currentBackgroundPath, UserState().homeDisplayMode],
+      listenables: [
+        UserState().currentBackgroundPath,
+        UserState().homeDisplayMode,
+        UserState().selectedIslandThemeId,
+      ],
       builder: (context, values, _) {
         final currentBgPath = values[0] as String;
         final displayMode = values[1] as String;
+        final themeId = values[2] as String;
         final islandPath = _getIslandImageForCurrentTime();
+
+        // --- 背景及小岛单独调整配置区 ---
+        double bgScale = 1.1; // 默认背景缩放
+        double bgOffsetY = 0.0; // 默认背景垂直偏移
+
+        double islandScale = 1.0; // 默认小岛缩放
+        double islandOffsetY = 0.0; // 默认小岛垂直偏移
+
+        if (themeId == 'cotton_candy') {
+          bgScale = 1; // 棉花糖岛背景放大
+          bgOffsetY = 0; // 棉花糖背景偏移
+
+          islandScale = 1.1; // 棉花糖小岛放大
+          islandOffsetY = 20.0; // 棉花糖小岛向下偏移
+        } else if (themeId == 'lantern_festival') {
+          bgScale = 1.4; // 元宵节背景放大
+          bgOffsetY = -30.0; // 元宵节背景偏移
+
+          islandScale = 1.1; // 元宵节小岛缩放
+          islandOffsetY = 0.0; // 元宵节小岛垂直偏移
+        } else if (themeId == 'starry_night') {
+          bgScale = 1.1;
+          bgOffsetY = 0.0;
+        }
+        // ---------------------------
 
         return IndexedStack(
           index: displayMode == 'house' ? 1 : 0,
           children: [
-            _buildIslandContent(isNight, isWide, currentBgPath, islandPath),
-            _buildHouseContent(isNight, isWide),
+            _buildIslandContent(
+              isNight,
+              isWide,
+              currentBgPath,
+              islandPath,
+              bgScale,
+              bgOffsetY,
+              islandScale,
+              islandOffsetY,
+              themeId,
+            ),
+            _buildHouseContent(isNight, isWide, themeId),
           ],
         );
       },
     );
   }
 
-  Widget _buildIslandContent(bool isNight, bool isWide, String currentBgPath, String islandPath) {
+  Widget _buildIslandContent(
+    bool isNight,
+    bool isWide,
+    String currentBgPath,
+    String islandPath,
+    double bgScale,
+    double bgOffsetY,
+    double islandScale,
+    double islandOffsetY,
+    String themeId,
+  ) {
     return Stack(
       key: const ValueKey('island'),
-          children: [
-            Positioned.fill(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 1500),
-                layoutBuilder: (child, others) => Stack(
-                  children: [
-                    ...others.map((e) => Positioned.fill(child: e)),
-                    if (child != null) Positioned.fill(child: child),
-                  ],
-                ),
+      children: [
+        Positioned.fill(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 1500),
+            layoutBuilder: (child, others) => Stack(
+              children: [
+                ...others.map((e) => Positioned.fill(child: e)),
+                if (child != null) Positioned.fill(child: child),
+              ],
+            ),
+            child: Transform.translate(
+              offset: Offset(0, bgOffsetY),
+              child: Transform.scale(
+                scale: bgScale,
                 child: Image.asset(
                   currentBgPath,
                   key: ValueKey(currentBgPath),
@@ -558,28 +732,46 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               ),
             ),
-          if (!_isLandscape)
-              Positioned.fill(
-                child: FloatingClouds(
-                  isNight: isNight,
-                  shouldAnimate: _currentNavIndex == 0 && UserState().homeDisplayMode.value == 'island',
-                ),
-              ),
-            
-          // 装饰层：磨砂彩虹 (位于背景云朵之上，前景云朵和岛屿之下)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: IgnorePointer(
-              child: FrostedRainbow(
-                width: double.infinity,
-                height: MediaQuery.of(context).size.height * 0.55,
-                opacity: 0.8,
-              ),
+          ),
+        ),
+        // 闪烁繁星层 (元宵节主题专属)
+        if (!_isLandscape && themeId == 'lantern_festival')
+          const Positioned.fill(child: TwinklingStars(count: 35)),
+        if (!_isLandscape && themeId != 'lantern_festival')
+          Positioned.fill(
+            child: FloatingClouds(
+              isNight: isNight,
+              themeId: themeId,
+              shouldAnimate:
+                  _currentNavIndex == 0 &&
+                  UserState().homeDisplayMode.value == 'island',
             ),
           ),
-            // ... rest of the interactive content
+        if (!_isLandscape && themeId == 'lantern_festival')
+          Positioned.fill(
+            child: RisingLanterns(
+              count: 6,
+              isForeground: false, // 背景层灯笼
+              shouldAnimate:
+                  _currentNavIndex == 0 &&
+                  UserState().homeDisplayMode.value == 'island',
+            ),
+          ),
+
+        // 装饰层：磨砂彩虹 (位于背景云朵之上，前景云朵和岛屿之下)
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: IgnorePointer(
+            child: FrostedRainbow(
+              width: double.infinity,
+              height: MediaQuery.of(context).size.height * 0.55,
+              opacity: 0.8,
+            ),
+          ),
+        ),
+        // ... rest of the interactive content
         Positioned.fill(
           child: InteractiveViewer(
             transformationController: _transformationController,
@@ -589,14 +781,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             maxScale: 5.0,
             child: Builder(
               builder: (context) {
-                final double currentScreenWidth = MediaQuery.of(context).size.width;
+                final double currentScreenWidth = MediaQuery.of(
+                  context,
+                ).size.width;
                 return AnimatedBuilder(
                   animation: _floatAnimation,
                   builder: (context, child) {
                     return Center(
                       child: Transform.translate(
-                        offset: Offset(0, _floatAnimation.value),
-                        child: child,
+                        offset: Offset(
+                          0,
+                          _floatAnimation.value + islandOffsetY,
+                        ),
+                        child: Transform.scale(
+                          scale: islandScale,
+                          child: child,
+                        ),
                       ),
                     );
                   },
@@ -612,7 +812,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             gradient: RadialGradient(
                               colors: [
                                 _getIslandBottomLightColorForCurrentTime(),
-                                _getIslandBottomLightColorForCurrentTime().withValues(alpha: 0.0),
+                                _getIslandBottomLightColorForCurrentTime()
+                                    .withValues(alpha: 0.0),
                               ],
                               stops: const [0.15, 1.0],
                             ),
@@ -623,7 +824,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         imageFilter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.4),
                         child: Image.asset(
                           islandPath,
-                          width: (currentScreenWidth <= 600 ? currentScreenWidth * 0.9 : 540.0) * 1.05,
+                          width:
+                              (currentScreenWidth <= 600
+                                  ? currentScreenWidth * 0.9
+                                  : 540.0) *
+                              1.05,
                           fit: BoxFit.contain,
                           color: _getIslandGlowColorForCurrentTime(),
                         ),
@@ -641,10 +846,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             stops: const [0.0, 1.0],
                           ).createShader(bounds);
                         },
-                        child: Image.asset(
-                          islandPath,
-                          width: currentScreenWidth <= 600 ? currentScreenWidth * 0.9 : 540.0,
-                          fit: BoxFit.contain,
+                        child: GestureDetector(
+                          onTap: () {
+                            _toggleZoom(context, isWide);
+                          },
+                          child: Image.asset(
+                            islandPath,
+                            width: currentScreenWidth <= 600
+                                ? currentScreenWidth * 0.9
+                                : 540.0,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                     ],
@@ -656,16 +868,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
 
         if (_isLandscape && _groupedEntries.isNotEmpty)
-          Positioned.fill(
-            child: _buildBarrageLayer(),
-          ),
+          Positioned.fill(child: _buildBarrageLayer()),
 
-        if (!_isLandscape)
+        if (!_isLandscape && themeId != 'lantern_festival')
           Positioned.fill(
             child: FloatingClouds(
               isNight: isNight,
               isForeground: true,
-              shouldAnimate: _currentNavIndex == 0 && UserState().homeDisplayMode.value == 'island',
+              themeId: themeId,
+              shouldAnimate:
+                  _currentNavIndex == 0 &&
+                  UserState().homeDisplayMode.value == 'island',
+            ),
+          ),
+        if (!_isLandscape && themeId == 'lantern_festival')
+          Positioned.fill(
+            child: RisingLanterns(
+              count: 4,
+              isForeground: true, // 前景层灯笼
+              shouldAnimate:
+                  _currentNavIndex == 0 &&
+                  UserState().homeDisplayMode.value == 'island',
             ),
           ),
         // 移除了内部的顶部操作栏，已提升至上层 Stack
@@ -673,7 +896,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildHouseContent(bool isNight, bool isWide) {
+  Widget _buildHouseContent(bool isNight, bool isWide, String themeId) {
     return ValueListenableBuilder<Uint8List?>(
       valueListenable: UserState().decorationSnapshot,
       builder: (context, snapshot, _) {
@@ -681,9 +904,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           key: const ValueKey('house'),
           children: [
             // 1. 背景层
-            Positioned.fill(
-              child: ScrollingSunBackground(isNight: isNight),
-            ),
+            Positioned.fill(child: ScrollingSunBackground(isNight: isNight, themeId: themeId)),
             // 2. 气氛滤镜
             Positioned.fill(
               child: AnimatedContainer(
@@ -694,7 +915,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            const Color(0xFF2D1B10).withValues(alpha: 0.35), 
+                            const Color(0xFF2D1B10).withValues(alpha: 0.35),
                             const Color(0xFF1A0F0A).withValues(alpha: 0.55),
                           ],
                         )
@@ -732,21 +953,25 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       child: AspectRatio(
                         aspectRatio: 1.0, // 强制 1:1 容器
                         child: Container(
-                          decoration: isNight ? BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF818CF8).withValues(alpha: 0.15),
-                                blurRadius: 100,
-                                spreadRadius: 20,
-                              ),
-                            ],
-                          ) : null,
+                          decoration: isNight
+                              ? BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF818CF8,
+                                      ).withValues(alpha: 0.15),
+                                      blurRadius: 100,
+                                      spreadRadius: 20,
+                                    ),
+                                  ],
+                                )
+                              : null,
                           child: Center(
-                            child: Image.memory(
-                              snapshot,
-                              fit: BoxFit.contain,
-                            ).animate().fadeIn(duration: 800.ms).scale(begin: const Offset(0.95, 0.95)),
+                            child: Image.memory(snapshot, fit: BoxFit.contain)
+                                .animate()
+                                .fadeIn(duration: 800.ms)
+                                .scale(begin: const Offset(0.95, 0.95)),
                           ),
                         ),
                       ),
@@ -787,7 +1012,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             );
           },
         ),
-        
+
         Positioned(
           bottom: 40,
           left: 0,
@@ -800,7 +1025,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                _formatBarrageDate(_groupedEntries[_barrageCurrentIndex].keys.first),
+                _formatBarrageDate(
+                  _groupedEntries[_barrageCurrentIndex].keys.first,
+                ),
                 style: const TextStyle(
                   color: Colors.white,
                   fontFamily: 'LXGWWenKai',
@@ -834,33 +1061,35 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: onTap,
-      child: ClipOval(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isNight 
-                ? Colors.white.withValues(alpha: 0.15) 
-                : Colors.black.withValues(alpha: 0.25),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isNight 
-                  ? const Color(0xFFD4A373).withValues(alpha: 0.25) 
-                  : Colors.black.withValues(alpha: 0.05),
-                width: 0.8,
+          onTap: onTap,
+          child: ClipOval(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isNight
+                      ? Colors.white.withValues(alpha: 0.15)
+                      : Colors.black.withValues(alpha: 0.25),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isNight
+                        ? const Color(0xFFD4A373).withValues(alpha: 0.25)
+                        : Colors.black.withValues(alpha: 0.05),
+                    width: 0.8,
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  size: 24,
+                  color: Colors.white.withValues(alpha: 0.95),
+                ),
               ),
             ),
-            child: Icon(
-              icon,
-              size: 24,
-              color: Colors.white.withValues(alpha: 0.95),
-            ),
           ),
-        ),
-      ),
-    ).animate(onPlay: (controller) => controller.repeat(reverse: true)).scale(
+        )
+        .animate(onPlay: (controller) => controller.repeat(reverse: true))
+        .scale(
           begin: const Offset(1, 1),
           end: const Offset(1.05, 1.05),
           duration: 3.seconds,

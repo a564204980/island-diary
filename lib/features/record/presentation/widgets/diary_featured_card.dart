@@ -87,76 +87,86 @@ class DiaryFeaturedCard extends StatelessWidget {
             ),
 
             // 3. Content Column (Left Side)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Body Text
-                  Expanded(
-                    child: FractionallySizedBox(
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // Body Text
+                    FractionallySizedBox(
                       widthFactor: 0.55, // Keep text on the left half
                       alignment: Alignment.topLeft,
                       child: Text(
-                        DiaryUtils.getFilteredContent(entry.content).trim(),
+                        _getFirstSentence(
+                          DiaryUtils.getFilteredContent(entry.content).trim(),
+                        ),
                         style: TextStyle(
                           color: textColor.withValues(alpha: 0.9),
                           fontSize: 15,
                           height: 1.6,
                           fontFamily: 'ArphicKaiti',
                         ),
-                        maxLines: 6, // Increase lines since title is gone
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
 
                   const SizedBox(height: 12),
 
-                  // Tags Row
+                  // Tags & Info Row (Parallel)
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _buildTag(
-                        mood.label,
-                        iconPath: mood.iconPath,
-                        isOverlay: true,
+                      // Tags (Left)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildTag(
+                            mood.label,
+                            iconPath: mood.iconPath,
+                            isOverlay: true,
+                          ),
+                          if (entry.tag != null && entry.tag!.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            _buildTag(
+                              entry.tag!,
+                              icon: Icons.local_florist_rounded,
+                              isOverlay: true,
+                            ),
+                          ],
+                        ],
                       ),
-                      if (entry.tag != null && entry.tag!.isNotEmpty) ...[
-                        const SizedBox(width: 8),
-                        _buildTag(
-                          entry.tag!,
-                          icon: Icons.local_florist_rounded,
-                          isOverlay: true,
-                        ),
-                      ],
+
+                      // Time & Weather (Right)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "${entry.dateTime.hour.toString().padLeft(2, '0')}:${entry.dateTime.minute.toString().padLeft(2, '0')}",
+                            style: TextStyle(
+                              color: textColor.withValues(alpha: 0.7),
+                              fontSize: 16,
+                              fontFamily: 'ArphicKaiti',
+                            ),
+                          ),
+                          if (entry.weather != null &&
+                              entry.weather!.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.wb_sunny_rounded,
+                              size: 16,
+                              color: Colors.amber.withValues(alpha: 0.9),
+                            ),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
-
-                  const SizedBox(height: 12),
-
-                  // Bottom Info (Time & Weather)
-                  Row(
-                    children: [
-                      Text(
-                        "${entry.dateTime.hour.toString().padLeft(2, '0')}:${entry.dateTime.minute.toString().padLeft(2, '0')}",
-                        style: TextStyle(
-                          color: textColor.withValues(alpha: 0.7),
-                          fontSize: 16,
-                          fontFamily: 'ArphicKaiti',
-                        ),
-                      ),
-                      if (entry.weather != null &&
-                          entry.weather!.isNotEmpty) ...[
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.wb_sunny_rounded,
-                          size: 16,
-                          color: Colors.amber.withValues(alpha: 0.9),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
@@ -186,7 +196,7 @@ class DiaryFeaturedCard extends StatelessWidget {
             // 5. Bottom Right Circular Image (if multiple images)
             if (images.length > 1)
               Positioned(
-                bottom: 24,
+                bottom: 56, // 上移，避免遮挡底部的时间
                 right: 24,
                 child: Container(
                   width: 64,
@@ -202,10 +212,13 @@ class DiaryFeaturedCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: DiaryUtils.buildImage(
-                    images.last['path'],
-                    fit: BoxFit.cover,
+                  child: ClipOval(
+                    child: DiaryUtils.buildImage(
+                      images.last['path'],
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
@@ -257,6 +270,17 @@ class DiaryFeaturedCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getFirstSentence(String text) {
+    if (text.isEmpty) return "";
+    // 找到第一个句末标点符号或换行符
+    final RegExp re = RegExp(r'[。！？.!?\n]');
+    final match = re.firstMatch(text);
+    if (match != null) {
+      return text.substring(0, match.end).trim();
+    }
+    return text.trim();
   }
 }
 

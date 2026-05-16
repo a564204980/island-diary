@@ -353,72 +353,65 @@ class DecorationController extends ChangeNotifier {
         notifyListeners();
       }
     } else {
-      // 1. 获取稳定、不受高度影响的基础控制网格(光标直射地面)，以此作为承托面侦测依据，绝对消除边缘跨层抖动。
-      var cell0 = converter.getGridCell(localPos, z: 0.0);
-      if (cell0 != null && isCellExcluded(cell0.$1, cell0.$2)) cell0 = null;
+      // --- 改进后的探测逻辑：支持由于高度视差导致的地面投影点溢出探测 ---
+      
+      // 1. 尝试探测所有家具的表面高度
+      double targetZ = 0.0;
+      if (draggingItem!.canStack) {
+        double foundSurfaceZ = 0.0;
+        for (final pf in _placedFurniture) {
+          if (pf.item.isFloor || pf.item.isWall || pf == draggingOriginalPF) {
+            continue;
+          }
 
-      if (cell0 != null) {
-        int gw = draggingRotation % 2 == 0
-            ? draggingItem!.gridW
-            : draggingItem!.gridH;
-        int gh = draggingRotation % 2 == 0
-            ? draggingItem!.gridH
-            : draggingItem!.gridW;
+          if (pf.item.surfaceHeight != null) {
+            final double height = pf.item.surfaceHeight!;
+            final cellAtHeight = converter.getGridCell(localPos, z: height);
 
-        final centeredCell0 = (
-          (cell0.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
-          (cell0.$2 - (gh / 2).floor()).clamp(0, kGridCols - gh),
-        );
-
-        // --- 靠墙/高台家具动态高度吸附逻辑 ---
-        double targetZ = 0.0;
-
-        if (draggingItem!.canStack) {
-          double foundSurfaceZ = 0.0;
-          for (final pf in _placedFurniture) {
-            if (pf.item.isFloor || pf.item.isWall || pf == draggingOriginalPF) {
-              continue;
-            }
-
-            // 如果底层家具有表面高度
-            if (pf.item.surfaceHeight != null) {
+            if (cellAtHeight != null) {
               int pgw = pf.rotation % 2 == 0 ? pf.item.gridW : pf.item.gridH;
               int pgh = pf.rotation % 2 == 0 ? pf.item.gridH : pf.item.gridW;
 
-              // 碰撞检测使用基础探测网格
-              if (centeredCell0.$1 < pf.r + pgw &&
-                  centeredCell0.$1 + gw > pf.r &&
-                  centeredCell0.$2 < pf.c + pgh &&
-                  centeredCell0.$2 + gh > pf.c) {
-                final height = pf.item.surfaceHeight!;
+              if (cellAtHeight.$1 >= pf.r &&
+                  cellAtHeight.$1 < pf.r + pgw &&
+                  cellAtHeight.$2 >= pf.c &&
+                  cellAtHeight.$2 < pf.c + pgh) {
                 if (height > foundSurfaceZ) {
                   foundSurfaceZ = height;
                 }
               }
             }
           }
-          targetZ = foundSurfaceZ;
         }
+        targetZ = foundSurfaceZ;
+      }
+
+      // 2. 根据最终高度计算投影网格
+      var cellZ = converter.getGridCell(localPos, z: targetZ);
+      
+      // 3. 如果带高度的探测失效（例如点击了完全不在网格内的区域），尝试保底地面探测
+      if (cellZ == null && targetZ > 0) {
+        cellZ = converter.getGridCell(localPos, z: 0.0);
+      }
+
+      if (cellZ != null) {
+        if (isCellExcluded(cellZ.$1, cellZ.$2)) return;
+
+        int gw = draggingRotation % 2 == 0 ? draggingItem!.gridW : draggingItem!.gridH;
+        int gh = draggingRotation % 2 == 0 ? draggingItem!.gridH : draggingItem!.gridW;
+
+        // 应用高度补偿和边界限制
+        final centeredCell = (
+          (cellZ.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
+          (cellZ.$2 - (gh / 2).floor()).clamp(0, kGridCols - gh),
+        );
 
         double oldZ = ghostZ;
         ghostZ = targetZ;
 
-        // 2. 根据确定的 targetZ 逆向求出带有视差补偿的最终摆放网格，确保高空画出来的物块在其对应绝对坐标上与手指无任何偏移
-        var cellZ = converter.getGridCell(localPos, z: targetZ);
-        if (cellZ != null && isCellExcluded(cellZ.$1, cellZ.$2)) cellZ = null;
-        var finalCell = cellZ ?? cell0; // 若悬空补偿导致超出室内，使用基础退回
-
-        final centeredCell = (
-          (finalCell.$1 - (gw / 2).floor()).clamp(0, kGridRows - gw),
-          (finalCell.$2 - (gh / 2).floor()).clamp(0, kGridCols - gh),
-        );
-
-        if (centeredCell != ghostCell) {
+        if (centeredCell != ghostCell || targetZ != oldZ) {
           ghostCell = centeredCell;
           isInteracting = true;
-          notifyListeners();
-        } else if (targetZ != oldZ) {
-          // 如果位置没变但高度变了（进入/离开不同高度家具区域），也要通知重绘
           notifyListeners();
         }
       }

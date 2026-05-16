@@ -77,6 +77,14 @@ class FloorPatternPainter {
           baseColor: baseColor,
         );
         break;
+      case FloorPattern.cottonCandy:
+        _drawCottonCandy(
+          canvas: canvas,
+          converter: converter,
+          rows: rows,
+          cols: cols,
+        );
+        break;
       default:
         break;
     }
@@ -461,5 +469,39 @@ class FloorPatternPainter {
     final p4 = converter.getScreenPoint(r - wr / 2, c + wc / 2);
     
     canvas.drawPath(Path()..addPolygon([p1, p2, p3, p4], true), paint);
+  }
+
+  /// 绘制棉花糖棋盘格地板 (Cotton Candy Grid)
+  static void _drawCottonCandy({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required int rows,
+    required int cols,
+  }) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    // 提取自用户图片的配色
+    const pinkColor = Color(0xFFFDE6EF);
+    const creamColor = Color(0xFFFFF9F0);
+
+    const int step = 2; // 每 2x2 网格为一个色块，保持视觉比例协调
+
+    for (int i = 0; i < rows; i += step) {
+      for (int j = 0; j < cols; j += step) {
+        final p1 = converter.getScreenPoint(i.toDouble(), j.toDouble());
+        final p2 = converter.getScreenPoint((i + step).toDouble(), j.toDouble());
+        final p3 = converter.getScreenPoint((i + step).toDouble(), (j + step).toDouble());
+        final p4 = converter.getScreenPoint(i.toDouble(), (j + step).toDouble());
+        
+        final path = Path()..addPolygon([p1, p2, p3, p4], true);
+        
+        // 棋盘格交替逻辑
+        if (((i / step).floor() + (j / step).floor()) % 2 == 0) {
+          paint.color = pinkColor;
+        } else {
+          paint.color = creamColor;
+        }
+        canvas.drawPath(path, paint);
+      }
+    }
   }
 }

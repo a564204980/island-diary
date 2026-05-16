@@ -5,12 +5,14 @@ class FloatingClouds extends StatelessWidget {
   final bool isNight;
   final bool isForeground;
   final bool shouldAnimate;
+  final String? themeId;
 
   const FloatingClouds({
     super.key,
     required this.isNight,
     this.isForeground = false,
     this.shouldAnimate = true,
+    this.themeId,
   });
 
   @override
@@ -38,6 +40,7 @@ class FloatingClouds extends StatelessWidget {
             duration: Duration(seconds: config['duration']),
             initialTop: config['initialTop'],
             shouldAnimate: shouldAnimate,
+            themeId: themeId,
             // 背景层由组件内部随机，不再使用固定索引
             forcedIndex: null,
           );
@@ -55,6 +58,7 @@ class _SingleCloud extends StatefulWidget {
   final double initialTop;
   final int? forcedIndex;
   final bool shouldAnimate;
+  final String? themeId;
 
   const _SingleCloud({
     required this.isNight,
@@ -64,6 +68,7 @@ class _SingleCloud extends StatefulWidget {
     required this.initialTop,
     this.forcedIndex,
     this.shouldAnimate = true,
+    this.themeId,
   });
 
   @override
@@ -81,7 +86,7 @@ class _SingleCloudState extends State<_SingleCloud>
   void initState() {
     super.initState();
     _currentTop = widget.initialTop;
-    _currentIndex = widget.forcedIndex ?? (_random.nextInt(9) + 1);
+    _currentIndex = widget.forcedIndex ?? _getRandomIndex();
 
     // 初始化控制器，并随机一个初始速度
     _controller = AnimationController(
@@ -105,16 +110,30 @@ class _SingleCloudState extends State<_SingleCloud>
     }
   }
 
+  int _getRandomIndex() {
+    if (widget.themeId == 'cotton_candy') {
+      // 4号文件夹下只有 clouds2 到 clouds8
+      return _random.nextInt(7) + 2;
+    }
+    return _random.nextInt(9) + 1;
+  }
+
   @override
   void didUpdateWidget(covariant _SingleCloud oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.shouldAnimate != oldWidget.shouldAnimate) {
+    if (widget.shouldAnimate != oldWidget.shouldAnimate ||
+        widget.themeId != oldWidget.themeId) {
       if (widget.shouldAnimate) {
         if (!_controller.isAnimating) {
           _controller.forward();
         }
       } else {
         _controller.stop();
+      }
+      
+      // 如果主题变了，强制重新随机一下索引，让云朵样式立刻刷新
+      if (widget.themeId != oldWidget.themeId) {
+        _currentIndex = _getRandomIndex();
       }
     }
   }
@@ -139,8 +158,8 @@ class _SingleCloudState extends State<_SingleCloud>
       // 更新速度（时长）
       _controller.duration = _getRandomDuration();
 
-      // 类型随机范围扩大到 1-9
-      _currentIndex = _random.nextInt(9) + 1;
+      // 根据主题获取随机索引
+      _currentIndex = _getRandomIndex();
     });
   }
 
@@ -165,13 +184,20 @@ class _SingleCloudState extends State<_SingleCloud>
         final double t = _controller.value;
         final double xPos = screenWidth - (t * (screenWidth + cloudWidth));
 
+        String basePath = 'assets/images/icons/';
+        String suffix = (widget.isNight && widget.themeId != 'cotton_candy') ? '_night' : '';
+        
+        if (widget.themeId == 'cotton_candy') {
+          basePath = 'assets/images/icons/4/';
+        }
+
         return Positioned(
           top: screenHeight * _currentTop,
           left: xPos,
           child: Transform.scale(
             scale: widget.scale,
             child: Image.asset(
-              'assets/images/icons/clouds$_currentIndex${widget.isNight ? '_night' : ''}.png',
+              '${basePath}clouds$_currentIndex$suffix.png',
               width: cloudWidth,
               fit: BoxFit.contain,
               color: Colors.white.withValues(alpha: widget.isForeground ? 0.85 : 0.65),

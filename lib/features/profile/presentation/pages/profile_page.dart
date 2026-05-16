@@ -103,18 +103,32 @@ class _ProfilePageState extends State<ProfilePage> {
         userState.themeMode,
         userState.isVip,
         userState.selectedTitles,
+        userState.selectedIslandThemeId,
       ]),
       builder: (context, child) {
         final bool isNight = userState.isNight;
         final bool isVip = userState.isVip.value;
+        final String themeId = userState.selectedIslandThemeId.value;
 
         return Stack(
           children: [
-            // 背景模糊
+            // 节日特定背景
+            if (themeId == 'lantern_festival')
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/images/background/page_yuanxiaojie_bg.png',
+                  fit: BoxFit.cover,
+                ),
+              ),
+
+            // 背景模糊（节日主题下保持清晰）
             Positioned.fill(
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(color: Colors.transparent),
+                filter: ImageFilter.blur(
+                  sigmaX: themeId == 'lantern_festival' ? 0 : 10,
+                  sigmaY: themeId == 'lantern_festival' ? 0 : 10,
+                ),
+                child: Container(color: Colors.black.withValues(alpha: themeId == 'lantern_festival' ? 0.3 : 0)),
               ),
             ),
 

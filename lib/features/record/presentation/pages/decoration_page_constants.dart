@@ -13,5 +13,5 @@ const int kWallGridHeight = 14;
 const double kWallThickness = 0.6;
 
 enum WallPattern { none, stripes, dualColor, lavenderStripes, wainscoting, clouds, gradient, sparkle, meltingDrips, greenHills, vintageFloral, ivySkirting, sakura }
-enum FloorPattern { none, herringbone, tripleHerringbone, plaid, randomWood, harlequin, terrazzo }
+enum FloorPattern { none, herringbone, tripleHerringbone, plaid, randomWood, harlequin, terrazzo, cottonCandy }
 const double kToolbarGlobalPadding = 45.0; // 工具栏与物品顶部的基础间距

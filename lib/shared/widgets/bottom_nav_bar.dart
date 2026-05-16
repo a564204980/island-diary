@@ -85,7 +85,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final double barMaxWidth = screenWidth <= 600 ? screenWidth * 0.9 : 500.0;
+    final double barMaxWidth = screenWidth <= 600 ? screenWidth * 0.92 : 560.0;
 
     return SizedBox(
       height: SlimeButton.containerHeight,
@@ -101,6 +101,10 @@ class _BottomNavBarState extends State<BottomNavBar> {
   }
 
   Widget _buildBackground(double barMaxWidth) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final isLanternFestival = themeId == 'lantern_festival';
+    final isCottonCandy = themeId == 'cotton_candy';
+
     return Positioned(
       bottom: -6,
       left: 0,
@@ -108,17 +112,30 @@ class _BottomNavBarState extends State<BottomNavBar> {
       child: Center(
         child: Container(
           constraints: BoxConstraints(maxWidth: barMaxWidth),
-          margin: const EdgeInsets.symmetric(horizontal: 24),
           decoration: BoxDecoration(
             boxShadow: [
               BoxShadow(
-                color: widget.isNight
-                    ? Colors.black.withValues(alpha: 0.18)
-                    : const Color(0xFF1B3B5F).withValues(alpha: 0.2),
-                blurRadius: widget.isNight ? 20 : 40,
-                offset: Offset(0, widget.isNight ? 8 : 12),
+                color: isLanternFestival
+                    ? const Color(0xFFFF8A65).withValues(alpha: 0.15)
+                    : (isCottonCandy
+                          ? const Color(0xFFFF94B8).withValues(alpha: 0.25)
+                          : (widget.isNight
+                                ? Colors.black.withValues(alpha: 0.18)
+                                : const Color(
+                                    0xFF1B3B5F,
+                                  ).withValues(alpha: 0.2))),
+                blurRadius:
+                    (widget.isNight || isLanternFestival || isCottonCandy)
+                    ? 20
+                    : 40,
+                offset: Offset(
+                  0,
+                  (widget.isNight || isLanternFestival || isCottonCandy)
+                      ? 8
+                      : 12,
+                ),
               ),
-              if (!widget.isNight)
+              if (!widget.isNight && !isLanternFestival && !isCottonCandy)
                 BoxShadow(
                   color: const Color(0xFF80D8FF).withValues(alpha: 0.12),
                   blurRadius: 20,
@@ -129,26 +146,54 @@ class _BottomNavBarState extends State<BottomNavBar> {
           child: Stack(
             children: [
               ClipPath(
-                clipper: const NavBarClipper(notchRadius: notchRadius, barRadius: barRadius),
+                clipper: const NavBarClipper(
+                  notchRadius: notchRadius,
+                  barRadius: barRadius,
+                ),
                 child: _buildBlurBody(
+                  isLanternFestival: isLanternFestival,
+                  isCottonCandy: isCottonCandy,
                   child: Center(
                     child: SizedBox(
                       width: barMaxWidth * 0.88,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildNavItem(0, CupertinoIcons.house, CupertinoIcons.house_fill, '首页'),
-                          _buildNavItem(1, CupertinoIcons.book, CupertinoIcons.book_fill, '记录'),
+                          _buildNavItem(
+                            0,
+                            CupertinoIcons.house,
+                            CupertinoIcons.house_fill,
+                            '首页',
+                          ),
+                          _buildNavItem(
+                            1,
+                            CupertinoIcons.book,
+                            CupertinoIcons.book_fill,
+                            '记录',
+                          ),
                           const SizedBox(width: 80),
-                          _buildNavItem(3, CupertinoIcons.chart_bar, CupertinoIcons.chart_bar_fill, '数据'),
-                          _buildNavItem(4, CupertinoIcons.person, CupertinoIcons.person_solid, '我'),
+                          _buildNavItem(
+                            3,
+                            CupertinoIcons.chart_bar,
+                            CupertinoIcons.chart_bar_fill,
+                            '数据',
+                          ),
+                          _buildNavItem(
+                            4,
+                            CupertinoIcons.person,
+                            CupertinoIcons.person_solid,
+                            '我',
+                          ),
                         ],
                       ),
                     ),
                   ),
                 ),
               ),
-              _buildGradientBorder(),
+              _buildGradientBorder(
+                isLanternFestival: isLanternFestival,
+                isCottonCandy: isCottonCandy,
+              ),
             ],
           ),
         ),
@@ -156,7 +201,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
     );
   }
 
-  Widget _buildBlurBody({Widget? child}) {
+  Widget _buildBlurBody({
+    required bool isLanternFestival,
+    required bool isCottonCandy,
+    Widget? child,
+  }) {
     return SizedBox(
       height: barHeight,
       width: double.infinity,
@@ -165,44 +214,85 @@ class _BottomNavBarState extends State<BottomNavBar> {
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(
-                sigmaX: widget.isNight ? 15 : 20,
-                sigmaY: widget.isNight ? 15 : 20,
+                sigmaX: (widget.isNight || isLanternFestival || isCottonCandy)
+                    ? 15
+                    : 20,
+                sigmaY: (widget.isNight || isLanternFestival || isCottonCandy)
+                    ? 15
+                    : 20,
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: widget.isNight
-                      ? null
-                      : LinearGradient(
+                  gradient: isLanternFestival
+                      ? LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: widget.currentIndex == 1
-                              ? [
-                                  const Color(0xFFF5E6CC).withValues(alpha: 0.6),
-                                  const Color(0xFFFFF8E1).withValues(alpha: 0.4),
-                                ]
-                              : [
-                                  const Color(0xFFB3E5FC).withValues(alpha: 0.5),
-                                  const Color(0xFFE1F5FE).withValues(alpha: 0.3),
+                          colors: [
+                            const Color(0xFF5D2E2E).withValues(alpha: 0.3),
+                            const Color(0xFF3E1A1A).withValues(alpha: 0.45),
+                          ],
+                        )
+                      : (isCottonCandy
+                            ? LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  const Color(
+                                    0xFFFFE1E9,
+                                  ).withValues(alpha: 0.5),
+                                  const Color(
+                                    0xFFFFCADB,
+                                  ).withValues(alpha: 0.65),
                                 ],
-                        ),
-                  color: widget.isNight 
-                      ? (widget.currentIndex == 1 
-                          ? const Color(0xFF4A3C31).withValues(alpha: 0.3) 
-                          : const Color(0xFF736675).withValues(alpha: 0.2))
+                              )
+                            : (widget.isNight
+                                  ? null
+                                  : LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: widget.currentIndex == 1
+                                          ? [
+                                              const Color(
+                                                0xFFF5E6CC,
+                                              ).withValues(alpha: 0.6),
+                                              const Color(
+                                                0xFFFFF8E1,
+                                              ).withValues(alpha: 0.4),
+                                            ]
+                                          : [
+                                              const Color(
+                                                0xFFB3E5FC,
+                                              ).withValues(alpha: 0.5),
+                                              const Color(
+                                                0xFFE1F5FE,
+                                              ).withValues(alpha: 0.3),
+                                            ],
+                                    ))),
+                  color: (widget.isNight && !isLanternFestival)
+                      ? (widget.currentIndex == 1
+                            ? const Color(0xFF4A3C31).withValues(alpha: 0.3)
+                            : const Color(0xFF736675).withValues(alpha: 0.2))
                       : null,
                 ),
               ),
             ),
           ),
           if (child != null) child,
-          _buildTopHighlight(),
+          _buildTopHighlight(
+            isLanternFestival: isLanternFestival,
+            isCottonCandy: isCottonCandy,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTopHighlight() {
-    if (widget.isNight) return const SizedBox.shrink();
+  Widget _buildTopHighlight({
+    required bool isLanternFestival,
+    required bool isCottonCandy,
+  }) {
+    if (widget.isNight || isLanternFestival || isCottonCandy)
+      return const SizedBox.shrink();
     return Positioned(
       top: 0,
       left: 0,
@@ -222,26 +312,46 @@ class _BottomNavBarState extends State<BottomNavBar> {
     );
   }
 
-  Widget _buildGradientBorder() {
+  Widget _buildGradientBorder({
+    required bool isLanternFestival,
+    required bool isCottonCandy,
+  }) {
     return Positioned.fill(
       child: IgnorePointer(
         child: CustomPaint(
           painter: NavBarGradientPainter(
-            clipper: const NavBarClipper(notchRadius: notchRadius, barRadius: barRadius),
-            strokeWidth: widget.isNight ? 2.5 : 1.2,
+            clipper: const NavBarClipper(
+              notchRadius: notchRadius,
+              barRadius: barRadius,
+            ),
+            strokeWidth: (widget.isNight || isLanternFestival || isCottonCandy)
+                ? 2.5
+                : 1.2,
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: widget.isNight
-                ? (widget.currentIndex == 1 
-                    ? const [Color(0xFFEEBB3C), Color(0xFF3E2723)] 
-                    : const [Color(0xFFEEBB3C), Color(0xFF1B2735)])
-                : [
-                    const Color(0xFFFFF9C4).withValues(alpha: 0.8),
-                    widget.currentIndex == 1 
-                        ? const Color(0xFFFFCC80).withValues(alpha: 0.3) 
-                        : const Color(0xFFB3E5FC).withValues(alpha: 0.2),
-                  ],
+              colors: (isLanternFestival || widget.isNight)
+                  ? (widget.currentIndex == 1
+                        ? const [Color(0xFFEEBB3C), Color(0xFF3E2723)]
+                        : const [
+                            Color(0xFFEEBB3C),
+                            Color(0xFFD4A373),
+                            Color(0xFF5D2E2E),
+                          ])
+                  : (isCottonCandy
+                        ? [
+                            const Color(0xFFFFFFFF).withValues(alpha: 0.9),
+                            const Color(0xFFFFD1E1).withValues(alpha: 0.6),
+                            const Color(0xFFFFFFFF).withValues(alpha: 0.9),
+                          ]
+                        : [
+                            const Color(0xFFFFF9C4).withValues(alpha: 0.8),
+                            widget.currentIndex == 1
+                                ? const Color(0xFFFFCC80).withValues(alpha: 0.3)
+                                : const Color(
+                                    0xFFB3E5FC,
+                                  ).withValues(alpha: 0.2),
+                          ]),
             ),
           ),
         ),
@@ -308,9 +418,12 @@ class _BottomNavBarState extends State<BottomNavBar> {
     );
   }
 
-
-
-  Widget _buildNavItem(int index, IconData unselectedIcon, IconData selectedIcon, String label) {
+  Widget _buildNavItem(
+    int index,
+    IconData unselectedIcon,
+    IconData selectedIcon,
+    String label,
+  ) {
     return Expanded(
       child: NavItem(
         defaultIcon: unselectedIcon,
@@ -326,15 +439,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   Future<void> _openMoodPicker() async {
     final draft = UserState().diaryDraft.value;
-    // 如果有草稿，直接进入编辑器
     if (draft != null) {
       _openDiaryEntry(draft.moodIndex, draft.intensity, tag: draft.tag);
       return;
     }
-
     final wasOnboarding = !UserState().hasFinishedOnboarding.value;
-    
-    // 统一直接进入编辑器，因为编辑器顶部现在有全新的心情选择器
     if (wasOnboarding) {
       UserState().completeOnboarding();
     }
@@ -354,7 +463,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
       ),
     ).then((result) {
       UserState().isDiarySheetOpen.value = false;
-      // 进一步放宽判定条件，确保回调必达
       if (result is List && result.isNotEmpty) {
         widget.onSaveSuccess?.call(List<MascotAchievement>.from(result));
       }

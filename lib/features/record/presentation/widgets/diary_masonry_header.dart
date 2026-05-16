@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 class DiaryMasonryHeader extends StatelessWidget {
   final bool isNight;
@@ -6,6 +7,8 @@ class DiaryMasonryHeader extends StatelessWidget {
   final int islandDays;
   final DateTime currentDate;
   final VoidCallback onCalendarTap;
+  final VoidCallback? onDecorateTap;
+  final bool showDecorateIcon;
 
   const DiaryMasonryHeader({
     super.key,
@@ -14,16 +17,31 @@ class DiaryMasonryHeader extends StatelessWidget {
     required this.islandDays,
     required this.currentDate,
     required this.onCalendarTap,
+    this.onDecorateTap,
+    this.showDecorateIcon = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final textColor = isNight
-        ? Colors.white.withValues(alpha: 0.9)
-        : const Color(0xFF060606);
-    final subTextColor = isNight
-        ? Colors.white54
-        : Colors.black.withValues(alpha: 0.8);
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isLantern = themeId == 'lantern_festival';
+    final bool isCottonCandy = themeId == 'cotton_candy';
+
+    final textColor = isLantern
+        ? const Color(0xFFF4E3C0)
+        : (isCottonCandy
+            ? const Color(0xFF6F5E63)
+            : (isNight
+                ? Colors.white.withValues(alpha: 0.9)
+                : const Color(0xFF060606)));
+
+    final subTextColor = isLantern
+        ? const Color(0xFFEAD2A8)
+        : (isCottonCandy
+            ? const Color(0xFF6F5E63)
+            : (isNight
+                ? Colors.white54
+                : Colors.black.withValues(alpha: 0.8)));
 
     return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -78,10 +96,12 @@ class DiaryMasonryHeader extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             // 天气图标
-            const Icon(
+            Icon(
               Icons.wb_sunny_rounded,
               size: 20,
-              color: Color(0xFFF9A826),
+              color: isCottonCandy 
+                ? const Color(0xFFF3B547)
+                : const Color(0xFFF9A826),
             ),
             const SizedBox(width: 8),
             // 寄语
@@ -96,6 +116,28 @@ class DiaryMasonryHeader extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            const SizedBox(width: 12),
+            // 装扮按钮
+            if (showDecorateIcon)
+              GestureDetector(
+                onTap: onDecorateTap,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isNight 
+                      ? Colors.white.withValues(alpha: 0.1) 
+                      : Colors.black.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.auto_fix_high_rounded,
+                    size: 20,
+                    color: isNight 
+                      ? Colors.amber.withValues(alpha: 0.8) 
+                      : const Color(0xFFD4A373),
+                  ),
+                ),
+              ),
           ],
       ),
     );
