@@ -39,12 +39,25 @@ class _NavItemState extends State<NavItem> {
 
     // 定义各主题下的颜色
     final Color activeColor = isLanternFestival || isCottonCandy
-        ? (isCottonCandy ? const Color(0xFF7B5C2E) : const Color(0xFFFFEFA1))
+        ? (isCottonCandy ? const Color(0xFFE6607A) : const Color(0xFFFFEFA1))
         : (widget.isNight ? const Color(0xFFFFEFA1) : const Color(0xFF7B5C2E));
 
     final Color inactiveColor = isLanternFestival || isCottonCandy
         ? (isCottonCandy ? const Color(0xFF9E7777) : const Color(0xFFB5A492))
         : (widget.isNight ? const Color(0xFFB5B5C9) : const Color(0xFF8B7763));
+
+    final List<Shadow>? strokeShadows = (isSelected && isCottonCandy)
+        ? const [
+            Shadow(color: Colors.white, offset: Offset(-1.2, -1.2)),
+            Shadow(color: Colors.white, offset: Offset(1.2, -1.2)),
+            Shadow(color: Colors.white, offset: Offset(1.2, 1.2)),
+            Shadow(color: Colors.white, offset: Offset(-1.2, 1.2)),
+            Shadow(color: Colors.white, offset: Offset(0, -1.5)),
+            Shadow(color: Colors.white, offset: Offset(0, 1.5)),
+            Shadow(color: Colors.white, offset: Offset(-1.5, 0)),
+            Shadow(color: Colors.white, offset: Offset(1.5, 0)),
+          ]
+        : null;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -86,12 +99,7 @@ class _NavItemState extends State<NavItem> {
                   isSelected ? (widget.activeIcon ?? widget.defaultIcon) : widget.defaultIcon,
                   size: 28.0,
                   color: isSelected ? activeColor : inactiveColor,
-                  shadows: isSelected && isCottonCandy
-                      ? [
-                          const Shadow(color: Colors.white, blurRadius: 8),
-                          const Shadow(color: Colors.white, blurRadius: 4),
-                        ]
-                      : null,
+                  shadows: strokeShadows,
                 )
                     .animate(target: isSelected ? 1 : 0)
                     .scale(
@@ -120,12 +128,7 @@ class _NavItemState extends State<NavItem> {
                 fontSize: 13.0,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 color: isSelected ? activeColor : inactiveColor,
-                shadows: isSelected && isCottonCandy
-                    ? [
-                        const Shadow(color: Colors.white, blurRadius: 6),
-                        const Shadow(color: Colors.white, blurRadius: 3),
-                      ]
-                    : null,
+                shadows: strokeShadows,
               ),
             ),
           ],

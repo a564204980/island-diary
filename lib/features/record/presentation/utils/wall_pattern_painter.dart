@@ -188,6 +188,16 @@ class WallPatternPainter {
           baseColor: baseColor,
         );
         break;
+      case WallPattern.greenWoodPanels:
+        _drawGreenWoodPanels(
+          canvas: canvas,
+          converter: converter,
+          isLeft: isLeft,
+          rows: rows,
+          cols: cols,
+          baseColor: baseColor,
+        );
+        break;
     }
 
     canvas.restore();
@@ -577,6 +587,77 @@ class WallPatternPainter {
         );
       }
     }
+  }
+
+  /// 绘制青绿原木质感墙板
+  static void _drawGreenWoodPanels({
+    required Canvas canvas,
+    required IsometricCoordinateConverter converter,
+    required bool isLeft,
+    required int rows,
+    required int cols,
+    required Color baseColor,
+  }) {
+    // 1. 画基础底色
+    _drawSolidColor(
+      canvas: canvas,
+      converter: converter,
+      isLeft: isLeft,
+      rows: rows,
+      cols: cols,
+      color: baseColor,
+    );
+
+    final count = isLeft ? rows : cols;
+    const double plankWidth = 0.5; // 每块木板的宽度（在网格单元中占比）
+    
+    // 木板之间的沟槽颜色（更深的绿）和高光颜色
+    final hsl = HSLColor.fromColor(baseColor);
+    final shadowColor = hsl.withLightness((hsl.lightness - 0.12).clamp(0, 1)).toColor();
+    final highlightColor = hsl.withLightness((hsl.lightness + 0.08).clamp(0, 1)).toColor();
+
+    final shadowPaint = Paint()
+      ..color = shadowColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+      
+    final highlightPaint = Paint()
+      ..color = highlightColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    // 绘制木板接缝沟槽
+    for (double i = plankWidth; i < count; i += plankWidth) {
+      final pBottom = isLeft
+          ? converter.getScreenPoint(i, 0, 0)
+          : converter.getScreenPoint(0, i, 0);
+      final pTop = isLeft
+          ? converter.getScreenPoint(i, 0, kWallGridHeight.toDouble())
+          : converter.getScreenPoint(0, i, kWallGridHeight.toDouble());
+
+      // 主深色沟槽
+      canvas.drawLine(pBottom, pTop, shadowPaint);
+      
+      // 细微的高光增加立体感（根据墙面朝向决定高光位置）
+      final highlightOffset = isLeft ? const Offset(-1, 0) : const Offset(1, 0);
+      canvas.drawLine(
+        pBottom + highlightOffset,
+        pTop + highlightOffset,
+        highlightPaint,
+      );
+    }
+    
+    // 增加底部木质踢脚线
+    _drawSkirtingBoard(
+      canvas: canvas,
+      converter: converter,
+      isLeft: isLeft,
+      rows: rows,
+      cols: cols,
+      bottomColor: shadowColor,
+      shadowColor: shadowColor.withAlpha(200),
+      height: 1.0,
+    );
   }
 
   /// 绘制踢脚线/底部装饰边

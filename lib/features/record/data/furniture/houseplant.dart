@@ -17,6 +17,7 @@ final List<FurnitureItem> houseplantItems = [
     visualOffset: const Offset(0, 0),
     flippedVisualScale: 0.96,
     flippedVisualOffset: const Offset(0, 0),
+    canStack: true,
   ),
   FurnitureItem(
     id: 'plant_fern_1',
@@ -31,6 +32,7 @@ final List<FurnitureItem> houseplantItems = [
     quantity: 5,
     visualScale: 1.4,
     visualOffset: const Offset(0, -4),
+    canStack: true,
   ),
   FurnitureItem(
     id: 'plant_broadleaf_1',
@@ -46,6 +48,7 @@ final List<FurnitureItem> houseplantItems = [
     visualScale: 1.4,
     visualOffset: const Offset(-2, 0),
     flippedVisualOffset: const Offset(2, 0),
+    canStack: true,
   ),
   FurnitureItem(
     id: 'plant_succulent_1',
@@ -60,6 +63,7 @@ final List<FurnitureItem> houseplantItems = [
     quantity: 5,
     visualScale: 1.4,
     visualOffset: const Offset(0, -4),
+    canStack: true,
   ),
   FurnitureItem(
     id: 'plant_monstera_1',
@@ -73,6 +77,7 @@ final List<FurnitureItem> houseplantItems = [
     intrinsicHeight: 604,
     quantity: 5,
     visualScale: 1.4,
+    canStack: true,
     visualOffset: const Offset(0, -4),
   ),
   FurnitureItem(
@@ -103,5 +108,6 @@ final List<FurnitureItem> houseplantItems = [
     visualScale: 1.1,
     visualOffset: const Offset(0, -9),
     flippedVisualOffset: const Offset(0, -9),
+    canStack: true,
   ),
 ];

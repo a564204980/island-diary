@@ -15,7 +15,7 @@ import 'package:island_diary/features/statistics/presentation/widgets/bento/reco
 import 'package:island_diary/features/statistics/presentation/widgets/mood_poster_widget.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/glass_bento.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/seasonal_atmosphere_painter.dart';
-import 'package:island_diary/features/statistics/presentation/widgets/mental_island_card.dart';
+import 'package:island_diary/features/statistics/presentation/widgets/seasonal_atmosphere_painter.dart';
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 import 'package:island_diary/core/services/ai_service.dart';
 part '../widgets/bento/bento_radar_chart.dart';
@@ -343,15 +343,15 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     switch (_currentRange) {
       case StatTimeRange.week:
         saved = state.statsOrderWeek.value;
-        defaults = ['island', 'mood_trend', 'mood_flow', 'resilience', 'intensity_radar', 'stats_row', 'volatility', 'wave', 'weekly_pattern', 'heatmap', 'time_pattern'];
+        defaults = ['mood_trend', 'mood_flow', 'resilience', 'intensity_radar', 'stats_row', 'volatility', 'wave', 'weekly_pattern', 'heatmap', 'time_pattern'];
         break;
       case StatTimeRange.month:
         saved = state.statsOrderMonth.value;
-        defaults = ['island', 'mood_trend', 'mood_flow', 'resilience', 'calendar', 'intensity_radar', 'stats_row', 'highlights', 'time_pattern'];
+        defaults = ['mood_trend', 'mood_flow', 'resilience', 'calendar', 'intensity_radar', 'stats_row', 'highlights', 'time_pattern'];
         break;
       case StatTimeRange.all:
         saved = state.statsOrderAll.value;
-        defaults = ['island', 'mood_trend', 'mood_flow', 'resilience', 'intensity_radar', 'seasonality', 'heatmap', 'stats_row', 'time_pattern', 'weather'];
+        defaults = ['mood_trend', 'mood_flow', 'resilience', 'intensity_radar', 'seasonality', 'heatmap', 'stats_row', 'time_pattern', 'weather'];
         break;
     }
     
@@ -373,16 +373,6 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     final themeColor = currentSeason.accentColor;
 
     switch (id) {
-      case 'island':
-        if (filtered.isEmpty) return const SizedBox.shrink();
-        return MentalIslandCard(
-          season: currentSeason,
-          isNight: isNight,
-          totalEntries: _allDiaries.length,
-          rangeText: _currentRange == StatTimeRange.week 
-              ? "本周" 
-              : (_currentRange == StatTimeRange.month ? "本月" : "目前"),
-        );
       case 'intensity_radar':
         return _buildRadarBento(isNight, filtered, themeColor);
       case 'stats_row':
@@ -679,6 +669,24 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
 
   Widget _buildSegmentTab(String title, StatTimeRange range, bool isNight) {
     final bool isSelected = _currentRange == range;
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+
+    Color getBackgroundColor() {
+      if (!isSelected) return Colors.transparent;
+      if (isCottonCandy) return const Color(0xFFFCAEAE);
+      return isNight ? Colors.white24 : Colors.white;
+    }
+
+    Color getTextColor() {
+      if (isSelected) {
+        if (isCottonCandy) return Colors.white;
+        return isNight ? Colors.white : const Color(0xFF5A3E28);
+      } else {
+        if (isCottonCandy) return const Color(0xFF9E7777);
+        return isNight ? Colors.white54 : Colors.black54;
+      }
+    }
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -691,23 +699,20 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? (isNight ? Colors.white24 : Colors.white)
-              : Colors.transparent,
+          color: getBackgroundColor(),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: isSelected && !isNight ? [
+          boxShadow: (isSelected && !isNight && !isCottonCandy) ? [
             BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0,2))
           ] : null,
         ),
-        child: Text(
-          title,
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 200),
           style: TextStyle(
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected 
-              ? (isNight ? Colors.white : const Color(0xFF5A3E28))
-              : (isNight ? Colors.white54 : Colors.black54),
+            color: getTextColor(),
           ),
+          child: Text(title),
         ),
       ),
     );

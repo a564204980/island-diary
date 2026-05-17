@@ -507,6 +507,11 @@ class DecorationController extends ChangeNotifier {
         // 设置底色为柔和粉色
         setWallColor(true, const Color(0xFFFDE8E9));
         setWallColor(false, const Color(0xFFFDE8E9));
+      } else if (item.id.contains('green_wood_panels')) {
+        setWallPattern(WallPattern.greenWoodPanels);
+        // 设置清新的淡绿底色
+        setWallColor(true, const Color(0xFFC5DEC1));
+        setWallColor(false, const Color(0xFFC5DEC1));
       } else {
         setWallPattern(WallPattern.none);
       }
