@@ -1,6 +1,6 @@
 part of '../../pages/statistics_page.dart';
 
-extension BentoWaveChart on _StatisticsPageState {
+extension _BentoWaveChart on _StatisticsPageState {
   Widget _buildWaveChartBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
     if (filtered.isEmpty) {
       return _buildGlassCard(
@@ -54,7 +54,7 @@ extension BentoWaveChart on _StatisticsPageState {
     }).toList();
 
     // 提高主题色亮度以适应折线
-    final barColor = themeColor.withOpacity(isNight ? 0.9 : 0.85);
+    final barColor = themeColor.withValues(alpha: isNight ? 0.9 : 0.85);
 
     final barData = LineChartBarData(
       spots: spots,
@@ -64,7 +64,7 @@ extension BentoWaveChart on _StatisticsPageState {
       barWidth: 4,
       isStrokeCapRound: true,
       shadow: Shadow(
-        color: barColor.withOpacity(0.4),
+        color: barColor.withValues(alpha: 0.4),
         blurRadius: 10,
         offset: const Offset(0, 4),
       ),
@@ -89,8 +89,8 @@ extension BentoWaveChart on _StatisticsPageState {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            barColor.withOpacity(isNight ? 0.3 : 0.4),
-            barColor.withOpacity(0.05),
+            barColor.withValues(alpha: isNight ? 0.3 : 0.4),
+            barColor.withValues(alpha: 0.05),
             Colors.transparent,
           ],
         ),
@@ -137,7 +137,9 @@ extension BentoWaveChart on _StatisticsPageState {
                             },
                             touchTooltipData: LineTouchTooltipData(
                               getTooltipColor: (_) => Colors.transparent,
-                              getTooltipItems: (touchedSpots) => [],
+                              getTooltipItems: (touchedSpots) => touchedSpots.map((_) {
+                                return const LineTooltipItem('', TextStyle(fontSize: 0));
+                              }).toList(),
                             ),
                           ),
                           gridData: const FlGridData(show: false),
@@ -184,7 +186,7 @@ extension BentoWaveChart on _StatisticsPageState {
                           bottom: 22,
                           child: Container(
                             width: 1,
-                            color: isNight ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.1),
+                            color: isNight ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.1),
                           ),
                         ),
                         _buildBentoTooltip(

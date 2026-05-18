@@ -154,6 +154,20 @@ class SettingsPage extends StatelessWidget {
                               _showToast(context, '已触发全量解锁测试模式');
                             },
                           ),
+                          _buildDivider(isNight),
+                          _buildPremiumTile(
+                            context,
+                            '调试：生成测试日记 (100条)',
+                            Icons.playlist_add_rounded,
+                            const Color(0xFF10B981),
+                            isNight,
+                            onTap: () async {
+                              await UserState().generateMockDiaries();
+                              if (context.mounted) {
+                                _showToast(context, '已生成 100 条测试日记数据');
+                              }
+                            },
+                          ),
                         ],
                       ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0),
                     ),

@@ -2,8 +2,17 @@ part of '../../pages/statistics_page.dart';
 
 extension BentoHeatmap on _StatisticsPageState {
   Widget _buildHeatmapBento(bool isNight, List<DiaryEntry> filtered, StatTimeRange range, Color themeColor) {
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+    final Color cottonCandySurface = const Color(0xFFFFF4EF);
+    final Color cottonCandyAccent = const Color(0xFFF7AAB6);
+    final Color heatmapThemeColor = isCottonCandy && range == StatTimeRange.all ? cottonCandyAccent : themeColor;
+    final Color headerIconColor = isCottonCandy
+        ? const Color(0xFFAE9584)
+        : themeColor;
+
     return _buildGlassCard(
       isNight: isNight,
+      backgroundColor: isCottonCandy ? cottonCandySurface : null,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -20,14 +29,14 @@ extension BentoHeatmap on _StatisticsPageState {
             rightAction: Icon(
               range == StatTimeRange.all ? CupertinoIcons.graph_square : CupertinoIcons.circle_grid_hex,
               size: 16,
-              color: themeColor.withOpacity(isNight ? 0.6 : 0.4),
+              color: headerIconColor.withOpacity(isNight ? 0.72 : 0.58),
             ),
           ),
           const SizedBox(height: 16),
-          _buildHeatmapContent(isNight, filtered, range, themeColor),
+          _buildHeatmapContent(isNight, filtered, range, heatmapThemeColor),
           if (range == StatTimeRange.all) ...[
             const SizedBox(height: 12),
-            _buildHeatmapLegend(isNight, themeColor),
+            _buildHeatmapLegend(isNight, heatmapThemeColor),
           ] else ...[
             const SizedBox(height: 16),
             _buildMoodLegend(isNight, filtered),
@@ -343,6 +352,14 @@ extension BentoHeatmap on _StatisticsPageState {
   }
 
   Widget _buildYearlyMatrixBlock(int year, Map<int, Map<int, int>> data, bool isNight, Color themeColor, [double? maxWidth]) {
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+    final Color labelColor = isNight
+        ? Colors.white30
+        : (isCottonCandy ? const Color(0xFF8A7462) : Colors.black38);
+    final Color softLabelColor = isNight
+        ? Colors.white24
+        : (isCottonCandy ? const Color(0xFFAE9584) : Colors.black26);
+
     final List<List<int>> matrix = List.generate(12, (mIdx) {
       final daysInMonth = DateUtils.getDaysInMonth(year, mIdx + 1);
       return List.generate(31, (dIdx) {
@@ -366,24 +383,35 @@ extension BentoHeatmap on _StatisticsPageState {
           children: [
             Padding(
               padding: const EdgeInsets.only(left: 34, bottom: 8),
-              child: Text('$year', style: TextStyle(
-                fontSize: 12, 
-                fontWeight: FontWeight.bold,
-                color: isNight ? Colors.white30 : Colors.black26,
-              )),
+              child: Text(
+                '$year',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: labelColor,
+                ),
+              ),
             ),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 1),
+                SizedBox(
+                  width: labelWidth,
+                  height: gridHeight,
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: List.generate(12, (i) => SizedBox(
-                      height: cellSize + spacing,
-                      width: labelWidth,
-                      child: Text('${i + 1}月', 
-                        textAlign: TextAlign.right,
-                        style: TextStyle(fontSize: 8, color: isNight ? Colors.white24 : Colors.black26)
+                      height: cellSize,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          '${i + 1}月',
+                          style: TextStyle(
+                            fontSize: 9,
+                            height: 1,
+                            color: softLabelColor,
+                          ),
+                        ),
                       ),
                     )),
                   ),
@@ -496,21 +524,28 @@ extension BentoHeatmap on _StatisticsPageState {
   }
 
   Widget _buildHeatmapLegend(bool isNight, Color themeColor) {
+     final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+     final Color labelColor = isNight
+         ? Colors.white24
+         : (isCottonCandy ? const Color(0xFF8A7462) : Colors.black26);
+     final Color deepColor = themeColor.withOpacity(isNight ? 0.72 : 0.6);
+
      return Row(
        mainAxisAlignment: MainAxisAlignment.end,
        children: [
-         Text('浅', style: TextStyle(fontSize: 10, color: isNight ? Colors.white24 : Colors.black26)),
-         const SizedBox(width: 4),
+         Text('浅', style: TextStyle(fontSize: 11, color: labelColor)),
+         const SizedBox(width: 6),
          ...List.generate(5, (i) => Container(
-           width: 10, height: 10,
-           margin: const EdgeInsets.symmetric(horizontal: 1),
+           width: 11,
+           height: 11,
+           margin: const EdgeInsets.symmetric(horizontal: 1.5),
            decoration: BoxDecoration(
-             color: _getSeasonalGlowColor(i + 1, isNight, themeColor),
-             borderRadius: BorderRadius.circular(2),
+             color: _getSeasonalGlowColor(i + 1, isNight, deepColor),
+             borderRadius: BorderRadius.circular(3),
            ),
          )),
-         const SizedBox(width: 4),
-         Text('深', style: TextStyle(fontSize: 10, color: isNight ? Colors.white24 : Colors.black26)),
+         const SizedBox(width: 6),
+         Text('深', style: TextStyle(fontSize: 11, color: labelColor)),
        ],
      );
   }

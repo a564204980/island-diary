@@ -63,10 +63,12 @@ class BackupService {
       final file = File(filePath);
       await file.writeAsBytes(zipBytes);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: '岛屿日记加密备份',
-        text: '这是我在岛屿日记中的加密记忆晶体。请通过 App 恢复功能打开。',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          subject: '岛屿日记加密备份',
+          text: '这是我在岛屿日记中的加密记忆晶体。请通过 App 恢复功能打开。',
+        )
       );
       
       return true;

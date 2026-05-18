@@ -49,6 +49,9 @@ extension _StatisticsAdvancedBentoFragments on _StatisticsPageState {
 
   Widget _buildMonthlyHighlightsBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
     if (filtered.length < 2) return const SizedBox.shrink();
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+    final Color accentColor = isCottonCandy ? const Color(0xFFF7AAB6) : themeColor;
+    final Color cottonCandySurface = const Color(0xFFFFF4EF);
 
     DiaryEntry maxEntry = filtered.first;
     DiaryEntry minEntry = filtered.first;
@@ -62,8 +65,12 @@ extension _StatisticsAdvancedBentoFragments on _StatisticsPageState {
        }
     }
 
+    final String summaryText =
+        '这段时间里，最高点在 ${DateFormat('MM/dd').format(maxEntry.dateTime)}，最低点在 ${DateFormat('MM/dd').format(minEntry.dateTime)}。';
+
     return _buildGlassCard(
        isNight: isNight,
+       backgroundColor: isCottonCandy ? cottonCandySurface : null,
        padding: const EdgeInsets.all(16),
        child: Column(
          crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,14 +78,28 @@ extension _StatisticsAdvancedBentoFragments on _StatisticsPageState {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                 Text('时光刻痕', style: _bentoTitleStyle(isNight)),
-                 Icon(CupertinoIcons.bookmark_fill, size: 18, color: themeColor.withValues(alpha: isNight ? 0.6 : 0.4)),
+                 Text('情绪高低点', style: _bentoTitleStyle(isNight)),
+                 Icon(
+                   CupertinoIcons.bookmark_fill,
+                   size: 18,
+                   color: accentColor.withValues(alpha: isNight ? 0.72 : 0.45),
+                 ),
               ]
             ),
-            const SizedBox(height: 16),
-            _buildHighlightQuote(isNight, maxEntry, '极度高昂', Colors.orange),
+            const SizedBox(height: 6),
+            Text(
+              summaryText,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.35,
+                color: isNight ? Colors.white60 : const Color(0xFF8A7462),
+                fontFamily: 'LXGWWenKai',
+              ),
+            ),
             const SizedBox(height: 12),
-            _buildHighlightQuote(isNight, minEntry, '情绪至暗', themeColor),
+            _buildHighlightQuote(isNight, maxEntry, '最高点', Colors.orange),
+            const SizedBox(height: 10),
+            _buildHighlightQuote(isNight, minEntry, '最低点', themeColor),
           ]
        )
     );
@@ -86,16 +107,21 @@ extension _StatisticsAdvancedBentoFragments on _StatisticsPageState {
 
   Widget _buildHighlightQuote(bool isNight, DiaryEntry entry, String label, Color accentColor) {
     String content = entry.content.replaceAll('\n', ' ');
-    if (content.length > 40) {
-      content = '${content.substring(0, 40)}...';
+    if (content.length > 34) {
+      content = '${content.substring(0, 34)}...';
     }
-    
+
     return Container(
        decoration: BoxDecoration(
-         border: Border(left: BorderSide(color: accentColor, width: 3)),
-         color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
+         border: Border(
+           left: BorderSide(color: accentColor.withValues(alpha: 0.9), width: 2.5),
+         ),
+         color: isNight
+             ? Colors.white10
+             : accentColor.withValues(alpha: 0.08),
+         borderRadius: BorderRadius.circular(12),
        ),
-       padding: const EdgeInsets.all(12),
+       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
        child: Column(
          crossAxisAlignment: CrossAxisAlignment.start,
          children: [
@@ -107,7 +133,16 @@ extension _StatisticsAdvancedBentoFragments on _StatisticsPageState {
               ]
             ),
             const SizedBox(height: 6),
-            Text('"$content"', style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: isNight ? Colors.white70 : Colors.black87)),
+            Text(
+              '"$content"',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.35,
+                color: isNight ? Colors.white70 : Colors.black87,
+              ),
+            ),
          ]
        )
     );

@@ -457,7 +457,10 @@ class DecorationController extends ChangeNotifier {
     if (item.quantity <= 0) return;
 
     // 若上一次点击放置的物品还未被移动/删除，先移除它
-    if (_lastClickPlaced != null &&
+    final bool allowsSelfOverlap =
+        item.canStack && item.surfaceHeight != null;
+
+    if (!allowsSelfOverlap && _lastClickPlaced != null &&
         _placedFurniture.contains(_lastClickPlaced)) {
       _placedFurniture.remove(_lastClickPlaced);
       _lastClickPlaced!.item.quantity++;

@@ -2,13 +2,15 @@ part of '../../pages/statistics_page.dart';
 
 /// 情感强度数据模型
 class _RadarIntensityData {
+  final int moodIndex;
   final String label;
-  final double avgIntensity; // 0.0 - 1.0
+  final double avgIntensity; // 0.0 - 10.0
   final Color glowColor;
   final String? iconPath;
   final bool isNegative;
 
   _RadarIntensityData({
+    required this.moodIndex,
     required this.label,
     required this.avgIntensity,
     required this.glowColor,
@@ -18,68 +20,94 @@ class _RadarIntensityData {
 }
 
 extension _BentoRadarChart on _StatisticsPageState {
-  Widget _buildRadarBento(bool isNight, List<DiaryEntry> entries, Color themeColor) {
+  Widget _buildRadarBento(
+    bool isNight,
+    List<DiaryEntry> entries,
+    Color themeColor,
+  ) {
     if (entries.isEmpty) return const SizedBox.shrink();
 
-    // 1. 数据统计与聚合 - 预设 8 个内置心情作为“基础底座”
-    final Map<String, List<double>> labelToIntensities = {};
-    for (var m in kMoods) {
-      labelToIntensities[m.label] = [];
-    }
-    
-    final Map<String, int> labelToMoodIndex = {};
+    final bool isCottonCandy =
+        UserState().selectedIslandThemeId.value == 'cotton_candy';
+    final Color accentColor = isCottonCandy
+        ? const Color(0xFFF7AAB6)
+        : themeColor;
+
+    // 1. 数据统计与聚合 - 预设 11 个内置心情作为“基础底座”
+    final Map<int, List<double>> moodIndexToIntensities = {};
     for (int i = 0; i < kMoods.length; i++) {
-        labelToMoodIndex[kMoods[i].label] = i;
+      moodIndexToIntensities[i] = <double>[];
     }
-    
+
     for (var e in entries) {
-      final label = e.tag != null && e.tag!.isNotEmpty 
-          ? e.tag! 
-          : kMoods[e.moodIndex % kMoods.length].label;
-      
-      labelToIntensities.putIfAbsent(label, () => []).add(e.intensity);
-      if (e.tag == null || e.tag!.isEmpty) {
-         labelToMoodIndex[label] = e.moodIndex;
-      }
+      final int moodIndex = e.moodIndex % kMoods.length;
+      moodIndexToIntensities[moodIndex]?.add(e.intensity.toDouble());
+    }
+
+    final Map<int, int> moodCounts = {};
+    for (var e in entries) {
+      final int moodIndex = e.moodIndex % kMoods.length;
+      moodCounts[moodIndex] = (moodCounts[moodIndex] ?? 0) + 1;
     }
 
     final List<_RadarIntensityData> chartData = [];
-    // 按顺序处理：先排内置 8 心情，再排自定义标签
-    labelToIntensities.forEach((label, intensities) {
-      final avg = intensities.isEmpty ? 0.0 : intensities.reduce((a, b) => a + b) / intensities.length;
-      final mIdx = labelToMoodIndex[label];
-      
-      Color color;
-      String? icon;
-      bool negative = false;
+    // 按顺序处理内置 11 心情
+    for (int moodIndex = 0; moodIndex < kMoods.length; moodIndex++) {
+      final intensities = moodIndexToIntensities[moodIndex] ?? const <double>[];
+      final avg = intensities.isEmpty
+          ? 0.0
+          : intensities.reduce((a, b) => a + b) / intensities.length;
+      final mood = kMoods[moodIndex];
+      final color = mood.glowColor ?? Colors.blueAccent;
+      final List<String> radarIcons = [
+        'assets/icons/happy.png',
+        'assets/icons/calm.png',
+        'assets/icons/down.png',
+        'assets/icons/irritated.png',
+        'assets/icons/tired.png',
+        'assets/icons/surprise.png',
+        'assets/icons/shy.png',
+        'assets/icons/anxious.png',
+        'assets/icons/wronged.png',
+        'assets/icons/bored.png',
+        'assets/icons/expect.png',
+      ];
+      final icon = radarIcons[moodIndex % kMoods.length];
+      final negative = [2, 3, 4, 7, 8, 9].contains(moodIndex % kMoods.length);
 
-      if (mIdx != null) {
-        final mood = kMoods[mIdx % kMoods.length];
-        color = mood.glowColor ?? Colors.blueAccent;
-        icon = mood.iconPath;
-        if ([1, 2, 5, 6].contains(mIdx % kMoods.length)) {
-          negative = true;
-        }
-      } else {
-        // 自定义标签颜色生成
-        final h = (label.hashCode % 360).toDouble();
-        color = HSVColor.fromAHSV(1.0, h, 0.4, 0.9).toColor();
-        icon = 'assets/images/icons/tag.png'; // 自定义标签默认图标
-      }
+      chartData.add(
+        _RadarIntensityData(
+          moodIndex: moodIndex,
+          label: mood.label,
+          avgIntensity: avg,
+          glowColor: color,
+          iconPath: icon,
+          isNegative: negative,
+        ),
+      );
+    }
 
-      chartData.add(_RadarIntensityData(
-        label: label,
-        avgIntensity: avg,
-        glowColor: color,
-        iconPath: icon,
-        isNegative: negative,
-      ));
+    final _RadarIntensityData? strongestMood = chartData
+        .where((item) => item.avgIntensity > 0)
+        .fold<_RadarIntensityData?>(null, (best, item) {
+      if (best == null) return item;
+      if (item.avgIntensity > best.avgIntensity) return item;
+      return best;
     });
+
+    final int? mostCommonMoodIndex = moodCounts.entries.isEmpty
+        ? null
+        : moodCounts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+    final String summaryText = strongestMood == null
+        ? '这段时间的心情分布还比较平均。'
+        : '本期最强：${strongestMood.label}'
+            '${mostCommonMoodIndex != null ? '，出现最多：${kMoods[mostCommonMoodIndex].label}' : ''}';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: _buildGlassCard(
         isNight: isNight,
+        backgroundColor: isCottonCandy ? const Color(0xFFFFF4EF) : null,
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,11 +115,31 @@ extension _BentoRadarChart on _StatisticsPageState {
             _buildBentoHeader(
               context: context,
               title: '心境雷达',
-              helpContent: '基于日记记录，从[[多个维度]]呈现您的情感偏好，助您发现潜意识中的[[情绪主导力量]]。',
+              helpContent:
+                  '这个图会把不同心情放到不同方向上。线越长，说明那种心情在这段时间里越强。',
               isNight: isNight,
-              rightAction: Icon(CupertinoIcons.waveform_circle_fill, size: 18, color: isNight ? Colors.white54 : Colors.black.withValues(alpha: 0.26)),
+              rightAction: Icon(
+                CupertinoIcons.compass,
+                size: 18,
+                color: accentColor.withValues(alpha: isNight ? 0.72 : 0.8),
+              ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            Text(
+              summaryText,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.3,
+                fontWeight: FontWeight.w500,
+                color: isNight
+                    ? Colors.white60
+                    : (isCottonCandy
+                        ? const Color(0xFFB28D7B)
+                        : const Color(0xFF6D5A4B)),
+                fontFamily: 'LXGWWenKai',
+              ),
+            ),
+            const SizedBox(height: 14),
             LayoutBuilder(
               builder: (context, constraints) {
                 final double size = constraints.maxWidth;
@@ -129,7 +177,7 @@ extension _BentoRadarChart on _StatisticsPageState {
 
                         double val = (score / 10.0).clamp(0.001, 1.0);
                         double r = radius * val;
-                        
+
                         double px = chartCenter.dx + r * cos(angle);
                         double py = chartCenter.dy + r * sin(angle);
 
@@ -146,34 +194,44 @@ extension _BentoRadarChart on _StatisticsPageState {
                         );
                       }),
                       // 自定义提示框
-                      if (_selectedRadarPointIndex != null && _selectedRadarPointIndex! < chartData.length) ...[
-                        (){
-                           final item = chartData[_selectedRadarPointIndex!];
-                           final double angle = (2 * pi / n) * _selectedRadarPointIndex! - pi / 2;
-                           final double val = (item.avgIntensity / 10.0).clamp(0.001, 1.0);
-                           final double r = radius * val;
-                           final double px = chartCenter.dx + r * cos(angle);
-                           final double py = chartCenter.dy + r * sin(angle);
-                           
-                           return _buildBentoTooltip(
-                             title: '心境雷达 · ${item.label}',
-                             items: [
-                               _BentoTooltipItem(
-                                 label: '强度',
-                                 value: (item.isNegative ? '-' : '') + item.avgIntensity.toStringAsFixed(1),
-                                 color: item.glowColor
-                               ),
-                               _BentoTooltipItem(
-                                 label: '特质',
-                                 value: item.isNegative ? '低能阴雨' : (item.avgIntensity > 8 ? '高频滋养' : '平稳过渡'),
-                               )
-                             ],
-                             relativeX: px / size,
-                             chartWidth: size,
-                             isNight: isNight,
-                             top: py > graphHeight / 2 ? py - 120 : py + 20, // 根据位置动态上下偏移
-                           );
-                        }()
+                      if (_selectedRadarPointIndex != null &&
+                          _selectedRadarPointIndex! < chartData.length) ...[
+                        () {
+                          final item = chartData[_selectedRadarPointIndex!];
+                          final double angle =
+                              (2 * pi / n) * _selectedRadarPointIndex! - pi / 2;
+                          final double val = (item.avgIntensity / 10.0).clamp(
+                            0.001,
+                            1.0,
+                          );
+                          final double r = radius * val;
+                          final double px = chartCenter.dx + r * cos(angle);
+                          final double py = chartCenter.dy + r * sin(angle);
+
+                          return _buildBentoTooltip(
+                            title: '心情：${item.label}',
+                            items: [
+                              _BentoTooltipItem(
+                                label: '情绪强度',
+                                value: item.avgIntensity.toStringAsFixed(1),
+                                color: item.glowColor,
+                              ),
+                              _BentoTooltipItem(
+                                label: '情绪特质',
+                                value: item.isNegative
+                                    ? '低能阴雨'
+                                    : (item.avgIntensity > 8 ? '高频滋养' : '平稳过渡'),
+                              ),
+                            ],
+                            relativeX: px / size,
+                            chartWidth: size,
+                            isNight: isNight,
+                            useCottonCandyStyle: isCottonCandy,
+                            top: py > graphHeight / 2
+                                ? py - 120
+                                : py + 20, // 根据位置动态上下偏移
+                          );
+                        }(),
                       ],
                       // 3. 悬浮标签与图标 (原有布局)
                       ...List.generate(n, (i) {
@@ -181,14 +239,11 @@ extension _BentoRadarChart on _StatisticsPageState {
                         double labelR = radius + 32;
                         double lx = chartCenter.dx + labelR * cos(angle);
                         double ly = chartCenter.dy + labelR * sin(angle);
-                        
+
                         final item = chartData[i];
-                        // 新增：超过 19 个轴时切换为“纯文字模式”
                         final bool hideIcons = n > 19;
-                        double fontSize = hideIcons ? 7.0 : (n > 13 ? 7.5 : (n > 10 ? 8.5 : 9.5));
-                        double iconSize = n > 13 ? 18 : (n > 10 ? 21 : 25);
-                        
-                        final scoreStr = (item.isNegative ? '-' : '') + item.avgIntensity.toStringAsFixed(1);
+                        final double fontSize = 10.5;
+                        final double iconSize = 22.0;
 
                         return Positioned(
                           left: lx - 30,
@@ -199,49 +254,62 @@ extension _BentoRadarChart on _StatisticsPageState {
                             children: [
                               if (item.iconPath != null && !hideIcons)
                                 Container(
-                                  padding: EdgeInsets.all(n > 13 ? 4 : 5),
+                                  padding: EdgeInsets.all(n > 13 ? 3 : 4),
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: item.avgIntensity > 0 
-                                        ? item.glowColor.withValues(alpha: isNight ? 0.35 : 0.25)
-                                        : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
+                                    color: item.avgIntensity > 0
+                                        ? item.glowColor.withValues(
+                                            alpha: isNight ? 0.22 : 0.16,
+                                          )
+                                        : (isNight
+                                              ? Colors.white10
+                                              : Colors.black.withValues(
+                                                  alpha: 0.04,
+                                                )),
                                     boxShadow: [
                                       if (item.avgIntensity > 0)
                                         BoxShadow(
-                                          color: item.glowColor.withValues(alpha: 0.2),
-                                          blurRadius: 8,
-                                          spreadRadius: -2,
+                                          color: item.glowColor.withValues(
+                                            alpha: 0.12,
+                                          ),
+                                          blurRadius: 6,
+                                          spreadRadius: -3,
                                         ),
                                       if (item.avgIntensity == 0)
                                         BoxShadow(
-                                          color: item.glowColor.withValues(alpha: 0.05),
+                                          color: item.glowColor.withValues(
+                                            alpha: 0.05,
+                                          ),
                                           blurRadius: 4,
                                         ),
                                     ],
                                   ),
-                                  child: Image.asset(item.iconPath!, width: iconSize, height: iconSize, 
-                                    errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                                  child: Image.asset(
+                                    item.iconPath!,
+                                    width: iconSize,
+                                    height: iconSize,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const SizedBox(),
                                   ),
                                 ),
                               if (!hideIcons) const SizedBox(height: 3),
-                              Text(item.label, 
+                              Text(
+                                item.label,
                                 textAlign: TextAlign.center,
                                 maxLines: 1, // 恢复单行显示
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: fontSize, 
-                                  fontWeight: FontWeight.bold, 
-                                  color: isNight ? Colors.white70 : Colors.black87,
+                                  fontSize: fontSize,
+                                  fontWeight: FontWeight.bold,
+                                  color: isNight
+                                      ? Colors.white70
+                                      : (isCottonCandy
+                                            ? const Color(0xFF9A7A69)
+                                            : const Color(0xFF5A3E28)),
                                   fontFamily: 'LXGWWenKai',
                                   height: 1.2,
-                                )
-                              ),
-                              Text(scoreStr, 
-                                style: TextStyle(
-                                  fontSize: fontSize - 1, 
-                                  color: isNight ? Colors.white30 : Colors.black26,
-                                  height: 1.1,
-                                )
+                                ),
                               ),
                             ],
                           ),
@@ -252,10 +320,166 @@ extension _BentoRadarChart on _StatisticsPageState {
                 );
               },
             ),
+            _buildCustomTagsSection(isNight, entries, isCottonCandy),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildCustomTagsSection(
+    bool isNight,
+    List<DiaryEntry> entries,
+    bool isCottonCandy,
+  ) {
+    final Map<String, int> tagCounts = {};
+    for (var e in entries) {
+      if (e.tag != null && e.tag!.isNotEmpty) {
+        tagCounts[e.tag!] = (tagCounts[e.tag!] ?? 0) + 1;
+      }
+    }
+
+    if (tagCounts.isEmpty) return const SizedBox.shrink();
+
+    final sortedTags = tagCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final colors = _getTagColors(isNight);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 16, 4, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 1,
+            margin: const EdgeInsets.only(bottom: 12),
+            color: isNight
+                ? Colors.white.withValues(alpha: 0.06)
+                : Colors.black.withValues(alpha: 0.04),
+          ),
+          Text(
+            '常用标签',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'LXGWWenKai',
+              color: isNight
+                  ? Colors.white60
+                  : (isCottonCandy
+                      ? const Color(0xFF9A7A69)
+                      : const Color(0xFF5A3E28)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(sortedTags.length, (index) {
+              final tag = sortedTags[index].key;
+              final count = sortedTags[index].value;
+              final colorScheme = colors[index % colors.length];
+
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme['bg'],
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: colorScheme['border']!, width: 0.7),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      tag,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: colorScheme['text'],
+                        fontFamily: 'LXGWWenKai',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$count',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: colorScheme['text']!.withValues(alpha: 0.65),
+                        fontFamily: 'LXGWWenKai',
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Map<String, Color>> _getTagColors(bool isNight) {
+    if (isNight) {
+      return [
+        {
+          'bg': const Color(0xFF7B1FA2).withValues(alpha: 0.12),
+          'text': const Color(0xFFE1BEE7),
+          'border': const Color(0xFF9C27B0).withValues(alpha: 0.25),
+        },
+        {
+          'bg': const Color(0xFF2E7D32).withValues(alpha: 0.12),
+          'text': const Color(0xFFC8E6C9),
+          'border': const Color(0xFF4CAF50).withValues(alpha: 0.25),
+        },
+        {
+          'bg': const Color(0xFF1565C0).withValues(alpha: 0.12),
+          'text': const Color(0xFFBBDEFB),
+          'border': const Color(0xFF2196F3).withValues(alpha: 0.25),
+        },
+        {
+          'bg': const Color(0xFFC62828).withValues(alpha: 0.12),
+          'text': const Color(0xFFFFCDD2),
+          'border': const Color(0xFFE57373).withValues(alpha: 0.25),
+        },
+        {
+          'bg': const Color(0xFFEF6C00).withValues(alpha: 0.12),
+          'text': const Color(0xFFFFECB3),
+          'border': const Color(0xFFFFB74D).withValues(alpha: 0.25),
+        },
+      ];
+    } else {
+      return [
+        {
+          'bg': const Color(0xFFF3E5F5),
+          'text': const Color(0xFF7B1FA2),
+          'border': const Color(0xFFE1BEE7),
+        },
+        {
+          'bg': const Color(0xFFE8F5E9),
+          'text': const Color(0xFF2E7D32),
+          'border': const Color(0xFFC8E6C9),
+        },
+        {
+          'bg': const Color(0xFFE3F2FD),
+          'text': const Color(0xFF1565C0),
+          'border': const Color(0xFFBBDEFB),
+        },
+        {
+          'bg': const Color(0xFFFFEBEE),
+          'text': const Color(0xFFC62828),
+          'border': const Color(0xFFFFCDD2),
+        },
+        {
+          'bg': const Color(0xFFFFF8E1),
+          'text': const Color(0xFFEF6C00),
+          'border': const Color(0xFFFFECB3),
+        },
+      ];
+    }
   }
 }
 
@@ -280,12 +504,14 @@ class _IntensityRadarPainter extends CustomPainter {
 
     // 绘制背景虚线同心圆 - 提高对比度
     final gridPaint = Paint()
-      ..color = isNight ? Colors.white.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.12)
+      ..color = isNight
+          ? Colors.white.withValues(alpha: 0.2)
+          : Colors.black.withValues(alpha: 0.12)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8;
 
     for (int i = 1; i <= 5; i++) {
-        _drawDashedCircle(canvas, center, radius * (i / 5), gridPaint);
+      _drawDashedCircle(canvas, center, radius * (i / 5), gridPaint);
     }
 
     // 绘制轴线
@@ -307,7 +533,7 @@ class _IntensityRadarPainter extends CustomPainter {
       double r = radius * val;
       double px = center.dx + r * cos(angle);
       double py = center.dy + r * sin(angle);
-      
+
       points.add(Offset(px, py));
       if (i == 0) {
         polygonPath.moveTo(px, py);
@@ -335,26 +561,37 @@ class _IntensityRadarPainter extends CustomPainter {
     for (int i = 0; i < n; i++) {
       // 只有有强度的心情才画顶点，增加清晰度
       if (data[i].avgIntensity <= 0) continue;
-      
+
       final dotColor = data[i].glowColor;
       final dotPaint = Paint()..color = dotColor;
       canvas.drawCircle(points[i], 3.5, dotPaint);
-      
+
       // 顶点光晕
-      canvas.drawCircle(points[i], 8, Paint()
-        ..color = dotColor.withValues(alpha: 0.3)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3)
+      canvas.drawCircle(
+        points[i],
+        8,
+        Paint()
+          ..color = dotColor.withValues(alpha: 0.3)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
       );
     }
   }
 
-  void _drawDashedCircle(Canvas canvas, Offset center, double radius, Paint paint) {
+  void _drawDashedCircle(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    Paint paint,
+  ) {
     const double dashWidth = 2.0;
     const double dashSpace = 3.0;
     double currentAngle = 0;
     final double perimeter = 2 * pi * radius;
     // 动态计算虚线段数
-    final int dashCount = max(12, (perimeter / (dashWidth + dashSpace)).floor());
+    final int dashCount = max(
+      12,
+      (perimeter / (dashWidth + dashSpace)).floor(),
+    );
     final double step = (2 * pi) / dashCount;
 
     for (int i = 0; i < dashCount; i++) {
@@ -370,6 +607,8 @@ class _IntensityRadarPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _IntensityRadarPainter oldDelegate) => 
-      oldDelegate.data != data || oldDelegate.isNight != isNight || oldDelegate.themeColor != themeColor;
+  bool shouldRepaint(covariant _IntensityRadarPainter oldDelegate) =>
+      oldDelegate.data != data ||
+      oldDelegate.isNight != isNight ||
+      oldDelegate.themeColor != themeColor;
 }

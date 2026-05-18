@@ -13,7 +13,6 @@ import 'package:island_diary/features/record/presentation/widgets/diary_masonry_
 import 'package:island_diary/features/record/presentation/widgets/diary_masonry_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_featured_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart'; 
-import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 
 class RecordPage extends StatefulWidget {
@@ -28,7 +27,6 @@ class _RecordPageState extends State<RecordPage> {
   String _searchQuery = "";
   int? _filterMoodIndex;
 
-  late DiaryLayoutMode _layoutMode;
   final GlobalKey _shareKey = GlobalKey();
   bool _isCapturing = false;
   List<DiaryEntry> _shareEntries = [];
@@ -44,7 +42,6 @@ class _RecordPageState extends State<RecordPage> {
     super.initState();
     _scrollController = ScrollController();
     _headerDate = ValueNotifier<DateTime>(DateTime.now());
-    _layoutMode = DiaryLayoutMode.values[UserState().diaryLayoutMode.value];
   }
 
   @override
@@ -56,26 +53,8 @@ class _RecordPageState extends State<RecordPage> {
 
   void _setLayoutMode(DiaryLayoutMode mode) {
     setState(() {
-      _layoutMode = mode;
       UserState().setDiaryLayoutMode(mode.index);
     });
-  }
-
-  void _cycleLayoutMode() {
-    setState(() {
-      if (_layoutMode == DiaryLayoutMode.calendar) {
-        _layoutMode = DiaryLayoutMode.timeline;
-      } else {
-        _layoutMode = DiaryLayoutMode.calendar;
-      }
-      UserState().setDiaryLayoutMode(_layoutMode.index);
-    });
-  }
-
-  IconData _getLayoutIcon() {
-    return _layoutMode == DiaryLayoutMode.calendar
-        ? Icons.format_list_bulleted_rounded
-        : Icons.calendar_month_rounded;
   }
 
   @override
@@ -87,7 +66,6 @@ class _RecordPageState extends State<RecordPage> {
         UserState().selectedIslandThemeId,
       ],
       builder: (context, values, _) {
-        final String themeMode = values[0] as String;
         final int layoutIndex = values[1] as int;
         
         final bool isMoments = layoutIndex == DiaryLayoutMode.moments.index;
@@ -109,7 +87,7 @@ class _RecordPageState extends State<RecordPage> {
                     );
                   } else if (themeId == 'cotton_candy') {
                     return Image.asset(
-                      'assets/images/background/page_3_bg.png',
+                      'assets/images/background/data_3_bg.png',
                       fit: BoxFit.cover,
                     );
                   }

@@ -113,22 +113,30 @@ class _ProfilePageState extends State<ProfilePage> {
         return Stack(
           children: [
             // 节日特定背景
-            if (themeId == 'lantern_festival')
+            if (themeId == 'lantern_festival' || themeId == 'cotton_candy')
               Positioned.fill(
                 child: Image.asset(
-                  'assets/images/background/page_yuanxiaojie_bg.png',
+                  themeId == 'lantern_festival'
+                      ? 'assets/images/background/page_yuanxiaojie_bg.png'
+                      : 'assets/images/background/data_3_bg.png',
                   fit: BoxFit.cover,
                 ),
               ),
 
-            // 背景模糊（节日主题下保持清晰）
+            // 背景模糊（节日与棉花岛下保持清晰）
             Positioned.fill(
               child: BackdropFilter(
                 filter: ImageFilter.blur(
-                  sigmaX: themeId == 'lantern_festival' ? 0 : 10,
-                  sigmaY: themeId == 'lantern_festival' ? 0 : 10,
+                  sigmaX: (themeId == 'lantern_festival' || themeId == 'cotton_candy') ? 0 : 10,
+                  sigmaY: (themeId == 'lantern_festival' || themeId == 'cotton_candy') ? 0 : 10,
                 ),
-                child: Container(color: Colors.black.withValues(alpha: themeId == 'lantern_festival' ? 0.3 : 0)),
+                child: Container(
+                  color: Colors.black.withValues(
+                    alpha: themeId == 'lantern_festival' 
+                        ? 0.3 
+                        : (themeId == 'cotton_candy' ? 0.0 : 0.0),
+                  ),
+                ),
               ),
             ),
 

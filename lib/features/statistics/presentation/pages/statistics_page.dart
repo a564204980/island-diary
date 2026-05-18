@@ -5,17 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/core/models/daily_task.dart';
 
 import 'package:island_diary/features/statistics/domain/utils/soul_season_logic.dart';
+import 'package:island_diary/features/statistics/presentation/pages/memories_today_page.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/bento/recovery_dialog.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/mood_poster_widget.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/glass_bento.dart';
-import 'package:island_diary/features/statistics/presentation/widgets/seasonal_atmosphere_painter.dart';
-import 'package:island_diary/features/statistics/presentation/widgets/seasonal_atmosphere_painter.dart';
+
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 import 'package:island_diary/core/services/ai_service.dart';
 part '../widgets/bento/bento_radar_chart.dart';
@@ -30,6 +31,7 @@ part '../widgets/statistics_advanced_bento_fragments.dart';
 part '../widgets/bento/bento_mood_trend.dart';
 part '../widgets/bento/bento_mood_flow.dart';
 part '../widgets/bento/bento_resilience.dart';
+part '../widgets/bento/bento_memories_today.dart';
 
 enum StatTimeRange { week, month, all }
 
@@ -63,6 +65,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   List<DiaryEntry> _allDiaries = [];
   StatTimeRange _currentRange = StatTimeRange.month;
   late AnimationController _waveAnimController;
+  final Map<String, Future<String>> _moodTrendSummaryFutures = {};
 
   // 新增：波浪图交互状态 (将在下方统一定义)
 
@@ -351,7 +354,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
         break;
       case StatTimeRange.all:
         saved = state.statsOrderAll.value;
-        defaults = ['mood_trend', 'mood_flow', 'resilience', 'intensity_radar', 'seasonality', 'heatmap', 'stats_row', 'time_pattern', 'weather'];
+        defaults = ['mood_trend', 'mood_flow', 'resilience', 'intensity_radar', 'seasonality', 'memories_today', 'heatmap', 'stats_row', 'time_pattern', 'weather'];
         break;
     }
     
@@ -376,15 +379,17 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
       case 'intensity_radar':
         return _buildRadarBento(isNight, filtered, themeColor);
       case 'stats_row':
-        return IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(flex: 5, child: _buildStatsBentoList(isNight, _currentRange == StatTimeRange.all ? _allDiaries : filtered, themeColor)),
-              const SizedBox(width: 16),
-              Expanded(flex: 6, child: _buildMoodProgressBarBento(isNight, filtered, themeColor)),
-            ],
-          ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildStatsBentoList(
+              isNight,
+              _currentRange == StatTimeRange.all ? _allDiaries : filtered,
+              themeColor,
+            ),
+            const SizedBox(height: 16),
+            _buildMoodProgressBarBento(isNight, filtered, themeColor),
+          ],
         );
       case 'volatility':
         return _buildVolatilityIndexBento(isNight, filtered, themeColor);
@@ -400,6 +405,8 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
         return _buildMonthlyHighlightsBento(isNight, filtered, themeColor);
       case 'seasonality':
         return _buildSeasonalityTrendBento(isNight, _allDiaries, themeColor);
+      case 'memories_today':
+        return _buildMemoriesTodayBento(isNight, _allDiaries, themeColor);
       case 'heatmap':
         return _buildHeatmapBento(isNight, filtered, _currentRange, themeColor);
       case 'weather':
@@ -478,18 +485,12 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                   child: Image.asset(
                     themeId == 'lantern_festival'
                         ? 'assets/images/background/page_yuanxiaojie_bg.png'
-                        : 'assets/images/background/page_3_bg.png',
+                        : 'assets/images/background/data_3_bg.png',
                     fit: BoxFit.cover,
                   ),
                 ),
 
-              // 1. 动态治愈背景
-              if (filteredDiaries.isNotEmpty && themeId != 'lantern_festival')
-                SeasonalAtmosphere(
-                  particleType: SoulSeasonLogic.getSeason(filteredDiaries).particleType,
-                  isNight: isNight,
-                ),
-              
+
               SafeArea(
                 bottom: false,
                 child: Column(

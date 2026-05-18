@@ -346,7 +346,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return MultiValueListenableBuilder(
       listenables: [UserState().themeMode, UserState().selectedIslandThemeId],
       builder: (context, values, child) {
-        final String themeMode = values[0] as String;
         final String themeId = values[1] as String;
         final bool isNight = UserState().isNight;
         final bool isLantern = themeId == 'lantern_festival';

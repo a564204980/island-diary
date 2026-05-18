@@ -6,6 +6,7 @@ class GlassBento extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final double blurSigma;
+  final Color? backgroundColor;
 
   const GlassBento({
     super.key,
@@ -13,6 +14,7 @@ class GlassBento extends StatelessWidget {
     required this.child,
     this.padding,
     this.blurSigma = 16.0,
+    this.backgroundColor,
   });
 
   @override
@@ -36,9 +38,9 @@ class GlassBento extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
           child: Container(
             decoration: BoxDecoration(
-              color: isNight 
+              color: backgroundColor ?? (isNight 
                   ? Colors.transparent 
-                  : Colors.white.withValues(alpha: 0.5),
+                  : Colors.white.withValues(alpha: 0.5)),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: isNight 

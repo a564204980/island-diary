@@ -167,6 +167,63 @@ class AIService {
     }
   }
 
+  /// 情绪趋势一句话总结：用于统计页折线图下方的轻量洞察。
+  Future<String?> summarizeMoodTrend(
+    String apiKey, {
+    required String rangeLabel,
+    required String trendData,
+    required String fallbackSummary,
+  }) async {
+    if (apiKey.isEmpty || apiKey == 'YOUR_API_KEY') return null;
+
+    try {
+      final response = await _dio.post(
+        '/v1/chat/completions',
+        data: {
+          'model': 'deepseek-chat',
+          'messages': [
+            {
+              'role': 'system',
+              'content': '''
+你是一个温柔克制的情绪趋势读图助手。
+请根据用户的情绪指数序列，写一句中文短总结，风格像手写便签。
+要求：
+1. 只输出一句话，不要标题、标点堆叠或解释。
+2. 18-28 个汉字左右。
+3. 语气客观温柔，不诊断、不夸张、不说教。
+4. 优先描述整体偏向、后段变化、波动程度。
+5. 如果数据稀疏，就说“记录还不多，但已能看见一点起伏”这类轻提示。
+'''
+            },
+            {
+              'role': 'user',
+              'content': '时间范围：$rangeLabel\n情绪指数：$trendData\n本地参考：$fallbackSummary',
+            },
+          ],
+          'temperature': 0.55,
+          'max_tokens': 80,
+          'stream': false,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final text = response.data['choices'][0]['message']['content'].toString().trim();
+        return text.replaceAll(RegExp(r'^[「“"]|[」”"]$'), '').trim();
+      }
+      return null;
+    } catch (e) {
+      debugPrint("MOOD_TREND_SUMMARY_ERROR: $e");
+      return null;
+    }
+  }
+
   String _getRandomFallback(MascotPersona persona) {
     return persona.fallbackQuotes[Random().nextInt(persona.fallbackQuotes.length)];
   }

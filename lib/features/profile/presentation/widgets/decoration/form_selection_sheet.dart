@@ -14,30 +14,7 @@ class MascotFormSelectionSheet extends StatelessWidget {
       'desc': '软绵绵的最初陪伴，编织每一天的温柔',
       'rarity': '传说',
     },
-    {
-      'id': 'form_weixiao',
-      'name': '活力微笑',
-      'path': 'assets/images/emoji/weixiao.png',
-      'desc': '元气满满的每一天',
-    },
-    {
-      'id': 'form_sikao',
-      'name': '沉思学者',
-      'path': 'assets/images/emoji/sikao.png',
-      'desc': '深夜哲思的伙伴',
-    },
-    {
-      'id': 'form_nanguo',
-      'name': '忧郁小软',
-      'path': 'assets/images/emoji/nanguo.png',
-      'desc': '静静陪你难过一会儿',
-    },
-    {
-      'id': 'form_pedding',
-      'name': '甜品布丁',
-      'path': 'assets/images/emoji/pedding.png',
-      'desc': '看起来很好吃的样子',
-    },
+
     {
       'id': 'form_marshmallow2',
       'name': '笃守',

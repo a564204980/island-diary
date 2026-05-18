@@ -14,7 +14,8 @@ mixin ProfileMixin on LifeLineMixin {
   final ValueNotifier<DateTime?> vipExpireTime = ValueNotifier<DateTime?>(null);
   final ValueNotifier<String?> customAvatarPath = ValueNotifier<String?>(null);
   final ValueNotifier<String> themeMode = ValueNotifier<String>('auto');
-  final ValueNotifier<String> deepseekApiKey = ValueNotifier<String>('sk-9860dceeff9240c4a497fb6fb7739d95');
+  // Keep secrets user-provided; an empty key makes AIService use local fallback text.
+  final ValueNotifier<String> deepseekApiKey = ValueNotifier<String>('');
   final ValueNotifier<String?> mascotThought = ValueNotifier<String?>(null);
   final ValueNotifier<String?> lastSoulInsight = ValueNotifier<String?>(null);
   final ValueNotifier<DailyTask?> dailyTask = ValueNotifier<DailyTask?>(null);

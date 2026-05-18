@@ -95,9 +95,7 @@ class FormGridItem extends StatelessWidget {
                                   StaticSprite(
                                         assetPath: path,
                                         size: 80,
-                                        frameCount: path.contains('weixiao.png')
-                                            ? 9
-                                            : 1,
+                                        frameCount: 1,
                                       )
                                       .animate(target: isSelected ? 1 : 0)
                                       .scale(

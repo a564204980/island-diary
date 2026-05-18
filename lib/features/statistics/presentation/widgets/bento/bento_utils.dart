@@ -1,6 +1,6 @@
 part of '../../pages/statistics_page.dart';
 
-extension BentoUtils on _StatisticsPageState {
+extension _BentoUtils on _StatisticsPageState {
   void _showPosterPreview(BuildContext context, bool isNight) {
     final filtered = _getFilteredDiaries();
     if (filtered.isEmpty) {
@@ -49,7 +49,7 @@ extension BentoUtils on _StatisticsPageState {
           child: Column(
             children: [
               const SizedBox(height: 8),
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -69,7 +69,7 @@ extension BentoUtils on _StatisticsPageState {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: isNight ? Colors.white10 : Colors.black.withOpacity(0.04), borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(16)),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -89,10 +89,11 @@ extension BentoUtils on _StatisticsPageState {
     );
   }
 
-  Widget _buildGlassCard({required bool isNight, required Widget child, EdgeInsetsGeometry? padding}) {
+  Widget _buildGlassCard({required bool isNight, required Widget child, EdgeInsetsGeometry? padding, Color? backgroundColor}) {
     return GlassBento(
       isNight: isNight,
       padding: padding,
+      backgroundColor: backgroundColor,
       child: child,
     );
   }
@@ -116,18 +117,16 @@ extension BentoUtils on _StatisticsPageState {
       context: context,
       barrierDismissible: true,
       barrierLabel: "BentoInfo",
-      barrierColor: Colors.black.withOpacity(isNight ? 0.7 : 0.4),
+      barrierColor: Colors.black.withValues(alpha: isNight ? 0.7 : 0.4),
       transitionDuration: const Duration(milliseconds: 400),
       pageBuilder: (context, anim1, anim2) => const SizedBox(),
       transitionBuilder: (context, anim1, anim2, child) {
         final curve = Curves.easeOutBack.transform(anim1.value);
         return Transform.scale(
           scale: 0.85 + (curve * 0.15),
-          child: Opacity(
-            opacity: anim1.value,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Material(
                   color: Colors.transparent,
                   child: ClipRRect(
@@ -138,11 +137,11 @@ extension BentoUtils on _StatisticsPageState {
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           color: isNight 
-                              ? const Color(0xFF1A1A1A).withOpacity(0.8) 
-                              : Colors.white.withOpacity(0.85),
+                              ? const Color(0xFF1A1A1A).withValues(alpha: 0.8) 
+                              : Colors.white.withValues(alpha: 0.85),
                           borderRadius: BorderRadius.circular(28),
                           border: Border.all(
-                            color: isNight ? Colors.white10 : Colors.black.withOpacity(0.05),
+                            color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                           ),
                         ),
                         child: Column(
@@ -178,7 +177,6 @@ extension BentoUtils on _StatisticsPageState {
                       ),
                     ),
                   ),
-                ),
               ),
             ),
           ),
@@ -192,13 +190,14 @@ extension BentoUtils on _StatisticsPageState {
     final regex = RegExp(r'\[\[(.*?)\]\]');
     final matches = regex.allMatches(content);
     
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
     if (matches.isEmpty) {
       return Text(
         content,
         style: TextStyle(
           fontSize: 14,
           height: 1.6,
-          color: isNight ? Colors.white70 : Colors.black87,
+          color: isCottonCandy ? const Color(0xFF9A7A69) : (isNight ? Colors.white70 : Colors.black87),
           fontFamily: 'LXGWWenKai',
         ),
       );
@@ -208,7 +207,7 @@ extension BentoUtils on _StatisticsPageState {
     int lastIndex = 0;
 
     // 获取当前的主题色用于下划线
-    final themeColor = isNight ? const Color(0xFFFFD54F) : const Color(0xFFD4A373);
+    final themeColor = isCottonCandy ? const Color(0xFFF7AAB6) : (isNight ? const Color(0xFFFFD54F) : const Color(0xFFD4A373));
 
     for (var match in matches) {
       // 添加普通文本
@@ -218,7 +217,7 @@ extension BentoUtils on _StatisticsPageState {
           style: TextStyle(
             fontSize: 14,
             height: 1.6,
-            color: isNight ? Colors.white70 : Colors.black87,
+            color: isCottonCandy ? const Color(0xFF9A7A69) : (isNight ? Colors.white70 : Colors.black87),
             fontFamily: 'LXGWWenKai',
           ),
         ));
@@ -230,8 +229,9 @@ extension BentoUtils on _StatisticsPageState {
         alignment: PlaceholderAlignment.middle,
         child: _HandDrawnHighlight(
           text: highlightText,
-          color: themeColor.withOpacity(0.5),
+          color: themeColor.withValues(alpha: 0.5),
           isNight: isNight,
+          textColor: isCottonCandy ? const Color(0xFFD9859A) : null,
         ),
       ));
 
@@ -245,7 +245,7 @@ extension BentoUtils on _StatisticsPageState {
         style: TextStyle(
           fontSize: 14,
           height: 1.6,
-          color: isNight ? Colors.white70 : Colors.black87,
+          color: isCottonCandy ? const Color(0xFF9A7A69) : (isNight ? Colors.white70 : Colors.black87),
           fontFamily: 'LXGWWenKai',
         ),
       ));
@@ -281,12 +281,12 @@ extension BentoUtils on _StatisticsPageState {
               child: Icon(
                 CupertinoIcons.info_circle, 
                 size: 14, 
-                color: isNight ? Colors.white24 : Colors.black.withOpacity(0.2)
+                color: isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.2)
               ),
             ),
           ],
         ),
-        if (rightAction != null) rightAction,
+        ?rightAction,
       ],
     );
   }
@@ -302,8 +302,10 @@ extension BentoUtils on _StatisticsPageState {
     double? bottom,
     double width = 150,
     double maxHeight = 140,
+    bool useCottonCandyStyle = false,
   }) {
     if (items.isEmpty) return const SizedBox.shrink();
+    final bool isCottonCandyTooltip = useCottonCandyStyle && !isNight;
 
     // 计算水平位置
     bool isLeft = relativeX > 0.5;
@@ -322,88 +324,100 @@ extension BentoUtils on _StatisticsPageState {
         width: width,
         constraints: BoxConstraints(maxHeight: maxHeight),
         decoration: BoxDecoration(
-          color: isNight ? const Color(0xE6262626) : const Color(0xE6FFFFFF),
+          color: isCottonCandyTooltip
+              ? const Color(0xF7FFF8F5)
+              : (isNight ? const Color(0xE6262626) : const Color(0xE6FFFFFF)),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isNight ? Colors.white10 : Colors.black12),
+          border: Border.all(
+            color: isCottonCandyTooltip
+                ? const Color(0xFFF4DDD6)
+                : (isNight ? Colors.white10 : Colors.black12),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isNight ? 0.3 : 0.1),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: isCottonCandyTooltip
+                  ? const Color(0xFFD9A49D).withValues(alpha: 0.22)
+                  : Colors.black.withValues(alpha: isNight ? 0.3 : 0.1),
+              blurRadius: isCottonCandyTooltip ? 18 : 12,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: isNight ? Colors.white38 : Colors.black38,
-                      fontFamily: 'LXGWWenKai',
-                    ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isCottonCandyTooltip ? 11 : 10,
+              vertical: isCottonCandyTooltip ? 9 : 10,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isCottonCandyTooltip
+                        ? const Color(0xFF9A7A69)
+                        : (isNight ? Colors.white38 : Colors.black38),
+                    fontFamily: 'LXGWWenKai',
                   ),
-                  const SizedBox(height: 8),
-                  Flexible(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        children: items.map((item) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Row(
-                              children: [
-                                if (item.color != null)
-                                  Container(
-                                    width: 4,
-                                    height: 4,
-                                    decoration: BoxDecoration(color: item.color, shape: BoxShape.circle),
-                                  ),
-                                if (item.color != null) const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    item.label,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: item.color?.withOpacity(0.9) ?? (isNight ? Colors.white70 : Colors.black87),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: 'LXGWWenKai',
-                                    ),
-                                  ),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      children: items.map((item) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              if (item.color != null)
+                                Container(
+                                  width: 4,
+                                  height: 4,
+                                  decoration: BoxDecoration(color: item.color, shape: BoxShape.circle),
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  item.value,
+                              if (item.color != null) const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  item.label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color: (isNight ? Colors.white38 : Colors.black38),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w500,
+                                    color: item.color?.withValues(alpha: 0.9) ?? (isNight ? Colors.white70 : Colors.black87),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'LXGWWenKai',
                                   ),
                                 ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                item.value,
+                                style: TextStyle(
+                                  color: isCottonCandyTooltip
+                                      ? const Color(0xFFB59A8D)
+                                      : (isNight ? Colors.white38 : Colors.black38),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
-      ).animate().fadeIn(duration: 200.ms).slideX(begin: isLeft ? 0.05 : -0.05, end: 0, curve: Curves.easeOutCubic),
+      ).animate().slideX(begin: isLeft ? 0.05 : -0.05, end: 0, curve: Curves.easeOutCubic, duration: 200.ms),
     );
   }
 }
@@ -426,11 +440,13 @@ class _HandDrawnHighlight extends StatelessWidget {
   final String text;
   final Color color;
   final bool isNight;
+  final Color? textColor;
 
   const _HandDrawnHighlight({
     required this.text,
     required this.color,
     required this.isNight,
+    this.textColor,
   });
 
   @override
@@ -454,7 +470,7 @@ class _HandDrawnHighlight extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: isNight ? Colors.white : Colors.black87,
+            color: textColor ?? (isNight ? Colors.white : Colors.black87),
             fontFamily: 'LXGWWenKai',
           ),
         ),

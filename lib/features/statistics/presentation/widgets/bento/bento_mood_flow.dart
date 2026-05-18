@@ -1,6 +1,6 @@
 part of '../../pages/statistics_page.dart';
 
-extension BentoMoodFlow on _StatisticsPageState {
+extension _BentoMoodFlow on _StatisticsPageState {
   Widget _buildMoodFlowBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
     if (filtered.isEmpty && _allDiaries.isEmpty) {
       return const SizedBox.shrink();
@@ -99,7 +99,7 @@ extension BentoMoodFlow on _StatisticsPageState {
           isCurved: true,
           curveSmoothness: 0.35,
           preventCurveOverShooting: true,
-          color: color.withOpacity(0.8),
+          color: color.withValues(alpha: 0.8),
           barWidth: 2.5,
           isStrokeCapRound: true,
           dotData: const FlDotData(show: false),
@@ -109,8 +109,8 @@ extension BentoMoodFlow on _StatisticsPageState {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                color.withOpacity(0.25 - (i * 0.03).clamp(0, 0.2)),
-                color.withOpacity(0.0),
+                color.withValues(alpha: (0.25 - (i * 0.03).clamp(0.0, 0.2)).toDouble()),
+                color.withValues(alpha: 0.0),
               ],
             ),
           ),
@@ -118,17 +118,35 @@ extension BentoMoodFlow on _StatisticsPageState {
       );
     }
 
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+
     return _buildGlassCard(
       isNight: isNight,
+      backgroundColor: isCottonCandy ? const Color(0xFFFFF4EF) : null,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildBentoHeader(
             context: context,
-            title: '心境流转',
-            helpContent: '[[心境流转]] 展现了不同情绪在时间轴上的 [[交织与消长]]。每一抹色彩都代表一份独特的心灵记忆，透过波形的起伏，您可以看清不同情感如何共同谱写您的生活乐章。',
+            title: '情绪分布趋势',
+            helpContent: '这里会把不同情绪分开画成多条线。哪条线越高，说明那种情绪在那天越明显。用它可以看出这段时间[[哪种情绪更多]]，以及它们分别在什么时候变强或变弱。',
             isNight: isNight,
+            rightAction: Icon(
+              CupertinoIcons.graph_circle,
+              size: 18,
+              color: isCottonCandy
+                  ? const Color(0xFFF7AAB6)
+                  : themeColor.withValues(alpha: isNight ? 0.6 : 0.4),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: _buildMoodFlowSubtitle(
+              targetLabels.first,
+              labelToMoodIndex[targetLabels.first]!,
+              isNight,
+            ),
           ),
           const SizedBox(height: 16),
           // 优化标签展示区：双行横向滚动
@@ -173,7 +191,7 @@ extension BentoMoodFlow on _StatisticsPageState {
                   builder: (context, _) {
                     final double displayMaxY = (maxY * 1.2).ceilToDouble();
                     return SizedBox(
-                      width: 28,
+                      width: 24,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -186,7 +204,6 @@ extension BentoMoodFlow on _StatisticsPageState {
                     );
                   }
                 ),
-                const SizedBox(width: 4),
                 // 绘图区
                 Expanded(
                   child: LayoutBuilder(
@@ -205,7 +222,7 @@ extension BentoMoodFlow on _StatisticsPageState {
                             children: [
                               LineChart(
                                 LineChartData(
-                                  minX: -0.5,
+                                  minX: -0.18,
                                   maxX: daysCount.toDouble() - 0.5,
                                   minY: 0,
                                   maxY: displayMaxY,
@@ -215,7 +232,7 @@ extension BentoMoodFlow on _StatisticsPageState {
                                     drawVerticalLine: false,
                                     getDrawingHorizontalLine: (value) {
                                       return FlLine(
-                                        color: isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                                        color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
                                         strokeWidth: 1,
                                       );
                                     },
@@ -279,7 +296,9 @@ extension BentoMoodFlow on _StatisticsPageState {
                                     },
                                     touchTooltipData: LineTouchTooltipData(
                                       getTooltipColor: (_) => Colors.transparent,
-                                      getTooltipItems: (touchedSpots) => [],
+                                      getTooltipItems: (touchedSpots) => touchedSpots.map((_) {
+                                        return const LineTooltipItem('', TextStyle(fontSize: 0));
+                                      }).toList(),
                                     ),
                                   ),
                                 ),
@@ -294,7 +313,7 @@ extension BentoMoodFlow on _StatisticsPageState {
                                     bottom: 32,
                                     child: Container(
                                       width: 1,
-                                      color: isNight ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.1),
+                                      color: isNight ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.1),
                                     ),
                                   ),
                                   _buildBentoTooltip(
@@ -314,6 +333,8 @@ extension BentoMoodFlow on _StatisticsPageState {
                                     relativeX: (_selectedMoodFlowX! + 0.5) / daysCount,
                                     chartWidth: finalWidth,
                                     isNight: isNight,
+                                    width: isCottonCandy ? 138 : 150,
+                                    useCottonCandyStyle: isCottonCandy,
                                   ),
                                 ]
                             ],
@@ -343,6 +364,7 @@ extension BentoMoodFlow on _StatisticsPageState {
       final h = (label.hashCode % 360).toDouble();
       color = HSLColor.fromAHSL(1.0, h, 0.6, 0.7).toColor();
     }
+    final readableColor = _getReadableMoodFlowChipColor(color, isNight);
 
     return GestureDetector(
       onTap: () => updateMoodFlowLabel(isSelected ? null : label),
@@ -350,15 +372,15 @@ extension BentoMoodFlow on _StatisticsPageState {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.25) : color.withOpacity(0.12),
+          color: isSelected ? color.withValues(alpha: 0.22) : color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? color.withOpacity(0.5) : Colors.transparent,
+            color: isSelected ? readableColor.withValues(alpha: 0.35) : Colors.transparent,
             width: 1.5,
           ),
           boxShadow: isSelected ? [
             BoxShadow(
-              color: color.withOpacity(0.2),
+              color: readableColor.withValues(alpha: 0.16),
               blurRadius: 8,
               spreadRadius: 1,
             )
@@ -371,7 +393,7 @@ extension BentoMoodFlow on _StatisticsPageState {
               width: 6,
               height: 6,
               decoration: BoxDecoration(
-                color: color,
+                color: readableColor,
                 shape: BoxShape.circle,
               ),
             ),
@@ -380,7 +402,7 @@ extension BentoMoodFlow on _StatisticsPageState {
               label,
               style: TextStyle(
                 fontSize: 11,
-                color: isSelected ? color : color.withOpacity(0.9),
+                color: readableColor.withValues(alpha: isSelected ? 1.0 : 0.88),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                 fontFamily: 'LXGWWenKai',
               ),
@@ -389,5 +411,71 @@ extension BentoMoodFlow on _StatisticsPageState {
         ),
       ),
     );
+  }
+
+  Widget _buildMoodFlowSubtitle(String label, int baseMoodIndex, bool isNight) {
+    final color = _getMoodFlowColor(label, baseMoodIndex);
+    final readableColor = _getReadableMoodFlowChipColor(color, isNight);
+
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(
+          color: isNight ? Colors.white54 : const Color(0xFF9A7A69),
+          fontSize: 12,
+          height: 1.35,
+          letterSpacing: 0,
+          fontFamily: 'LXGWWenKai',
+          fontWeight: FontWeight.w500,
+        ),
+        children: [
+          TextSpan(text: '${_moodFlowRangeLabel()}高频情绪：'),
+          TextSpan(
+            text: label,
+            style: TextStyle(
+              color: readableColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getMoodFlowColor(String label, int baseMoodIndex) {
+    if (label == kMoods[baseMoodIndex].label) {
+      return kMoods[baseMoodIndex].glowColor ?? Colors.blueAccent;
+    }
+    final h = (label.hashCode % 360).toDouble();
+    return HSLColor.fromAHSL(1.0, h, 0.6, 0.7).toColor();
+  }
+
+  String _moodFlowRangeLabel() {
+    switch (_currentRange) {
+      case StatTimeRange.week:
+        return '本周';
+      case StatTimeRange.month:
+        return '本月';
+      case StatTimeRange.all:
+        return '整体';
+    }
+  }
+
+  Color _getReadableMoodFlowChipColor(Color color, bool isNight) {
+    if (isNight) {
+      return color.computeLuminance() < 0.35
+          ? HSLColor.fromColor(color).withLightness(0.72).toColor()
+          : color;
+    }
+
+    final hsl = HSLColor.fromColor(color);
+    if (color.computeLuminance() > 0.56) {
+      final saturation = (hsl.saturation + 0.12).clamp(0.0, 1.0).toDouble();
+      return hsl
+          .withSaturation(saturation)
+          .withLightness(0.46)
+          .toColor();
+    }
+    final lightness = hsl.lightness.clamp(0.34, 0.52).toDouble();
+    return hsl.withLightness(lightness).toColor();
   }
 }

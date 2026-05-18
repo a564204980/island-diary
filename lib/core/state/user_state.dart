@@ -104,8 +104,6 @@ class _K {
   static const mascotType = 'selected_mascot_type';
   static const homeDisplayMode = 'home_display_mode';
   static const selectedIslandThemeId = 'selected_island_theme_id';
-  static const lifeLineList = 'life_line_list';
-  static const currentLifeLineId = 'current_life_line_id';
 }
 
 /// 聚合状态管理类

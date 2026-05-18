@@ -4,8 +4,8 @@ class PlacedFurniture {
   final FurnitureItem item;
   int r;
   int c;
-  double z; // 楂樺害鍧愭爣 (榛樿 0)
-  int rotation; // 0, 1, 2, 3 (0掳, 90掳, 180掳, 270掳)
+  double z; // 高度坐标（默认 0）
+  int rotation; // 0, 1, 2, 3（0度、90度、180度、270度）
 
   PlacedFurniture({
     required this.item,

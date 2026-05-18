@@ -55,8 +55,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    precacheImage(const AssetImage('assets/images/emoji/weixiao.png'), context);
-    precacheImage(const AssetImage('assets/images/emoji/pedding.png'), context);
     precacheImage(const AssetImage('assets/images/paper.png'), context);
 
     for (var mood in kMoods) {

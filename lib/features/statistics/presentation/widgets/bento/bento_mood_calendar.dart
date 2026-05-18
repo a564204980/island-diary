@@ -1,8 +1,9 @@
 part of '../../pages/statistics_page.dart';
 
-extension BentoMoodCalendar on _StatisticsPageState {
+extension _BentoMoodCalendar on _StatisticsPageState {
   Widget _buildMoodCalendarBento(bool isNight, List<DiaryEntry> allEntries) {
     final now = DateTime.now();
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
     // 构建本月每一天的数据映射
     Map<int, DiaryEntry> daysMap = {};
     for (var e in allEntries) {
@@ -19,23 +20,40 @@ extension BentoMoodCalendar on _StatisticsPageState {
 
     return _buildGlassCard(
       isNight: isNight,
+      backgroundColor: isCottonCandy ? const Color(0xFFFFF4EF) : null,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildBentoHeader(
             context: context,
-            title: '${now.month}月的时光印记',
-            helpContent: '以月为单位，将每日主色调映射至日历，拼凑成完整的[[心灵色彩拼图]]。点击具体日期，可回溯当下的珍贵思绪。',
+            title: '情绪日历',
+            helpContent: '每个日期会显示当天最主要的心情。点开某一天，可以回看那天写下的日记和情绪。',
             isNight: isNight,
-            rightAction: Icon(CupertinoIcons.calendar, size: 18, color: isNight ? Colors.white54 : Colors.black38),
+            rightAction: Icon(
+              CupertinoIcons.calendar,
+              size: 18,
+              color: isCottonCandy
+                  ? const Color(0xFFF7AAB6)
+                  : (isNight ? Colors.white54 : Colors.black38),
+            ),
           ),
           const SizedBox(height: 12),
           // 星期表头
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: ['一', '二', '三', '四', '五', '六', '日'].map((day) {
-              return Text(day, style: TextStyle(fontSize: 12, color: isNight ? Colors.white38 : Colors.black38, fontWeight: FontWeight.bold));
+              return Text(
+                day,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isNight
+                      ? Colors.white38
+                      : (isCottonCandy ? const Color(0xFF9A7A69) : Colors.black38),
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'LXGWWenKai',
+                ),
+              );
             }).toList(),
           ),
           const SizedBox(height: 8),
@@ -72,15 +90,36 @@ extension BentoMoodCalendar on _StatisticsPageState {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isNight ? Colors.white10 : Colors.black.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: entry != null && !isNight ? [
-                           BoxShadow(color: (kMoods[entry.moodIndex % kMoods.length].glowColor ?? Colors.yellow).withOpacity(0.4), blurRadius: 4, offset: const Offset(0, 2))
-                        ] : null,
+                        color: entry != null
+                            ? Colors.transparent
+                            : (isCottonCandy
+                                ? const Color(0xFFFFEDE7).withValues(alpha: 0.72)
+                                : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.04))),
+                        borderRadius: BorderRadius.circular(isCottonCandy ? 14 : 12),
+                        border: entry == null && isCottonCandy
+                            ? Border.all(color: const Color(0xFFF8DDD5).withValues(alpha: 0.45))
+                            : null,
+                        boxShadow: null,
                       ),
-                      child: entry != null 
-                          ? Image.asset(kMoods[entry.moodIndex % kMoods.length].iconPath!)
-                          : Center(child: Text('$day', style: TextStyle(fontSize: 11, color: isNight ? Colors.white24 : Colors.black26))),
+                      child: entry != null
+                          ? Center(
+                              child: _MoodCalendarIcon(
+                                moodIndex: entry.moodIndex % kMoods.length,
+                                isCottonCandy: isCottonCandy,
+                              ),
+                            )
+                          : Center(
+                              child: Text(
+                                '$day',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isNight
+                                      ? Colors.white24
+                                      : (isCottonCandy ? const Color(0xFFC4A99B) : Colors.black26),
+                                  fontFamily: 'LXGWWenKai',
+                                ),
+                              ),
+                            ),
                     ),
                   );
                 },
@@ -97,7 +136,7 @@ extension BentoMoodCalendar on _StatisticsPageState {
       context: context,
       barrierDismissible: true,
       barrierLabel: "Dismiss",
-      barrierColor: Colors.black.withOpacity(0.4), // 调暗背景增强沉浸感
+      barrierColor: Colors.black.withValues(alpha: 0.4), // 调暗背景增强沉浸感
       transitionDuration: const Duration(milliseconds: 600),
       pageBuilder: (context, anim1, anim2) {
         return RecoverDiaryDialog(date: date, isNight: isNight);
@@ -113,5 +152,78 @@ extension BentoMoodCalendar on _StatisticsPageState {
         );
       },
     );
+  }
+}
+
+class _MoodCalendarIcon extends StatelessWidget {
+  final int moodIndex;
+  final bool isCottonCandy;
+
+  const _MoodCalendarIcon({
+    required this.moodIndex,
+    required this.isCottonCandy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: isCottonCandy ? 38 : 34,
+      height: isCottonCandy ? 38 : 34,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isCottonCandy ? const Color(0xFFFFF6F2).withValues(alpha: 0.48) : Colors.transparent,
+        boxShadow: isCottonCandy
+            ? [
+                BoxShadow(
+                  color: const Color(0xFFD9A49D).withValues(alpha: 0.18),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  blurRadius: 2,
+                  offset: const Offset(-1, -1),
+                ),
+              ]
+            : null,
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(isCottonCandy ? 2 : 1),
+        child: Image.asset(
+          _moodCalendarIconPath(moodIndex),
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+        ),
+      ),
+    );
+  }
+
+  String _moodCalendarIconPath(int index) {
+    switch (index % kMoods.length) {
+      case 0:
+        return 'assets/icons/happy.png';
+      case 1:
+        return 'assets/icons/calm.png';
+      case 2:
+        return 'assets/icons/down.png';
+      case 3:
+        return 'assets/icons/irritated.png';
+      case 4:
+        return 'assets/icons/tired.png';
+      case 5:
+        return 'assets/icons/surprise.png';
+      case 6:
+        return 'assets/icons/shy.png';
+      case 7:
+        return 'assets/icons/anxious.png';
+      case 8:
+        return 'assets/icons/wronged.png';
+      case 9:
+        return 'assets/icons/bored.png';
+      case 10:
+        return 'assets/icons/expect.png';
+      default:
+        return 'assets/icons/happy.png';
+    }
   }
 }

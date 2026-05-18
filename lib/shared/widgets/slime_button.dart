@@ -124,9 +124,7 @@ class _SlimeButtonState extends State<SlimeButton> {
                         return StaticSprite(
                           assetPath: widget.assetPath ?? UserState().selectedMascotType.value,
                           size: widget.spriteSize,
-                          frameCount: (widget.assetPath ?? UserState().selectedMascotType.value).contains('weixiao.png')
-                              ? 9
-                              : 1,
+                          frameCount: 1,
                         );
                       },
                     ),

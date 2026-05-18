@@ -1,6 +1,6 @@
 part of '../../pages/statistics_page.dart';
 
-extension BentoMoodTrend on _StatisticsPageState {
+extension _BentoMoodTrend on _StatisticsPageState {
   Widget _buildMoodTrendBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
     if (filtered.isEmpty && _allDiaries.isEmpty) {
       return _buildGlassCard(
@@ -115,7 +115,7 @@ extension BentoMoodTrend on _StatisticsPageState {
     double absMax = [maxVal.abs(), minVal.abs(), 5.0].reduce((curr, next) => curr > next ? curr : next);
     double yLimit = (absMax * 1.3).ceilToDouble();
 
-    final mainBarColor = themeColor.withOpacity(0.8);
+    final mainBarColor = themeColor.withValues(alpha: 0.8);
 
     final barData = LineChartBarData(
       spots: spots,
@@ -142,7 +142,7 @@ extension BentoMoodTrend on _StatisticsPageState {
           if (hasRealData) {
             return FlDotCirclePainter(
               radius: 2.5,
-              color: mainBarColor.withOpacity(0.8),
+              color: mainBarColor.withValues(alpha: 0.8),
               strokeWidth: 1.5,
               strokeColor: Colors.white,
             );
@@ -156,15 +156,19 @@ extension BentoMoodTrend on _StatisticsPageState {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [mainBarColor.withOpacity(0.25), mainBarColor.withOpacity(0.0)],
+          colors: [mainBarColor.withValues(alpha: 0.25), mainBarColor.withValues(alpha: 0.0)],
         ),
       ),
     );
 
     final bool isMonth = _currentRange == StatTimeRange.month;
 
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+    final summaryFuture = _getMoodTrendSummaryFuture(aggregatedPoints);
+
     return _buildGlassCard(
       isNight: isNight,
+      backgroundColor: isCottonCandy ? const Color(0xFFFFF4EF) : null,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,23 +176,69 @@ extension BentoMoodTrend on _StatisticsPageState {
           _buildBentoHeader(
             context: context,
             title: '情绪趋势',
-            helpContent: '情绪指数由心情种类与强度[[加权计算]]得出。曲线展现了[[心境的起伏流动]]，助您捕捉那些微妙的情感波峰与低谷。',
+            helpContent: '这条线把每天的心情合成一个[[情绪分数]]：开心、期待会往上，难过、烦躁会往下，平静接近 0。用它可以快速看出这段时间整体是在变好、变低，还是波动比较大。',
             isNight: isNight,
-            rightAction: Icon(CupertinoIcons.waveform_path, size: 18, color: themeColor.withOpacity(isNight ? 0.6 : 0.4)),
+            rightAction: Icon(CupertinoIcons.waveform_path, size: 18, color: isCottonCandy ? const Color(0xFFF7AAB6) : themeColor.withValues(alpha: isNight ? 0.6 : 0.4)),
           ),
-          const SizedBox(height: 24),
+          FutureBuilder<String>(
+            future: summaryFuture,
+            initialData: _buildLocalMoodTrendSummary(aggregatedPoints),
+            builder: (context, snapshot) {
+              final summary = (snapshot.data ?? '').trim();
+              if (summary.isEmpty) return const SizedBox.shrink();
+
+              return Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  summary,
+                  textAlign: TextAlign.start,
+                  style: TextStyle(
+                    color: isNight ? Colors.white60 : const Color(0xFF8A7462),
+                    fontSize: 12,
+                    height: 1.35,
+                    letterSpacing: 0,
+                    fontFamily: 'LXGWWenKai',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 20),
           SizedBox(
             height: 190,
             child: Row(
               children: [
                 SizedBox(
-                  width: 28,
+                  width: 36,
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildYLabel(yLimit.toInt().toString(), isNight),
-                      _buildYLabel('0', isNight),
-                      _buildYLabel((-yLimit).toInt().toString(), isNight),
+                      SizedBox(
+                        height: 150,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildMoodTrendYLabel(
+                              yLimit.toInt().toString(),
+                              '愉悦',
+                              const Color(0xFFF3A5B6),
+                              isNight,
+                            ),
+                            _buildMoodTrendYLabel(
+                              '0',
+                              '平和',
+                              const Color(0xFFD79A64),
+                              isNight,
+                            ),
+                            _buildMoodTrendYLabel(
+                              (-yLimit).toInt().toString(),
+                              '低落',
+                              const Color(0xFF78AEEB),
+                              isNight,
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -217,8 +267,8 @@ extension BentoMoodTrend on _StatisticsPageState {
                                     show: true,
                                     drawVerticalLine: false,
                                     getDrawingHorizontalLine: (value) {
-                                      if (value == 0) return FlLine(color: isNight ? Colors.white12 : Colors.black.withOpacity(0.05), strokeWidth: 1.5);
-                                      return FlLine(color: isNight ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.01), strokeWidth: 1);
+                                      if (value == 0) return FlLine(color: isNight ? Colors.white12 : Colors.black.withValues(alpha: 0.05), strokeWidth: 1.5);
+                                      return FlLine(color: isNight ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.01), strokeWidth: 1);
                                     },
                                   ),
                                   titlesData: FlTitlesData(
@@ -265,7 +315,9 @@ extension BentoMoodTrend on _StatisticsPageState {
                                     },
                                     touchTooltipData: LineTouchTooltipData(
                                       getTooltipColor: (_) => Colors.transparent,
-                                      getTooltipItems: (touchedSpots) => [],
+                                      getTooltipItems: (touchedSpots) => touchedSpots.map((_) {
+                                        return const LineTooltipItem('', TextStyle(fontSize: 0));
+                                      }).toList(),
                                     ),
                                   ),
                                 ),
@@ -279,7 +331,7 @@ extension BentoMoodTrend on _StatisticsPageState {
                                   bottom: 40,
                                   child: Container(
                                     width: 1,
-                                    color: isNight ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.1),
+                                    color: isNight ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.1),
                                   ),
                                 ),
                                 _buildBentoTooltip(
@@ -296,6 +348,7 @@ extension BentoMoodTrend on _StatisticsPageState {
                                   relativeX: (_selectedMoodTrendX! + 0.15) / (aggregatedPoints.length - 0.7),
                                   chartWidth: finalWidth,
                                   isNight: isNight,
+                                  useCottonCandyStyle: isCottonCandy,
                                 ),
                               ]
                             ],
@@ -313,6 +366,149 @@ extension BentoMoodTrend on _StatisticsPageState {
     );
   }
 
+  Future<String> _getMoodTrendSummaryFuture(List<Map<String, dynamic>> points) {
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final key = '${today}_${_moodTrendRangeKey()}';
+    return _moodTrendSummaryFutures.putIfAbsent(
+      key,
+      () => _loadMoodTrendSummary(points),
+    );
+  }
+
+  Future<String> _loadMoodTrendSummary(List<Map<String, dynamic>> points) async {
+    final prefs = await SharedPreferences.getInstance();
+    final state = UserState();
+    final rangeKey = _moodTrendRangeKey();
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final textKey = state.n('mood_trend_summary_$rangeKey');
+    final dateKey = state.n('mood_trend_summary_${rangeKey}_date');
+    final cachedDate = prefs.getString(dateKey);
+    final cachedText = prefs.getString(textKey);
+
+    if (cachedDate == today && cachedText != null && cachedText.trim().isNotEmpty) {
+      return cachedText.trim();
+    }
+
+    final fallback = _buildLocalMoodTrendSummary(points);
+    final aiSummary = await AIService().summarizeMoodTrend(
+      state.deepseekApiKey.value,
+      rangeLabel: _moodTrendRangeLabel(),
+      trendData: _formatMoodTrendData(points),
+      fallbackSummary: fallback,
+    );
+
+    final summary = _normalizeMoodTrendSummary(aiSummary ?? fallback);
+    if (state.deepseekApiKey.value.isNotEmpty && state.deepseekApiKey.value != 'YOUR_API_KEY') {
+      await prefs.setString(textKey, summary);
+      await prefs.setString(dateKey, today);
+    }
+    return summary;
+  }
+
+  String _buildLocalMoodTrendSummary(List<Map<String, dynamic>> points) {
+    final realScores = points
+        .where((p) => p['hasData'] == true)
+        .map((p) => p['score'] as double)
+        .toList();
+
+    if (realScores.length < 2) {
+      return '记录还不多，但已能看见一点起伏';
+    }
+
+    final avg = realScores.reduce((a, b) => a + b) / realScores.length;
+    final half = (realScores.length / 2).ceil();
+    final early = realScores.take(half).reduce((a, b) => a + b) / half;
+    final lateValues = realScores.skip(half).toList();
+    final late = lateValues.isEmpty
+        ? early
+        : lateValues.reduce((a, b) => a + b) / lateValues.length;
+    double movement = 0;
+    for (int i = 1; i < realScores.length; i++) {
+      movement += (realScores[i] - realScores[i - 1]).abs();
+    }
+    final wave = movement / (realScores.length - 1);
+
+    final base = avg > 1.2
+        ? '${_moodTrendRangeLabel()}情绪整体偏明亮'
+        : (avg < -1.2 ? '${_moodTrendRangeLabel()}情绪整体偏低缓' : '${_moodTrendRangeLabel()}情绪整体偏柔和');
+
+    if ((late - early).abs() > 1.2) {
+      return late > early ? '$base，后段慢慢回升' : '$base，后段略有下沉';
+    }
+    if (wave > 2.0) {
+      return '$base，期间起伏较明显';
+    }
+    return '$base，后段略有波动';
+  }
+
+  String _formatMoodTrendData(List<Map<String, dynamic>> points) {
+    return points
+        .where((p) => p['hasData'] == true)
+        .map((p) => '${p['label']}:${(p['score'] as double).toStringAsFixed(1)}')
+        .join('，');
+  }
+
+  String _normalizeMoodTrendSummary(String text) {
+    final cleaned = text
+        .replaceAll('\n', '')
+        .replaceAll(RegExp(r'^[「“"]|[」”"]$'), '')
+        .trim();
+    if (cleaned.length <= 34) return cleaned;
+    return cleaned.substring(0, 34);
+  }
+
+  String _moodTrendRangeKey() {
+    switch (_currentRange) {
+      case StatTimeRange.week:
+        return 'week';
+      case StatTimeRange.month:
+        return 'month';
+      case StatTimeRange.all:
+        return 'all';
+    }
+  }
+
+  String _moodTrendRangeLabel() {
+    switch (_currentRange) {
+      case StatTimeRange.week:
+        return '本周';
+      case StatTimeRange.month:
+        return '本月';
+      case StatTimeRange.all:
+        return '整体';
+    }
+  }
+
+}
+
+Widget _buildMoodTrendYLabel(String value, String label, Color labelColor, bool isNight) {
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        value,
+        style: TextStyle(
+          color: isNight ? Colors.white38 : const Color(0xFF9C7E68),
+          fontSize: 11,
+          height: 1,
+          letterSpacing: 0,
+          fontFamily: 'LXGWWenKai',
+        ),
+      ),
+      const SizedBox(height: 5),
+      Text(
+        label,
+        style: TextStyle(
+          color: isNight ? labelColor.withValues(alpha: 0.82) : labelColor,
+          fontSize: 11,
+          height: 1,
+          letterSpacing: 0,
+          fontFamily: 'LXGWWenKai',
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ],
+  );
 }
 
 Widget _buildYLabel(String text, bool isNight) {

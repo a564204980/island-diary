@@ -180,4 +180,30 @@ mixin DiaryMixin on ProfileMixin {
       (this as AchievementMixin).checkAchievements();
     }
   }
+
+  Future<void> generateMockDiaries() async {
+    final List<DiaryEntry> mockEntries = [];
+    final now = DateTime.now();
+    for (int i = 0; i < 100; i++) {
+      // 随机生成过去 90 天内的数据
+      final randomDays = (i * 0.9).toInt() + (DateTime.now().millisecond % 3);
+      final randomDate = now.subtract(Duration(days: randomDays, hours: i % 24, minutes: i % 60));
+      
+      mockEntries.add(DiaryEntry(
+        dateTime: randomDate,
+        moodIndex: i % 8, // 假设有 8 种心情
+        intensity: ((i % 10) + 1).toDouble(), // 1.0 - 10.0
+        content: '这是一条自动生成的测试日记内容。$i\n包含了一些随机的情感数据，用于调试图表和统计功能。',
+        tag: i % 3 == 0 ? '测试标签${i % 5}' : null,
+        blocks: [],
+      ));
+    }
+    
+    // 合并并按时间降序排序
+    final allEntries = [...savedDiaries.value, ...mockEntries];
+    allEntries.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    
+    savedDiaries.value = allEntries;
+    await _saveDiariesToStorage();
+  }
 }
