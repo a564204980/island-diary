@@ -4,36 +4,42 @@ extension _BentoUtils on _StatisticsPageState {
   void _showPosterPreview(BuildContext context, bool isNight) {
     final filtered = _getFilteredDiaries();
     if (filtered.isEmpty) {
-        showCupertinoDialog(
-          context: context,
-          builder: (context) => CupertinoAlertDialog(
-            title: const Text('数据不足'),
-            content: const Text('记录更多日记，才能生成专属的情感海报哦 🎨'),
-            actions: [
-              CupertinoDialogAction(child: const Text('我知道了'), onPressed: () => Navigator.pop(context)),
-            ],
-          ),
-        );
-        return;
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('数据不足'),
+          content: const Text('记录更多日记，才能生成专属的情感海报哦 🎨'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('我知道了'),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      );
+      return;
     }
 
     Navigator.push(
       context,
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (context) => MoodPosterWidget(
-          entries: filtered,
-          isNight: isNight,
-        ),
+        builder: (context) =>
+            MoodPosterWidget(entries: filtered, isNight: isNight),
       ),
     );
   }
 
-  void _showMoodDetailSheet(BuildContext context, int moodIndex, List<DiaryEntry> subset, bool isNight) {
+  void _showMoodDetailSheet(
+    BuildContext context,
+    int moodIndex,
+    List<DiaryEntry> subset,
+    bool isNight,
+  ) {
     final config = kMoods[moodIndex % kMoods.length];
     final moodColor = config.glowColor ?? Colors.yellow;
     final entries = subset.where((e) => e.moodIndex == moodIndex).toList();
-    entries.sort((a,b) => b.dateTime.compareTo(a.dateTime));
+    entries.sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
     showModalBottomSheet(
       context: context,
@@ -49,15 +55,36 @@ extension _BentoUtils on _StatisticsPageState {
           child: Column(
             children: [
               const SizedBox(height: 8),
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(width: 12, height: 12, decoration: BoxDecoration(shape: BoxShape.circle, color: moodColor)),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: moodColor,
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  Text('${config.label} (${entries.length}篇)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isNight ? Colors.white : Colors.black87)),
-                ]
+                  Text(
+                    '${config.label} (${entries.length}篇)',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isNight ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ],
               ),
               const Divider(height: 32),
               Expanded(
@@ -69,30 +96,57 @@ extension _BentoUtils on _StatisticsPageState {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(
+                        color: isNight
+                            ? Colors.white10
+                            : Colors.black.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                           Text(DateFormat('MM月dd日 HH:mm').format(e.dateTime), style: TextStyle(fontSize: 12, color: isNight ? Colors.white54 : Colors.black45)),
-                           const SizedBox(height: 8),
-                           Text(e.content, style: TextStyle(fontSize: 14, color: isNight ? Colors.white : Colors.black87), maxLines: 3, overflow: TextOverflow.ellipsis),
+                          Text(
+                            DateFormat('MM月dd日 HH:mm').format(e.dateTime),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isNight ? Colors.white54 : Colors.black45,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            e.content,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isNight ? Colors.white : Colors.black87,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ],
-                      )
+                      ),
                     );
-                  }
-                )
-              )
-            ]
-          )
+                  },
+                ),
+              ),
+            ],
+          ),
         );
-      }
+      },
     );
   }
 
-  Widget _buildGlassCard({required bool isNight, required Widget child, EdgeInsetsGeometry? padding, Color? backgroundColor}) {
+  Widget _buildGlassCard({
+    required bool isNight,
+    required Widget child,
+    EdgeInsetsGeometry? padding,
+    Color? backgroundColor,
+  }) {
+    final EdgeInsetsGeometry finalPadding = (padding == EdgeInsets.zero)
+        ? EdgeInsets.zero
+        : const EdgeInsets.all(12);
     return GlassBento(
       isNight: isNight,
-      padding: padding,
+      padding: finalPadding,
       backgroundColor: backgroundColor,
       child: child,
     );
@@ -127,56 +181,61 @@ extension _BentoUtils on _StatisticsPageState {
           child: Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: Material(
-                  color: Colors.transparent,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(28),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: isNight 
-                              ? const Color(0xFF1A1A1A).withValues(alpha: 0.8) 
-                              : Colors.white.withValues(alpha: 0.85),
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(
-                            color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                          ),
+              child: Material(
+                color: Colors.transparent,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: isNight
+                            ? const Color(0xFF1A1A1A).withValues(alpha: 0.8)
+                            : Colors.white.withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: isNight
+                              ? Colors.white10
+                              : Colors.black.withValues(alpha: 0.05),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(title, style: TextStyle(
-                                  fontSize: 18, 
-                                  fontWeight: FontWeight.bold, 
-                                  color: isNight ? Colors.white : const Color(0xFF5A3E28),
-                                )),
-                                GestureDetector(
-                                  onTap: () => Navigator.pop(context),
-                                  child: Icon(
-                                    CupertinoIcons.clear_circled_solid, 
-                                    color: isNight ? Colors.white24 : Colors.black12,
-                                    size: 22,
-                                  ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                title,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: isNight
+                                      ? Colors.white
+                                      : const Color(0xFF5A3E28),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 18),
-                            _buildHighlightedText(
-                              context,
-                              content,
-                              isNight,
-                            ),
-                          ],
-                        ),
+                              ),
+                              GestureDetector(
+                                onTap: () => Navigator.pop(context),
+                                child: Icon(
+                                  CupertinoIcons.clear_circled_solid,
+                                  color: isNight
+                                      ? Colors.white24
+                                      : Colors.black12,
+                                  size: 22,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          _buildHighlightedText(context, content, isNight),
+                        ],
                       ),
                     ),
                   ),
+                ),
               ),
             ),
           ),
@@ -185,19 +244,26 @@ extension _BentoUtils on _StatisticsPageState {
     );
   }
 
-  Widget _buildHighlightedText(BuildContext context, String content, bool isNight) {
+  Widget _buildHighlightedText(
+    BuildContext context,
+    String content,
+    bool isNight,
+  ) {
     // 使用正则拆分文字，识别 [[...]] 语法
     final regex = RegExp(r'\[\[(.*?)\]\]');
     final matches = regex.allMatches(content);
-    
-    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+
+    final bool isCottonCandy =
+        UserState().selectedIslandThemeId.value == 'cotton_candy';
     if (matches.isEmpty) {
       return Text(
         content,
         style: TextStyle(
           fontSize: 14,
           height: 1.6,
-          color: isCottonCandy ? const Color(0xFF9A7A69) : (isNight ? Colors.white70 : Colors.black87),
+          color: isCottonCandy
+              ? const Color(0xFF9A7A69)
+              : (isNight ? Colors.white70 : Colors.black87),
           fontFamily: 'LXGWWenKai',
         ),
       );
@@ -207,53 +273,63 @@ extension _BentoUtils on _StatisticsPageState {
     int lastIndex = 0;
 
     // 获取当前的主题色用于下划线
-    final themeColor = isCottonCandy ? const Color(0xFFF7AAB6) : (isNight ? const Color(0xFFFFD54F) : const Color(0xFFD4A373));
+    final themeColor = isCottonCandy
+        ? const Color(0xFFF7AAB6)
+        : (isNight ? const Color(0xFFFFD54F) : const Color(0xFFD4A373));
 
     for (var match in matches) {
       // 添加普通文本
       if (match.start > lastIndex) {
-        spans.add(TextSpan(
-          text: content.substring(lastIndex, match.start),
-          style: TextStyle(
-            fontSize: 14,
-            height: 1.6,
-            color: isCottonCandy ? const Color(0xFF9A7A69) : (isNight ? Colors.white70 : Colors.black87),
-            fontFamily: 'LXGWWenKai',
+        spans.add(
+          TextSpan(
+            text: content.substring(lastIndex, match.start),
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.6,
+              color: isCottonCandy
+                  ? const Color(0xFF9A7A69)
+                  : (isNight ? Colors.white70 : Colors.black87),
+              fontFamily: 'LXGWWenKai',
+            ),
           ),
-        ));
+        );
       }
 
       // 添加高亮文本
       final highlightText = match.group(1)!;
-      spans.add(WidgetSpan(
-        alignment: PlaceholderAlignment.middle,
-        child: _HandDrawnHighlight(
-          text: highlightText,
-          color: themeColor.withValues(alpha: 0.5),
-          isNight: isNight,
-          textColor: isCottonCandy ? const Color(0xFFD9859A) : null,
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: _HandDrawnHighlight(
+            text: highlightText,
+            color: themeColor.withValues(alpha: 0.5),
+            isNight: isNight,
+            textColor: isCottonCandy ? const Color(0xFFD9859A) : null,
+          ),
         ),
-      ));
+      );
 
       lastIndex = match.end;
     }
 
     // 最后的剩余文本
     if (lastIndex < content.length) {
-      spans.add(TextSpan(
-        text: content.substring(lastIndex),
-        style: TextStyle(
-          fontSize: 14,
-          height: 1.6,
-          color: isCottonCandy ? const Color(0xFF9A7A69) : (isNight ? Colors.white70 : Colors.black87),
-          fontFamily: 'LXGWWenKai',
+      spans.add(
+        TextSpan(
+          text: content.substring(lastIndex),
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.6,
+            color: isCottonCandy
+                ? const Color(0xFF9A7A69)
+                : (isNight ? Colors.white70 : Colors.black87),
+            fontFamily: 'LXGWWenKai',
+          ),
         ),
-      ));
+      );
     }
 
-    return RichText(
-      text: TextSpan(children: spans),
-    );
+    return RichText(text: TextSpan(children: spans));
   }
 
   Widget _buildBentoHeader({
@@ -273,15 +349,17 @@ extension _BentoUtils on _StatisticsPageState {
             const SizedBox(width: 4),
             GestureDetector(
               onTap: () => _showBentoInfoDialog(
-                context: context, 
-                title: title, 
-                content: helpContent, 
-                isNight: isNight
+                context: context,
+                title: title,
+                content: helpContent,
+                isNight: isNight,
               ),
               child: Icon(
-                CupertinoIcons.info_circle, 
-                size: 14, 
-                color: isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.2)
+                CupertinoIcons.info_circle,
+                size: 14,
+                color: isNight
+                    ? Colors.white24
+                    : Colors.black.withValues(alpha: 0.2),
               ),
             ),
           ],
@@ -320,104 +398,124 @@ extension _BentoUtils on _StatisticsPageState {
       left: left,
       top: top ?? 10,
       bottom: bottom,
-      child: Container(
-        width: width,
-        constraints: BoxConstraints(maxHeight: maxHeight),
-        decoration: BoxDecoration(
-          color: isCottonCandyTooltip
-              ? const Color(0xF7FFF8F5)
-              : (isNight ? const Color(0xE6262626) : const Color(0xE6FFFFFF)),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isCottonCandyTooltip
-                ? const Color(0xFFF4DDD6)
-                : (isNight ? Colors.white10 : Colors.black12),
-          ),
-          boxShadow: [
-            BoxShadow(
+      child:
+          Container(
+            width: width,
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            decoration: BoxDecoration(
               color: isCottonCandyTooltip
-                  ? const Color(0xFFD9A49D).withValues(alpha: 0.22)
-                  : Colors.black.withValues(alpha: isNight ? 0.3 : 0.1),
-              blurRadius: isCottonCandyTooltip ? 18 : 12,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: isCottonCandyTooltip ? 11 : 10,
-              vertical: isCottonCandyTooltip ? 9 : 10,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: isCottonCandyTooltip
-                        ? const Color(0xFF9A7A69)
-                        : (isNight ? Colors.white38 : Colors.black38),
-                    fontFamily: 'LXGWWenKai',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Flexible(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      children: items.map((item) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Row(
-                            children: [
-                              if (item.color != null)
-                                Container(
-                                  width: 4,
-                                  height: 4,
-                                  decoration: BoxDecoration(color: item.color, shape: BoxShape.circle),
-                                ),
-                              if (item.color != null) const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  item.label,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: item.color?.withValues(alpha: 0.9) ?? (isNight ? Colors.white70 : Colors.black87),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: 'LXGWWenKai',
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                item.value,
-                                style: TextStyle(
-                                  color: isCottonCandyTooltip
-                                      ? const Color(0xFFB59A8D)
-                                      : (isNight ? Colors.white38 : Colors.black38),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
+                  ? const Color(0xF7FFF8F5)
+                  : (isNight
+                        ? const Color(0xE6262626)
+                        : const Color(0xE6FFFFFF)),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isCottonCandyTooltip
+                    ? const Color(0xFFF4DDD6)
+                    : (isNight ? Colors.white10 : Colors.black12),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isCottonCandyTooltip
+                      ? const Color(0xFFD9A49D).withValues(alpha: 0.22)
+                      : Colors.black.withValues(alpha: isNight ? 0.3 : 0.1),
+                  blurRadius: isCottonCandyTooltip ? 18 : 12,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCottonCandyTooltip ? 11 : 10,
+                  vertical: isCottonCandyTooltip ? 9 : 10,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isCottonCandyTooltip
+                            ? const Color(0xFF9A7A69)
+                            : (isNight ? Colors.white38 : Colors.black38),
+                        fontFamily: 'LXGWWenKai',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          children: items.map((item) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
+                                children: [
+                                  if (item.color != null)
+                                    Container(
+                                      width: 4,
+                                      height: 4,
+                                      decoration: BoxDecoration(
+                                        color: item.color,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  if (item.color != null)
+                                    const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      item.label,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color:
+                                            item.color?.withValues(
+                                              alpha: 0.9,
+                                            ) ??
+                                            (isNight
+                                                ? Colors.white70
+                                                : Colors.black87),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'LXGWWenKai',
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    item.value,
+                                    style: TextStyle(
+                                      color: isCottonCandyTooltip
+                                          ? const Color(0xFFB59A8D)
+                                          : (isNight
+                                                ? Colors.white38
+                                                : Colors.black38),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ).animate().slideX(
+            begin: isLeft ? 0.05 : -0.05,
+            end: 0,
+            curve: Curves.easeOutCubic,
+            duration: 200.ms,
           ),
-        ),
-      ).animate().slideX(begin: isLeft ? 0.05 : -0.05, end: 0, curve: Curves.easeOutCubic, duration: 200.ms),
     );
   }
 }
@@ -428,11 +526,7 @@ class _BentoTooltipItem {
   final String value;
   final Color? color;
 
-  _BentoTooltipItem({
-    required this.label,
-    required this.value,
-    this.color,
-  });
+  _BentoTooltipItem({required this.label, required this.value, this.color});
 }
 
 /// 手绘风格高亮 Widget
@@ -498,18 +592,12 @@ class _HandDrawnUnderlinePainter extends CustomPainter {
 
     // 手绘感算法：随机波动的三次贝塞尔曲线
     path.moveTo(0, h * 0.8);
-    
+
     // 第一段：略微下弧
-    path.quadraticBezierTo(
-      w * 0.25, h * 1.1, 
-      w * 0.5, h * 0.9,
-    );
-    
+    path.quadraticBezierTo(w * 0.25, h * 1.1, w * 0.5, h * 0.9);
+
     // 第二段：略微上扬
-    path.quadraticBezierTo(
-      w * 0.75, h * 0.7, 
-      w, h * 0.85,
-    );
+    path.quadraticBezierTo(w * 0.75, h * 0.7, w, h * 0.85);
 
     canvas.drawPath(path, paint);
   }

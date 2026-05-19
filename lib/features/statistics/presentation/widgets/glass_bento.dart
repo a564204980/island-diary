@@ -24,8 +24,8 @@ class GlassBento extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: isNight 
-                ? Colors.black.withValues(alpha: 0.3) 
+            color: isNight
+                ? Colors.black.withValues(alpha: 0.3)
                 : Colors.black.withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, 4),
@@ -38,23 +38,24 @@ class GlassBento extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
           child: Container(
             decoration: BoxDecoration(
-              color: backgroundColor ?? (isNight 
-                  ? Colors.transparent 
-                  : Colors.white.withValues(alpha: 0.5)),
+              color:
+                  backgroundColor ??
+                  (isNight
+                      ? Colors.transparent
+                      : Colors.white.withValues(alpha: 0.5)),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isNight 
-                    ? Colors.white.withValues(alpha: 0.08) 
+                color: isNight
+                    ? Colors.white.withValues(alpha: 0.08)
                     : Colors.white.withValues(alpha: 0.8),
                 width: 1.5,
               ),
             ),
-            padding: padding ?? const EdgeInsets.all(20),
+            padding: padding ?? const EdgeInsets.all(10),
             child: child,
           ),
         ),
       ),
     );
-
   }
 }

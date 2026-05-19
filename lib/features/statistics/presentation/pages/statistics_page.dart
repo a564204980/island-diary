@@ -66,6 +66,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   StatTimeRange _currentRange = StatTimeRange.month;
   late AnimationController _waveAnimController;
   final Map<String, Future<String>> _moodTrendSummaryFutures = {};
+  String? _selectedMoodWeatherStateId;
 
   // 新增：波浪图交互状态 (将在下方统一定义)
 
@@ -80,6 +81,13 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     _selectedWeeklyPatternIndex = null;
     _selectedRadarPointIndex = null;
     _selectedHeatmapCoord = null;
+    _selectedMoodWeatherStateId = null;
+  }
+
+  void updateState(VoidCallback fn) {
+    if (mounted) {
+      setState(fn);
+    }
   }
 
   void updateMoodFlowX(int? x) {
@@ -350,7 +358,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
         break;
       case StatTimeRange.month:
         saved = state.statsOrderMonth.value;
-        defaults = ['mood_trend', 'mood_flow', 'resilience', 'calendar', 'intensity_radar', 'stats_row', 'highlights', 'time_pattern'];
+        defaults = ['mood_trend', 'mood_weather', 'mood_flow', 'resilience', 'calendar', 'intensity_radar', 'stats_row', 'highlights', 'time_pattern'];
         break;
       case StatTimeRange.all:
         saved = state.statsOrderAll.value;
@@ -414,6 +422,8 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
           return _buildWeatherMoodBento(isNight, filtered);
         }
         return const SizedBox.shrink();
+      case 'mood_weather':
+        return _buildMonthlyMoodWeatherBento(isNight, filtered, themeColor);
       case 'mood_trend':
         return _buildMoodTrendBento(isNight, filtered, themeColor);
       case 'mood_flow':
@@ -693,6 +703,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
         setState(() {
           _currentRange = range;
           _touchedWaveSpotIndex = null; // 切换时间维度时重置选中点
+          _selectedMoodWeatherStateId = null;
         });
         _waveAnimController.forward(from: 0);
       },
