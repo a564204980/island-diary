@@ -16,7 +16,7 @@ extension _BentoMoodFlow on _StatisticsPageState {
       daysCount = 7;
     } else if (_currentRange == StatTimeRange.month) {
       startDate = DateTime(now.year, now.month, 1);
-      daysCount = DateTime(now.year, now.month + 1, 0).day;
+      daysCount = now.day;
     } else {
       final firstDate = _allDiaries.isEmpty 
           ? DateTime(now.year, now.month, now.day) 
@@ -102,7 +102,17 @@ extension _BentoMoodFlow on _StatisticsPageState {
           color: color.withValues(alpha: 0.8),
           barWidth: 2.5,
           isStrokeCapRound: true,
-          dotData: const FlDotData(show: false),
+          dotData: FlDotData(
+            show: true,
+            getDotPainter: (spot, percent, barData, index) {
+              return FlDotCirclePainter(
+                radius: 2.2,
+                color: color,
+                strokeWidth: 1.2,
+                strokeColor: Colors.white,
+              );
+            },
+          ),
           belowBarData: BarAreaData(
             show: true,
             gradient: LinearGradient(

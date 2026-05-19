@@ -30,7 +30,6 @@ part '../widgets/bento/bento_utils.dart';
 part '../widgets/statistics_advanced_bento_fragments.dart';
 part '../widgets/bento/bento_mood_trend.dart';
 part '../widgets/bento/bento_mood_flow.dart';
-part '../widgets/bento/bento_resilience.dart';
 part '../widgets/bento/bento_memories_today.dart';
 
 enum StatTimeRange { week, month, all }
@@ -354,15 +353,15 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     switch (_currentRange) {
       case StatTimeRange.week:
         saved = state.statsOrderWeek.value;
-        defaults = ['mood_trend', 'mood_flow', 'resilience', 'intensity_radar', 'stats_row', 'volatility', 'wave', 'weekly_pattern', 'heatmap', 'time_pattern'];
+        defaults = ['mood_trend', 'mood_flow', 'intensity_radar', 'stats_row', 'volatility', 'wave', 'weekly_pattern', 'heatmap', 'time_pattern'];
         break;
       case StatTimeRange.month:
         saved = state.statsOrderMonth.value;
-        defaults = ['mood_trend', 'mood_weather', 'mood_flow', 'resilience', 'calendar', 'intensity_radar', 'stats_row', 'highlights', 'time_pattern'];
+        defaults = ['mood_trend', 'mood_weather', 'mood_flow', 'calendar', 'intensity_radar', 'stats_row', 'highlights', 'time_pattern'];
         break;
       case StatTimeRange.all:
         saved = state.statsOrderAll.value;
-        defaults = ['mood_trend', 'mood_flow', 'resilience', 'intensity_radar', 'seasonality', 'memories_today', 'heatmap', 'stats_row', 'time_pattern', 'weather'];
+        defaults = ['mood_trend', 'mood_flow', 'intensity_radar', 'seasonality', 'memories_today', 'heatmap', 'stats_row', 'time_pattern', 'weather'];
         break;
     }
     
@@ -428,8 +427,6 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
         return _buildMoodTrendBento(isNight, filtered, themeColor);
       case 'mood_flow':
         return _buildMoodFlowBento(isNight, filtered, themeColor);
-      case 'resilience':
-        return _buildResilienceBento(isNight, _currentRange == StatTimeRange.all ? _allDiaries : filtered, themeColor);
       default:
         return const SizedBox.shrink();
     }

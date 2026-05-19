@@ -38,11 +38,9 @@ class GlassBento extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
           child: Container(
             decoration: BoxDecoration(
-              color:
-                  backgroundColor ??
-                  (isNight
-                      ? Colors.transparent
-                      : Colors.white.withValues(alpha: 0.5)),
+              color: isNight
+                  ? (backgroundColor ?? Colors.transparent)
+                  : const Color(0xFFFDFBFE),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: isNight
