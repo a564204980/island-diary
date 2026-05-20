@@ -4,16 +4,17 @@ extension _BentoMoodCalendar on _StatisticsPageState {
   Widget _buildMoodCalendarBento(bool isNight, List<DiaryEntry> allEntries) {
     final now = DateTime.now();
     final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
-    // 构建本月每一天的数据映射
-    Map<int, DiaryEntry> daysMap = {};
+    // 构建本月每一天的数据映射（支持一天多篇日记）
+    Map<int, List<DiaryEntry>> daysEntriesMap = {};
     for (var e in allEntries) {
       if (e.dateTime.year == now.year && e.dateTime.month == now.month) {
-        // 如果同一天有多篇，保留后写的那篇（也就是最新状态）
-        if (!daysMap.containsKey(e.dateTime.day) || daysMap[e.dateTime.day]!.dateTime.isBefore(e.dateTime)) {
-            daysMap[e.dateTime.day] = e;
-        }
+        daysEntriesMap.putIfAbsent(e.dateTime.day, () => []).add(e);
       }
     }
+    // 按照时间先后升序排序，保证最后写的一篇在列表末端
+    daysEntriesMap.forEach((day, entries) {
+      entries.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    });
 
     final int daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
     final int firstWeekday = DateTime(now.year, now.month, 1).weekday; // 1=Mon, 7=Sun
@@ -75,7 +76,8 @@ extension _BentoMoodCalendar on _StatisticsPageState {
                 itemBuilder: (context, index) {
                   if (index < firstWeekday - 1) return const SizedBox.shrink();
                   final day = index - (firstWeekday - 1) + 1;
-                  final entry = daysMap[day];
+                  final entries = daysEntriesMap[day] ?? [];
+                  final entry = entries.isNotEmpty ? entries.last : null;
 
                   return GestureDetector(
                     onTap: () {
@@ -90,35 +92,114 @@ extension _BentoMoodCalendar on _StatisticsPageState {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                        color: entry != null
-                            ? Colors.transparent
+                        color: day == now.day
+                            ? (isCottonCandy
+                                ? const Color(0xFFFFF2F4)
+                                : (isNight ? const Color(0xFF3D2C2F) : const Color(0xFFFFF0F2)))
                             : (isCottonCandy
-                                ? const Color(0xFFFFEDE7).withValues(alpha: 0.72)
-                                : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.04))),
+                                ? const Color(0xFFFFEDE7).withValues(alpha: 0.6)
+                                : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.03))),
                         borderRadius: BorderRadius.circular(isCottonCandy ? 14 : 12),
-                        border: entry == null && isCottonCandy
-                            ? Border.all(color: const Color(0xFFF8DDD5).withValues(alpha: 0.45))
+                        border: Border.all(
+                          color: day == now.day
+                              ? (isCottonCandy
+                                  ? const Color(0xFFF7AAB6)
+                                  : (isNight ? const Color(0xFFF7AAB6).withValues(alpha: 0.6) : const Color(0xFFF7AAB6)))
+                              : (isCottonCandy
+                                  ? const Color(0xFFF8DDD5).withValues(alpha: 0.45)
+                                  : (isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))),
+                          width: day == now.day ? 1.5 : 1.0,
+                        ),
+                        boxShadow: day == now.day && isCottonCandy
+                            ? [
+                                BoxShadow(
+                                  color: const Color(0xFFF7AAB6).withValues(alpha: 0.15),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
                             : null,
-                        boxShadow: null,
                       ),
                       child: entry != null
-                          ? Center(
-                              child: _MoodCalendarIcon(
-                                moodIndex: entry.moodIndex % kMoods.length,
-                                isCottonCandy: isCottonCandy,
-                              ),
-                            )
-                          : Center(
-                              child: Text(
-                                '$day',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isNight
-                                      ? Colors.white24
-                                      : (isCottonCandy ? const Color(0xFFC4A99B) : Colors.black26),
-                                  fontFamily: 'LXGWWenKai',
+                          ? Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Positioned(
+                                  left: -2,
+                                  top: -3,
+                                  child: Text(
+                                    '$day',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: day == now.day ? FontWeight.bold : FontWeight.w600,
+                                      color: day == now.day
+                                          ? (isCottonCandy ? const Color(0xFFF76F87) : (isNight ? const Color(0xFFF7AAB6) : const Color(0xFFF76F87)))
+                                          : (isNight
+                                              ? Colors.white70
+                                              : (isCottonCandy ? const Color(0xFF7A5A4A) : Colors.black54)),
+                                      fontFamily: 'LXGWWenKai',
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                if (entries.length > 1)
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 7.0,
+                                    child: Center(
+                                      child: _MoodCalendarIcon(
+                                        moodIndex: entry.moodIndex % kMoods.length,
+                                        isCottonCandy: isCottonCandy,
+                                        size: isCottonCandy ? 24 : 22,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  Center(
+                                    child: _MoodCalendarIcon(
+                                      moodIndex: entry.moodIndex % kMoods.length,
+                                      isCottonCandy: isCottonCandy,
+                                      size: isCottonCandy ? 24 : 22,
+                                    ),
+                                  ),
+                                if (entries.length > 1)
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 1.5,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: entries
+                                          .take(4)
+                                          .map((e) => _buildMoodDot(
+                                                e.moodIndex % kMoods.length,
+                                                isNight,
+                                                isCottonCandy,
+                                              ))
+                                          .toList(),
+                                    ),
+                                  ),
+                              ],
+                            )
+                          : Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Center(
+                                  child: Text(
+                                    '$day',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: day == now.day ? FontWeight.bold : FontWeight.normal,
+                                      color: day == now.day
+                                          ? (isCottonCandy ? const Color(0xFFF76F87) : (isNight ? const Color(0xFFF7AAB6) : const Color(0xFFF76F87)))
+                                          : (isNight
+                                              ? Colors.white70
+                                              : (isCottonCandy ? const Color(0xFF7A5A4A) : Colors.black54)),
+                                      fontFamily: 'LXGWWenKai',
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                     ),
                   );
@@ -153,42 +234,94 @@ extension _BentoMoodCalendar on _StatisticsPageState {
       },
     );
   }
+
+  Widget _buildMoodDot(int moodIndex, bool isNight, bool isCottonCandy) {
+    final color = _getMoodColor(moodIndex, isNight, isCottonCandy);
+    return Container(
+      width: 4,
+      height: 4,
+      margin: const EdgeInsets.symmetric(horizontal: 1),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.4),
+            blurRadius: 1,
+            spreadRadius: 0.5,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getMoodColor(int moodIndex, bool isNight, bool isCottonCandy) {
+    switch (moodIndex % 11) {
+      case 0:
+        return isCottonCandy ? const Color(0xFFFFB2A6) : const Color(0xFFFF8A80);
+      case 1:
+        return isCottonCandy ? const Color(0xFFC7E5C7) : const Color(0xFF81C784);
+      case 2:
+        return isCottonCandy ? const Color(0xFFA9D8EB) : const Color(0xFF64B5F6);
+      case 3:
+        return isCottonCandy ? const Color(0xFFFF8E9B) : const Color(0xFFE57373);
+      case 4:
+        return isCottonCandy ? const Color(0xFFD9B9E7) : const Color(0xFFBA68C8);
+      case 5:
+        return isCottonCandy ? const Color(0xFFFFE0A3) : const Color(0xFFFFD54F);
+      case 6:
+        return isCottonCandy ? const Color(0xFFF9B7FF) : const Color(0xFFF06292);
+      case 7:
+        return isCottonCandy ? const Color(0xFFB0BEC5) : const Color(0xFF90A4AE);
+      case 8:
+        return isCottonCandy ? const Color(0xFFB3E5FC) : const Color(0xFF4FC3F7);
+      case 9:
+        return isCottonCandy ? const Color(0xFFD7CCC8) : const Color(0xFFA1887F);
+      case 10:
+        return isCottonCandy ? const Color(0xFFFFF59D) : const Color(0xFFFFF176);
+      default:
+        return Colors.grey;
+    }
+  }
 }
 
 class _MoodCalendarIcon extends StatelessWidget {
   final int moodIndex;
   final bool isCottonCandy;
+  final double? size;
 
   const _MoodCalendarIcon({
     required this.moodIndex,
     required this.isCottonCandy,
+    this.size,
   });
 
   @override
   Widget build(BuildContext context) {
+    final double actualSize = size ?? (isCottonCandy ? 26 : 24);
     return Container(
-      width: isCottonCandy ? 38 : 34,
-      height: isCottonCandy ? 38 : 34,
+      width: actualSize,
+      height: actualSize,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isCottonCandy ? const Color(0xFFFFF6F2).withValues(alpha: 0.48) : Colors.transparent,
         boxShadow: isCottonCandy
             ? [
                 BoxShadow(
-                  color: const Color(0xFFD9A49D).withValues(alpha: 0.18),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+                  color: const Color(0xFFD9A49D).withValues(alpha: 0.12),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1.5),
                 ),
                 BoxShadow(
                   color: Colors.white.withValues(alpha: 0.85),
-                  blurRadius: 2,
-                  offset: const Offset(-1, -1),
+                  blurRadius: 1.5,
+                  offset: const Offset(-0.5, -0.5),
                 ),
               ]
             : null,
       ),
       child: Padding(
-        padding: EdgeInsets.all(isCottonCandy ? 2 : 1),
+        padding: EdgeInsets.all(isCottonCandy ? 1.5 : 0.5),
         child: Image.asset(
           _moodCalendarIconPath(moodIndex),
           fit: BoxFit.contain,

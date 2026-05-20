@@ -8,6 +8,8 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
   }
 
   Widget _buildWeatherMoodBento(bool isNight, List<DiaryEntry> filtered) {
+    final bool isCottonCandy =
+        UserState().selectedIslandThemeId.value == 'cotton_candy';
     final Map<String, List<DiaryEntry>> weatherGroups = {};
     for (final e in filtered) {
       if (e.weather != null && e.weather!.isNotEmpty && e.weather != '未设置') {
@@ -36,7 +38,9 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
             rightAction: Icon(
               CupertinoIcons.cloud_sun,
               size: 18,
-              color: isNight ? Colors.white54 : Colors.black38,
+              color: isCottonCandy
+                  ? const Color(0xFFF7AAB6)
+                  : (isNight ? Colors.white54 : Colors.black38),
             ),
           ),
           const SizedBox(height: 12),
@@ -181,7 +185,9 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
             rightAction: Icon(
               CupertinoIcons.star_lefthalf_fill,
               size: 18,
-              color: isNight ? Colors.white54 : Colors.black38,
+              color: isCottonCandy
+                  ? const Color(0xFFF7AAB6)
+                  : (isNight ? Colors.white54 : Colors.black38),
             ),
           ),
           const SizedBox(height: 12),

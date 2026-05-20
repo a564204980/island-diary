@@ -31,6 +31,7 @@ part '../widgets/statistics_advanced_bento_fragments.dart';
 part '../widgets/bento/bento_mood_trend.dart';
 part '../widgets/bento/bento_mood_flow.dart';
 part '../widgets/bento/bento_memories_today.dart';
+part '../widgets/bento/bento_mood_palette.dart';
 
 enum StatTimeRange { week, month, all }
 
@@ -72,6 +73,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
 
   // 新增：心境流转图交互状态
   int? _selectedMoodFlowX;
+  int? _selectedPaletteDay; // 新增：时光调色盘选中日期
 
   void _clearAllBentoSelections() {
     _selectedMoodFlowX = null;
@@ -81,6 +83,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     _selectedRadarPointIndex = null;
     _selectedHeatmapCoord = null;
     _selectedMoodWeatherStateId = null;
+    _selectedPaletteDay = null;
   }
 
   void updateState(VoidCallback fn) {
@@ -97,6 +100,18 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
         _selectedMoodFlowX = (prev == x) ? null : x;
       } else {
         _selectedMoodFlowX = null;
+      }
+    });
+  }
+
+  void updatePaletteDay(int? day) {
+    setState(() {
+      if (day != null) {
+        final prev = _selectedPaletteDay;
+        _clearAllBentoSelections();
+        _selectedPaletteDay = (prev == day) ? null : day;
+      } else {
+        _selectedPaletteDay = null;
       }
     });
   }
@@ -357,7 +372,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
         break;
       case StatTimeRange.month:
         saved = state.statsOrderMonth.value;
-        defaults = ['mood_trend', 'mood_weather', 'mood_flow', 'calendar', 'intensity_radar', 'stats_row', 'highlights', 'time_pattern'];
+        defaults = ['mood_trend', 'mood_weather', 'mood_palette', 'mood_flow', 'calendar', 'intensity_radar', 'stats_row', 'highlights', 'time_pattern'];
         break;
       case StatTimeRange.all:
         saved = state.statsOrderAll.value;
@@ -427,6 +442,8 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
         return _buildMoodTrendBento(isNight, filtered, themeColor);
       case 'mood_flow':
         return _buildMoodFlowBento(isNight, filtered, themeColor);
+      case 'mood_palette':
+        return _buildMoodPaletteBento(isNight, filtered);
       default:
         return const SizedBox.shrink();
     }

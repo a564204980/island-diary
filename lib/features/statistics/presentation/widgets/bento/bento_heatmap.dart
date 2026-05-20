@@ -1,6 +1,6 @@
 part of '../../pages/statistics_page.dart';
 
-extension BentoHeatmap on _StatisticsPageState {
+extension _BentoHeatmap on _StatisticsPageState {
   Widget _buildHeatmapBento(bool isNight, List<DiaryEntry> filtered, StatTimeRange range, Color themeColor) {
     final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
     final Color cottonCandySurface = const Color(0xFFFFF4EF);
@@ -29,7 +29,7 @@ extension BentoHeatmap on _StatisticsPageState {
             rightAction: Icon(
               range == StatTimeRange.all ? CupertinoIcons.graph_square : CupertinoIcons.circle_grid_hex,
               size: 16,
-              color: headerIconColor.withOpacity(isNight ? 0.72 : 0.58),
+              color: headerIconColor.withValues(alpha: isNight ? 0.72 : 0.58),
             ),
           ),
           const SizedBox(height: 16),
@@ -144,7 +144,7 @@ extension BentoHeatmap on _StatisticsPageState {
                               final int moodIdx = data[d][h];
                               
                               return _buildBentoTooltip(
-                                title: '${weekLabels[d]}曜 · ${h}时',
+                                title: '${weekLabels[d]}曜 · $h时',
                                 items: [
                                   if (moodIdx != -1)
                                     _BentoTooltipItem(
@@ -275,7 +275,7 @@ extension BentoHeatmap on _StatisticsPageState {
                                          final int h = _selectedHeatmapCoord!.dx.toInt();
                                          final int moodIdx = data[index][h];
                                          return _buildBentoTooltip(
-                                           title: '${now.month}月${day}日 · ${h}时',
+                                           title: '${now.month}月$day日 · $h时',
                                            items: [
                                               if (moodIdx != -1)
                                                 _BentoTooltipItem(
@@ -452,7 +452,7 @@ extension BentoHeatmap on _StatisticsPageState {
                           if (count == -2) return const SizedBox.shrink();
 
                           return _buildBentoTooltip(
-                            title: '${year}年${mIdx + 1}月${dIdx + 1}日',
+                            title: '$year年${mIdx + 1}月${dIdx + 1}日',
                             items: [
                               _BentoTooltipItem(
                                 label: '记录篇数',
@@ -528,7 +528,7 @@ extension BentoHeatmap on _StatisticsPageState {
      final Color labelColor = isNight
          ? Colors.white24
          : (isCottonCandy ? const Color(0xFF8A7462) : Colors.black26);
-     final Color deepColor = themeColor.withOpacity(isNight ? 0.72 : 0.6);
+     final Color deepColor = themeColor.withValues(alpha: isNight ? 0.72 : 0.6);
 
      return Row(
        mainAxisAlignment: MainAxisAlignment.end,
@@ -628,7 +628,7 @@ class _HeatmapPainter extends CustomPainter {
     Color color;
     if (isMoodMode) {
       if (count == -1) {
-        color = isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03);
+        color = isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03);
       } else {
         final moodIdx = count % kMoods.length;
         color = kMoods[moodIdx].glowColor ?? const Color(0xFFD4A373);
@@ -658,7 +658,7 @@ class _HeatmapPainter extends CustomPainter {
 }
 
 Color _getSeasonalGlowColor(int count, bool isNight, Color themeColor) {
-  if (count <= 0) return isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03);
+  if (count <= 0) return isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03);
   double opacity = (0.2 + (count * 0.15)).clamp(0.2, 0.9);
-  return themeColor.withOpacity(opacity);
+  return themeColor.withValues(alpha: opacity);
 }
