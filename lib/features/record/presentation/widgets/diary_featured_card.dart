@@ -126,14 +126,12 @@ class DiaryFeaturedCard extends StatelessWidget {
                         children: [
                           _buildTag(
                             mood.label,
-                            iconPath: mood.iconPath,
                             isOverlay: true,
                           ),
                           if (entry.tag != null && entry.tag!.isNotEmpty) ...[
                             const SizedBox(width: 8),
                             _buildTag(
                               entry.tag!,
-                              icon: Icons.local_florist_rounded,
                               isOverlay: true,
                             ),
                           ],
@@ -253,11 +251,13 @@ class DiaryFeaturedCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (iconPath != null)
-            Image.asset(iconPath, width: 18, height: 18)
-          else if (icon != null)
+          if (iconPath != null) ...[
+            Image.asset(iconPath, width: 18, height: 18),
+            const SizedBox(width: 6),
+          ] else if (icon != null) ...[
             Icon(icon, size: 14, color: Colors.white),
-          const SizedBox(width: 6),
+            const SizedBox(width: 6),
+          ],
           Text(
             text,
             style: const TextStyle(

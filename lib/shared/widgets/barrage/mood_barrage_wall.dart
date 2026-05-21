@@ -193,7 +193,7 @@ class BarrageContent extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Image.asset(
-            mood.iconPath ?? 'assets/images/icons/sun.png', 
+            mood.iconPath ?? 'assets/icons/happy.png', 
             width: 18, 
             height: 18,
           ),

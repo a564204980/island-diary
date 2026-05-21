@@ -460,15 +460,6 @@ class _DiaryMomentsCardState extends State<DiaryMomentsCard> {
       children: [
         // 1. 心情标签（必选）
         _buildTagPill(
-          icon: mood.iconPath != null
-              ? Image.asset(
-                  mood.iconPath!,
-                  width: 12,
-                  height: 12,
-                  color: tagColor.withValues(alpha: 0.8),
-                  fit: BoxFit.contain,
-                )
-              : null,
           label: mood.label,
           color: tagColor,
           isPill: true,

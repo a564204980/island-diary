@@ -10,6 +10,67 @@ enum MasonryCardStyle {
   textOnly,    // 纯文本
 }
 
+class MoodThemeColor {
+  final Color bgColor;
+  final Color tagColor;
+  const MoodThemeColor({required this.bgColor, required this.tagColor});
+}
+
+MoodThemeColor getMoodThemeColor(int moodIndex, String label) {
+  switch (label) {
+    case '开心':
+      return const MoodThemeColor(bgColor: Color(0xFFFFF7D8), tagColor: Color(0xFFF5C95A));
+    case '平静':
+      return const MoodThemeColor(bgColor: Color(0xFFEAF8F3), tagColor: Color(0xFF8BCDBA));
+    case '低落':
+      return const MoodThemeColor(bgColor: Color(0xFFEEF3FF), tagColor: Color(0xFF9FB4DD));
+    case '烦躁':
+      return const MoodThemeColor(bgColor: Color(0xFFFFECEF), tagColor: Color(0xFFE99AAA));
+    case '焦虑':
+      return const MoodThemeColor(bgColor: Color(0xFFF0F1F2), tagColor: Color(0xFFA9ADB3));
+    case '疲惫':
+      return const MoodThemeColor(bgColor: Color(0xFFF4EEFA), tagColor: Color(0xFFB9A3D4));
+    case '惊喜':
+      return const MoodThemeColor(bgColor: Color(0xFFFFF1D9), tagColor: Color(0xFFF2B56B));
+    case '害羞':
+      return const MoodThemeColor(bgColor: Color(0xFFFFEFF4), tagColor: Color(0xFFE9A6BB));
+    case '放松':
+      return const MoodThemeColor(bgColor: Color(0xFFEAF7FF), tagColor: Color(0xFF93C8EA));
+    case '怀旧':
+      return const MoodThemeColor(bgColor: Color(0xFFF7EFE3), tagColor: Color(0xFFC9A982));
+    case '沉思':
+      return const MoodThemeColor(bgColor: Color(0xFFF0ECF8), tagColor: Color(0xFFA99BCB));
+  }
+
+  switch (moodIndex) {
+    case 0:
+      return const MoodThemeColor(bgColor: Color(0xFFFFF7D8), tagColor: Color(0xFFF5C95A));
+    case 1:
+      return const MoodThemeColor(bgColor: Color(0xFFEAF8F3), tagColor: Color(0xFF8BCDBA));
+    case 2:
+      return const MoodThemeColor(bgColor: Color(0xFFEEF3FF), tagColor: Color(0xFF9FB4DD));
+    case 3:
+      return const MoodThemeColor(bgColor: Color(0xFFFFECEF), tagColor: Color(0xFFE99AAA));
+    case 4:
+      return const MoodThemeColor(bgColor: Color(0xFFF4EEFA), tagColor: Color(0xFFB9A3D4));
+    case 5:
+      return const MoodThemeColor(bgColor: Color(0xFFFFF1D9), tagColor: Color(0xFFF2B56B));
+    case 6:
+      return const MoodThemeColor(bgColor: Color(0xFFFFEFF4), tagColor: Color(0xFFE9A6BB));
+    case 7:
+      return const MoodThemeColor(bgColor: Color(0xFFF0F1F2), tagColor: Color(0xFFA9ADB3));
+    case 8:
+      return const MoodThemeColor(bgColor: Color(0xFFEAF7FF), tagColor: Color(0xFF93C8EA));
+    case 9:
+      return const MoodThemeColor(bgColor: Color(0xFFF7EFE3), tagColor: Color(0xFFC9A982));
+    case 10:
+      return const MoodThemeColor(bgColor: Color(0xFFF0ECF8), tagColor: Color(0xFFA99BCB));
+    default:
+      return const MoodThemeColor(bgColor: Color(0xFFF4EFE6), tagColor: Color(0xFFD4A373));
+  }
+}
+
+
 class DiaryMasonryCard extends StatelessWidget {
   final DiaryEntry entry;
   final bool isNight;
@@ -32,6 +93,11 @@ class DiaryMasonryCard extends StatelessWidget {
       style = (images.length == 1 && index % 3 == 0) ? MasonryCardStyle.fullImage : MasonryCardStyle.imageTop;
     }
 
+    final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
+    final mood = kMoods[moodIdx];
+    final themeColorConfig = getMoodThemeColor(moodIdx, mood.label);
+    final Color cardBgColor = isNight ? const Color(0xFF212831) : themeColorConfig.bgColor.withValues(alpha: 0.60);
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -47,7 +113,7 @@ class DiaryMasonryCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: isNight ? const Color(0xFF212831) : Colors.white,
+          color: cardBgColor,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isNight 
@@ -123,7 +189,10 @@ class DiaryMasonryCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _buildTagsRow(isWhiteText: true),
+                  Expanded(
+                    child: _buildTagsRow(isWhiteText: true),
+                  ),
+                  const SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -160,7 +229,10 @@ class DiaryMasonryCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _buildTagsRow(),
+                  Expanded(
+                    child: _buildTagsRow(),
+                  ),
+                  const SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -227,7 +299,11 @@ class DiaryMasonryCard extends StatelessWidget {
   }
 
   Widget _buildTextOnlyCard() {
-    final Color baseBgColor = isNight ? const Color(0xFF212329) : const Color(0xFFF4EFE6);
+    final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
+    final mood = kMoods[moodIdx];
+    final themeColorConfig = getMoodThemeColor(moodIdx, mood.label);
+
+    final Color baseBgColor = isNight ? const Color(0xFF212329) : themeColorConfig.bgColor;
 
     return Container(
       width: double.infinity,
@@ -237,7 +313,7 @@ class DiaryMasonryCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isNight
             ? [const Color(0xFF2C2E35), baseBgColor]
-            : [const Color(0xFFF9F7F3), baseBgColor],
+            : [themeColorConfig.bgColor.withValues(alpha: 0.30), themeColorConfig.bgColor.withValues(alpha: 0.60)],
         ),
       ),
       child: Padding(
@@ -252,7 +328,10 @@ class DiaryMasonryCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _buildTagsRow(),
+                Expanded(
+                  child: _buildTagsRow(),
+                ),
+                const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -269,10 +348,9 @@ class DiaryMasonryCard extends StatelessWidget {
   }
 
   Widget _buildExcerpt({bool isWhiteText = false}) {
+    final bool forceWhite = isWhiteText || isNight;
     final bool hasImages = entry.blocks.any((b) => b['type'] == 'image');
-    final bool isAutoDark = !hasImages && DiaryUtils.isMoodBackgroundDark(entry.moodIndex, entry.intensity);
-    final bool forceWhite = isWhiteText || isNight || isAutoDark;
-    final Color textColor = forceWhite ? Colors.white70 : const Color(0xFF333333);
+    final Color textColor = forceWhite ? Colors.white70 : const Color(0xFF5F5563);
     String plainText = DiaryUtils.getFilteredContent(entry.content).trim();
     if (plainText.isEmpty) return const SizedBox.shrink();
 
@@ -295,10 +373,8 @@ class DiaryMasonryCard extends StatelessWidget {
   }
 
   Widget _buildTime({bool isWhiteText = false}) {
-    final bool hasImages = entry.blocks.any((b) => b['type'] == 'image');
-    final bool isAutoDark = !hasImages && DiaryUtils.isMoodBackgroundDark(entry.moodIndex, entry.intensity);
-    final bool forceWhite = isWhiteText || isNight || isAutoDark;
-    final Color textColor = forceWhite ? Colors.white54 : const Color(0xFFB5A89A);
+    final bool forceWhite = isWhiteText || isNight;
+    final Color textColor = forceWhite ? Colors.white54 : const Color(0xFFA798A5);
     final timeStr = "${entry.dateTime.hour.toString().padLeft(2, '0')}:${entry.dateTime.minute.toString().padLeft(2, '0')}";
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -314,7 +390,7 @@ class DiaryMasonryCard extends StatelessWidget {
         ),
         if (entry.weather != null && entry.weather!.isNotEmpty) ...[
           const SizedBox(width: 6),
-          Icon(Icons.wb_sunny_rounded, size: 12, color: isWhiteText ? Colors.amber.withValues(alpha: 0.8) : const Color(0xFFD4A373)),
+          Icon(Icons.wb_sunny_rounded, size: 12, color: forceWhite ? Colors.amber.withValues(alpha: 0.8) : const Color(0xFFB9A8BD)),
         ],
       ],
     );
@@ -322,15 +398,14 @@ class DiaryMasonryCard extends StatelessWidget {
 
   Widget _buildLocation({bool isWhiteText = false}) {
     if (entry.location == null || entry.location!.isEmpty) return const SizedBox.shrink();
-    final bool hasImages = entry.blocks.any((b) => b['type'] == 'image');
-    final bool isAutoDark = !hasImages && DiaryUtils.isMoodBackgroundDark(entry.moodIndex, entry.intensity);
-    final bool forceWhite = isWhiteText || isNight || isAutoDark;
-    final Color textColor = forceWhite ? Colors.white54 : const Color(0xFFB5A89A);
+    final bool forceWhite = isWhiteText || isNight;
+    final Color textColor = forceWhite ? Colors.white54 : const Color(0xFFA798A5);
+    final Color iconColor = forceWhite ? Colors.white54 : const Color(0xFFB9A8BD);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         const SizedBox(width: 8),
-        Icon(Icons.location_on_rounded, size: 10, color: textColor),
+        Icon(Icons.location_on_rounded, size: 10, color: iconColor),
         const SizedBox(width: 2),
         Flexible(
           child: Text(
@@ -352,11 +427,11 @@ class DiaryMasonryCard extends StatelessWidget {
     List<Widget> tagWidgets = [];
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
-    tagWidgets.add(_buildTagPill(mood.label, isWhiteText: isWhiteText, iconPath: mood.iconPath));
+    tagWidgets.add(_buildTagPill(mood.label, isWhiteText: isWhiteText));
 
     if (entry.tag != null && entry.tag!.isNotEmpty) {
       tagWidgets.add(const SizedBox(width: 6));
-      tagWidgets.add(_buildTagPill(entry.tag!, isWhiteText: isWhiteText, icon: Icons.local_florist_rounded));
+      tagWidgets.add(_buildTagPill(entry.tag!, isWhiteText: isWhiteText));
     }
 
     return Wrap(
@@ -368,16 +443,20 @@ class DiaryMasonryCard extends StatelessWidget {
   Widget _buildTagPill(String text, {required bool isWhiteText, IconData? icon, String? iconPath}) {
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
+    final themeColorConfig = getMoodThemeColor(moodIdx, mood.label);
     final themeColor = mood.glowColor ?? const Color(0xFFD4A373);
 
-    final bool hasImages = entry.blocks.any((b) => b['type'] == 'image');
-    final bool isAutoDark = !hasImages && DiaryUtils.isMoodBackgroundDark(entry.moodIndex, entry.intensity);
-    final bool isActuallyDark = isWhiteText || isAutoDark;
-    final bool forceWhite = isActuallyDark || isNight;
+    final bool forceWhite = isWhiteText || isNight;
 
-    final bool useBlackText = !hasImages && !isNight;
-    final bgColor = themeColor.withValues(alpha: forceWhite ? 0.3 : 0.2);
-    final Color textColor = forceWhite ? Colors.white : (useBlackText ? const Color(0xFF060606) : const Color(0xFF333333));
+    final Color bgColor = forceWhite 
+        ? themeColor.withValues(alpha: 0.3) 
+        : themeColorConfig.tagColor.withValues(alpha: 0.25);
+    final Color textColor = forceWhite 
+        ? Colors.white 
+        : const Color(0xFF4A3F4F);
+    final Color iconColor = forceWhite 
+        ? Colors.white 
+        : const Color(0xFFB9A8BD);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -388,20 +467,23 @@ class DiaryMasonryCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (iconPath != null)
+          if (iconPath != null) ...[
             Image.asset(
               iconPath,
               width: 16,
               height: 16,
-            )
-          else if (icon != null)
-            Icon(icon, size: 10, color: textColor),
-          const SizedBox(width: 4),
+            ),
+            const SizedBox(width: 4),
+          ] else if (icon != null) ...[
+            Icon(icon, size: 10, color: iconColor),
+            const SizedBox(width: 4),
+          ],
           Text(
             text,
             style: TextStyle(
               fontSize: 10,
               color: textColor,
+              fontWeight: forceWhite ? FontWeight.normal : FontWeight.w600,
             ),
           ),
         ],

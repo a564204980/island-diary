@@ -50,6 +50,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _barrageCurrentIndex = 0;
   late PageController _barragePageController;
 
+  bool get _isNight {
+    final themeId = UserState().selectedIslandThemeId.value;
+    if (themeId != 'default' && themeId != 'starry_night') {
+      return false;
+    }
+    return UserState().isNight;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -206,7 +214,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       return const Color(0xFFFFE8F5).withValues(alpha: 0.8); // 粉紫色柔光
     }
 
-    if (UserState().isNight) {
+    if (_isNight) {
       return const Color(0xFFFFEFA1).withValues(alpha: 0.65);
     } else {
       return Colors.white.withValues(alpha: 0.9);
@@ -219,7 +227,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       return const Color(0xFFFF8A65).withValues(alpha: 0.95); // 暖红橙火光
     }
 
-    if (UserState().isNight) {
+    if (_isNight) {
       return const Color(0xFFFFB347).withValues(alpha: 0.95);
     } else {
       return Colors.transparent;
@@ -232,7 +240,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       return const Color(0xFFFF8A65).withValues(alpha: 0.7); // 底部岩石映照色
     }
 
-    if (UserState().isNight) {
+    if (_isNight) {
       return const Color(0xFFFFB347).withValues(alpha: 0.65);
     } else {
       return Colors.transparent;
@@ -347,7 +355,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       listenables: [UserState().themeMode, UserState().selectedIslandThemeId],
       builder: (context, values, child) {
         final String themeId = values[1] as String;
-        final bool isNight = UserState().isNight;
+        final bool isNight = _isNight;
         final bool isLantern = themeId == 'lantern_festival';
         final bool isCottonCandy = themeId == 'cotton_candy';
         final isWide = MediaQuery.of(context).size.width > 600;

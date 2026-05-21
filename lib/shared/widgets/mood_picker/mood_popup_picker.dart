@@ -135,7 +135,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Image.asset(
-                          mood.iconPath ?? 'assets/images/icons/sun.png',
+                          mood.iconPath ?? 'assets/icons/happy.png',
                           width: 20,
                           height: 20,
                         ),

@@ -93,7 +93,7 @@ class DailyTask {
       type: DailyTaskType.writeDiary,
       rewardPoints: 51,
       isHoliday: true,
-      icon: 'assets/images/icons/sun.png',
+      icon: 'assets/icons/happy.png',
     );
 
     /* 正式逻辑：
@@ -109,7 +109,7 @@ class DailyTask {
         type: DailyTaskType.writeDiary,
         rewardPoints: 32,
         isHoliday: true,
-        icon: 'assets/images/icons/leaf.png',
+        icon: 'assets/icons/calm.png',
       );
     }
 
@@ -122,7 +122,7 @@ class DailyTask {
         type: DailyTaskType.writeDiary,
         rewardPoints: 51,
         isHoliday: true,
-        icon: 'assets/images/icons/sun.png',
+        icon: 'assets/icons/happy.png',
       );
     }
     return null;
@@ -139,7 +139,7 @@ class DailyTask {
         type: DailyTaskType.writeDiary,
         rewardPoints: 32,
         isHoliday: true,
-        icon: 'assets/images/icons/leaf.png',
+        icon: 'assets/icons/calm.png',
       ),
       DailyTask(
         id: 'holiday_labor_day',
@@ -148,8 +148,9 @@ class DailyTask {
         type: DailyTaskType.writeDiary,
         rewardPoints: 55, // 统一一下之前变动的数值
         isHoliday: true,
-        icon: 'assets/images/icons/sun.png',
+        icon: 'assets/icons/happy.png',
       ),
+
     ];
   }
 }

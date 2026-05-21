@@ -32,7 +32,7 @@ class _ScrollingSunBackgroundState extends State<ScrollingSunBackground>
 
   Future<void> _loadImage() async {
     try {
-      final data = await rootBundle.load('assets/images/icons/sun.png');
+      final data = await rootBundle.load('assets/icons/happy.png');
       final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
       final frame = await codec.getNextFrame();
       if (mounted) {

@@ -57,6 +57,14 @@ class _RecordPageState extends State<RecordPage> {
     });
   }
 
+  bool get _isNight {
+    final themeId = UserState().selectedIslandThemeId.value;
+    if (themeId != 'default' && themeId != 'starry_night') {
+      return false;
+    }
+    return UserState().isNight;
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiValueListenableBuilder(
@@ -70,7 +78,7 @@ class _RecordPageState extends State<RecordPage> {
         
         final bool isMoments = layoutIndex == DiaryLayoutMode.moments.index;
         final bool isCalendar = layoutIndex == DiaryLayoutMode.calendar.index;
-        final bool isNight = UserState().isNight;
+        final bool isNight = _isNight;
 
         return Scaffold(
           backgroundColor: isNight ? const Color(0xFF0D1B2A) : const Color(0xFFF7F5F0),
@@ -345,7 +353,7 @@ class _RecordPageState extends State<RecordPage> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => DiarySearchPanel(
-        isNight: UserState().isNight,
+        isNight: _isNight,
         initialDate: _selectedDate,
         onSearch: (q, m, d) {
           setState(() {

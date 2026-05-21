@@ -282,7 +282,7 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                     child: Tooltip(
                       message: mood.label,
                       child: Image.asset(
-                        mood.iconPath ?? 'assets/images/icons/sun.png',
+                        mood.iconPath ?? 'assets/icons/happy.png',
                         width: 28,
                         height: 28,
                       ),

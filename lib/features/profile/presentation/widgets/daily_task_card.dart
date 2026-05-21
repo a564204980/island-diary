@@ -97,7 +97,7 @@ class DailyTaskCard extends StatelessWidget {
             top: -12,
             right: -6,
             child: Image.asset(
-                  task.icon ?? 'assets/images/icons/leaf.png',
+                  task.icon ?? 'assets/icons/calm.png',
                   width: 32,
                   height: 32,
                 )
@@ -278,7 +278,7 @@ class DailyTaskCard extends StatelessWidget {
               top: -10,
               right: -5,
               child: Image.asset(
-                    task.icon ?? 'assets/images/icons/leaf.png',
+                    task.icon ?? 'assets/icons/calm.png',
                     width: 28,
                     height: 28,
                   )

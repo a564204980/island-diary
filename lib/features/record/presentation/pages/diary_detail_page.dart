@@ -467,7 +467,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       (_currentEntry.tag != null &&
                               _currentEntry.tag!.isNotEmpty)
                           ? 'assets/images/icons/custom.png'
-                          : (mood.iconPath ?? 'assets/images/icons/sun.png'),
+                          : (mood.iconPath ?? 'assets/icons/happy.png'),
                       width: 14,
                       height: 14,
                     ),

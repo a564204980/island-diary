@@ -567,7 +567,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        // 1. 心情标签 (图标 + 纯心情文字)
+        // 1. 心情标签 (纯心情文字)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
@@ -577,17 +577,6 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Hero(
-                tag: 'mood_${widget.entry.id}',
-                child: Image.asset(
-                  hasCustomMood
-                      ? 'assets/images/icons/custom.png'
-                      : (mood.iconPath ?? 'assets/images/icons/sun.png'),
-                  width: 14,
-                  height: 14,
-                ),
-              ),
-              const SizedBox(width: 4),
               Text(
                 hasCustomMood ? tag.trim() : mood.label,
                 style: TextStyle(
