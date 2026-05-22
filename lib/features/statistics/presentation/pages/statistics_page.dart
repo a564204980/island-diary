@@ -509,7 +509,9 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                   child: Image.asset(
                     themeId == 'lantern_festival'
                         ? 'assets/images/background/page_yuanxiaojie_bg.png'
-                        : 'assets/images/background/data_3_bg.png',
+                        : (isNight
+                            ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
+                            : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png'),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -582,6 +584,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   }
 
   Widget _buildHeader(bool isNight, List<DiaryEntry> filtered) {
+    final String themeId = UserState().selectedIslandThemeId.value;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
       child: Column(
@@ -633,7 +636,9 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05),
+                            color: themeId == 'cotton_candy'
+                                ? Colors.white.withValues(alpha: 0.7)
+                                : (isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05)),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
@@ -651,7 +656,9 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05),
+                            color: themeId == 'cotton_candy'
+                                ? Colors.white.withValues(alpha: 0.7)
+                                : (isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05)),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(

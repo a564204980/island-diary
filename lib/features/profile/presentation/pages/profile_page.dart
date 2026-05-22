@@ -118,7 +118,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Image.asset(
                   themeId == 'lantern_festival'
                       ? 'assets/images/background/page_yuanxiaojie_bg.png'
-                      : 'assets/images/background/data_3_bg.png',
+                      : (isNight
+                          ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
+                          : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png'),
                   fit: BoxFit.cover,
                 ),
               ),

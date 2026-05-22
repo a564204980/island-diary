@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:island_diary/core/state/user_state.dart';
 
 /// 精细化手绘风格标签背景绘制器（支持外发光与水彩“花色”背景）
 class HandDrawnTagPainter extends CustomPainter {
@@ -313,8 +314,19 @@ class PaperBackgroundPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Current design only uses the base background color or external image.
-    // The previous complex textures have been removed for simplicity.
+    if (!style.startsWith('note')) {
+      final paint = Paint()..style = PaintingStyle.fill;
+      if (isNight) {
+        paint.color = const Color(0xFF13131F); // 默认夜间背景
+      } else {
+        if (UserState().selectedIslandThemeId.value == 'cotton_candy') {
+          paint.color = const Color(0xFFFBF3E9); // 棉花岛白天纯色默认
+        } else {
+          paint.color = const Color(0xFFF7F2E9); // 默认白天经典纯色
+        }
+      }
+      canvas.drawRect(Offset.zero & size, paint);
+    }
   }
 
   @override

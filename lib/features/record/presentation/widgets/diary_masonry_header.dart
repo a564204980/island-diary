@@ -30,7 +30,7 @@ class DiaryMasonryHeader extends StatelessWidget {
     final textColor = isLantern
         ? const Color(0xFFF4E3C0)
         : (isCottonCandy
-            ? const Color(0xFF6F5E63)
+            ? (isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF6F5E63))
             : (isNight
                 ? Colors.white.withValues(alpha: 0.9)
                 : const Color(0xFF060606)));
@@ -38,7 +38,7 @@ class DiaryMasonryHeader extends StatelessWidget {
     final subTextColor = isLantern
         ? const Color(0xFFEAD2A8)
         : (isCottonCandy
-            ? const Color(0xFF6F5E63)
+            ? (isNight ? Colors.white54 : const Color(0xFF6F5E63))
             : (isNight
                 ? Colors.white54
                 : Colors.black.withValues(alpha: 0.8)));
@@ -52,12 +52,16 @@ class DiaryMasonryHeader extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: isNight 
-                  ? Colors.white.withValues(alpha: 0.1) 
+                  ? (isCottonCandy 
+                      ? Colors.white.withValues(alpha: 0.28) 
+                      : Colors.white.withValues(alpha: 0.25)) 
                   : Colors.black.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isNight 
-                    ? Colors.white.withValues(alpha: 0.1) 
+                    ? (isCottonCandy 
+                        ? Colors.white.withValues(alpha: 0.22) 
+                        : Colors.white.withValues(alpha: 0.15)) 
                     : Colors.transparent,
                   width: 1,
                 ),

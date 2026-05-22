@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+import 'package:island_diary/core/state/user_state.dart';
 import '../pages/diary_detail_page.dart';
 
 enum MasonryCardStyle {
@@ -13,10 +14,65 @@ enum MasonryCardStyle {
 class MoodThemeColor {
   final Color bgColor;
   final Color tagColor;
-  const MoodThemeColor({required this.bgColor, required this.tagColor});
+  final Color? borderColor;
+  const MoodThemeColor({required this.bgColor, required this.tagColor, this.borderColor});
 }
 
-MoodThemeColor getMoodThemeColor(int moodIndex, String label) {
+MoodThemeColor getMoodThemeColor(int moodIndex, String label, {bool isNight = false, bool isCottonCandy = false}) {
+  if (isNight && isCottonCandy) {
+    switch (label) {
+      case '开心':
+        return const MoodThemeColor(bgColor: Color(0x66746B4A), tagColor: Color(0xFF746B4A), borderColor: Color(0xFFD8C27A));
+      case '平静':
+        return const MoodThemeColor(bgColor: Color(0x665B6C66), tagColor: Color(0xFF5B6C66), borderColor: Color(0xFF8FC9C0));
+      case '低落':
+        return const MoodThemeColor(bgColor: Color(0x6655657A), tagColor: Color(0xFF55657A), borderColor: Color(0xFF89A6D6));
+      case '烦躁':
+        return const MoodThemeColor(bgColor: Color(0x667B5C60), tagColor: Color(0xFF7B5C60), borderColor: Color(0xFFD18C94));
+      case '焦虑':
+        return const MoodThemeColor(bgColor: Color(0x665E6678), tagColor: Color(0xFF5E6678), borderColor: Color(0xFF9EACC0));
+      case '疲惫':
+        return const MoodThemeColor(bgColor: Color(0x66655D7C), tagColor: Color(0xFF655D7C), borderColor: Color(0xFFB9A0E6));
+      case '惊喜':
+        return const MoodThemeColor(bgColor: Color(0x668C6F4E), tagColor: Color(0xFF8C6F4E), borderColor: Color(0xFFE0B072));
+      case '害羞':
+        return const MoodThemeColor(bgColor: Color(0x668B5D78), tagColor: Color(0xFF8B5D78), borderColor: Color(0xFFE39AB6));
+      case '放松':
+        return const MoodThemeColor(bgColor: Color(0x6674628A), tagColor: Color(0xFF74628A), borderColor: Color(0xFFB19AE5));
+      case '怀旧':
+        return const MoodThemeColor(bgColor: Color(0x6663616E), tagColor: Color(0xFF63616E), borderColor: Color(0xFFA79DA8));
+      case '沉思':
+        return const MoodThemeColor(bgColor: Color(0x668E7A52), tagColor: Color(0xFF8E7A52), borderColor: Color(0xFFE3C27A));
+    }
+
+    switch (moodIndex) {
+      case 0:
+        return const MoodThemeColor(bgColor: Color(0x66746B4A), tagColor: Color(0xFF746B4A), borderColor: Color(0xFFD8C27A));
+      case 1:
+        return const MoodThemeColor(bgColor: Color(0x665B6C66), tagColor: Color(0xFF5B6C66), borderColor: Color(0xFF8FC9C0));
+      case 2:
+        return const MoodThemeColor(bgColor: Color(0x6655657A), tagColor: Color(0xFF55657A), borderColor: Color(0xFF89A6D6));
+      case 3:
+        return const MoodThemeColor(bgColor: Color(0x667B5C60), tagColor: Color(0xFF7B5C60), borderColor: Color(0xFFD18C94));
+      case 4:
+        return const MoodThemeColor(bgColor: Color(0x66655D7C), tagColor: Color(0xFF655D7C), borderColor: Color(0xFFB9A0E6));
+      case 5:
+        return const MoodThemeColor(bgColor: Color(0x668C6F4E), tagColor: Color(0xFF8C6F4E), borderColor: Color(0xFFE0B072));
+      case 6:
+        return const MoodThemeColor(bgColor: Color(0x668B5D78), tagColor: Color(0xFF8B5D78), borderColor: Color(0xFFE39AB6));
+      case 7:
+        return const MoodThemeColor(bgColor: Color(0x665E6678), tagColor: Color(0xFF5E6678), borderColor: Color(0xFF9EACC0));
+      case 8:
+        return const MoodThemeColor(bgColor: Color(0x6674628A), tagColor: Color(0xFF74628A), borderColor: Color(0xFFB19AE5));
+      case 9:
+        return const MoodThemeColor(bgColor: Color(0x6663616E), tagColor: Color(0xFF63616E), borderColor: Color(0xFFA79DA8));
+      case 10:
+        return const MoodThemeColor(bgColor: Color(0x668E7A52), tagColor: Color(0xFF8E7A52), borderColor: Color(0xFFE3C27A));
+      default:
+        return const MoodThemeColor(bgColor: Color(0x665E6678), tagColor: Color(0xFF5E6678), borderColor: Color(0xFF9EACC0));
+    }
+  }
+
   switch (label) {
     case '开心':
       return const MoodThemeColor(bgColor: Color(0xFFFFF7D8), tagColor: Color(0xFFF5C95A));
@@ -95,8 +151,11 @@ class DiaryMasonryCard extends StatelessWidget {
 
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
-    final themeColorConfig = getMoodThemeColor(moodIdx, mood.label);
-    final Color cardBgColor = isNight ? const Color(0xFF212831) : themeColorConfig.bgColor.withValues(alpha: 0.60);
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+    final themeColorConfig = getMoodThemeColor(moodIdx, mood.label, isNight: isNight, isCottonCandy: isCottonCandy);
+    final Color cardBgColor = (isNight && isCottonCandy)
+        ? themeColorConfig.bgColor
+        : (isNight ? const Color(0xFF212831) : themeColorConfig.bgColor.withValues(alpha: 0.60));
 
     return GestureDetector(
       onTap: () {
@@ -117,13 +176,19 @@ class DiaryMasonryCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isNight 
-              ? Colors.white.withValues(alpha: 0.1) 
+              ? (isCottonCandy 
+                  ? (themeColorConfig.borderColor?.withValues(alpha: 0.85) ?? themeColorConfig.tagColor.withValues(alpha: 0.25))
+                  : Colors.white.withValues(alpha: 0.1)) 
               : Colors.black.withValues(alpha: 0.05),
             width: 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isNight ? 0.3 : 0.12),
+              color: isNight 
+                ? (isCottonCandy 
+                    ? themeColorConfig.bgColor.withValues(alpha: 0.4)
+                    : Colors.black.withValues(alpha: 0.3)) 
+                : Colors.black.withValues(alpha: 0.12),
               blurRadius: 15,
               offset: const Offset(0, 6),
             ),
@@ -301,20 +366,26 @@ class DiaryMasonryCard extends StatelessWidget {
   Widget _buildTextOnlyCard() {
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
-    final themeColorConfig = getMoodThemeColor(moodIdx, mood.label);
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+    final themeColorConfig = getMoodThemeColor(moodIdx, mood.label, isNight: isNight, isCottonCandy: isCottonCandy);
 
-    final Color baseBgColor = isNight ? const Color(0xFF212329) : themeColorConfig.bgColor;
+    final Color baseBgColor = isNight 
+        ? (isCottonCandy ? themeColorConfig.bgColor : const Color(0xFF212329)) 
+        : themeColorConfig.bgColor;
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isNight
-            ? [const Color(0xFF2C2E35), baseBgColor]
-            : [themeColorConfig.bgColor.withValues(alpha: 0.30), themeColorConfig.bgColor.withValues(alpha: 0.60)],
-        ),
+        color: (isNight && isCottonCandy) ? baseBgColor : null,
+        gradient: (isNight && isCottonCandy)
+            ? null
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isNight
+                  ? [const Color(0xFF2C2E35), baseBgColor]
+                  : [themeColorConfig.bgColor.withValues(alpha: 0.30), themeColorConfig.bgColor.withValues(alpha: 0.60)],
+              ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -443,19 +514,26 @@ class DiaryMasonryCard extends StatelessWidget {
   Widget _buildTagPill(String text, {required bool isWhiteText, IconData? icon, String? iconPath}) {
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
-    final themeColorConfig = getMoodThemeColor(moodIdx, mood.label);
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+    final themeColorConfig = getMoodThemeColor(moodIdx, mood.label, isNight: isNight, isCottonCandy: isCottonCandy);
     final themeColor = mood.glowColor ?? const Color(0xFFD4A373);
 
     final bool forceWhite = isWhiteText || isNight;
 
     final Color bgColor = forceWhite 
-        ? themeColor.withValues(alpha: 0.3) 
+        ? (isCottonCandy 
+            ? (themeColorConfig.borderColor?.withValues(alpha: 0.15) ?? themeColorConfig.tagColor.withValues(alpha: 0.18)) 
+            : themeColor.withValues(alpha: 0.3)) 
         : themeColorConfig.tagColor.withValues(alpha: 0.25);
     final Color textColor = forceWhite 
-        ? Colors.white 
+        ? (isCottonCandy 
+            ? (themeColorConfig.borderColor ?? themeColorConfig.tagColor) 
+            : Colors.white) 
         : const Color(0xFF4A3F4F);
     final Color iconColor = forceWhite 
-        ? Colors.white 
+        ? (isCottonCandy 
+            ? (themeColorConfig.borderColor ?? themeColorConfig.tagColor) 
+            : Colors.white) 
         : const Color(0xFFB9A8BD);
 
     return Container(
@@ -463,6 +541,9 @@ class DiaryMasonryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(10),
+        border: isNight && isCottonCandy 
+            ? Border.all(color: themeColorConfig.borderColor?.withValues(alpha: 0.85) ?? themeColorConfig.tagColor.withValues(alpha: 0.25), width: 1.0) 
+            : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -483,7 +564,7 @@ class DiaryMasonryCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               color: textColor,
-              fontWeight: forceWhite ? FontWeight.normal : FontWeight.w600,
+              fontWeight: (forceWhite && !isCottonCandy) ? FontWeight.normal : FontWeight.w600,
             ),
           ),
         ],

@@ -17,6 +17,8 @@ class FloatingClouds extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+
     // 基础配置表：降低云朵密度
     final List<Map<String, dynamic>> bgConfigs = [
       {'scale': 0.7, 'duration': 45, 'initialTop': 0.05},
@@ -130,7 +132,7 @@ class _SingleCloudState extends State<_SingleCloud>
       } else {
         _controller.stop();
       }
-      
+
       // 如果主题变了，强制重新随机一下索引，让云朵样式立刻刷新
       if (widget.themeId != oldWidget.themeId) {
         _currentIndex = _getRandomIndex();
@@ -178,17 +180,19 @@ class _SingleCloudState extends State<_SingleCloud>
         final Size screenSize = MediaQueryData.fromView(view).size;
         final double screenWidth = screenSize.width;
         final double screenHeight = screenSize.height;
-        const cloudWidth = 400.0;
+        final double cloudWidth = widget.themeId == 'cotton_candy'
+            ? 400.0 * 2 / 3
+            : 400.0; // 云朵尺寸
 
         // 线性位移：从右侧进，左侧出
         final double t = _controller.value;
         final double xPos = screenWidth - (t * (screenWidth + cloudWidth));
 
         String basePath = 'assets/images/icons/';
-        String suffix = (widget.isNight && widget.themeId != 'cotton_candy') ? '_night' : '';
-        
+        String suffix = widget.isNight ? '_night' : '';
+
         if (widget.themeId == 'cotton_candy') {
-          basePath = 'assets/images/icons/4/';
+          basePath = 'assets/images/theme/miamhuadao/clouds/';
         }
 
         return Positioned(
@@ -200,7 +204,9 @@ class _SingleCloudState extends State<_SingleCloud>
               '${basePath}clouds$_currentIndex$suffix.png',
               width: cloudWidth,
               fit: BoxFit.contain,
-              color: Colors.white.withValues(alpha: widget.isForeground ? 0.85 : 0.65),
+              color: Colors.white.withValues(
+                alpha: widget.isForeground ? 0.85 : 0.65,
+              ),
               colorBlendMode: BlendMode.modulate,
             ),
           ),

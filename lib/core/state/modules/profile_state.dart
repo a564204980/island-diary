@@ -128,8 +128,15 @@ mixin ProfileMixin on LifeLineMixin {
       currentThemeColor.value = const Color(0xFF0D1B2A);
       return;
     } else if (selectedIslandThemeId.value == 'cotton_candy') {
-      currentBackgroundPath.value = 'assets/images/background/home_3_bg.png';
-      currentThemeColor.value = const Color(0xFFF7E8FF); // 浅粉紫色系主题色
+      final isNightMode = themeMode.value == 'dark' ||
+          (themeMode.value == 'system' &&
+              (DateTime.now().hour < 10 || DateTime.now().hour >= 18));
+      currentBackgroundPath.value = isNightMode
+          ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
+          : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png';
+      currentThemeColor.value = isNightMode 
+          ? const Color(0xFF1F1235) // 夜间深粉紫色主题色
+          : const Color(0xFFF7E8FF); // 浅粉紫色系主题色
       return;
     } else if (selectedIslandThemeId.value == 'lantern_festival') {
       currentBackgroundPath.value = 'assets/images/background/home_yuanxiaojie_bg.png';

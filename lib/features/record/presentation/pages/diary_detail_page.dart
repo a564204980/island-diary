@@ -148,7 +148,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
   Widget build(BuildContext context) {
     final bgColor = _effectiveIsNight
         ? const Color(0xFF13131F)
-        : const Color(0xFFF7F2E9);
+        : (UserState().selectedIslandThemeId.value == 'cotton_candy' && _currentEntry.paperStyle == 'classic'
+            ? const Color(0xFFFBF3E9)
+            : const Color(0xFFF7F2E9));
     final mood = kMoods[_currentEntry.moodIndex.clamp(0, kMoods.length - 1)];
     final baseGlowColor = mood.glowColor ?? const Color(0xFFD4A373);
     final accentColor = _effectiveIsNight

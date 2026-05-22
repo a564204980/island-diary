@@ -38,25 +38,36 @@ class _NavItemState extends State<NavItem> {
     final isCottonCandy = themeId == 'cotton_candy';
 
     // 定义各主题下的颜色
-    final Color activeColor = isLanternFestival || isCottonCandy
-        ? (isCottonCandy ? const Color(0xFFE6607A) : const Color(0xFFFFEFA1))
-        : (widget.isNight ? const Color(0xFFFFEFA1) : const Color(0xFF7B5C2E));
+    final Color activeColor = isCottonCandy
+        ? (widget.isNight ? const Color(0xFFFFE8A3) : const Color(0xFFE6607A))
+        : (isLanternFestival
+            ? const Color(0xFFFFEFA1)
+            : (widget.isNight ? const Color(0xFFFFEFA1) : const Color(0xFF7B5C2E)));
 
-    final Color inactiveColor = isLanternFestival || isCottonCandy
-        ? (isCottonCandy ? const Color(0xFF9E7777) : const Color(0xFFB5A492))
-        : (widget.isNight ? const Color(0xFFB5B5C9) : const Color(0xFF8B7763));
+    final Color inactiveColor = isCottonCandy
+        ? (widget.isNight ? const Color(0xFFD3C6FF) : const Color(0xFF9E7777))
+        : (isLanternFestival
+            ? const Color(0xFFB5A492)
+            : (widget.isNight ? const Color(0xFFB5B5C9) : const Color(0xFF8B7763)));
 
-    final List<Shadow>? strokeShadows = (isSelected && isCottonCandy)
-        ? const [
-            Shadow(color: Colors.white, offset: Offset(-1.2, -1.2)),
-            Shadow(color: Colors.white, offset: Offset(1.2, -1.2)),
-            Shadow(color: Colors.white, offset: Offset(1.2, 1.2)),
-            Shadow(color: Colors.white, offset: Offset(-1.2, 1.2)),
-            Shadow(color: Colors.white, offset: Offset(0, -1.5)),
-            Shadow(color: Colors.white, offset: Offset(0, 1.5)),
-            Shadow(color: Colors.white, offset: Offset(-1.5, 0)),
-            Shadow(color: Colors.white, offset: Offset(1.5, 0)),
-          ]
+    final List<Shadow>? strokeShadows = isSelected && isCottonCandy
+        ? (widget.isNight
+            ? [
+                Shadow(
+                  color: const Color(0xFFFFE8A3).withValues(alpha: 0.5),
+                  blurRadius: 8,
+                ),
+              ]
+            : const [
+                Shadow(color: Colors.white, offset: Offset(-1.2, -1.2)),
+                Shadow(color: Colors.white, offset: Offset(1.2, -1.2)),
+                Shadow(color: Colors.white, offset: Offset(1.2, 1.2)),
+                Shadow(color: Colors.white, offset: Offset(-1.2, 1.2)),
+                Shadow(color: Colors.white, offset: Offset(0, -1.5)),
+                Shadow(color: Colors.white, offset: Offset(0, 1.5)),
+                Shadow(color: Colors.white, offset: Offset(-1.5, 0)),
+                Shadow(color: Colors.white, offset: Offset(1.5, 0)),
+              ])
         : null;
 
     return GestureDetector(

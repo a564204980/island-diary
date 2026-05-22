@@ -37,11 +37,22 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
       96.0; // 80 (width) + 8*2 (horizontal margin)
   static const double listPadding = 16.0;
 
+  Map<String, String> _getEffectiveStyles() {
+    if (UserState().selectedIslandThemeId.value == 'cotton_candy') {
+      return {
+        'classic': '默认',
+        ...PaperPickerSheet.styles,
+      };
+    }
+    return PaperPickerSheet.styles;
+  }
+
   @override
   void initState() {
     super.initState();
+    final stylesMap = _getEffectiveStyles();
     // 找出当前选中的索引
-    final int selectedIndex = PaperPickerSheet.styles.keys.toList().indexOf(
+    final int selectedIndex = stylesMap.keys.toList().indexOf(
       widget.currentStyle,
     );
 
@@ -152,10 +163,11 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                   vertical: 8,
                 ),
                 clipBehavior: Clip.none,
-                itemCount: PaperPickerSheet.styles.length,
+                itemCount: _getEffectiveStyles().length,
                 itemBuilder: (context, index) {
-                  final key = PaperPickerSheet.styles.keys.elementAt(index);
-                  final label = PaperPickerSheet.styles.values.elementAt(index);
+                  final stylesMap = _getEffectiveStyles();
+                  final key = stylesMap.keys.elementAt(index);
+                  final label = stylesMap.values.elementAt(index);
                   final isSelected = widget.currentStyle == key;
 
                   return GestureDetector(
@@ -173,7 +185,11 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                                 width: 70,
                                 height: 80,
                                 decoration: BoxDecoration(
-                                  color: isNight ? Colors.black26 : Colors.white,
+                                  color: isNight
+                                      ? Colors.black26
+                                      : (UserState().selectedIslandThemeId.value == 'cotton_candy' && key == 'classic'
+                                          ? const Color(0xFFFBF3E9)
+                                          : Colors.white),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: isSelected

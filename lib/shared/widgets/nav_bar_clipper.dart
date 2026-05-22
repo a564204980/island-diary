@@ -78,25 +78,43 @@ class NavBarGradientPainter extends CustomPainter {
   final CustomClipper<Path> clipper;
   final double strokeWidth;
   final Gradient gradient;
+  final bool hasGlow;
+  final Gradient? glowGradient;
 
   NavBarGradientPainter({
     required this.clipper,
     required this.strokeWidth,
     required this.gradient,
+    this.hasGlow = false,
+    this.glowGradient,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final path = clipper.getClip(size);
+    final rect = Offset.zero & size;
+
+    if (hasGlow) {
+      final glowPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth * 2.5
+        ..shader = (glowGradient ?? gradient).createShader(rect)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.5);
+      canvas.drawPath(path, glowPaint);
+    }
+
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
-      ..shader = gradient.createShader(Offset.zero & size);
+      ..shader = gradient.createShader(rect);
 
     canvas.drawPath(path, paint);
   }
 
   @override
   bool shouldRepaint(covariant NavBarGradientPainter oldDelegate) =>
-      oldDelegate.strokeWidth != strokeWidth || oldDelegate.gradient != gradient;
+      oldDelegate.strokeWidth != strokeWidth ||
+      oldDelegate.gradient != gradient ||
+      oldDelegate.hasGlow != hasGlow ||
+      oldDelegate.glowGradient != glowGradient;
 }

@@ -234,14 +234,19 @@ class _BottomNavBarState extends State<BottomNavBar> {
                             ? LinearGradient(
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
-                                colors: [
-                                  const Color(
-                                    0xFFFFE1E9,
-                                  ).withValues(alpha: 0.5),
-                                  const Color(
-                                    0xFFFFCADB,
-                                  ).withValues(alpha: 0.65),
-                                ],
+                                colors: widget.isNight
+                                    ? [
+                                        const Color(0xFF8676FF).withValues(alpha: 0.45),
+                                        const Color(0xFFB19FFB).withValues(alpha: 0.55),
+                                      ]
+                                    : [
+                                        const Color(
+                                          0xFFFFE1E9,
+                                        ).withValues(alpha: 0.5),
+                                        const Color(
+                                          0xFFFFCADB,
+                                        ).withValues(alpha: 0.65),
+                                      ],
                               )
                             : (widget.isNight
                                   ? null
@@ -266,7 +271,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                                               ).withValues(alpha: 0.3),
                                             ],
                                     ))),
-                  color: (widget.isNight && !isLanternFestival)
+                  color: (widget.isNight && !isLanternFestival && !isCottonCandy)
                       ? (widget.currentIndex == 1
                             ? const Color(0xFF4A3C31).withValues(alpha: 0.3)
                             : const Color(0xFF736675).withValues(alpha: 0.2))
@@ -325,31 +330,49 @@ class _BottomNavBarState extends State<BottomNavBar> {
             strokeWidth: (widget.isNight || isLanternFestival || isCottonCandy)
                 ? 2.5
                 : 1.2,
+            hasGlow: isCottonCandy && widget.isNight,
+            glowGradient: isCottonCandy && widget.isNight
+                ? LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFFFFDFB4).withValues(alpha: 0.55),
+                      const Color(0xFFE2C4FF).withValues(alpha: 0.45),
+                      const Color(0xFFFFDFB4).withValues(alpha: 0.55),
+                    ],
+                  )
+                : null,
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: (isLanternFestival || widget.isNight)
-                  ? (widget.currentIndex == 1
-                        ? const [Color(0xFFEEBB3C), Color(0xFF3E2723)]
-                        : const [
-                            Color(0xFFEEBB3C),
-                            Color(0xFFD4A373),
-                            Color(0xFF5D2E2E),
-                          ])
-                  : (isCottonCandy
-                        ? [
-                            const Color(0xFFFFFFFF).withValues(alpha: 0.9),
-                            const Color(0xFFFFD1E1).withValues(alpha: 0.6),
-                            const Color(0xFFFFFFFF).withValues(alpha: 0.9),
-                          ]
-                        : [
-                            const Color(0xFFFFF9C4).withValues(alpha: 0.8),
-                            widget.currentIndex == 1
-                                ? const Color(0xFFFFCC80).withValues(alpha: 0.3)
-                                : const Color(
-                                    0xFFB3E5FC,
-                                  ).withValues(alpha: 0.2),
-                          ]),
+              colors: isCottonCandy
+                  ? (widget.isNight
+                      ? [
+                          const Color(0xFFFFDFB4).withValues(alpha: 0.9),
+                          const Color(0xFFE2C4FF).withValues(alpha: 0.7),
+                          const Color(0xFFFFDFB4).withValues(alpha: 0.9),
+                        ]
+                      : [
+                          const Color(0xFFFFFFFF).withValues(alpha: 0.9),
+                          const Color(0xFFFFD1E1).withValues(alpha: 0.6),
+                          const Color(0xFFFFFFFF).withValues(alpha: 0.9),
+                        ])
+                  : ((isLanternFestival || widget.isNight)
+                      ? (widget.currentIndex == 1
+                            ? const [Color(0xFFEEBB3C), Color(0xFF3E2723)]
+                            : const [
+                                Color(0xFFEEBB3C),
+                                Color(0xFFD4A373),
+                                Color(0xFF5D2E2E),
+                              ])
+                      : [
+                          const Color(0xFFFFF9C4).withValues(alpha: 0.8),
+                          widget.currentIndex == 1
+                              ? const Color(0xFFFFCC80).withValues(alpha: 0.3)
+                              : const Color(
+                                  0xFFB3E5FC,
+                                ).withValues(alpha: 0.2),
+                        ]),
             ),
           ),
         ),

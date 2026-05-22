@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 class DiaryUtils {
   /// 预设文本颜色
@@ -423,6 +424,9 @@ class DiaryUtils {
       return isNight ? const Color(0xFF2D2A26) : const Color(0xFFF3EBE1);
     }
 
+    if (UserState().selectedIslandThemeId.value == 'cotton_candy') {
+      return const Color(0xFFFBF3E9);
+    }
     return const Color(0xFFF7F2E9);
   }
 

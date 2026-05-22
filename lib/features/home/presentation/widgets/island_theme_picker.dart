@@ -36,8 +36,8 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
     const IslandTheme(
       id: 'cotton_candy',
       name: '云朵棉花糖岛',
-      previewPath: 'assets/images/home4.png',
-      islandPath: 'assets/images/home4.png',
+      previewPath: 'assets/images/theme/miamhuadao/mianhuadao_xiaodao.png',
+      islandPath: 'assets/images/theme/miamhuadao/mianhuadao_xiaodao.png',
     ),
     const IslandTheme(
       id: 'cherry_blossom',

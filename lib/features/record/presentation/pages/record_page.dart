@@ -59,6 +59,11 @@ class _RecordPageState extends State<RecordPage> {
 
   bool get _isNight {
     final themeId = UserState().selectedIslandThemeId.value;
+    if (themeId == 'cotton_candy') {
+      return UserState().themeMode.value == 'dark' ||
+          (UserState().themeMode.value == 'system' &&
+              (DateTime.now().hour < 10 || DateTime.now().hour >= 18));
+    }
     if (themeId != 'default' && themeId != 'starry_night') {
       return false;
     }
@@ -95,7 +100,9 @@ class _RecordPageState extends State<RecordPage> {
                     );
                   } else if (themeId == 'cotton_candy') {
                     return Image.asset(
-                      'assets/images/background/data_3_bg.png',
+                      isNight
+                          ? 'assets/images/theme/miamhuadao/mianhuadao_page_night_bg.png'
+                          : 'assets/images/theme/miamhuadao/mianhuadao_page_bg.png',
                       fit: BoxFit.cover,
                     );
                   }
@@ -191,6 +198,8 @@ class _RecordPageState extends State<RecordPage> {
                             );
                           }
 
+                          final bool showFeatured = filtered.isNotEmpty && filtered.first.blocks.any((b) => b['type'] == 'image');
+
                           return NotificationListener<ScrollNotification>(
                             onNotification: (notification) {
                               if (filtered.isEmpty) return false;
@@ -215,7 +224,7 @@ class _RecordPageState extends State<RecordPage> {
                             child: CustomScrollView(
                               controller: _scrollController,
                               slivers: [
-                                if (filtered.isNotEmpty)
+                                if (showFeatured)
                                   SliverToBoxAdapter(
                                     child: DiaryFeaturedCard(
                                       entry: filtered.first,
@@ -228,12 +237,15 @@ class _RecordPageState extends State<RecordPage> {
                                     crossAxisCount: MediaQuery.of(context).size.width > 800 ? 3 : 2,
                                     crossAxisSpacing: 12,
                                     mainAxisSpacing: 12,
-                                    childCount: filtered.length > 1 ? filtered.length - 1 : 0,
+                                    childCount: showFeatured 
+                                        ? (filtered.length > 1 ? filtered.length - 1 : 0) 
+                                        : filtered.length,
                                     itemBuilder: (context, index) {
+                                      final actualIndex = showFeatured ? index + 1 : index;
                                       return DiaryMasonryCard(
-                                        entry: filtered[index + 1],
+                                        entry: filtered[actualIndex],
                                         isNight: isNight,
-                                        index: index + 1,
+                                        index: actualIndex,
                                       );
                                     },
                                   ),

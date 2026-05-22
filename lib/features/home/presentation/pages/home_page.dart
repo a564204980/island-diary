@@ -52,6 +52,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   bool get _isNight {
     final themeId = UserState().selectedIslandThemeId.value;
+    if (themeId == 'cotton_candy') {
+      return UserState().themeMode.value == 'dark' ||
+          (UserState().themeMode.value == 'system' &&
+              (DateTime.now().hour < 10 || DateTime.now().hour >= 18));
+    }
     if (themeId != 'default' && themeId != 'starry_night') {
       return false;
     }
@@ -186,7 +191,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (themeId == 'starry_night') {
       return 'assets/images/home_small_demo2.png';
     } else if (themeId == 'cotton_candy') {
-      return 'assets/images/background/home_3.png';
+      return _isNight
+          ? 'assets/images/theme/miamhuadao/mianhuadao_xiaodao_night.png'
+          : 'assets/images/theme/miamhuadao/mianhuadao_xiaodao.png';
     } else if (themeId == 'lantern_festival') {
       return 'assets/images/home5.png';
     }
@@ -451,7 +458,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                               color: isLantern
                                                   ? const Color(0xFFF6DFA5)
                                                   : (isCottonCandy
-                                                        ? const Color(0xFF4E3A46)
+                                                        ? (isNight ? Colors.white : const Color(0xFF4E3A46))
                                                         : (isNight
                                                               ? Colors.white
                                                               : const Color(
@@ -467,7 +474,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                               color: isLantern
                                                   ? const Color(0xFFE6C78F)
                                                   : (isCottonCandy
-                                                        ? const Color(0xFF8D7A84)
+                                                        ? (isNight ? Colors.white54 : const Color(0xFF8D7A84))
                                                         : (isNight
                                                               ? Colors.white54
                                                               : Colors.black54)),
@@ -766,18 +773,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
 
         // 装饰层：磨砂彩虹 (位于背景云朵之上，前景云朵和岛屿之下)
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: IgnorePointer(
-            child: FrostedRainbow(
-              width: double.infinity,
-              height: MediaQuery.of(context).size.height * 0.55,
-              opacity: 0.8,
+        if (!isNight)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: FrostedRainbow(
+                width: double.infinity,
+                height: MediaQuery.of(context).size.height * 0.55,
+                opacity: 0.8,
+              ),
             ),
           ),
-        ),
         // ... rest of the interactive content
         Positioned.fill(
           child: InteractiveViewer(

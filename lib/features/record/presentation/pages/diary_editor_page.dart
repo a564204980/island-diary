@@ -80,7 +80,11 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       builder: (context, themeMode, _) {
         final bool isNight = UserState().isNight;
         final Color accentColor = DiaryUtils.getAccentColor(currentPaperStyle, isNight);
-        final Color bgColor = isNight ? const Color(0xFF121212) : const Color(0xFFFAF8F5);
+        final Color bgColor = isNight
+            ? const Color(0xFF121212)
+            : (UserState().selectedIslandThemeId.value == 'cotton_candy' && currentPaperStyle == 'classic'
+                ? const Color(0xFFFBF3E9)
+                : const Color(0xFFFAF8F5));
 
         return PopScope(
           canPop: true,

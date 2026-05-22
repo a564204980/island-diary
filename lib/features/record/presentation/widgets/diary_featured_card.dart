@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+import 'package:island_diary/core/state/user_state.dart';
+import 'diary_masonry_card.dart';
+
 
 class DiaryFeaturedCard extends StatelessWidget {
   final DiaryEntry entry;
@@ -23,13 +26,17 @@ class DiaryFeaturedCard extends StatelessWidget {
     // In full-overlay mode, we generally use white text with a dark gradient overlay
     final Color textColor = Colors.white;
 
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       height: 240,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFFD4A373).withValues(alpha: isNight ? 0.8 : 0.6),
+          color: (isNight && isCottonCandy)
+              ? const Color(0xFF9AE0CD).withValues(alpha: 0.5)
+              : const Color(0xFFD4A373).withValues(alpha: isNight ? 0.8 : 0.6),
           width: 2.0,
         ),
         boxShadow: [
@@ -49,6 +56,19 @@ class DiaryFeaturedCard extends StatelessWidget {
             if (imagePath != null)
               Positioned.fill(
                 child: DiaryUtils.buildImage(imagePath, fit: BoxFit.cover),
+              )
+            else if (isCottonCandy)
+              Positioned.fill(
+                child: Container(
+                  color: isNight ? const Color(0xFF282240) : const Color(0xFFFFF9F0),
+                  child: Opacity(
+                    opacity: isNight ? 0.35 : 0.75,
+                    child: Image.asset(
+                      'assets/images/background/page_banner_bg.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
               )
             else
               Positioned.fill(
@@ -235,16 +255,30 @@ class DiaryFeaturedCard extends StatelessWidget {
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
     final themeColor = mood.glowColor ?? const Color(0xFFD4A373);
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+    final themeColorConfig = getMoodThemeColor(moodIdx, mood.label, isNight: isNight, isCottonCandy: isCottonCandy);
+
+    final Color bgColor = (isNight && isCottonCandy)
+        ? Colors.black.withValues(alpha: 0.45)
+        : (isOverlay
+            ? Colors.white.withValues(alpha: 0.7)
+            : themeColor.withValues(alpha: 0.3));
+
+    final Color textColor = (isNight && isCottonCandy)
+        ? (themeColorConfig.borderColor ?? Colors.white)
+        : Colors.white;
+
+    final Color borderColor = (isNight && isCottonCandy)
+        ? (themeColorConfig.borderColor?.withValues(alpha: 0.5) ?? Colors.white.withValues(alpha: 0.15))
+        : const Color(0xFFD4A373).withValues(alpha: isNight ? 0.6 : 0.4);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: isOverlay
-            ? Colors.white.withValues(alpha: 0.15)
-            : themeColor.withValues(alpha: 0.3),
+        color: bgColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFD4A373).withValues(alpha: isNight ? 0.6 : 0.4),
+          color: borderColor,
           width: 1.0,
         ),
       ),
@@ -260,8 +294,8 @@ class DiaryFeaturedCard extends StatelessWidget {
           ],
           Text(
             text,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: textColor,
               fontSize: 12,
               fontWeight: FontWeight.bold,
               fontFamily: 'ArphicKaiti',

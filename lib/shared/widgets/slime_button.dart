@@ -81,7 +81,9 @@ class _SlimeButtonState extends State<SlimeButton> {
                   color: isLanternFestival
                       ? const Color(0xFFFFB347).withValues(alpha: 0.3)
                       : (isCottonCandy
-                          ? const Color(0xFFFFF9F0).withValues(alpha: 0.6)
+                          ? (widget.isNight
+                              ? const Color(0xFFFFFDF5).withValues(alpha: 0.75)
+                              : const Color(0xFFFFF9F0).withValues(alpha: 0.6))
                           : (widget.isNight
                               ? const Color(0xFF2A2E50).withValues(alpha: 0.1)
                               : Colors.white.withValues(alpha: 0.6))),
@@ -90,7 +92,9 @@ class _SlimeButtonState extends State<SlimeButton> {
                       color: isLanternFestival
                           ? const Color(0xFFFFD97D).withValues(alpha: 0.9)
                           : (isCottonCandy
-                              ? const Color(0xFFFFCADB).withValues(alpha: 0.8)
+                              ? (widget.isNight
+                                  ? const Color(0xFFFFDFB0).withValues(alpha: 0.85)
+                                  : const Color(0xFFFFCADB).withValues(alpha: 0.8))
                               : const Color(
                                   0xFFFFD97D,
                                 ).withValues(alpha: widget.isNight ? 0.8 : 0.3)),
@@ -102,7 +106,9 @@ class _SlimeButtonState extends State<SlimeButton> {
                     color: isLanternFestival
                         ? const Color(0xFFFFE4B5)
                         : (isCottonCandy
-                            ? const Color(0xFFFFFFFF)
+                            ? (widget.isNight
+                                ? const Color(0xFFFFFFFF).withValues(alpha: 0.95)
+                                : const Color(0xFFFFFFFF))
                             : (widget.isNight
                                 ? const Color(0xFFFFE4B5).withValues(alpha: 0.5)
                                 : const Color(0xFFFFE4B5).withValues(alpha: 0.8))),
@@ -204,13 +210,17 @@ class _BreathGlowState extends State<_BreathGlow>
                 color: isLanternFestival
                     ? const Color(0xFFFFB347).withValues(alpha: 0.25)
                     : (isCottonCandy
-                        ? const Color(0xFFFFF9F0).withValues(alpha: 0.35)
+                        ? (widget.isNight
+                            ? const Color(0xFFFFFDF5).withValues(alpha: 0.4)
+                            : const Color(0xFFFFF9F0).withValues(alpha: 0.35))
                         : Colors.white.withValues(alpha: 0.15)),
                 border: Border.all(
                   color: isLanternFestival
                       ? const Color(0xFFFFE4B5).withValues(alpha: 0.9)
                       : (isCottonCandy
-                          ? const Color(0xFFFFFFFF).withValues(alpha: 0.9)
+                          ? (widget.isNight
+                              ? const Color(0xFFFFEFA1).withValues(alpha: 0.85)
+                              : const Color(0xFFFFFFFF).withValues(alpha: 0.9))
                           : Colors.white.withValues(alpha: 0.8)),
                   width: 1.5,
                 ),
@@ -219,7 +229,9 @@ class _BreathGlowState extends State<_BreathGlow>
                     color: isLanternFestival
                         ? const Color(0xFFFFB347).withValues(alpha: 0.5)
                         : (isCottonCandy
-                            ? const Color(0xFFFFF9F0).withValues(alpha: 0.6)
+                            ? (widget.isNight
+                                ? const Color(0xFFFFDFB0).withValues(alpha: 0.7)
+                                : const Color(0xFFFFF9F0).withValues(alpha: 0.6))
                             : const Color(
                                 0xFFFFD97D,
                               ).withValues(alpha: widget.isNight ? 0.4 : 0.2)),
