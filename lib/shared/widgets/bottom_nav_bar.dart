@@ -336,9 +336,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      const Color(0xFFFFDFB4).withValues(alpha: 0.55),
-                      const Color(0xFFE2C4FF).withValues(alpha: 0.45),
-                      const Color(0xFFFFDFB4).withValues(alpha: 0.55),
+                      const Color(0xFFFFFFFF).withValues(alpha: 0.35),
+                      const Color(0xFFE2C4FF).withValues(alpha: 0.25),
+                      const Color(0xFFFFFFFF).withValues(alpha: 0.35),
                     ],
                   )
                 : null,
@@ -348,9 +348,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
               colors: isCottonCandy
                   ? (widget.isNight
                       ? [
-                          const Color(0xFFFFDFB4).withValues(alpha: 0.9),
-                          const Color(0xFFE2C4FF).withValues(alpha: 0.7),
-                          const Color(0xFFFFDFB4).withValues(alpha: 0.9),
+                          const Color(0xFFFFFFFF).withValues(alpha: 0.7),
+                          const Color(0xFFE2C4FF).withValues(alpha: 0.5),
+                          const Color(0xFFFFFFFF).withValues(alpha: 0.7),
                         ]
                       : [
                           const Color(0xFFFFFFFF).withValues(alpha: 0.9),

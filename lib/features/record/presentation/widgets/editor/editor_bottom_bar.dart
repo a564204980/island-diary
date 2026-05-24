@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/emoji_panel.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 class EditorBottomBar extends StatelessWidget {
   final bool isEmojiOpen;
@@ -78,6 +79,7 @@ class EditorBottomBar extends StatelessWidget {
     final double toolbarMaxWidth = isWide ? 800.0 : double.infinity;
 
     final bool isFloating = !isEmojiOpen && viewInsetsBottom <= 0;
+    final bool showPreviewBar = !isMixedLayout && blocks.whereType<ImageBlock>().isNotEmpty;
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -116,7 +118,12 @@ class EditorBottomBar extends StatelessWidget {
                 
               // 2. 标签式工具栏
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                padding: EdgeInsets.fromLTRB(
+                  4,
+                  showPreviewBar ? 8 : 18,
+                  4,
+                  12,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -130,24 +137,6 @@ class EditorBottomBar extends StatelessWidget {
                   ],
                 ),
               ),
-              
-              // 3. 表情面板/键盘占位区
-              AnimatedContainer(
-                duration: Duration(milliseconds: isEmojiOpen ? 150 : 250),
-                curve: Curves.easeOutCubic,
-                height: currentBottomHeight,
-                child: Visibility(
-                  visible: isEmojiOpen,
-                  maintainState: true,
-                  child: EmojiPanel(
-                    onEmojiSelected: onEmojiSelected,
-                    onBackspace: onEmojiBackspace,
-                    onSend: onEmojiSend,
-                    onCustomEmojiSelected: onCustomEmojiSelected,
-                    paperStyle: paperStyle,
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -156,8 +145,17 @@ class EditorBottomBar extends StatelessWidget {
   }
 
   Widget _buildNavItem(String label, IconData icon, bool isActive, VoidCallback onTap) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
+
     final Color color = isNight ? Colors.white70 : Colors.black54;
     final Color activeColor = isNight ? const Color(0xFFE0C097) : const Color(0xFF7A7A6A);
+
+    final Color itemColor = isCottonCandyDark
+        ? (isActive
+            ? const Color(0xFFC3AFFD)
+            : const Color(0xFFC3AFFD).withValues(alpha: 0.7))
+        : (isActive ? activeColor : color.withValues(alpha: 0.6));
 
     return GestureDetector(
       onTap: onTap,
@@ -168,14 +166,14 @@ class EditorBottomBar extends StatelessWidget {
           Icon(
             icon,
             size: 26,
-            color: isActive ? activeColor : color.withValues(alpha: 0.6),
+            color: itemColor,
           ),
           const SizedBox(height: 6),
           Text(
             label,
             style: TextStyle(
               fontSize: 11,
-              color: isActive ? activeColor : color.withValues(alpha: 0.6),
+              color: itemColor,
               fontFamily: 'LXGWWenKai',
               fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
             ),
@@ -186,7 +184,7 @@ class EditorBottomBar extends StatelessWidget {
               width: 12,
               height: 2,
               decoration: BoxDecoration(
-                color: activeColor,
+                color: itemColor,
                 borderRadius: BorderRadius.circular(1),
               ),
             )
@@ -202,8 +200,8 @@ class EditorBottomBar extends StatelessWidget {
     if (imageBlocks.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      height: 80,
-      margin: const EdgeInsets.symmetric(horizontal: 12),
+      height: 86,
+      margin: const EdgeInsets.only(left: 20, right: 12, top: 12),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: imageBlocks.length,

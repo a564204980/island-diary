@@ -314,7 +314,7 @@ class PaperBackgroundPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (!style.startsWith('note')) {
+    if (!style.startsWith('note') && !(style == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy')) {
       final paint = Paint()..style = PaintingStyle.fill;
       if (isNight) {
         paint.color = const Color(0xFF13131F); // 默认夜间背景

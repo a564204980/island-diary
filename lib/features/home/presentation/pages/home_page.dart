@@ -233,6 +233,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (themeId == 'lantern_festival') {
       return const Color(0xFFFF8A65).withValues(alpha: 0.95); // 暖红橙火光
     }
+    if (themeId == 'cotton_candy') {
+      return _isNight
+          ? const Color(0xFFD1C4E9).withValues(alpha: 0.85) // 粉紫色柔光
+          : Colors.transparent;
+    }
 
     if (_isNight) {
       return const Color(0xFFFFB347).withValues(alpha: 0.95);
@@ -245,6 +250,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final themeId = UserState().selectedIslandThemeId.value;
     if (themeId == 'lantern_festival') {
       return const Color(0xFFFF8A65).withValues(alpha: 0.7); // 底部岩石映照色
+    }
+    if (themeId == 'cotton_candy') {
+      return _isNight
+          ? const Color(0xFFD1C4E9).withValues(alpha: 0.6) // 底部岩石映照粉紫光
+          : Colors.transparent;
     }
 
     if (_isNight) {
@@ -514,6 +524,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                 backgroundColor:
                                                     Colors.transparent,
                                                 isScrollControlled: true,
+                                                showDragHandle: false,
                                                 builder: (context) =>
                                                     const IslandThemePicker(),
                                               );

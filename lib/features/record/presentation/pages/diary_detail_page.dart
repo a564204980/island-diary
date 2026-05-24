@@ -170,10 +170,14 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           Positioned.fill(
             child: Stack(
               children: [
-                if (_currentEntry.paperStyle.startsWith('note'))
+                if (_currentEntry.paperStyle.startsWith('note') || (_currentEntry.paperStyle == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'))
                   Positioned.fill(
                     child: Image.asset(
-                      DiaryUtils.getPaperBackgroundPath(_currentEntry.paperStyle, widget.isNight),
+                      _currentEntry.paperStyle == 'classic'
+                          ? (widget.isNight
+                              ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
+                              : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png')
+                          : DiaryUtils.getPaperBackgroundPath(_currentEntry.paperStyle, widget.isNight),
                       fit: BoxFit.cover,
                       // note 系列现在自带夜间背景图，不再需要额外的颜色叠加遮罩
                       color: null,
@@ -184,7 +188,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   child: CustomPaint(
                     painter: PaperBackgroundPainter(
                       style: _currentEntry.paperStyle,
-                      isNight: _effectiveIsNight && !_currentEntry.paperStyle.startsWith('note'),
+                      isNight: _effectiveIsNight && 
+                          !_currentEntry.paperStyle.startsWith('note') && 
+                          !(_currentEntry.paperStyle == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'),
                       accentColor: accentColor,
                     ),
                   ),
@@ -382,9 +388,11 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
     final quote = DiaryUtils.getMoodQuote(mood.label);
 
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isCottonCandyDark = (themeId == 'cotton_candy') && _effectiveIsNight;
     final baseGlowColor = mood.glowColor ?? const Color(0xFFD4A373);
     final accentColor = _effectiveIsNight
-        ? baseGlowColor
+        ? (isCottonCandyDark ? const Color(0xFFC0A6FF) : baseGlowColor)
         : Color.lerp(baseGlowColor, Colors.black, 0.45)!;
 
     return Column(
@@ -442,7 +450,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         CustomPaint(
           size: const Size(double.infinity, 2),
           painter: HandDrawnLinePainter(
-            color: const Color(0xFFD4A373).withValues(alpha: _effectiveIsNight ? 0.15 : 0.3),
+            color: isCottonCandyDark
+                ? const Color(0xFFC0A6FF).withValues(alpha: 0.45)
+                : const Color(0xFFD4A373).withValues(alpha: _effectiveIsNight ? 0.15 : 0.3),
             strokeWidth: 1.5,
           ),
         ),

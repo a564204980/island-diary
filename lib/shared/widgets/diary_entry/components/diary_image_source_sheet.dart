@@ -20,19 +20,10 @@ class DiaryImageSourceSheet extends StatelessWidget {
     final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
 
     return Container(
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
+      decoration: DiaryUtils.getPopupDecoration(
+        paperStyle,
+        isNight,
+        customBgColor: bgColor,
       ),
       child: SafeArea(
         child: Column(
@@ -40,13 +31,10 @@ class DiaryImageSourceSheet extends StatelessWidget {
           children: [
             // 顶部装饰条
             const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
+            DiaryUtils.buildPopupDragHandle(
+              paperStyle,
+              isNight,
+              inkColor,
             ),
             const SizedBox(height: 12),
             _buildOption(

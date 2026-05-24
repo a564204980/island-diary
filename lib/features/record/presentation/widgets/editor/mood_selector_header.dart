@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 class MoodSelectorHeader extends StatefulWidget {
   final int? currentMoodIndex;
@@ -67,6 +68,8 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
     final bool isDark = isNight;
     final double screenWidth = MediaQuery.of(context).size.width;
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -80,15 +83,35 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
           curve: Curves.easeInOutCubic,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : const Color(0xFFFEF9F0),
+            color: isCottonCandyDark
+                ? null
+                : (isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : const Color(0xFFFEF9F0)),
+            gradient: isCottonCandyDark
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFFC0A6FF).withValues(alpha: 0.18),
+                      const Color(0xFFC0A6FF).withValues(alpha: 0.03),
+                    ],
+                  )
+                : null,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: inkColor.withValues(alpha: isDark ? 0.1 : 0.08),
-              width: 1,
+              color: isCottonCandyDark
+                  ? const Color(0xFFC0A6FF).withValues(alpha: 0.8)
+                  : inkColor.withValues(alpha: isDark ? 0.1 : 0.08),
+              width: isCottonCandyDark ? 1.5 : 1,
             ),
             boxShadow: [
+              if (isCottonCandyDark)
+                BoxShadow(
+                  color: const Color(0xFFC0A6FF).withValues(alpha: 0.12),
+                  blurRadius: 16,
+                  spreadRadius: 1,
+                ),
               if (!isDark && !isSelected)
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.03),
@@ -454,6 +477,9 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
       moodColor = Color(int.parse(moods[_lastValidMoodIndex!]['color']!));
     }
 
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 16, 8),
       child: Row(
@@ -480,7 +506,9 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
             "更换",
             style: TextStyle(
               fontSize: 12,
-              color: inkColor.withValues(alpha: 0.5),
+              color: isCottonCandyDark
+                  ? Colors.white
+                  : inkColor.withValues(alpha: 0.5),
               fontFamily: 'LXGWWenKai',
             ),
           ),

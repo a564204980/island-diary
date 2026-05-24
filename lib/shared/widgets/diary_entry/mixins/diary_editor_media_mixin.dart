@@ -44,6 +44,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      showDragHandle: false,
       builder: (context) => DiaryImageSourceSheet(
         paperStyle: currentPaperStyle,
       ),
@@ -164,14 +165,29 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
 
     if (!mounted) return;
     setState(() {
-      blocks.insert(insertIndex, imageBlock);
-      if (needsNewBottomBlock) {
-        blocks.insert(insertIndex + 1, newBottomBlock!);
-        blockKeys[newBottomBlock.id] = GlobalKey();
+      if (blocks.length == 1 && blocks.first is TextBlock && (blocks.first as TextBlock).controller.text.isEmpty) {
+        // 直接将第一张图片置顶在最前面，彻底抹去上方无用的空文字框和长Placeholder占位空间
+        blocks.clear();
+        blocks.add(imageBlock);
+        
+        newBottomBlock = TextBlock('', baseColor: currentTextColor);
+        blocks.add(newBottomBlock!);
+        
+        blockKeys[newBottomBlock!.id] = GlobalKey();
+        blockKeys[imageBlock.id] = GlobalKey();
+        lastFocusedBlockId = newBottomBlock!.id;
+        addFocusListener(newBottomBlock!);
+        needsNewBottomBlock = false;
+      } else {
+        blocks.insert(insertIndex, imageBlock);
+        if (needsNewBottomBlock) {
+          blocks.insert(insertIndex + 1, newBottomBlock!);
+          blockKeys[newBottomBlock!.id] = GlobalKey();
+        }
+        blockKeys[imageBlock.id] = GlobalKey();
+        lastFocusedBlockId = newBottomBlock!.id;
+        addFocusListener(newBottomBlock!);
       }
-      blockKeys[imageBlock.id] = GlobalKey();
-      lastFocusedBlockId = newBottomBlock!.id;
-      addFocusListener(newBottomBlock);
     });
 
     onBlocksChanged();
@@ -181,8 +197,8 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
 
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted && newBottomBlock != null) {
-        newBottomBlock.controller.selection = const TextSelection.collapsed(offset: 0);
-        newBottomBlock.focusNode.requestFocus();
+        newBottomBlock!.controller.selection = const TextSelection.collapsed(offset: 0);
+        newBottomBlock!.focusNode.requestFocus();
         scrollToActiveBlock();
       }
     });
@@ -398,14 +414,29 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     final imageBlock = ImageBlock(XFile(actualImagePath), videoPath: videoPath);
 
     setState(() {
-      blocks.insert(insertIndex, imageBlock);
-      if (needsNewBottomBlock) {
-        blocks.insert(insertIndex + 1, newBottomBlock!);
-        blockKeys[newBottomBlock.id] = GlobalKey();
+      if (blocks.length == 1 && blocks.first is TextBlock && (blocks.first as TextBlock).controller.text.isEmpty) {
+        // 同样在空白状态下直接插入收藏大贴纸时自动置顶
+        blocks.clear();
+        blocks.add(imageBlock);
+        
+        newBottomBlock = TextBlock('', baseColor: currentTextColor);
+        blocks.add(newBottomBlock!);
+        
+        blockKeys[newBottomBlock!.id] = GlobalKey();
+        blockKeys[imageBlock.id] = GlobalKey();
+        lastFocusedBlockId = newBottomBlock!.id;
+        addFocusListener(newBottomBlock!);
+        needsNewBottomBlock = false;
+      } else {
+        blocks.insert(insertIndex, imageBlock);
+        if (needsNewBottomBlock) {
+          blocks.insert(insertIndex + 1, newBottomBlock!);
+          blockKeys[newBottomBlock!.id] = GlobalKey();
+        }
+        blockKeys[imageBlock.id] = GlobalKey();
+        lastFocusedBlockId = newBottomBlock!.id;
+        addFocusListener(newBottomBlock!);
       }
-      blockKeys[imageBlock.id] = GlobalKey();
-      lastFocusedBlockId = newBottomBlock!.id;
-      addFocusListener(newBottomBlock);
     });
 
     onBlocksChanged();
@@ -415,8 +446,8 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
 
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted && newBottomBlock != null) {
-        newBottomBlock.controller.selection = const TextSelection.collapsed(offset: 0);
-        newBottomBlock.focusNode.requestFocus();
+        newBottomBlock!.controller.selection = const TextSelection.collapsed(offset: 0);
+        newBottomBlock!.focusNode.requestFocus();
         scrollToActiveBlock();
       }
     });
@@ -427,6 +458,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     final ImageSource? source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       builder: (context) => DiaryImageSourceSheet(paperStyle: currentPaperStyle),
     );
     if (source == null) return null;

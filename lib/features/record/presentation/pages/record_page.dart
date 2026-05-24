@@ -364,6 +364,7 @@ class _RecordPageState extends State<RecordPage> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      showDragHandle: false,
       builder: (context) => DiarySearchPanel(
         isNight: _isNight,
         initialDate: _selectedDate,

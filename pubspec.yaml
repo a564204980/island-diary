@@ -101,6 +101,7 @@ flutter:
     - assets/images/background/
     - assets/images/theme/miamhuadao/
     - assets/images/theme/miamhuadao/clouds/
+    - assets/images/theme/miamhuadao/note/
 
 
   fonts:

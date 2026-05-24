@@ -618,11 +618,14 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF23232F), Color(0xFF16161D)],
-            ),
+            gradient: isCottonCandy
+                ? null
+                : const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF23232F), Color(0xFF16161D)],
+                  ),
+            color: isCottonCandy ? Colors.transparent : null,
           ),
           child: content,
         ),

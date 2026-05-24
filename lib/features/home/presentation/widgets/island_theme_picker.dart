@@ -78,12 +78,25 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
 
   @override
   Widget build(BuildContext context) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final isCottonCandy = themeId == 'cotton_candy';
     final isNight = UserState().isNight;
-    final Color mainTextColor = isNight ? Colors.white : const Color(0xFF6B4B5A);
-    final Color subTextColor = isNight ? Colors.white70 : const Color(0xFF8D7A84);
-    final Color accentPink = const Color(0xFFFFBCCB);
-    final Color buttonGradientStart = const Color(0xFFFDB7A7);
-    final Color buttonGradientEnd = const Color(0xFFE58B8B);
+
+    final Color mainTextColor = isNight
+        ? (isCottonCandy ? const Color(0xFFF1EAFF) : Colors.white)
+        : const Color(0xFF6B4B5A);
+    final Color subTextColor = isNight
+        ? (isCottonCandy ? const Color(0xFFB3A8DE) : Colors.white70)
+        : const Color(0xFF8D7A84);
+    final Color accentPink = isCottonCandy && isNight
+        ? const Color(0xFFE2C4FF)
+        : const Color(0xFFFFBCCB);
+    final Color buttonGradientStart = isCottonCandy && isNight
+        ? const Color(0xFFFF9EB7)
+        : const Color(0xFFFDB7A7);
+    final Color buttonGradientEnd = isCottonCandy && isNight
+        ? const Color(0xFFAC92FF)
+        : const Color(0xFFE58B8B);
 
     return Container(
       decoration: BoxDecoration(
@@ -91,10 +104,20 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: isNight
-              ? [const Color(0xFF1A1A24), const Color(0xFF252535)]
+              ? (isCottonCandy
+                  ? [const Color(0xFF2C2250), const Color(0xFF181232)]
+                  : [const Color(0xFF1A1A24), const Color(0xFF252535)])
               : [const Color(0xFFFFF1F1), Colors.white],
         ),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+        border: isCottonCandy && isNight
+            ? const Border(
+                top: BorderSide(
+                  color: Color(0xFFC0A6FF),
+                  width: 1.5,
+                ),
+              )
+            : null,
       ),
       child: Stack(
         children: [
@@ -108,7 +131,9 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: mainTextColor.withValues(alpha: 0.1),
+                    color: isCottonCandy && isNight
+                        ? const Color(0xFFC0A6FF).withValues(alpha: 0.4)
+                        : mainTextColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -204,29 +229,29 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
                                     width: 160,
                                     height: 190,
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
+                                      color: isCottonCandy && isNight
+                                          ? const Color(0xFFE8E4FF).withValues(alpha: 0.15)
+                                          : Colors.white,
                                       borderRadius: BorderRadius.circular(32),
                                       border: Border.all(
                                         color: isFocused
                                             ? accentPink
-                                            : Colors.black.withValues(
-                                                alpha: 0.05,
-                                              ),
+                                            : (isCottonCandy && isNight
+                                                ? const Color(0xFFFFFFFF).withValues(alpha: 0.15)
+                                                : Colors.black.withValues(alpha: 0.05)),
                                         width: isFocused ? 4 : 1,
                                       ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: isFocused
-                                              ? accentPink.withValues(
-                                                  alpha: 0.5,
-                                                )
-                                              : Colors.black.withValues(
-                                                  alpha: 0.05,
-                                                ),
-                                          blurRadius: isFocused ? 20 : 10,
-                                          offset: const Offset(0, 6),
-                                        ),
-                                      ],
+                                      boxShadow: (isCottonCandy && isNight)
+                                          ? null
+                                          : [
+                                              BoxShadow(
+                                                color: isFocused
+                                                    ? accentPink.withValues(alpha: 0.5)
+                                                    : Colors.black.withValues(alpha: 0.05),
+                                                blurRadius: isFocused ? 20 : 10,
+                                                offset: const Offset(0, 6),
+                                              ),
+                                            ],
                                     ),
                                     child: Stack(
                                       children: [
@@ -410,10 +435,18 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: mainTextColor.withValues(alpha: 0.05),
+                  color: isCottonCandy && isNight
+                      ? const Color(0xFFC0A6FF).withValues(alpha: 0.15)
+                      : mainTextColor.withValues(alpha: 0.05),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.close_rounded, size: 20, color: subTextColor),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 20,
+                  color: isCottonCandy && isNight
+                      ? const Color(0xFFE8DDFF)
+                      : subTextColor,
+                ),
               ),
             ),
           ),

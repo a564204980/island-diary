@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 class GlassBento extends StatelessWidget {
   final bool isNight;
@@ -19,6 +20,9 @@ class GlassBento extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
@@ -38,15 +42,19 @@ class GlassBento extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
           child: Container(
             decoration: BoxDecoration(
-              color: isNight
-                  ? (backgroundColor ?? Colors.transparent)
-                  : const Color(0xFFFDFBFE),
+              color: isCottonCandyDark
+                  ? const Color(0xCC2A3771)
+                  : (isNight
+                      ? (backgroundColor ?? Colors.transparent)
+                      : const Color(0xFFFDFBFE)),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isNight
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.white.withValues(alpha: 0.8),
-                width: 1.5,
+                color: isCottonCandyDark
+                    ? const Color(0xFF9986E1).withValues(alpha: 0.5)
+                    : (isNight
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.white.withValues(alpha: 0.8)),
+                width: isCottonCandyDark ? 3.0 : 1.5,
               ),
             ),
             padding: padding ?? const EdgeInsets.all(10),
@@ -57,3 +65,4 @@ class GlassBento extends StatelessWidget {
     );
   }
 }
+

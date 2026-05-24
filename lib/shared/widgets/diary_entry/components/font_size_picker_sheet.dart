@@ -44,33 +44,20 @@ class DiaryFontSizePickerSheet extends StatelessWidget {
           top: 16,
           bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
         ),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(32),
-            topRight: Radius.circular(32),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
+        decoration: DiaryUtils.getPopupDecoration(
+          paperStyle,
+          isNight,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // 顶部装饰条
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
+            DiaryUtils.buildPopupDragHandle(
+              paperStyle,
+              isNight,
+              accentColor,
             ),
+            const SizedBox(height: 20),
             Text(
               '设置文字大小',
               style: TextStyle(

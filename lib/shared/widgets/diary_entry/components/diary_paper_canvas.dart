@@ -56,13 +56,19 @@ class DiaryPaperCanvas extends StatelessWidget {
                             ? Color.lerp(mood!.glowColor, Colors.black, 0.45)!
                             : const Color(0xFF8B5E3C)));
 
-                    final bool effectiveIsNight = isNight && !style.startsWith('note');
+                    final bool effectiveIsNight = isNight && 
+                        !style.startsWith('note') && 
+                        !(style == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy');
                     return Stack(
                       children: [
-                        if (style.startsWith('note'))
+                        if (style.startsWith('note') || (style == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'))
                           Positioned.fill(
                             child: Image.asset(
-                              DiaryUtils.getPaperBackgroundPath(style, isNight),
+                              style == 'classic'
+                                  ? (isNight
+                                      ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
+                                      : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png')
+                                  : DiaryUtils.getPaperBackgroundPath(style, isNight),
                               fit: BoxFit.cover,
                               // note 系列现在自带夜间背景图，不再需要额外的颜色叠加遮罩
                               color: null,

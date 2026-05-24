@@ -97,6 +97,14 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                 Positioned.fill(
                   child: Container(
                     color: bgColor,
+                    child: (UserState().selectedIslandThemeId.value == 'cotton_candy' && currentPaperStyle == 'classic')
+                        ? Image.asset(
+                            isNight
+                                ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
+                                : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png',
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
                 ),
                 
@@ -277,6 +285,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      showDragHandle: false,
       builder: (context) => CustomMoodPickerPopup(
         paperStyle: currentPaperStyle,
         isNight: UserState().isNight,
@@ -301,6 +310,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       builder: (context) => StickerPickerPopup(
         paperStyle: currentPaperStyle,
         isNight: UserState().isNight,
@@ -343,28 +353,29 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
+          final Color opaqueBgColor = bgColor.withValues(alpha: 1.0);
           return Container(
-            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-            decoration: BoxDecoration(
-              color: bgColor.withValues(alpha: 0.98),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(32),
-              ),
-              border: Border.all(color: accentColor.withValues(alpha: 0.15)),
-              boxShadow: [
-                BoxShadow(
-                  color: accentColor.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, -5),
-                ),
-              ],
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            decoration: DiaryUtils.getPopupDecoration(
+              currentPaperStyle,
+              effectiveIsNight,
+              customBgColor: opaqueBgColor,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 顶部指示条
+                const SizedBox(height: 12),
+                DiaryUtils.buildPopupDragHandle(
+                  currentPaperStyle,
+                  effectiveIsNight,
+                  textColor,
+                ),
+                const SizedBox(height: 16),
                 Text(
                   "更多工具",
                   style: TextStyle(

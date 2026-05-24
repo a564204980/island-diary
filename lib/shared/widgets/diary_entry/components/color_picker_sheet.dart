@@ -66,17 +66,9 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
           top: 24,
           bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
         ),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          border: Border.all(color: accentColor.withValues(alpha: 0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: accentColor.withValues(alpha: 0.15),
-              blurRadius: 30,
-              offset: const Offset(0, -5),
-            ),
-          ],
+        decoration: DiaryUtils.getPopupDecoration(
+          widget.paperStyle,
+          isNight,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

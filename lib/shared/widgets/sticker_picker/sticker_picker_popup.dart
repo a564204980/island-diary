@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:island_diary/core/services/sticker_service.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_image_source_sheet.dart';
 
 class StickerPickerPopup extends StatefulWidget {
   final String paperStyle;
@@ -71,7 +72,8 @@ class _StickerPickerPopupState extends State<StickerPickerPopup> {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => _ImageSourceSheet(isNight: widget.isNight),
+      showDragHandle: false,
+      builder: (context) => DiaryImageSourceSheet(paperStyle: widget.paperStyle),
     );
 
     if (source == null) return;
@@ -94,32 +96,23 @@ class _StickerPickerPopupState extends State<StickerPickerPopup> {
   @override
   Widget build(BuildContext context) {
     final Color inkColor = DiaryUtils.getInkColor(widget.paperStyle, widget.isNight);
-    final Color bgColor = DiaryUtils.getPopupBackgroundColor(widget.paperStyle, widget.isNight);
+    final Color bgColor = DiaryUtils.getPopupBackgroundColor(widget.paperStyle, widget.isNight).withValues(alpha: 1.0);
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.6,
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
+      decoration: DiaryUtils.getPopupDecoration(
+        widget.paperStyle,
+        widget.isNight,
+        customBgColor: bgColor,
       ),
       child: Column(
         children: [
           // 顶部指示条
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: inkColor.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(2),
-            ),
+          const SizedBox(height: 12),
+          DiaryUtils.buildPopupDragHandle(
+            widget.paperStyle,
+            widget.isNight,
+            inkColor,
           ),
 
           // 分类选择
@@ -240,34 +233,4 @@ class _StickerPickerPopupState extends State<StickerPickerPopup> {
   }
 }
 
-class _ImageSourceSheet extends StatelessWidget {
-  final bool isNight;
-  const _ImageSourceSheet({required this.isNight});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isNight ? const Color(0xFF2C2C2E) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.photo_library_outlined),
-            title: const Text("从相册选择"),
-            onTap: () => Navigator.pop(context, ImageSource.gallery),
-          ),
-          ListTile(
-            leading: const Icon(Icons.camera_alt_outlined),
-            title: const Text("拍照"),
-            onTap: () => Navigator.pop(context, ImageSource.camera),
-          ),
-          const SizedBox(height: 12),
-        ],
-      ),
-    );
-  }
-}
+// 移除了重复硬编码的 _ImageSourceSheet 声明，完全由通用的 DiaryImageSourceSheet 统一代劳。

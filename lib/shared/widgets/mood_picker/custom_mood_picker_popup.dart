@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 
 class CustomMoodPickerPopup extends StatefulWidget {
@@ -69,7 +70,10 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
     if (index >= emojis.length) return const SizedBox.shrink();
     final bool isSelected = _selectedEmojiIndex == index;
     final emoji = emojis[index];
-    final Color primaryColor = const Color(0xFFFFA726);
+    final Color primaryColor = widget.isNight
+        ? const Color(0xFFC0A6FF)
+        : const Color(0xFFFFA726);
+
 
     return GestureDetector(
       onTap: () => setState(() => _selectedEmojiIndex = index),
@@ -119,10 +123,14 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
       widget.paperStyle,
       widget.isNight,
     );
-    final Color primaryColor = const Color(0xFFFFA726); // Orange from design
+    final Color primaryColor = widget.isNight
+        ? const Color(0xFFC0A6FF)
+        : const Color(0xFFFFA726); // Dreamy purple in night mode, energetic orange in day mode
     final bool isDark = widget.isNight;
     final Color bgColor = isDark
-        ? const Color(0xFF1E1E1E)
+        ? (UserState().selectedIslandThemeId.value == 'cotton_candy'
+            ? const Color(0xFF241E3D).withValues(alpha: 0.95)
+            : const Color(0xFF1E1E1E))
         : const Color(0xFFFFF9F2);
 
     return ConstrainedBox(
@@ -136,9 +144,10 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
           top: 12,
           bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         ),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        decoration: DiaryUtils.getPopupDecoration(
+          widget.paperStyle,
+          widget.isNight,
+          customBgColor: bgColor,
         ),
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -147,15 +156,11 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 顶部指示条
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: inkColor.withAlpha(25),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
+              const SizedBox(height: 4),
+              DiaryUtils.buildPopupDragHandle(
+                widget.paperStyle,
+                widget.isNight,
+                inkColor,
               ),
               const SizedBox(height: 16),
               // 标题行

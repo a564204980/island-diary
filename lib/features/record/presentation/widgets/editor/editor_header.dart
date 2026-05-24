@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:intl/intl.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 class EditorHeader extends StatelessWidget {
   final String paperStyle;
@@ -27,8 +28,13 @@ class EditorHeader extends StatelessWidget {
     final String weekStr = _getChineseWeekDay(dateTime.weekday);
     final String timeStr = DateFormat('HH:mm').format(dateTime);
 
-    final Color bgColor = isNight ? const Color(0xFF121212) : const Color(0xFFFAF8F5);
-    // 如果是特定的信纸，可以从 DiaryUtils 获取对应的背景色
+    final bool hasPaperBg = paperStyle.startsWith('note') ||
+        (paperStyle == 'classic' &&
+            UserState().selectedIslandThemeId.value == 'cotton_candy');
+
+    final Color bgColor = hasPaperBg
+        ? Colors.transparent
+        : (isNight ? const Color(0xFF121212) : const Color(0xFFFAF8F5));
     
     return Container(
       color: bgColor, // 确保置顶时遮挡下方文字
@@ -83,11 +89,12 @@ class EditorHeader extends StatelessWidget {
           ),
         ),
         // 底部细横线 (提高显见度)
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          height: 0.8,
-          color: inkColor.withValues(alpha: 0.1),
-        ),
+        if (!hasPaperBg)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            height: 0.8,
+            color: inkColor.withValues(alpha: 0.1),
+          ),
       ],
     ),
   );
@@ -117,13 +124,28 @@ class EditorHeader extends StatelessWidget {
   }
 
   Widget _buildSaveBtn({required bool isNight, required VoidCallback onTap}) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
+
+    final Color itemColor = isCottonCandyDark
+        ? Colors.white
+        : const Color(0xFF7A7A6A);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F1E8).withValues(alpha: isNight ? 0.1 : 1.0),
+          color: isCottonCandyDark
+              ? Colors.white.withValues(alpha: 0.3)
+              : const Color(0xFFF1F1E8).withValues(alpha: isNight ? 0.1 : 1.0),
           borderRadius: BorderRadius.circular(20),
+          border: isCottonCandyDark
+              ? Border.all(
+                  color: const Color(0xFF9986E1).withValues(alpha: 0.5),
+                  width: 3,
+                )
+              : null,
         ),
         child: Row(
           children: [
@@ -131,14 +153,14 @@ class EditorHeader extends StatelessWidget {
               'assets/icons/save.png',
               width: 18,
               height: 18,
-              color: const Color(0xFF7A7A6A),
+              color: itemColor,
             ),
             const SizedBox(width: 6),
-            const Text(
+            Text(
               "保存",
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF7A7A6A),
+                color: itemColor,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'LXGWWenKai',
               ),

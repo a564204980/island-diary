@@ -43,12 +43,9 @@ class DiaryFontPickerSheet extends StatelessWidget {
           top: 24,
           bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
         ),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(28),
-            topRight: Radius.circular(28),
-          ),
+        decoration: DiaryUtils.getPopupDecoration(
+          'standard',
+          isNight,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

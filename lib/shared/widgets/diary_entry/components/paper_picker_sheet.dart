@@ -113,16 +113,9 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
       ),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 24),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
+        decoration: DiaryUtils.getPopupDecoration(
+          widget.currentStyle,
+          isNight,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -217,13 +210,17 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                                   borderRadius: BorderRadius.circular(14),
                                   child: Stack(
                                     children: [
-                                      if (key.startsWith('note'))
+                                      if (key.startsWith('note') || (key == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'))
                                         Positioned.fill(
                                           child: Image.asset(
-                                            DiaryUtils.getPaperBackgroundPath(
-                                              key,
-                                              isNight,
-                                            ),
+                                            key == 'classic'
+                                                ? (isNight
+                                                    ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
+                                                    : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png')
+                                                : DiaryUtils.getPaperBackgroundPath(
+                                                    key,
+                                                    isNight,
+                                                  ),
                                             fit: BoxFit.cover,
                                           ),
                                         ),

@@ -432,6 +432,9 @@ class DiaryUtils {
 
   /// 获取信纸对应的 UI 强调色 (图标、开关等)
   static Color getAccentColor(String paperStyle, bool isNight) {
+    if (UserState().selectedIslandThemeId.value == 'cotton_candy' && isNight) {
+      return const Color(0xFFC0A6FF);
+    }
     if (isNight) {
       return const Color(0xFFE0C097); 
     }
@@ -462,6 +465,9 @@ class DiaryUtils {
 
   /// 获取与信纸风格高度协调的弹窗背景色
   static Color getPopupBackgroundColor(String paperStyle, bool isNight) {
+    if (UserState().selectedIslandThemeId.value == 'cotton_candy' && isNight) {
+      return const Color(0xFF241E3D).withValues(alpha: 0.95);
+    }
     final Color baseBgColor = getPaperBaseColor(paperStyle, isNight);
     final Color accent = getAccentColor(paperStyle, isNight);
 
@@ -470,6 +476,54 @@ class DiaryUtils {
 
     // 通过与强调色微弱混合，让背景带上一层温润的色调
     return Color.lerp(baseBgColor, accent, 0.05)!.withValues(alpha: opacity);
+  }
+
+  /// 获取弹窗统一装饰样式，支持棉花糖主题夜间模式的顶部紫色描边与去发光
+  static BoxDecoration getPopupDecoration(String paperStyle, bool isNight, {Color? customBgColor}) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final isCottonCandy = themeId == 'cotton_candy';
+    final Color bgColor = customBgColor ?? getPopupBackgroundColor(paperStyle, isNight);
+
+    return BoxDecoration(
+      color: bgColor,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      border: (isCottonCandy && isNight)
+          ? const Border(
+              top: BorderSide(
+                color: Color(0xFFC0A6FF),
+                width: 1.5,
+              ),
+            )
+          : null,
+      boxShadow: (isCottonCandy && isNight)
+          ? null
+          : [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
+              ),
+            ],
+    );
+  }
+
+  /// 获取弹窗统一把手，适配棉花糖主题夜间模式
+  static Widget buildPopupDragHandle(String paperStyle, bool isNight, Color inkColor) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final isCottonCandy = themeId == 'cotton_candy';
+
+    return Center(
+      child: Container(
+        width: 40,
+        height: 4,
+        decoration: BoxDecoration(
+          color: (isCottonCandy && isNight)
+              ? const Color(0xFFC0A6FF).withValues(alpha: 0.4)
+              : inkColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
   }
 
   /// 获取信纸背景资产路径
