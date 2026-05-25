@@ -183,6 +183,33 @@ mixin ProfileMixin on LifeLineMixin {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(UserState().n(_K.selectedIslandThemeId), id);
     updateDynamicBackground(); // 切换主题后立即尝试更新背景
+
+    // 触发吉祥物主题切换对话
+    final themeNames = {
+      'default': '默认小岛',
+      'cotton_candy': '云朵棉花糖岛',
+      'cherry_blossom': '春日樱花岛',
+      'starry_night': '星夜灯塔岛',
+      'lantern_festival': '元宵花灯岛',
+    };
+    final themeName = themeNames[id] ?? id;
+
+    String path = 'assets/images/emoji/marshmallow2.png';
+    if (this is UserState) {
+      path = (this as UserState).selectedMascotType.value;
+    }
+
+    final event = MascotEvent(
+      type: MascotEventType.themeChanged,
+      description: themeName,
+    );
+
+    if (deepseekApiKey.value.isNotEmpty && deepseekApiKey.value != 'YOUR_API_KEY') {
+      notifyMascotEvent(event);
+    } else {
+      final localQuote = MascotPersona.getThemeChangedQuote(path, id);
+      mascotThought.value = localQuote;
+    }
   }
 
   void _checkAndResetDailyTask(SharedPreferences prefs) {
@@ -376,6 +403,32 @@ mixin ProfileMixin on LifeLineMixin {
       updateDynamicBackground(); // 立即触发背景更新
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(UserState().n(_K.themeMode), mode);
+
+      // 触发吉祥物主题切换对话
+      final modeNames = {
+        'light': '白昼模式',
+        'dark': '深夜模式',
+        'auto': '自动模式',
+      };
+      final modeName = modeNames[mode] ?? mode;
+
+      String path = 'assets/images/emoji/marshmallow2.png';
+      if (this is UserState) {
+        path = (this as UserState).selectedMascotType.value;
+      }
+
+      final event = MascotEvent(
+        type: MascotEventType.themeChanged,
+        description: modeName,
+      );
+
+      if (deepseekApiKey.value.isNotEmpty && deepseekApiKey.value != 'YOUR_API_KEY') {
+        notifyMascotEvent(event);
+      } else {
+        final String effectiveKey = mode == 'auto' ? (isNight ? 'dark' : 'light') : mode;
+        final localQuote = MascotPersona.getThemeChangedQuote(path, effectiveKey);
+        mascotThought.value = localQuote;
+      }
     }
   }
 

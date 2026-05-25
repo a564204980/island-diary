@@ -11,6 +11,7 @@ import 'package:island_diary/core/models/daily_task.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/core/models/mascot_event.dart';
+import 'package:island_diary/core/models/mascot_persona.dart';
 import 'package:island_diary/core/models/life_line_profile.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';

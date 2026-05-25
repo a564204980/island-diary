@@ -487,6 +487,8 @@ class DecorationController extends ChangeNotifier {
         setWallPattern(WallPattern.clouds);
         setWallColor(true, const Color(0xFFC2DFFF));
         setWallColor(false, const Color(0xFFC2DFFF));
+      } else if (item.id.contains('pink_gradient')) {
+        setWallPattern(WallPattern.pinkGradient);
       } else if (item.id.contains('gradient')) {
         setWallPattern(WallPattern.gradient);
       } else if (item.id.contains('sparkle')) {

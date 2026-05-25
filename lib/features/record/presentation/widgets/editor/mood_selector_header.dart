@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/hand_drawn_divider.dart';
 
 class MoodSelectorHeader extends StatefulWidget {
   final int? currentMoodIndex;
@@ -71,7 +72,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final themeId = UserState().selectedIslandThemeId.value;
     final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
 
-    return Padding(
+    final pillWidget = Padding(
       padding: EdgeInsets.only(
         top: 8,
         bottom: isSelected ? 8 : 24,
@@ -176,6 +177,47 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
         ),
       ),
     );
+
+    if (isSelected) {
+      String label = _lastValidTag ?? '开心';
+      if (_lastValidMoodIndex != null && _lastValidMoodIndex! < moods.length && _lastValidTag == null) {
+        label = moods[_lastValidMoodIndex!]['label']!;
+      }
+      final String quote = DiaryUtils.getMoodQuote(label);
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 4),
+            child: Text(
+              quote,
+              style: TextStyle(
+                fontSize: 16,
+                fontStyle: FontStyle.italic,
+                color: inkColor.withValues(alpha: 0.6),
+                fontFamily: 'LXGWWenKai',
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          CustomPaint(
+            size: const Size(double.infinity, 2),
+            painter: HandDrawnLinePainter(
+              color: isCottonCandyDark
+                  ? const Color(0xFFC0A6FF).withValues(alpha: 0.45)
+                  : const Color(0xFFD4A373).withValues(alpha: isNight ? 0.15 : 0.3),
+              strokeWidth: 1.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          pillWidget,
+        ],
+      );
+    }
+
+    return pillWidget;
   }
 
   Widget _buildExpandedContent(BuildContext context) {

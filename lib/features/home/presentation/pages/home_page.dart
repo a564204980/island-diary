@@ -63,6 +63,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return UserState().isNight;
   }
 
+  /// 判定当前是否应该浮现彩虹：限制 13:00 ~ 17:00 且每天仅有 25% 概率（以年月日为种子，同一天内稳定）
+  bool get _shouldShowRainbow {
+    if (_isNight) return false;
+    final now = DateTime.now();
+    if (now.hour < 13 || now.hour >= 17) return false;
+    final seed = now.year * 10000 + now.month * 100 + now.day;
+    return Random(seed).nextDouble() < 0.25;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -420,10 +429,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               ? ValueListenableBuilder<bool>(
                                   valueListenable: UserState().isDiarySheetOpen,
                                   builder: (context, isOpen, child) {
-                                    return Text(
+                                    return ValueListenableBuilder<String>(
+                                      valueListenable: UserState().homeDisplayMode,
+                                      builder: (context, mode, _) {
+                                        return Text(
                                           _isLandscape
                                               ? '心情漫游'
-                                              : '${UserState().userName.value}的小岛',
+                                              : mode == 'house'
+                                                  ? '${UserState().userName.value}的小窝'
+                                                  : '${UserState().userName.value}的小岛',
                                           style: TextStyle(
                                             color:
                                                 (isNight ||
@@ -451,9 +465,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                   ]
                                                 : null,
                                           ),
-                                        )
-                                        .animate(target: isOpen ? 0 : 1)
-                                        .fade(duration: 400.ms);
+                                        );
+                                      },
+                                    )
+                                    .animate(target: isOpen ? 0 : 1)
+                                    .fade(duration: 400.ms);
                                   },
                                 )
                               : (_currentNavIndex == 1
@@ -784,7 +800,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
 
         // 装饰层：磨砂彩虹 (位于背景云朵之上，前景云朵和岛屿之下)
-        if (!isNight)
+        if (_shouldShowRainbow)
           Positioned(
             top: 0,
             left: 0,

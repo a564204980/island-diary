@@ -217,10 +217,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildHeader(),
-                        const SizedBox(height: 20),
-                        _buildRichTextView(),
-                        const SizedBox(height: 12),
-                        _buildImagesView(),
+                        const SizedBox(height: 8),
+                        ..._buildBlocksView(),
                         const SizedBox(height: 48),
                         DiaryTimeline(
                           replies: _currentEntry.replies,
@@ -465,10 +463,14 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           children: [
             // 心情标签
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.1),
+                color: accentColor.withValues(alpha: _effectiveIsNight ? 0.18 : 0.28),
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: accentColor.withValues(alpha: _effectiveIsNight ? 0.45 : 0.6),
+                  width: 0.8,
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -480,15 +482,15 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                               _currentEntry.tag!.isNotEmpty)
                           ? 'assets/images/icons/custom.png'
                           : (mood.iconPath ?? 'assets/icons/happy.png'),
-                      width: 14,
-                      height: 14,
+                      width: 16,
+                      height: 16,
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   Text(
                     mood.label,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: accentColor,
                     ),
@@ -496,40 +498,25 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 ],
               ),
             ),
-            // 强度标签
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                DiaryUtils.getMoodIntensityPrefix(
-                  mood.label,
-                  _currentEntry.intensity,
-                ),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: accentColor,
-                ),
-              ),
-            ),
             // 天气标签
             if (_currentEntry.weather != null)
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+                  horizontal: 12,
+                  vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.1),
+                  color: accentColor.withValues(alpha: _effectiveIsNight ? 0.18 : 0.28),
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: accentColor.withValues(alpha: _effectiveIsNight ? 0.45 : 0.6),
+                    width: 0.8,
+                  ),
                 ),
                 child: Text(
                   "${_currentEntry.weather} ${_currentEntry.temp ?? ''}",
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                     color: accentColor,
                   ),
@@ -539,22 +526,26 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             if (_currentEntry.location != null)
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+                  horizontal: 12,
+                  vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.1),
+                  color: accentColor.withValues(alpha: _effectiveIsNight ? 0.18 : 0.28),
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: accentColor.withValues(alpha: _effectiveIsNight ? 0.45 : 0.6),
+                    width: 0.8,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.location_on_outlined,
-                      size: 12,
+                      size: 14,
                       color: accentColor,
                     ),
-                    const SizedBox(width: 2),
+                    const SizedBox(width: 4),
                     ConstrainedBox(
                       constraints: BoxConstraints(
                         maxWidth: MediaQuery.of(context).size.width - 120,
@@ -564,7 +555,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: accentColor,
                         ),
@@ -577,26 +568,30 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             if (_currentEntry.customDate != null)
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+                  horizontal: 12,
+                  vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.1),
+                  color: accentColor.withValues(alpha: _effectiveIsNight ? 0.18 : 0.28),
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: accentColor.withValues(alpha: _effectiveIsNight ? 0.45 : 0.6),
+                    width: 0.8,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.calendar_today_outlined,
-                      size: 12,
+                      size: 14,
                       color: accentColor,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 5),
                     Text(
                       _currentEntry.customDate!,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: accentColor,
                       ),
@@ -608,26 +603,30 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             if (_currentEntry.customTime != null)
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+                  horizontal: 12,
+                  vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.1),
+                  color: accentColor.withValues(alpha: _effectiveIsNight ? 0.18 : 0.28),
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: accentColor.withValues(alpha: _effectiveIsNight ? 0.45 : 0.6),
+                    width: 0.8,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.access_time_outlined,
-                      size: 12,
+                      size: 14,
                       color: accentColor,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 5),
                     Text(
                       _currentEntry.customTime!,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: accentColor,
                       ),
@@ -639,6 +638,103 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         ),
       ],
     ).animate().fadeIn(duration: 600.ms).moveY(begin: 10, end: 0);
+  }
+
+  List<Widget> _buildBlocksView() {
+    if (_currentEntry.blocks.isEmpty) {
+      return [
+        _buildRichTextView(),
+        const SizedBox(height: 12),
+        _buildImagesView(),
+      ];
+    }
+
+    final List<Widget> list = [];
+    final textStyle = TextStyle(
+      fontSize: 18,
+      height: 1.8,
+      color: DiaryUtils.getInkColor(
+        _currentEntry.paperStyle,
+        widget.isNight,
+      ),
+      fontFamily: 'LXGWWenKai',
+    );
+
+    if (_currentEntry.isImageGrid) {
+      return [
+        _buildRichTextView(),
+        const SizedBox(height: 12),
+        _buildImagesView(),
+      ];
+    }
+
+    bool isFirst = true;
+    for (var b in _currentEntry.blocks) {
+      final type = b['type'];
+      if (type == 'text') {
+        final block = DiaryBlock.fromMap(Map<String, dynamic>.from(b as Map));
+        if (block is TextBlock) {
+          final tc = block.controller;
+          if (tc is DiaryTextEditingController) {
+            tc.baseColor = textStyle.color ?? Colors.black;
+            tc.baseFontFamily = textStyle.fontFamily ?? 'LXGWWenKai';
+            tc.baseFontSize = textStyle.fontSize ?? 18;
+
+            final span = tc.buildTextSpan(
+              context: context,
+              style: textStyle,
+              withComposing: false,
+              hideMarkdownSymbols: true,
+            );
+
+            list.add(
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: RichText(text: span),
+              ),
+            );
+            isFirst = false;
+          }
+          block.dispose();
+        }
+      } else if (type == 'image') {
+        final path = b['path'];
+        if (path != null && path.toString().isNotEmpty) {
+          final bool isWide = MediaQuery.of(context).size.width > 800;
+
+          list.add(
+            Center(
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: isWide ? 520 : MediaQuery.of(context).size.width * 0.85,
+                ),
+                margin: EdgeInsets.only(
+                  top: isFirst ? 8 : 12,
+                  bottom: 12,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: DiaryUtils.buildImage(path, fit: BoxFit.contain),
+                ),
+              ),
+            ),
+          );
+          isFirst = false;
+        }
+      }
+    }
+
+    return list;
   }
 
   Widget _buildRichTextView() {

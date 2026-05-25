@@ -590,30 +590,6 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           ),
         ),
 
-        // 2. 强度标签 (文字描述)
-        // 如果是自定义心情，不再显示基于系统心情名称生成的强度修饰词，避免冲突（如“满心向往”）
-        if (!hasCustomMood)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: badgeColor.withValues(alpha: isNight ? 0.08 : 0.12),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: badgeColor.withValues(alpha: isNight ? 0.2 : 0.25),
-                width: 0.5,
-              ),
-            ),
-            child: Text(
-              DiaryUtils.getMoodIntensityPrefix(mood.label, intensity),
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: badgeColor.withValues(alpha: isNight ? 0.6 : 1.0),
-                fontFamily: 'LXGWWenKai',
-              ),
-            ),
-          ),
-
         // 3. 天气标签 (如果有)
         if (widget.entry.weather != null)
           Container(

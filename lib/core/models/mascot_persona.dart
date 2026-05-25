@@ -65,4 +65,90 @@ class MascotPersona {
       );
     }
   }
+
+  /// 根据卡通形象与主题/模式 ID 获取本地专属主题台词
+  static String getThemeChangedQuote(String path, String themeIdOrMode) {
+    final bool isDushou = path.contains('marshmallow2.png');
+    final bool isLingxi = path.contains('marshmallow3.png');
+    final bool isShuangjian = path.contains('marshmallow4.png');
+    
+    if (isDushou) {
+      switch (themeIdOrMode) {
+        case 'default':
+          return '回到了最初的小岛，这里每个角落都有主人的气味，好喜欢，汪！';
+        case 'cotton_candy':
+          return '哇！这个粉粉嫩嫩的云朵，踩上去一定像踩在肉垫上一样舒服吧，汪！';
+        case 'cherry_blossom':
+          return '樱花漫天飞舞！我要帮主人接住最漂亮的那片，汪！';
+        case 'starry_night':
+          return '天黑了，但有灯塔在照耀，我也会永远为主人指引方向的，汪！';
+        case 'lantern_festival':
+          return '好多花灯！闪闪发光的，我们一起去捉灯影吧，汪！';
+        case 'light':
+          return '太阳出来啦！今天也要充满活力地奔跑，汪！';
+        case 'dark':
+          return '天黑了，别怕！笃守会守在主人床边，做最忠诚的守卫，汪！';
+        default:
+          return '主人主人，新换的主题超级漂亮汪！';
+      }
+    } else if (isLingxi) {
+      switch (themeIdOrMode) {
+        case 'default':
+          return '嗯？又换回这个普通地方了。行吧，至少晒太阳的角度还挺合适。';
+        case 'cotton_candy':
+          return '棉花糖……甜腻腻的。不过躺在上面睡觉，确实比硬邦邦的石头舒服点。';
+        case 'cherry_blossom':
+          return '樱花？哼，落得满地都是，大费周章。不过……确实不算难看。';
+        case 'starry_night':
+          return '夜晚是猫咪的天下。不过有灯塔在，本喵的行踪都要被你看光了。';
+        case 'lantern_festival':
+          return '这么多纸糊的灯笼，抓坏一个应该不用我赔吧？';
+        case 'light':
+          return '哼，刺眼的阳光。不过，正适合伸个懒腰补个觉。';
+        case 'dark':
+          return '夜深了，是本喵活跃的黄金时间。你这家伙，怎么还不睡？';
+        default:
+          return '啧，新主题？勉强还凑合吧。';
+      }
+    } else if (isShuangjian) {
+      switch (themeIdOrMode) {
+        case 'default':
+          return '洗尽铅华，复归本真。平凡的一草一木，亦有它的清雅之美。';
+        case 'cotton_candy':
+          return '粉黛如云，缱绻入梦。在这温柔的云海里，连岁月都慢了下来。';
+        case 'cherry_blossom':
+          return '落樱缤纷，如雨如歌。一期一会的美丽，正适合记录在笔墨间。';
+        case 'starry_night':
+          return '星河璀璨，孤塔照长空。在这静谧的夜里，灵魂仿佛与星辰共鸣。';
+        case 'lantern_festival':
+          return '东风夜放花千树。这满岛的灯火，正映照着人间最温馨的期盼。';
+        case 'light':
+          return '清晨的曙光破开云雾，万物复苏，又是一个清朗的开始。';
+        case 'dark':
+          return '夜幕低垂，明月高悬。静谧的夜里最适合与自己对话。';
+        default:
+          return '光影流转，新境始开。愿此景能安抚你的心神。';
+      }
+    } else {
+      // 默认：云织
+      switch (themeIdOrMode) {
+        case 'default':
+          return '回到了熟悉的小岛，感觉就像回到了最温馨的港湾呢。';
+        case 'cotton_candy':
+          return '哇，整个岛都变成了软绵绵的棉花糖，感觉心情也被染成了粉红色呢！';
+        case 'cherry_blossom':
+          return '春天的气息扑面而来呢，樱花树下很适合喝杯热茶、静静享受生活呀。';
+        case 'starry_night':
+          return '繁星漫天，有灯塔温柔的微光指引，别怕，无论多晚我都在这守候着你。';
+        case 'lantern_festival':
+          return '元宵花灯点亮啦，温暖的橘色光芒照亮了夜空，真希望能和你分享这片祥和。';
+        case 'light':
+          return '早上好呀！新的一天开始啦，记得好好吃早餐哦。';
+        case 'dark':
+          return '夜深了呢，忙碌了一天辛苦啦。闭上眼睛，做个甜甜的梦吧。';
+        default:
+          return '新主题看起来很温馨呢，希望你也会喜欢这里呀！';
+      }
+    }
+  }
 }

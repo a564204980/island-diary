@@ -10,6 +10,8 @@ enum MascotEventType {
   idle,
   /// 应用启动问候 (包含时间、久别、节日检测)
   appStarted,
+  /// 切换主题 (包含系统外观和岛屿外观)
+  themeChanged,
 }
 
 /// AI 感知事件模型

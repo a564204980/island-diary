@@ -24,7 +24,7 @@ class IslandThemePicker extends StatefulWidget {
 
 class _IslandThemePickerState extends State<IslandThemePicker> {
   late String _focusedId; // 滑动中的焦点 ID (用于待选展示)
-  late String _activeId;  // 实际上已经应用 ID (用于显示"当前使用")
+  late String _activeId; // 实际上已经应用 ID (用于显示"当前使用")
   late PageController _pageController;
 
   final List<IslandTheme> _themes = [
@@ -39,17 +39,17 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
       previewPath: 'assets/images/theme/miamhuadao/mianhuadao_xiaodao.png',
       islandPath: 'assets/images/theme/miamhuadao/mianhuadao_xiaodao.png',
     ),
-    const IslandTheme(
-      id: 'cherry_blossom',
-      name: '春日樱花岛',
-      previewPath: 'assets/images/home_small_demo.png',
-    ),
-    const IslandTheme(
-      id: 'starry_night',
-      name: '星夜灯塔岛',
-      previewPath: 'assets/images/home_small_demo2.png',
-      islandPath: 'assets/images/home_small_demo2.png',
-    ),
+    // const IslandTheme(
+    //   id: 'cherry_blossom',
+    //   name: '春日樱花岛',
+    //   previewPath: 'assets/images/home_small_demo.png',
+    // ),
+    // const IslandTheme(
+    //   id: 'starry_night',
+    //   name: '星夜灯塔岛',
+    //   previewPath: 'assets/images/home_small_demo2.png',
+    //   islandPath: 'assets/images/home_small_demo2.png',
+    // ),
     const IslandTheme(
       id: 'lantern_festival',
       name: '元宵花灯岛',
@@ -78,46 +78,113 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
 
   @override
   Widget build(BuildContext context) {
-    final themeId = UserState().selectedIslandThemeId.value;
+    final themeId = _focusedId; // 使用聚焦的预览主题 ID，实现底栏颜色跟随滑动而变化
     final isCottonCandy = themeId == 'cotton_candy';
     final isNight = UserState().isNight;
 
-    final Color mainTextColor = isNight
-        ? (isCottonCandy ? const Color(0xFFF1EAFF) : Colors.white)
-        : const Color(0xFF6B4B5A);
-    final Color subTextColor = isNight
-        ? (isCottonCandy ? const Color(0xFFB3A8DE) : Colors.white70)
-        : const Color(0xFF8D7A84);
-    final Color accentPink = isCottonCandy && isNight
-        ? const Color(0xFFE2C4FF)
-        : const Color(0xFFFFBCCB);
-    final Color buttonGradientStart = isCottonCandy && isNight
-        ? const Color(0xFFFF9EB7)
-        : const Color(0xFFFDB7A7);
-    final Color buttonGradientEnd = isCottonCandy && isNight
-        ? const Color(0xFFAC92FF)
-        : const Color(0xFFE58B8B);
+    // --- 动态色彩系统配置 ---
+    Color mainTextColor;
+    Color subTextColor;
+    Color accentPink;
+    Color buttonGradientStart;
+    Color buttonGradientEnd;
+    List<Color> bgColors;
+    Border? topBorder;
+
+    if (themeId == 'cotton_candy') {
+      mainTextColor = isNight
+          ? const Color(0xFFF1EAFF)
+          : const Color(0xFF6B4B5A);
+      subTextColor = isNight
+          ? const Color(0xFFB3A8DE)
+          : const Color(0xFF8D7A84);
+      accentPink = isNight ? const Color(0xFFE2C4FF) : const Color(0xFFFFBCCB);
+      buttonGradientStart = const Color(0xFFFF9EB7);
+      buttonGradientEnd = isNight
+          ? const Color(0xFFAC92FF)
+          : const Color(0xFFE58B8B);
+      bgColors = isNight
+          ? [const Color(0xFF2C2250), const Color(0xFF181232)]
+          : [const Color(0xFFFFF1F1), Colors.white];
+      topBorder = isNight
+          ? const Border(top: BorderSide(color: Color(0xFFC0A6FF), width: 1.5))
+          : null;
+    } else if (themeId == 'lantern_festival') {
+      mainTextColor = isNight
+          ? const Color(0xFFFFF2D0)
+          : const Color(0xFF5A1E1E);
+      subTextColor = isNight
+          ? const Color(0xFFE5C88F)
+          : const Color(0xFF8C5A5A);
+      accentPink = const Color(0xFFFFB74D);
+      buttonGradientStart = const Color(0xFFFFD54F);
+      buttonGradientEnd = const Color(0xFFFF5722);
+      bgColors = isNight
+          ? [const Color(0xFF381515), const Color(0xFF200A0A)]
+          : [const Color(0xFFFFF5EE), Colors.white];
+      topBorder = isNight
+          ? const Border(top: BorderSide(color: Color(0xFFFF7043), width: 1.5))
+          : null;
+    } else if (themeId == 'starry_night') {
+      mainTextColor = isNight
+          ? const Color(0xFFE0E6ED)
+          : const Color(0xFF1B2A4A);
+      subTextColor = isNight
+          ? const Color(0xFF90A4AE)
+          : const Color(0xFF4A607A);
+      accentPink = const Color(0xFF80DEEA);
+      buttonGradientStart = const Color(0xFF26A69A);
+      buttonGradientEnd = const Color(0xFF3F51B5);
+      bgColors = isNight
+          ? [const Color(0xFF0F172A), const Color(0xFF020617)]
+          : [const Color(0xFFF0F4F8), Colors.white];
+      topBorder = isNight
+          ? const Border(top: BorderSide(color: Color(0xFF00E5FF), width: 1.5))
+          : null;
+    } else if (themeId == 'cherry_blossom') {
+      mainTextColor = isNight
+          ? const Color(0xFFFFEBEE)
+          : const Color(0xFF5D4037);
+      subTextColor = isNight
+          ? const Color(0xFFFFCDD2)
+          : const Color(0xFF8D6E63);
+      accentPink = const Color(0xFFF48FB1);
+      buttonGradientStart = const Color(0xFFFF8A80);
+      buttonGradientEnd = const Color(0xFFEC407A);
+      bgColors = isNight
+          ? [const Color(0xFF2D161A), const Color(0xFF1B0B0D)]
+          : [const Color(0xFFFFF8F8), Colors.white];
+      topBorder = isNight
+          ? const Border(top: BorderSide(color: Color(0xFFF48FB1), width: 1.5))
+          : null;
+    } else {
+      // 默认小岛/其他主题
+      mainTextColor = isNight
+          ? const Color(0xFFECEFF1)
+          : const Color(0xFF4E3629);
+      subTextColor = isNight
+          ? const Color(0xFF78909C)
+          : const Color(0xFF7D8C7A);
+      accentPink = const Color(0xFF81C784);
+      buttonGradientStart = const Color(0xFFAED581); // 柔和青草绿
+      buttonGradientEnd = const Color(0xFF66BB6A);   // 郁郁葱葱的草木绿
+      bgColors = isNight
+          ? [const Color(0xFF1E291E), const Color(0xFF0F150F)]
+          : [const Color(0xFFF4F9F4), Colors.white];
+      topBorder = isNight
+          ? const Border(top: BorderSide(color: Color(0xFF81C784), width: 1.5))
+          : null;
+    }
 
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: isNight
-              ? (isCottonCandy
-                  ? [const Color(0xFF2C2250), const Color(0xFF181232)]
-                  : [const Color(0xFF1A1A24), const Color(0xFF252535)])
-              : [const Color(0xFFFFF1F1), Colors.white],
+          colors: bgColors,
         ),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-        border: isCottonCandy && isNight
-            ? const Border(
-                top: BorderSide(
-                  color: Color(0xFFC0A6FF),
-                  width: 1.5,
-                ),
-              )
-            : null,
+        border: topBorder,
       ),
       child: Stack(
         children: [
@@ -207,7 +274,7 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
                           double relativePosition = index - currentPage;
                           double scale = (1 - (relativePosition.abs() * 0.25))
                               .clamp(0.8, 1.2);
-                          
+
                           // 区分焦点和当前使用
                           final isFocused = _focusedId == theme.id;
                           final isCurrentlyUsed = _activeId == theme.id;
@@ -230,15 +297,21 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
                                     height: 190,
                                     decoration: BoxDecoration(
                                       color: isCottonCandy && isNight
-                                          ? const Color(0xFFE8E4FF).withValues(alpha: 0.15)
+                                          ? const Color(
+                                              0xFFE8E4FF,
+                                            ).withValues(alpha: 0.15)
                                           : Colors.white,
                                       borderRadius: BorderRadius.circular(32),
                                       border: Border.all(
                                         color: isFocused
                                             ? accentPink
                                             : (isCottonCandy && isNight
-                                                ? const Color(0xFFFFFFFF).withValues(alpha: 0.15)
-                                                : Colors.black.withValues(alpha: 0.05)),
+                                                  ? const Color(
+                                                      0xFFFFFFFF,
+                                                    ).withValues(alpha: 0.15)
+                                                  : Colors.black.withValues(
+                                                      alpha: 0.05,
+                                                    )),
                                         width: isFocused ? 4 : 1,
                                       ),
                                       boxShadow: (isCottonCandy && isNight)
@@ -246,8 +319,12 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
                                           : [
                                               BoxShadow(
                                                 color: isFocused
-                                                    ? accentPink.withValues(alpha: 0.5)
-                                                    : Colors.black.withValues(alpha: 0.05),
+                                                    ? accentPink.withValues(
+                                                        alpha: 0.5,
+                                                      )
+                                                    : Colors.black.withValues(
+                                                        alpha: 0.05,
+                                                      ),
                                                 blurRadius: isFocused ? 20 : 10,
                                                 offset: const Offset(0, 6),
                                               ),

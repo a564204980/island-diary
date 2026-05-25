@@ -80,6 +80,9 @@ class AIService {
         // 解析描述中的复合信息：时间、离别天数、节日
         userPrompt = "现在是应用启动时刻，你的朋友${event.description}。请给他一个自然、温馨且符合你性格的综合问候语。";
         break;
+      case MascotEventType.themeChanged:
+        userPrompt = "你的朋友刚刚将主题切换为了：${event.description}。请根据你的性格给出一句充满画面感或温馨的主题评价。";
+        break;
     }
 
     try {

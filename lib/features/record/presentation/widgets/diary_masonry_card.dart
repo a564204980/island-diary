@@ -3,6 +3,7 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import '../pages/diary_detail_page.dart';
 
 enum MasonryCardStyle {
@@ -431,15 +432,35 @@ class DiaryMasonryCard extends StatelessWidget {
       maxLines = hasImages ? 6 : 3;
     }
 
-    return Text(
-      plainText,
+    final baseStyle = TextStyle(
+      fontSize: 13,
+      height: 1.5,
+      color: textColor,
+      fontFamily: 'LXGWWenKai',
+    );
+
+    final List<InlineSpan> spans = EmojiMapping.parseText(plainText).map((chunk) {
+      if (chunk.isEmoji) {
+        return WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 1.5),
+            child: Image.asset(
+              chunk.emojiPath!,
+              width: baseStyle.fontSize! * 1.2,
+              height: baseStyle.fontSize! * 1.2,
+              fit: BoxFit.contain,
+            ),
+          ),
+        );
+      }
+      return TextSpan(text: chunk.text, style: baseStyle);
+    }).toList();
+
+    return RichText(
       maxLines: maxLines,
       overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontSize: 13,
-        height: 1.5,
-        color: textColor,
-      ),
+      text: TextSpan(children: spans),
     );
   }
 

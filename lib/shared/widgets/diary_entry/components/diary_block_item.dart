@@ -183,6 +183,7 @@ class DiaryBlockItem extends StatelessWidget {
                       : DiaryUtils.buildImage(
                           block.file.path,
                           fit: BoxFit.contain,
+                          borderRadius: BorderRadius.circular(12),
                         ),
                 ),
               ),

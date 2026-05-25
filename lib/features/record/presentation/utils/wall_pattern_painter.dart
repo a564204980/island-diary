@@ -188,6 +188,17 @@ class WallPatternPainter {
           baseColor: baseColor,
         );
         break;
+      case WallPattern.pinkGradient:
+        _drawGradient(
+          canvas: canvas,
+          converter: converter,
+          isLeft: isLeft,
+          rows: rows,
+          cols: cols,
+          topColor: const Color(0xFFFFF0F2), // 极柔和淡粉色
+          bottomColor: const Color(0xFFFFBCC6), // 软甜婴儿粉色
+        );
+        break;
       case WallPattern.greenWoodPanels:
         _drawGreenWoodPanels(
           canvas: canvas,

@@ -480,8 +480,8 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
         : const Color(0xFF8A7462);
 
     // 仅在棉花糖主题下映射专属精美手绘插图，其他主题保持通用默认图
-    String bgAsset = 'assets/images/background/data_3_tianqing.png';
-    String weatherAsset = 'assets/images/background/data_3_tianqing2.png';
+    String bgAsset = 'assets/images/background/data_3_qingtian.png';
+    String weatherAsset = 'assets/images/background/data_3_qingtian2.png';
 
     if (isCottonCandy) {
       if (state.id == 'mistMorning' ||
@@ -860,7 +860,7 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
       overlayStart: Color(0xFFFFD98B),
       overlayEnd: Color(0xFFF7A764),
       icon: CupertinoIcons.sun_max_fill,
-      backgroundAsset: 'assets/images/background/data_3_tianqing.png',
+      backgroundAsset: 'assets/images/background/data_3_qingtian.png',
     ),
     _MonthlyMoodWeatherStateConfig(
       id: 'partlyCloudy',
@@ -872,7 +872,7 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
       overlayStart: Color(0xFFFFE0C8),
       overlayEnd: Color(0xFFF4B7D1),
       icon: CupertinoIcons.cloud_sun_fill,
-      backgroundAsset: 'assets/images/background/data_3_tianqing.png',
+      backgroundAsset: 'assets/images/background/data_3_qingtian.png',
     ),
     _MonthlyMoodWeatherStateConfig(
       id: 'warmBreeze',
@@ -884,7 +884,7 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
       overlayStart: Color(0xFFFFE6CE),
       overlayEnd: Color(0xFFF3CDB3),
       icon: CupertinoIcons.wind,
-      backgroundAsset: 'assets/images/background/data_3_tianqing.png',
+      backgroundAsset: 'assets/images/background/data_3_qingtian.png',
     ),
     _MonthlyMoodWeatherStateConfig(
       id: 'cloudDrift',
@@ -896,7 +896,7 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
       overlayStart: Color(0xFFF0F6FF),
       overlayEnd: Color(0xFFDDE9FA),
       icon: CupertinoIcons.cloud_fill,
-      backgroundAsset: 'assets/images/background/data_3_tianqing.png',
+      backgroundAsset: 'assets/images/background/data_3_qingtian.png',
     ),
     _MonthlyMoodWeatherStateConfig(
       id: 'softBreeze',
@@ -908,7 +908,7 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
       overlayStart: Color(0xFFEAF1F9),
       overlayEnd: Color(0xFFCAD9EA),
       icon: CupertinoIcons.wind,
-      backgroundAsset: 'assets/images/background/data_3_tianqing.png',
+      backgroundAsset: 'assets/images/background/data_3_qingtian.png',
     ),
     _MonthlyMoodWeatherStateConfig(
       id: 'mistMorning',
@@ -920,7 +920,7 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
       overlayStart: Color(0xFFE9EEF4),
       overlayEnd: Color(0xFFCBD4E1),
       icon: CupertinoIcons.cloud_fog_fill,
-      backgroundAsset: 'assets/images/background/data_3_tianqing.png',
+      backgroundAsset: 'assets/images/background/data_3_qingtian.png',
     ),
     _MonthlyMoodWeatherStateConfig(
       id: 'lightRain',
@@ -932,7 +932,7 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
       overlayStart: Color(0xFFDCE7F7),
       overlayEnd: Color(0xFFB7CDEB),
       icon: CupertinoIcons.cloud_rain_fill,
-      backgroundAsset: 'assets/images/background/data_3_tianqing.png',
+      backgroundAsset: 'assets/images/background/data_3_qingtian.png',
     ),
     _MonthlyMoodWeatherStateConfig(
       id: 'continuousRain',
