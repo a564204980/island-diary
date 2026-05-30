@@ -436,7 +436,7 @@ class DiaryMasonryCard extends StatelessWidget {
       fontSize: 13,
       height: 1.5,
       color: textColor,
-      fontFamily: 'LXGWWenKai',
+      fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai',
     );
 
     final List<InlineSpan> spans = EmojiMapping.parseText(plainText).map((chunk) {
@@ -477,7 +477,7 @@ class DiaryMasonryCard extends StatelessWidget {
             fontSize: 12,
             fontWeight: FontWeight.bold,
             color: textColor,
-            fontFamily: 'ArphicKaiti',
+            fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'ArphicKaiti',
           ),
         ),
         if (entry.weather != null && entry.weather!.isNotEmpty) ...[
@@ -507,7 +507,7 @@ class DiaryMasonryCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               color: textColor,
-              fontFamily: 'ArphicKaiti',
+              fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'ArphicKaiti',
             ),
           ),
         ),

@@ -20,6 +20,9 @@ mixin PreferenceMixin on ProfileMixin {
   bool _lastInteractedIsGlasses = false;
   final ValueNotifier<String> selectedMascotType = ValueNotifier<String>('assets/images/emoji/marshmallow2.png');
   final ValueNotifier<String> homeDisplayMode = ValueNotifier<String>('island');
+  
+  // 新增：棉花岛主题长按屏幕时的云朵快速移动倍率
+  final ValueNotifier<double> cloudSpeedMultiplier = ValueNotifier<double>(1.0);
 
   void loadPreference(SharedPreferences prefs) {
     momentsCoverPath.value = prefs.getString(UserState().n(_K.momentsCover));

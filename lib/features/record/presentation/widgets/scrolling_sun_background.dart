@@ -96,6 +96,12 @@ class _SunBackgroundPainter extends CustomPainter {
       darkColor = const Color(0xFFFDE6EF);
     }
 
+    // 积木工坊主题配色适配 (明亮黄与积木灰白棋盘格)
+    if (themeId == 'lego') {
+      lightColor = isNight ? const Color(0xFF2C3E50) : const Color(0xFFFFFDF0);
+      darkColor = isNight ? const Color(0xFF1A252F) : const Color(0xFFFEEAA1);
+    }
+
     final Paint lightPaint = Paint()..color = lightColor;
     final Paint darkPaint = Paint()..color = darkColor;
 

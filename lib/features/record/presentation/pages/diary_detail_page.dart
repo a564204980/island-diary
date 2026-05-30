@@ -144,6 +144,22 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
 
   bool get _effectiveIsNight => widget.isNight;
 
+  IconData _getWeatherIcon(String? weather) {
+    if (weather == null) return Icons.wb_sunny_outlined;
+    if (weather.contains("晴")) return Icons.wb_sunny_outlined;
+    if (weather.contains("多云")) return Icons.wb_cloudy_outlined;
+    if (weather.contains("阴")) return Icons.cloud_outlined;
+    if (weather.contains("雨")) return Icons.umbrella_outlined;
+    if (weather.contains("雪")) return Icons.ac_unit_outlined;
+    if (weather.contains("风")) return Icons.air_outlined;
+    if (weather.contains("雾")) return Icons.grain_outlined;
+    if (weather.contains("雷")) return Icons.thunderstorm_outlined;
+    if (weather.contains("冰雹")) return Icons.severe_cold_outlined;
+    if (weather.contains("炎热") || weather.contains("热")) return Icons.thermostat_outlined;
+    if (weather.contains("严寒") || weather.contains("冷")) return Icons.ac_unit_outlined;
+    return Icons.wb_sunny_outlined;
+  }
+
   @override
   Widget build(BuildContext context) {
     final bgColor = _effectiveIsNight
@@ -465,11 +481,15 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: _effectiveIsNight ? 0.18 : 0.28),
-                borderRadius: BorderRadius.circular(10),
+                color: !_effectiveIsNight
+                    ? const Color(0xAAFFFDF9)
+                    : accentColor.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(!_effectiveIsNight ? 15 : 10),
                 border: Border.all(
-                  color: accentColor.withValues(alpha: _effectiveIsNight ? 0.45 : 0.6),
-                  width: 0.8,
+                  color: !_effectiveIsNight
+                      ? const Color(0xFFE5DEC9)
+                      : accentColor.withValues(alpha: 0.45),
+                  width: !_effectiveIsNight ? 0.6 : 0.8,
                 ),
               ),
               child: Row(
@@ -492,7 +512,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: accentColor,
+                      color: !_effectiveIsNight ? const Color(0xFF7A7060) : accentColor,
                     ),
                   ),
                 ],
@@ -506,20 +526,35 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: _effectiveIsNight ? 0.18 : 0.28),
-                  borderRadius: BorderRadius.circular(10),
+                  color: !_effectiveIsNight
+                      ? const Color(0xAAFFFDF9)
+                      : accentColor.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(!_effectiveIsNight ? 15 : 10),
                   border: Border.all(
-                    color: accentColor.withValues(alpha: _effectiveIsNight ? 0.45 : 0.6),
-                    width: 0.8,
+                    color: !_effectiveIsNight
+                        ? const Color(0xFFE5DEC9)
+                        : accentColor.withValues(alpha: 0.45),
+                    width: !_effectiveIsNight ? 0.6 : 0.8,
                   ),
                 ),
-                child: Text(
-                  "${_currentEntry.weather} ${_currentEntry.temp ?? ''}",
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: accentColor,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getWeatherIcon(_currentEntry.weather),
+                      size: 14,
+                      color: !_effectiveIsNight ? const Color(0xFF7A7060) : accentColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      "${_currentEntry.weather} ${_currentEntry.temp ?? ''}",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: !_effectiveIsNight ? const Color(0xFF7A7060) : accentColor,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             // 地点标签
@@ -530,11 +565,15 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: _effectiveIsNight ? 0.18 : 0.28),
-                  borderRadius: BorderRadius.circular(10),
+                  color: !_effectiveIsNight
+                      ? const Color(0xAAFFFDF9)
+                      : accentColor.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(!_effectiveIsNight ? 15 : 10),
                   border: Border.all(
-                    color: accentColor.withValues(alpha: _effectiveIsNight ? 0.45 : 0.6),
-                    width: 0.8,
+                    color: !_effectiveIsNight
+                        ? const Color(0xFFE5DEC9)
+                        : accentColor.withValues(alpha: 0.45),
+                    width: !_effectiveIsNight ? 0.6 : 0.8,
                   ),
                 ),
                 child: Row(
@@ -543,7 +582,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     Icon(
                       Icons.location_on_outlined,
                       size: 14,
-                      color: accentColor,
+                      color: !_effectiveIsNight ? const Color(0xFF7A7060) : accentColor,
                     ),
                     const SizedBox(width: 4),
                     ConstrainedBox(
@@ -557,7 +596,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: accentColor,
+                          color: !_effectiveIsNight ? const Color(0xFF7A7060) : accentColor,
                         ),
                       ),
                     ),
@@ -572,11 +611,15 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: _effectiveIsNight ? 0.18 : 0.28),
-                  borderRadius: BorderRadius.circular(10),
+                  color: !_effectiveIsNight
+                      ? const Color(0xAAFFFDF9)
+                      : accentColor.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(!_effectiveIsNight ? 15 : 10),
                   border: Border.all(
-                    color: accentColor.withValues(alpha: _effectiveIsNight ? 0.45 : 0.6),
-                    width: 0.8,
+                    color: !_effectiveIsNight
+                        ? const Color(0xFFE5DEC9)
+                        : accentColor.withValues(alpha: 0.45),
+                    width: !_effectiveIsNight ? 0.6 : 0.8,
                   ),
                 ),
                 child: Row(
@@ -585,7 +628,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     Icon(
                       Icons.calendar_today_outlined,
                       size: 14,
-                      color: accentColor,
+                      color: !_effectiveIsNight ? const Color(0xFF7A7060) : accentColor,
                     ),
                     const SizedBox(width: 5),
                     Text(
@@ -593,7 +636,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: accentColor,
+                        color: !_effectiveIsNight ? const Color(0xFF7A7060) : accentColor,
                       ),
                     ),
                   ],
@@ -607,11 +650,15 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: _effectiveIsNight ? 0.18 : 0.28),
-                  borderRadius: BorderRadius.circular(10),
+                  color: !_effectiveIsNight
+                      ? const Color(0xAAFFFDF9)
+                      : accentColor.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(!_effectiveIsNight ? 15 : 10),
                   border: Border.all(
-                    color: accentColor.withValues(alpha: _effectiveIsNight ? 0.45 : 0.6),
-                    width: 0.8,
+                    color: !_effectiveIsNight
+                        ? const Color(0xFFE5DEC9)
+                        : accentColor.withValues(alpha: 0.45),
+                    width: !_effectiveIsNight ? 0.6 : 0.8,
                   ),
                 ),
                 child: Row(
@@ -620,7 +667,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     Icon(
                       Icons.access_time_outlined,
                       size: 14,
-                      color: accentColor,
+                      color: !_effectiveIsNight ? const Color(0xFF7A7060) : accentColor,
                     ),
                     const SizedBox(width: 5),
                     Text(
@@ -628,7 +675,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: accentColor,
+                        color: !_effectiveIsNight ? const Color(0xFF7A7060) : accentColor,
                       ),
                     ),
                   ],

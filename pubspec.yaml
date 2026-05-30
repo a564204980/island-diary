@@ -44,6 +44,7 @@ dependencies:
   image: ^4.1.7
   isar: ^3.1.0+1
   isar_flutter_libs: ^3.1.0+1
+  sensors_plus: ^6.1.1
 
 dev_dependencies:
   flutter_test:
@@ -103,6 +104,8 @@ flutter:
     - assets/images/theme/miamhuadao/
     - assets/images/theme/miamhuadao/clouds/
     - assets/images/theme/miamhuadao/note/
+    - assets/images/theme/legao/
+    - assets/images/theme/legao/icons/
 
 
   fonts:
@@ -141,3 +144,6 @@ flutter:
     - family: ArphicKaiti
       fonts:
         - asset: assets/fonts/gkai00mp-2.ttf
+    - family: SweiFistLeg
+      fonts:
+        - asset: assets/fonts/SweiFistLegCJKjp-Medium-2.ttf

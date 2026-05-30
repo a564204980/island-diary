@@ -142,6 +142,10 @@ mixin ProfileMixin on LifeLineMixin {
       currentBackgroundPath.value = 'assets/images/background/home_yuanxiaojie_bg.png';
       currentThemeColor.value = const Color(0xFF2A0D0D); // 深红暖调主题色
       return;
+    } else if (selectedIslandThemeId.value == 'lego') {
+      currentBackgroundPath.value = 'assets/images/theme/legao/legao_home_bg.png';
+      currentThemeColor.value = const Color(0xFFFFF9E0); // 暖黄积木主题色
+      return;
     }
 
     if (themeMode.value == 'light') {
@@ -188,6 +192,7 @@ mixin ProfileMixin on LifeLineMixin {
     final themeNames = {
       'default': '默认小岛',
       'cotton_candy': '云朵棉花糖岛',
+      'lego': '乐高工坊',
       'cherry_blossom': '春日樱花岛',
       'starry_night': '星夜灯塔岛',
       'lantern_festival': '元宵花灯岛',

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/shared/widgets/bottom_nav_bar.dart';
 import 'package:island_diary/features/home/presentation/widgets/floating_clouds.dart';
+import 'package:island_diary/features/home/presentation/widgets/floating_bricks.dart';
 import 'package:island_diary/features/home/presentation/widgets/rising_lanterns.dart';
 import 'package:island_diary/features/home/presentation/widgets/twinkling_stars.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -203,6 +204,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       return _isNight
           ? 'assets/images/theme/miamhuadao/mianhuadao_xiaodao_night.png'
           : 'assets/images/theme/miamhuadao/mianhuadao_xiaodao.png';
+    } else if (themeId == 'lego') {
+      return 'assets/images/theme/legao/legao_xiaodao.png';
     } else if (themeId == 'lantern_festival') {
       return 'assets/images/home5.png';
     }
@@ -229,6 +232,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (themeId == 'cotton_candy') {
       return const Color(0xFFFFE8F5).withValues(alpha: 0.8); // 粉紫色柔光
     }
+    if (themeId == 'lego') {
+      return const Color(0xFFFFF9E0).withValues(alpha: 0.8); // 暖黄积木柔光
+    }
 
     if (_isNight) {
       return const Color(0xFFFFEFA1).withValues(alpha: 0.65);
@@ -247,6 +253,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ? const Color(0xFFD1C4E9).withValues(alpha: 0.85) // 粉紫色柔光
           : Colors.transparent;
     }
+    if (themeId == 'lego') {
+      return _isNight
+          ? const Color(0xFFFFE082).withValues(alpha: 0.8) // 暖黄底光
+          : Colors.transparent;
+    }
 
     if (_isNight) {
       return const Color(0xFFFFB347).withValues(alpha: 0.95);
@@ -263,6 +274,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (themeId == 'cotton_candy') {
       return _isNight
           ? const Color(0xFFD1C4E9).withValues(alpha: 0.6) // 底部岩石映照粉紫光
+          : Colors.transparent;
+    }
+    if (themeId == 'lego') {
+      return _isNight
+          ? const Color(0xFFFFE082).withValues(alpha: 0.6) // 底部岩石映照黄光
           : Colors.transparent;
     }
 
@@ -385,6 +401,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         final bool isLantern = themeId == 'lantern_festival';
         final bool isCottonCandy = themeId == 'cotton_candy';
         final isWide = MediaQuery.of(context).size.width > 600;
+
+        // 动态设置状态栏与底部系统导航栏为全透明，并根据明暗主题自动切换图标颜色，消除安卓黑边与顶部遮罩，实现真正的沉浸式全面屏效果
+        SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarDividerColor: Colors.transparent,
+          statusBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
+          systemNavigationBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
+          systemStatusBarContrastEnforced: false, // 禁用系统自动的状态栏对比度遮罩层
+          systemNavigationBarContrastEnforced: false, // 禁用系统自动的导航栏对比度遮罩层
+        ));
 
         return Scaffold(
           backgroundColor: isNight
@@ -704,8 +731,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           bgScale = 1; // 棉花糖岛背景放大
           bgOffsetY = 0; // 棉花糖背景偏移
 
-          islandScale = 1.1; // 棉花糖小岛放大
-          islandOffsetY = 20.0; // 棉花糖小岛向下偏移
+          islandScale = 1.0; // 棉花糖小岛大小为1.0
+          islandOffsetY = 15.0; // 对应偏移微调为15.0
+        } else if (themeId == 'lego') {
+          bgScale = 1.15;
+          bgOffsetY = -10.0;
+          islandScale = 1.05;
+          islandOffsetY = 5.0;
         } else if (themeId == 'lantern_festival') {
           bgScale = 1.4; // 元宵节背景放大
           bgOffsetY = -30.0; // 元宵节背景偏移
@@ -762,14 +794,31 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 if (child != null) Positioned.fill(child: child),
               ],
             ),
-            child: Transform.translate(
-              offset: Offset(0, bgOffsetY),
-              child: Transform.scale(
-                scale: bgScale,
-                child: Image.asset(
-                  currentBgPath,
-                  key: ValueKey(currentBgPath),
-                  fit: BoxFit.cover,
+            child: GestureDetector(
+              onLongPressStart: (_) {
+                if (themeId == 'cotton_candy') {
+                  UserState().cloudSpeedMultiplier.value = 25.0; // 快速移动
+                }
+              },
+              onLongPressEnd: (_) {
+                if (themeId == 'cotton_candy') {
+                  UserState().cloudSpeedMultiplier.value = 1.0; // 恢复正常速度
+                }
+              },
+              onLongPressCancel: () {
+                if (themeId == 'cotton_candy') {
+                  UserState().cloudSpeedMultiplier.value = 1.0;
+                }
+              },
+              child: Transform.translate(
+                offset: Offset(0, bgOffsetY),
+                child: Transform.scale(
+                  scale: bgScale,
+                  child: Image.asset(
+                    currentBgPath,
+                    key: ValueKey(currentBgPath),
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
@@ -778,7 +827,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         // 闪烁繁星层 (元宵节主题专属)
         if (!_isLandscape && themeId == 'lantern_festival')
           const Positioned.fill(child: TwinklingStars(count: 35)),
-        if (!_isLandscape && themeId != 'lantern_festival')
+        if (!_isLandscape && themeId != 'lantern_festival' && themeId != 'lego')
           Positioned.fill(
             child: FloatingClouds(
               isNight: isNight,
@@ -815,104 +864,127 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         // ... rest of the interactive content
         Positioned.fill(
-          child: InteractiveViewer(
-            transformationController: _transformationController,
-            panEnabled: false,
-            boundaryMargin: EdgeInsets.zero,
-            minScale: 1.0,
-            maxScale: 5.0,
-            child: Builder(
-              builder: (context) {
-                final double currentScreenWidth = MediaQuery.of(
-                  context,
-                ).size.width;
-                return AnimatedBuilder(
-                  animation: _floatAnimation,
-                  builder: (context, child) {
-                    return Center(
-                      child: Transform.translate(
-                        offset: Offset(
-                          0,
-                          _floatAnimation.value + islandOffsetY,
+          child: GestureDetector(
+            onLongPressStart: (_) {
+              if (themeId == 'cotton_candy') {
+                UserState().cloudSpeedMultiplier.value = 25.0;
+              }
+            },
+            onLongPressEnd: (_) {
+              if (themeId == 'cotton_candy') {
+                UserState().cloudSpeedMultiplier.value = 1.0;
+              }
+            },
+            onLongPressCancel: () {
+              if (themeId == 'cotton_candy') {
+                UserState().cloudSpeedMultiplier.value = 1.0;
+              }
+            },
+            child: InteractiveViewer(
+              transformationController: _transformationController,
+              panEnabled: false,
+              boundaryMargin: EdgeInsets.zero,
+              minScale: 1.0,
+              maxScale: 5.0,
+              child: Builder(
+                builder: (context) {
+                  final double currentScreenWidth = MediaQuery.of(
+                    context,
+                  ).size.width;
+                  return AnimatedBuilder(
+                    animation: _floatAnimation,
+                    builder: (context, child) {
+                      return Center(
+                        child: Transform.translate(
+                          offset: Offset(
+                            0,
+                            _floatAnimation.value + islandOffsetY,
+                          ),
+                          child: Transform.scale(
+                            scale: islandScale,
+                            child: child,
+                          ),
                         ),
-                        child: Transform.scale(
-                          scale: islandScale,
-                          child: child,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Positioned(
-                        bottom: currentScreenWidth * 0.04,
-                        child: Container(
-                          width: isWide ? 480 : currentScreenWidth * 0.8,
-                          height: isWide ? 200 : currentScreenWidth * 0.4,
-                          decoration: BoxDecoration(
-                            gradient: RadialGradient(
-                              colors: [
-                                _getIslandBottomLightColorForCurrentTime(),
-                                _getIslandBottomLightColorForCurrentTime()
-                                    .withValues(alpha: 0.0),
-                              ],
-                              stops: const [0.15, 1.0],
+                      );
+                    },
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Positioned(
+                          bottom: currentScreenWidth * 0.04,
+                          child: Container(
+                            width: isWide ? 480 : currentScreenWidth * 0.8,
+                            height: isWide ? 200 : currentScreenWidth * 0.4,
+                            decoration: BoxDecoration(
+                              gradient: RadialGradient(
+                                colors: [
+                                  _getIslandBottomLightColorForCurrentTime(),
+                                  _getIslandBottomLightColorForCurrentTime()
+                                      .withValues(alpha: 0.0),
+                                ],
+                                stops: const [0.15, 1.0],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      ImageFiltered(
-                        imageFilter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.4),
-                        child: Image.asset(
-                          islandPath,
-                          width:
-                              (currentScreenWidth <= 600
-                                  ? currentScreenWidth * 0.9
-                                  : 540.0) *
-                              1.05,
-                          fit: BoxFit.contain,
-                          color: _getIslandGlowColorForCurrentTime(),
-                        ),
-                      ),
-                      ShaderMask(
-                        blendMode: BlendMode.srcATop,
-                        shaderCallback: (bounds) {
-                          return RadialGradient(
-                            center: const Alignment(0, 0.85),
-                            radius: 0.6,
-                            colors: [
-                              _getIslandBottomRockLightColorForCurrentTime(),
-                              Colors.transparent,
-                            ],
-                            stops: const [0.0, 1.0],
-                          ).createShader(bounds);
-                        },
-                        child: GestureDetector(
-                          onTap: () {
-                            _toggleZoom(context, isWide);
-                          },
+                        ImageFiltered(
+                          imageFilter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.4),
                           child: Image.asset(
                             islandPath,
-                            width: currentScreenWidth <= 600
-                                ? currentScreenWidth * 0.9
-                                : 540.0,
+                            width:
+                                (currentScreenWidth <= 600
+                                    ? currentScreenWidth * 0.9
+                                    : 540.0) *
+                                1.05,
                             fit: BoxFit.contain,
+                            color: _getIslandGlowColorForCurrentTime(),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                        ShaderMask(
+                          blendMode: BlendMode.srcATop,
+                          shaderCallback: (bounds) {
+                            return RadialGradient(
+                              center: const Alignment(0, 0.85),
+                              radius: 0.6,
+                              colors: [
+                                _getIslandBottomRockLightColorForCurrentTime(),
+                                Colors.transparent,
+                              ],
+                              stops: const [0.0, 1.0],
+                            ).createShader(bounds);
+                          },
+                          child: GestureDetector(
+                            onTap: () {
+                              _toggleZoom(context, isWide);
+                            },
+                            child: Image.asset(
+                              islandPath,
+                              width: currentScreenWidth <= 600
+                                  ? currentScreenWidth * 0.9
+                                  : 540.0,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),
 
+        // 将 FloatingBricks 置于 InteractiveViewer 岛屿层的上方，防止被岛屿的 GestureDetector/全屏容器拦截手势
+        if (!_isLandscape && themeId == 'lego')
+          const Positioned.fill(
+            child: FloatingBricks(),
+          ),
+
         if (_isLandscape && _groupedEntries.isNotEmpty)
           Positioned.fill(child: _buildBarrageLayer()),
 
-        if (!_isLandscape && themeId != 'lantern_festival')
+        if (!_isLandscape && themeId != 'lantern_festival' && themeId != 'lego')
           Positioned.fill(
             child: FloatingClouds(
               isNight: isNight,

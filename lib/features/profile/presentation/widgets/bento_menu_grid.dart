@@ -173,6 +173,9 @@ class BentoMenuGrid extends StatelessWidget {
   }
 
   Widget _buildThemeBento(BuildContext context) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isUnsupported = themeId == 'lego' || themeId == 'cotton_candy';
+
     return BentoBox(
       isNight: isNight,
       padding: const EdgeInsets.all(16),
@@ -205,7 +208,7 @@ class BentoMenuGrid extends StatelessWidget {
           ValueListenableBuilder<String>(
             valueListenable: UserState().themeMode,
             builder: (context, mode, _) {
-              return _buildThemeOptions(mode);
+              return _buildThemeOptions(context, mode, isUnsupported);
             },
           ),
         ],
@@ -213,7 +216,7 @@ class BentoMenuGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildThemeOptions(String currentMode) {
+  Widget _buildThemeOptions(BuildContext context, String currentMode, bool isUnsupported) {
     final List<Map<String, dynamic>> options = [
       {'label': '日间', 'mode': 'light', 'icon': Icons.wb_sunny_outlined},
       {'label': '夜间', 'mode': 'dark', 'icon': Icons.nightlight_outlined},
@@ -225,29 +228,44 @@ class BentoMenuGrid extends StatelessWidget {
       children: options.map((opt) {
         final bool isSelected = currentMode == opt['mode'];
         return GestureDetector(
-          onTap: () => UserState().setThemeMode(opt['mode']),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? (isNight
-                      ? const Color(0xFFFFF176).withValues(alpha: 0.15)
-                      : const Color(0xFFFFF176).withValues(alpha: 0.3))
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
+          onTap: () {
+            if (isUnsupported) {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('当前岛屿主题拥有专属明暗，不支持手动切换明暗模式哦~'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+              return;
+            }
+            UserState().setThemeMode(opt['mode']);
+          },
+          child: Opacity(
+            opacity: isUnsupported ? 0.35 : 1.0,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFFFFF176).withValues(alpha: 0.5)
+                    ? (isNight
+                        ? const Color(0xFFFFF176).withValues(alpha: 0.15)
+                        : const Color(0xFFFFF176).withValues(alpha: 0.3))
                     : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFFFFF176).withValues(alpha: 0.5)
+                      : Colors.transparent,
+                ),
               ),
-            ),
-            child: Icon(
-              opt['icon'] as IconData,
-              size: 18,
-              color: isSelected
-                  ? (isNight ? const Color(0xFFFFF176) : const Color(0xFF7B5C2E))
-                  : (isNight ? Colors.white24 : Colors.black12),
+              child: Icon(
+                opt['icon'] as IconData,
+                size: 18,
+                color: isSelected
+                    ? (isNight ? const Color(0xFFFFF176) : const Color(0xFF7B5C2E))
+                    : (isNight ? Colors.white24 : Colors.black12),
+              ),
             ),
           ),
         );

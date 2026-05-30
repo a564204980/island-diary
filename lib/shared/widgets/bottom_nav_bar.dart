@@ -204,6 +204,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
     required bool isCottonCandy,
     Widget? child,
   }) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final isLego = themeId == 'lego';
+
     return SizedBox(
       height: barHeight,
       width: double.infinity,
@@ -253,7 +256,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                                   : LinearGradient(
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
-                                      colors: widget.currentIndex == 1
+                                      colors: (widget.currentIndex == 1 && !isLego)
                                           ? [
                                               const Color(
                                                 0xFFF5E6CC,
@@ -272,7 +275,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                                             ],
                                     ))),
                   color: (widget.isNight && !isLanternFestival && !isCottonCandy)
-                      ? (widget.currentIndex == 1
+                      ? ((widget.currentIndex == 1 && !isLego)
                             ? const Color(0xFF4A3C31).withValues(alpha: 0.3)
                             : const Color(0xFF736675).withValues(alpha: 0.2))
                       : null,
@@ -294,8 +297,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
     required bool isLanternFestival,
     required bool isCottonCandy,
   }) {
-    if (widget.isNight || isLanternFestival || isCottonCandy)
+    if (widget.isNight || isLanternFestival || isCottonCandy) {
       return const SizedBox.shrink();
+    }
     return Positioned(
       top: 0,
       left: 0,
@@ -319,6 +323,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
     required bool isLanternFestival,
     required bool isCottonCandy,
   }) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final isLego = themeId == 'lego';
+
     return Positioned.fill(
       child: IgnorePointer(
         child: CustomPaint(
@@ -358,7 +365,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                           const Color(0xFFFFFFFF).withValues(alpha: 0.9),
                         ])
                   : ((isLanternFestival || widget.isNight)
-                      ? (widget.currentIndex == 1
+                      ? ((widget.currentIndex == 1 && !isLego)
                             ? const [Color(0xFFEEBB3C), Color(0xFF3E2723)]
                             : const [
                                 Color(0xFFEEBB3C),
@@ -367,7 +374,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                               ])
                       : [
                           const Color(0xFFFFF9C4).withValues(alpha: 0.8),
-                          widget.currentIndex == 1
+                          (widget.currentIndex == 1 && !isLego)
                               ? const Color(0xFFFFCC80).withValues(alpha: 0.3)
                               : const Color(
                                   0xFFB3E5FC,

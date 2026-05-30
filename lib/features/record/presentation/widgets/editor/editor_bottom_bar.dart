@@ -90,7 +90,7 @@ class EditorBottomBar extends StatelessWidget {
           isFloating ? 20 : 0,
           0,
           isFloating ? 20 : 0,
-          isFloating ? (20 + MediaQuery.of(context).padding.bottom) : 0,
+          isFloating ? (6 + MediaQuery.of(context).padding.bottom) : 0,
         ),
         child: Container(
           width: toolbarMaxWidth,

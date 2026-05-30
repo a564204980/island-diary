@@ -39,6 +39,12 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
       previewPath: 'assets/images/theme/miamhuadao/mianhuadao_xiaodao.png',
       islandPath: 'assets/images/theme/miamhuadao/mianhuadao_xiaodao.png',
     ),
+    const IslandTheme(
+      id: 'lego',
+      name: '乐高工坊',
+      previewPath: 'assets/images/theme/legao/legao_xiaodao.png',
+      islandPath: 'assets/images/theme/legao/legao_xiaodao.png',
+    ),
     // const IslandTheme(
     //   id: 'cherry_blossom',
     //   name: '春日樱花岛',
@@ -157,6 +163,22 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
       topBorder = isNight
           ? const Border(top: BorderSide(color: Color(0xFFF48FB1), width: 1.5))
           : null;
+    } else if (themeId == 'lego') {
+      mainTextColor = isNight
+          ? const Color(0xFFFFF0D0)
+          : const Color(0xFF2C3E50);
+      subTextColor = isNight
+          ? const Color(0xFFBDC3C7)
+          : const Color(0xFF7F8C8D);
+      accentPink = const Color(0xFFF39C12);
+      buttonGradientStart = const Color(0xFFF1C40F);
+      buttonGradientEnd = const Color(0xFFE74C3C);
+      bgColors = isNight
+          ? [const Color(0xFF1E272C), const Color(0xFF0F171A)]
+          : [const Color(0xFFFFFDF0), Colors.white];
+      topBorder = isNight
+          ? const Border(top: BorderSide(color: Color(0xFFF1C40F), width: 1.5))
+          : null;
     } else {
       // 默认小岛/其他主题
       mainTextColor = isNight
@@ -176,7 +198,9 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
           : null;
     }
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -292,7 +316,9 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Container(
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeOut,
                                     width: 160,
                                     height: 190,
                                     decoration: BoxDecoration(
@@ -300,7 +326,7 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
                                           ? const Color(
                                               0xFFE8E4FF,
                                             ).withValues(alpha: 0.15)
-                                          : Colors.white,
+                                          : Colors.white.withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(32),
                                       border: Border.all(
                                         color: isFocused
@@ -314,21 +340,7 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
                                                     )),
                                         width: isFocused ? 4 : 1,
                                       ),
-                                      boxShadow: (isCottonCandy && isNight)
-                                          ? null
-                                          : [
-                                              BoxShadow(
-                                                color: isFocused
-                                                    ? accentPink.withValues(
-                                                        alpha: 0.5,
-                                                      )
-                                                    : Colors.black.withValues(
-                                                        alpha: 0.05,
-                                                      ),
-                                                blurRadius: isFocused ? 20 : 10,
-                                                offset: const Offset(0, 6),
-                                              ),
-                                            ],
+                                      boxShadow: null,
                                     ),
                                     child: Stack(
                                       children: [
@@ -436,7 +448,9 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
                       UserState().setSelectedIslandThemeId(_focusedId);
                       Navigator.pop(context);
                     },
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeInOut,
                       width: double.infinity,
                       height: 64,
                       decoration: BoxDecoration(

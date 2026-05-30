@@ -34,8 +34,15 @@ class IslandDiaryApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final userState = UserState();
     return ListenableBuilder(
-      listenable: userState.themeMode,
+      listenable: Listenable.merge([
+        userState.themeMode,
+        userState.selectedIslandThemeId,
+      ]),
       builder: (context, child) {
+        final isLego = userState.selectedIslandThemeId.value == 'lego';
+        final defaultFont = isLego ? 'SweiFistLeg' : 'ArphicKaiti';
+        final darkFont = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
+
         return MaterialApp(
           title: '岛屿日记',
           debugShowCheckedModeBanner: false,
@@ -47,7 +54,7 @@ class IslandDiaryApp extends StatelessWidget {
             ),
             useMaterial3: true,
             scaffoldBackgroundColor: const Color(0xFFE6F3F5),
-            fontFamily: 'ArphicKaiti',
+            fontFamily: defaultFont,
             bottomSheetTheme: const BottomSheetThemeData(
               showDragHandle: true,
               backgroundColor: Colors.white,
@@ -65,7 +72,7 @@ class IslandDiaryApp extends StatelessWidget {
             ),
             useMaterial3: true,
             scaffoldBackgroundColor: const Color(0xFF0D1B2A),
-            fontFamily: 'LXGWWenKai',
+            fontFamily: darkFont,
             bottomSheetTheme: const BottomSheetThemeData(
               showDragHandle: true,
               backgroundColor: Color(0xFF1A1A1A),

@@ -9,6 +9,7 @@ class TypewriterText extends StatefulWidget {
   final Duration delay;
   final VoidCallback? onFinished;
   final TextStyle? style;
+  final bool enableHaptic;
 
   const TypewriterText({
     super.key,
@@ -17,6 +18,7 @@ class TypewriterText extends StatefulWidget {
     this.delay = Duration.zero,
     this.onFinished,
     this.style,
+    this.enableHaptic = false,
   });
 
   @override
@@ -57,7 +59,9 @@ class TypewriterTextState extends State<TypewriterText> {
       });
 
       // 伴随震动
-      HapticFeedback.lightImpact();
+      if (widget.enableHaptic) {
+        HapticFeedback.lightImpact();
+      }
 
       final char = widget.text[i];
       Duration wait = widget.typingDuration;

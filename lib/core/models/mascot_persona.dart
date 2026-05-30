@@ -78,6 +78,8 @@ class MascotPersona {
           return '回到了最初的小岛，这里每个角落都有主人的气味，好喜欢，汪！';
         case 'cotton_candy':
           return '哇！这个粉粉嫩嫩的云朵，踩上去一定像踩在肉垫上一样舒服吧，汪！';
+        case 'lego':
+          return '好多五彩缤纷的塑料积木！我们可以拼成各种好玩的形状，汪！';
         case 'cherry_blossom':
           return '樱花漫天飞舞！我要帮主人接住最漂亮的那片，汪！';
         case 'starry_night':
@@ -97,6 +99,8 @@ class MascotPersona {
           return '嗯？又换回这个普通地方了。行吧，至少晒太阳的角度还挺合适。';
         case 'cotton_candy':
           return '棉花糖……甜腻腻的。不过躺在上面睡觉，确实比硬邦邦的石头舒服点。';
+        case 'lego':
+          return '积木？要是被我一爪子拍倒了，你可别哭鼻子。';
         case 'cherry_blossom':
           return '樱花？哼，落得满地都是，大费周章。不过……确实不算难看。';
         case 'starry_night':
@@ -116,6 +120,8 @@ class MascotPersona {
           return '洗尽铅华，复归本真。平凡的一草一木，亦有它的清雅之美。';
         case 'cotton_candy':
           return '粉黛如云，缱绻入梦。在这温柔的云海里，连岁月都慢了下来。';
+        case 'lego':
+          return '一榫一卯，皆具匠心。小小的方块，亦能构筑乾坤。';
         case 'cherry_blossom':
           return '落樱缤纷，如雨如歌。一期一会的美丽，正适合记录在笔墨间。';
         case 'starry_night':
@@ -136,6 +142,8 @@ class MascotPersona {
           return '回到了熟悉的小岛，感觉就像回到了最温馨的港湾呢。';
         case 'cotton_candy':
           return '哇，整个岛都变成了软绵绵的棉花糖，感觉心情也被染成了粉红色呢！';
+        case 'lego':
+          return '满天的小积木拼成了我们的小岛，每一块都承载着我们的回忆呢！';
         case 'cherry_blossom':
           return '春天的气息扑面而来呢，樱花树下很适合喝杯热茶、静静享受生活呀。';
         case 'starry_night':
