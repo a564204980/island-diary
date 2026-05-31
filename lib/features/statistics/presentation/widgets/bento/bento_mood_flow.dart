@@ -129,236 +129,278 @@ extension _BentoMoodFlow on _StatisticsPageState {
     }
 
     final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+    final String themeId = UserState().selectedIslandThemeId.value;
+    final bool isLego = themeId == 'lego';
+
+    final Widget cardBody = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildBentoHeader(
+          context: context,
+          title: '情绪分布趋势',
+          helpContent: '这里会把不同情绪分开画成多条线。哪条线越高，说明那种情绪在那天越明显。用它可以看出这段时间[[哪种情绪更多]]，以及它们分别在什么时候变强或变弱。',
+          isNight: isNight,
+          rightAction: Icon(
+            CupertinoIcons.graph_circle,
+            size: 18,
+            color: isCottonCandy
+                ? const Color(0xFFF7AAB6)
+                : themeColor.withValues(alpha: isNight ? 0.6 : 0.4),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: _buildMoodFlowSubtitle(
+            targetLabels.first,
+            labelToMoodIndex[targetLabels.first]!,
+            isNight,
+          ),
+        ),
+        const SizedBox(height: 16),
+        // 优化标签展示区：双行横向滚动
+        if (targetLabels.isNotEmpty)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 第一行
+                Row(
+                  children: List.generate((targetLabels.length / 2).ceil(), (index) {
+                    final label = targetLabels[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8, bottom: 8),
+                      child: _buildMoodTag(label, labelToMoodIndex[label]!, isNight),
+                    );
+                  }),
+                ),
+                // 第二行
+                Row(
+                  children: List.generate(targetLabels.length - (targetLabels.length / 2).ceil(), (index) {
+                    final label = targetLabels[index + (targetLabels.length / 2).ceil()];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _buildMoodTag(label, labelToMoodIndex[label]!, isNight),
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 180,
+          child: Row(
+            children: [
+              // Y 轴
+              LayoutBuilder(
+                builder: (context, _) {
+                  final double displayMaxY = (maxY * 1.2).ceilToDouble();
+                  return SizedBox(
+                    width: 24,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildYLabel(displayMaxY.toInt().toString(), isNight),
+                        _buildYLabel((displayMaxY / 2).toInt().toString(), isNight),
+                        _buildYLabel('0', isNight),
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  );
+                }
+              ),
+              // 绘图区
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double minWidth = constraints.maxWidth;
+                    final double calculatedWidth = daysCount * 64.0;
+                    final double finalWidth = calculatedWidth > minWidth ? calculatedWidth : minWidth;
+                    final double displayMaxY = (maxY * 1.2).ceilToDouble();
+
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: SizedBox(
+                        width: finalWidth,
+                        child: Stack(
+                          children: [
+                            LineChart(
+                              LineChartData(
+                                minX: -0.18,
+                                maxX: daysCount.toDouble() - 0.5,
+                                minY: 0,
+                                maxY: displayMaxY,
+                                clipData: const FlClipData.none(),
+                                gridData: FlGridData(
+                                  show: true,
+                                  drawVerticalLine: false,
+                                  getDrawingHorizontalLine: (value) {
+                                    return FlLine(
+                                      color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                                      strokeWidth: 1,
+                                    );
+                                  },
+                                ),
+                                titlesData: FlTitlesData(
+                                  show: true,
+                                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  bottomTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      reservedSize: 32,
+                                      interval: 1,
+                                      getTitlesWidget: (value, meta) {
+                                        if (value % 1 != 0) return const SizedBox.shrink();
+                                        final int index = value.round();
+                                        if (index < 0 || index >= daysCount) return const SizedBox.shrink();
+                                        
+                                        final date = startDate.add(Duration(days: index));
+                                        bool isEdge = index == 0 || index == daysCount - 1;
+                                        
+                                        String label;
+                                        if (_currentRange == StatTimeRange.week) {
+                                          label = _getChineseWeekDay(date.weekday);
+                                        } else {
+                                          label = (date.day == 1 || index == 0) 
+                                              ? '${date.month}/${date.day}' 
+                                              : '${date.day}';
+                                        }
+
+                                        return Padding(
+                                          padding: const EdgeInsets.only(top: 8.0),
+                                          child: Text(
+                                            label,
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: (date.day == 1 || isEdge) ? FontWeight.bold : FontWeight.normal,
+                                              color: isNight ? Colors.white38 : Colors.black38,
+                                              fontFamily: 'LXGWWenKai',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                borderData: FlBorderData(show: false),
+                                lineBarsData: lineBarsData,
+                                lineTouchData: LineTouchData(
+                                  handleBuiltInTouches: true,
+                                  touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
+                                    if (event is FlTapUpEvent) {
+                                      if (response == null || response.lineBarSpots == null || response.lineBarSpots!.isEmpty) {
+                                        updateMoodFlowX(null);
+                                      } else {
+                                        final spot = response.lineBarSpots!.first;
+                                        updateMoodFlowX(spot.x.toInt());
+                                      }
+                                    }
+                                  },
+                                  touchTooltipData: LineTouchTooltipData(
+                                    getTooltipColor: (_) => Colors.transparent,
+                                    getTooltipItems: (touchedSpots) => touchedSpots.map((_) {
+                                      return const LineTooltipItem('', TextStyle(fontSize: 0));
+                                    }).toList(),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // 自定义提示框叠加层
+                            if (_selectedMoodFlowX != null)
+                              ...[
+                                // 辅助垂线
+                                Positioned(
+                                  left: (_selectedMoodFlowX! + 0.5) / daysCount * finalWidth,
+                                  top: 0,
+                                  bottom: 32,
+                                  child: Container(
+                                    width: 1,
+                                    color: isNight ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.1),
+                                  ),
+                                ),
+                                _buildBentoTooltip(
+                                  title: '${startDate.add(Duration(days: _selectedMoodFlowX!)).month}月${startDate.add(Duration(days: _selectedMoodFlowX!)).day}日',
+                                  items: [
+                                    for (var label in targetLabels)
+                                      if (_selectedMoodFlowLabel == null || _selectedMoodFlowLabel == label)
+                                        if (dataMap[label]![_selectedMoodFlowX!] > 0)
+                                          _BentoTooltipItem(
+                                            label: label,
+                                            value: dataMap[label]![_selectedMoodFlowX!].toStringAsFixed(1),
+                                            color: label == kMoods[labelToMoodIndex[label]!].label
+                                              ? kMoods[labelToMoodIndex[label]!].glowColor ?? (isNight ? Colors.white : Colors.black87)
+                                              : HSLColor.fromAHSL(1.0, (label.hashCode % 360).toDouble(), 0.5, 0.6).toColor()
+                                          )
+                                  ]..sort((a, b) => double.parse(b.value).compareTo(double.parse(a.value))),
+                                  relativeX: (_selectedMoodFlowX! + 0.5) / daysCount,
+                                  chartWidth: finalWidth,
+                                  isNight: isNight,
+                                  width: isCottonCandy ? 138 : 150,
+                                  useCottonCandyStyle: isCottonCandy,
+                                ),
+                              ]
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (isLego) {
+      return Container(
+        decoration: BoxDecoration(
+          color: isNight ? const Color(0xFF1E2024) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isNight
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isNight ? Colors.black38 : Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _LegoStudBackgroundPainter(isNight: isNight),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                child: cardBody,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return _buildGlassCard(
       isNight: isNight,
       backgroundColor: isCottonCandy ? const Color(0xFFFFF4EF) : null,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildBentoHeader(
-            context: context,
-            title: '情绪分布趋势',
-            helpContent: '这里会把不同情绪分开画成多条线。哪条线越高，说明那种情绪在那天越明显。用它可以看出这段时间[[哪种情绪更多]]，以及它们分别在什么时候变强或变弱。',
-            isNight: isNight,
-            rightAction: Icon(
-              CupertinoIcons.graph_circle,
-              size: 18,
-              color: isCottonCandy
-                  ? const Color(0xFFF7AAB6)
-                  : themeColor.withValues(alpha: isNight ? 0.6 : 0.4),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: _buildMoodFlowSubtitle(
-              targetLabels.first,
-              labelToMoodIndex[targetLabels.first]!,
-              isNight,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // 优化标签展示区：双行横向滚动
-          if (targetLabels.isNotEmpty)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 第一行
-                  Row(
-                    children: List.generate((targetLabels.length / 2).ceil(), (index) {
-                      final label = targetLabels[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8, bottom: 8),
-                        child: _buildMoodTag(label, labelToMoodIndex[label]!, isNight),
-                      );
-                    }),
-                  ),
-                  // 第二行
-                  Row(
-                    children: List.generate(targetLabels.length - (targetLabels.length / 2).ceil(), (index) {
-                      final label = targetLabels[index + (targetLabels.length / 2).ceil()];
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: _buildMoodTag(label, labelToMoodIndex[label]!, isNight),
-                      );
-                    }),
-                  ),
-                ],
-              ),
-            ),
-
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 180,
-            child: Row(
-              children: [
-                // Y 轴
-                LayoutBuilder(
-                  builder: (context, _) {
-                    final double displayMaxY = (maxY * 1.2).ceilToDouble();
-                    return SizedBox(
-                      width: 24,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildYLabel(displayMaxY.toInt().toString(), isNight),
-                          _buildYLabel((displayMaxY / 2).toInt().toString(), isNight),
-                          _buildYLabel('0', isNight),
-                          const SizedBox(height: 32),
-                        ],
-                      ),
-                    );
-                  }
-                ),
-                // 绘图区
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final double minWidth = constraints.maxWidth;
-                      final double calculatedWidth = daysCount * 64.0;
-                      final double finalWidth = calculatedWidth > minWidth ? calculatedWidth : minWidth;
-                      final double displayMaxY = (maxY * 1.2).ceilToDouble();
-
-                      return SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        child: SizedBox(
-                          width: finalWidth,
-                          child: Stack(
-                            children: [
-                              LineChart(
-                                LineChartData(
-                                  minX: -0.18,
-                                  maxX: daysCount.toDouble() - 0.5,
-                                  minY: 0,
-                                  maxY: displayMaxY,
-                                  clipData: const FlClipData.none(),
-                                  gridData: FlGridData(
-                                    show: true,
-                                    drawVerticalLine: false,
-                                    getDrawingHorizontalLine: (value) {
-                                      return FlLine(
-                                        color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-                                        strokeWidth: 1,
-                                      );
-                                    },
-                                  ),
-                                  titlesData: FlTitlesData(
-                                    show: true,
-                                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                    bottomTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                        showTitles: true,
-                                        reservedSize: 32,
-                                        interval: 1,
-                                        getTitlesWidget: (value, meta) {
-                                          if (value % 1 != 0) return const SizedBox.shrink();
-                                          final int index = value.round();
-                                          if (index < 0 || index >= daysCount) return const SizedBox.shrink();
-                                          
-                                          final date = startDate.add(Duration(days: index));
-                                          bool isEdge = index == 0 || index == daysCount - 1;
-                                          
-                                          String label;
-                                          if (_currentRange == StatTimeRange.week) {
-                                            label = _getChineseWeekDay(date.weekday);
-                                          } else {
-                                            label = (date.day == 1 || index == 0) 
-                                                ? '${date.month}/${date.day}' 
-                                                : '${date.day}';
-                                          }
-
-                                          return Padding(
-                                            padding: const EdgeInsets.only(top: 8.0),
-                                            child: Text(
-                                              label,
-                                              style: TextStyle(
-                                                fontSize: 9,
-                                                fontWeight: (date.day == 1 || isEdge) ? FontWeight.bold : FontWeight.normal,
-                                                color: isNight ? Colors.white38 : Colors.black38,
-                                                fontFamily: 'LXGWWenKai',
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  borderData: FlBorderData(show: false),
-                                  lineBarsData: lineBarsData,
-                                  lineTouchData: LineTouchData(
-                                    handleBuiltInTouches: true,
-                                    touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
-                                      if (event is FlTapUpEvent) {
-                                        if (response == null || response.lineBarSpots == null || response.lineBarSpots!.isEmpty) {
-                                          updateMoodFlowX(null);
-                                        } else {
-                                          final spot = response.lineBarSpots!.first;
-                                          updateMoodFlowX(spot.x.toInt());
-                                        }
-                                      }
-                                    },
-                                    touchTooltipData: LineTouchTooltipData(
-                                      getTooltipColor: (_) => Colors.transparent,
-                                      getTooltipItems: (touchedSpots) => touchedSpots.map((_) {
-                                        return const LineTooltipItem('', TextStyle(fontSize: 0));
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              // 自定义提示框叠加层
-                              if (_selectedMoodFlowX != null)
-                                ...[
-                                  // 辅助垂线
-                                  Positioned(
-                                    left: (_selectedMoodFlowX! + 0.5) / daysCount * finalWidth,
-                                    top: 0,
-                                    bottom: 32,
-                                    child: Container(
-                                      width: 1,
-                                      color: isNight ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.1),
-                                    ),
-                                  ),
-                                  _buildBentoTooltip(
-                                    title: '${startDate.add(Duration(days: _selectedMoodFlowX!)).month}月${startDate.add(Duration(days: _selectedMoodFlowX!)).day}日',
-                                    items: [
-                                      for (var label in targetLabels)
-                                        if (_selectedMoodFlowLabel == null || _selectedMoodFlowLabel == label)
-                                          if (dataMap[label]![_selectedMoodFlowX!] > 0)
-                                            _BentoTooltipItem(
-                                              label: label,
-                                              value: dataMap[label]![_selectedMoodFlowX!].toStringAsFixed(1),
-                                              color: label == kMoods[labelToMoodIndex[label]!].label
-                                                ? kMoods[labelToMoodIndex[label]!].glowColor ?? (isNight ? Colors.white : Colors.black87)
-                                                : HSLColor.fromAHSL(1.0, (label.hashCode % 360).toDouble(), 0.5, 0.6).toColor()
-                                            )
-                                    ]..sort((a, b) => double.parse(b.value).compareTo(double.parse(a.value))),
-                                    relativeX: (_selectedMoodFlowX! + 0.5) / daysCount,
-                                    chartWidth: finalWidth,
-                                    isNight: isNight,
-                                    width: isCottonCandy ? 138 : 150,
-                                    useCottonCandyStyle: isCottonCandy,
-                                  ),
-                                ]
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: cardBody,
     );
   }
 

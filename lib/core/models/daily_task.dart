@@ -83,25 +83,31 @@ class DailyTask {
     ),
   ];
 
-  static DailyTask? getHolidayTask(DateTime date) {
-    // 强制返回劳动节任务，方便调试 UI 细节
-    // 在正式发布前应取消此强制返回，恢复下方的日期判定逻辑
-    return DailyTask(
-      id: 'holiday_labor_day',
-      title: '致敬劳动者',
-      description: '勤劳的手指能编织最美的岛屿梦。去小红书安利你的岛屿生活，集赞收获日出勋章！',
-      type: DailyTaskType.writeDiary,
-      rewardPoints: 51,
-      isHoliday: true,
-      icon: 'assets/icons/happy.png',
-    );
+  static DailyTask getNormalTask(DateTime date) {
+    final index = (date.year + date.month + date.day) % pool.length;
+    return pool[index];
+  }
 
-    /* 正式逻辑：
+  bool get isPreheating {
+    if (!isHoliday) return false;
+    final now = DateTime.now();
+    if (id == 'holiday_arbor_day') {
+      // 植树节：3月12日 - 3月14日，预热：3月9日 - 3月11日
+      return now.month == 3 && now.day >= 9 && now.day <= 11;
+    }
+    if (id == 'holiday_labor_day') {
+      // 劳动节：5月1日 - 5月5日，预热：4月28日 - 4月30日
+      return now.month == 4 && now.day >= 28 && now.day <= 30;
+    }
+    return false;
+  }
+
+  static DailyTask? getHolidayTask(DateTime date) {
     final month = date.month;
     final day = date.day;
 
-    // 植树节：3月12日 - 3月14日
-    if (month == 3 && day >= 12 && day <= 14) {
+    // 植树节：3月12日 - 3月14日 (预热 3月9日 - 3月11日)
+    if (month == 3 && day >= 9 && day <= 14) {
       return DailyTask(
         id: 'holiday_arbor_day',
         title: '森林守护者',
@@ -113,8 +119,9 @@ class DailyTask {
       );
     }
 
-    // 劳动节：5月1日 - 5月5日
-    if (month == 5 && day >= 1 && day <= 5) {
+    // 劳动节：5月1日 - 5月5日 (预热 4月28日 - 4月30日)
+    final isLaborDayPeriod = (month == 4 && day >= 28 && day <= 30) || (month == 5 && day >= 1 && day <= 5);
+    if (isLaborDayPeriod) {
       return DailyTask(
         id: 'holiday_labor_day',
         title: '致敬劳动者',
@@ -126,13 +133,16 @@ class DailyTask {
       );
     }
     return null;
-    */
   }
 
   /// 获取目前所有可用的节日活动任务
   static List<DailyTask> getAvailableEvents() {
-    return [
-      DailyTask(
+    final now = DateTime.now();
+    final List<DailyTask> activeEvents = [];
+
+    // 检查植树节（包含预热期 3.9 - 3.14）
+    if (now.month == 3 && now.day >= 9 && now.day <= 14) {
+      activeEvents.add(DailyTask(
         id: 'holiday_arbor_day',
         title: '森林守护者',
         description: '小岛的春天需要你的一份绿意。去小红书分享你的岛屿记录，集赞领取森林限定礼吧！',
@@ -140,17 +150,23 @@ class DailyTask {
         rewardPoints: 32,
         isHoliday: true,
         icon: 'assets/icons/calm.png',
-      ),
-      DailyTask(
+      ));
+    }
+
+    // 检查劳动节（包含预热期 4.28 - 5.5）
+    final isLaborDayPeriod = (now.month == 4 && now.day >= 28 && now.day <= 30) || (now.month == 5 && now.day >= 1 && now.day <= 5);
+    if (isLaborDayPeriod) {
+      activeEvents.add(DailyTask(
         id: 'holiday_labor_day',
         title: '致敬劳动者',
         description: '勤劳的手指能编织最美的岛屿梦。去小红书安利你的岛屿生活，集赞收获日出勋章！',
         type: DailyTaskType.writeDiary,
-        rewardPoints: 55, // 统一一下之前变动的数值
+        rewardPoints: 55,
         isHoliday: true,
         icon: 'assets/icons/happy.png',
-      ),
+      ));
+    }
 
-    ];
+    return activeEvents;
   }
 }

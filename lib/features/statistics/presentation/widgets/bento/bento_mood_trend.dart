@@ -402,10 +402,20 @@ extension _BentoMoodTrend on _StatisticsPageState {
                               width: finalWidth,
                               child: Stack(
                                 children: [
+                                  if (UserState().selectedIslandThemeId.value == 'lego')
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      top: 0,
+                                      bottom: 40,
+                                      child: CustomPaint(
+                                        painter: _LegoBaseplatePainter(isNight: isNight),
+                                      ),
+                                    ),
                                   LineChart(
                                 LineChartData(
-                                  minX: -0.15,
-                                  maxX: aggregatedPoints.length - 0.85,
+                                  minX: -0.4,
+                                  maxX: aggregatedPoints.length - 0.6,
                                   minY: -yLimit,
                                   maxY: yLimit,
                                   gridData: FlGridData(
@@ -528,8 +538,8 @@ extension _BentoMoodTrend on _StatisticsPageState {
                                 // 辅助垂线
                                 Positioned(
                                   left:
-                                      (_selectedMoodTrendX! + 0.15) /
-                                      (aggregatedPoints.length - 0.7) *
+                                      (_selectedMoodTrendX! + 0.4) /
+                                      (aggregatedPoints.length - 0.2) *
                                       finalWidth,
                                   top: 0,
                                   bottom: 40,
@@ -556,8 +566,8 @@ extension _BentoMoodTrend on _StatisticsPageState {
                                     ),
                                   ],
                                   relativeX:
-                                      (_selectedMoodTrendX! + 0.15) /
-                                      (aggregatedPoints.length - 0.7),
+                                      (_selectedMoodTrendX! + 0.4) /
+                                      (aggregatedPoints.length - 0.2),
                                   chartWidth: finalWidth,
                                   isNight: isNight,
                                   useCottonCandyStyle: isCottonCandy,
@@ -575,15 +585,15 @@ extension _BentoMoodTrend on _StatisticsPageState {
                                           as String;
                                   // 水平 X 绝对坐标精算 (减去贴纸半径 14.0 以完美居中)
                                   final double spotX =
-                                      (maxIdx + 0.15) /
-                                      (aggregatedPoints.length - 0.7) *
+                                      (maxIdx + 0.4) /
+                                      (aggregatedPoints.length - 0.2) *
                                       finalWidth;
                                   // 垂直 Y 绝对坐标像素精算 (基于卡片总高度 180px - 底部 X 轴 reservedSize 40px = 140px 净绘图高进行无偏差插值)
                                   final double spotY =
                                       (yLimit - spot.y) / (yLimit * 2) * 140.0;
                                   return Positioned(
                                     left: spotX - 14.0,
-                                    top: spotY - 14.0,
+                                    top: (spotY - 14.0).clamp(4.0, 140.0),
                                     child: _buildMoodTrendIconStick(
                                       iconPath: iconPath,
                                       isMax: true,
@@ -604,15 +614,15 @@ extension _BentoMoodTrend on _StatisticsPageState {
                                       aggregatedPoints[minIdx]['moodIcon']
                                           as String;
                                   final double spotX =
-                                      (minIdx + 0.15) /
-                                      (aggregatedPoints.length - 0.7) *
+                                      (minIdx + 0.4) /
+                                      (aggregatedPoints.length - 0.2) *
                                       finalWidth;
                                   // 垂直 Y 绝对坐标像素精算 (同上，140.0px 净绘图高完美比例线性缩放)
                                   final double spotY =
                                       (yLimit - spot.y) / (yLimit * 2) * 140.0;
                                   return Positioned(
                                     left: spotX - 14.0,
-                                    top: spotY - 14.0 + 3,
+                                    top: (spotY - 14.0 + 3).clamp(4.0, 140.0),
                                     child: _buildMoodTrendIconStick(
                                       iconPath: iconPath,
                                       isMax: false,
@@ -877,4 +887,45 @@ Widget _buildYLabel(String text, bool isNight) {
 String _getChineseWeekDay(int weekday) {
   const list = ['一', '二', '三', '四', '五', '六', '日'];
   return list[weekday - 1];
+}
+
+class _LegoBaseplatePainter extends CustomPainter {
+  final bool isNight;
+  _LegoBaseplatePainter({required this.isNight});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const double step = 14.0;
+    const double radius = 3.5;
+
+    final Color studColor = isNight
+        ? Colors.white.withValues(alpha: 0.007)
+        : const Color(0xFFE5ECF6).withValues(alpha: 0.15); // 极其柔和淡淡的浅灰蓝
+
+    final Color shadowColor = isNight
+        ? Colors.black.withValues(alpha: 0.03)
+        : const Color(0x04000000);
+
+    final Color highlightColor = isNight
+        ? Colors.white.withValues(alpha: 0.015)
+        : Colors.white.withValues(alpha: 0.2);
+
+    final Paint paintMain = Paint()..color = studColor..style = PaintingStyle.fill;
+    final Paint paintShadow = Paint()..color = shadowColor..style = PaintingStyle.fill;
+    final Paint paintHighlight = Paint()..color = highlightColor..style = PaintingStyle.fill;
+
+    for (double x = step / 2; x < size.width; x += step) {
+      for (double y = step / 2; y < size.height; y += step) {
+        // 1. 绘制阴影（右下微偏）
+        canvas.drawCircle(Offset(x + 0.6, y + 0.6), radius, paintShadow);
+        // 2. 绘制高光（左上微偏）
+        canvas.drawCircle(Offset(x - 0.6, y - 0.6), radius, paintHighlight);
+        // 3. 绘制主体圆粒
+        canvas.drawCircle(Offset(x, y), radius, paintMain);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

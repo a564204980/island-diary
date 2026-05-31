@@ -141,10 +141,15 @@ class DailyTaskCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             margin: const EdgeInsets.only(right: 8),
                             decoration: BoxDecoration(
-                              color: task.id == 'holiday_labor_day' ? Colors.orange : Colors.green,
+                              color: task.isPreheating
+                                  ? const Color(0xFF8B5CF6) // 预热使用优雅的紫色
+                                  : (task.id == 'holiday_labor_day' ? Colors.orange : Colors.green),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Text('节日限定', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              task.isPreheating ? '节日预热' : '节日限定',
+                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            ),
                           ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds),
                         Text(
                           isClaimed ? '好梦伴你' : (isHoliday ? '岛屿节日 · 惊喜' : '此时此刻 · 灵感'),

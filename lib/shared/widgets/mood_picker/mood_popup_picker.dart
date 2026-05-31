@@ -51,6 +51,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
     final bgColor = DiaryUtils.getPopupBackgroundColor(effectiveStyle, effectiveIsNight);
     final primaryColor = DiaryUtils.getAccentColor(effectiveStyle, effectiveIsNight);
     final inkColor = DiaryUtils.getInkColor(effectiveStyle, effectiveIsNight);
+    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
 
     return Container(
       padding: EdgeInsets.only(
@@ -81,7 +82,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                 Text(
                   '记录此刻...',
                   style: TextStyle(
-                    fontFamily: 'LXGWWenKai',
+                    fontFamily: fontFamily,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: primaryColor,
@@ -152,7 +153,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                             color: isSelected 
                                 ? primaryColor 
                                 : (effectiveIsNight ? Colors.white60 : inkColor.withValues(alpha: 0.7)),
-                            fontFamily: 'LXGWWenKai',
+                            fontFamily: fontFamily,
                           ),
                         ),
                       ],
@@ -169,7 +170,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: isNight ? Colors.white38 : primaryColor.withValues(alpha: 0.7),
-                fontFamily: 'LXGWWenKai',
+                fontFamily: fontFamily,
               ),
             ),
             const SizedBox(height: 10),
@@ -189,7 +190,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                 },
                 style: TextStyle(
                   color: effectiveIsNight ? Colors.white : inkColor,
-                  fontFamily: 'LXGWWenKai',
+                  fontFamily: fontFamily,
                   fontSize: 15,
                 ),
                 decoration: InputDecoration(
@@ -245,7 +246,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                                   style: TextStyle(
                                     color: effectiveIsNight ? Colors.white54 : inkColor.withValues(alpha: 0.6),
                                     fontSize: 12,
-                                    fontFamily: 'LXGWWenKai',
+                                    fontFamily: fontFamily,
                                   ),
                                 ),
                               ),
@@ -267,7 +268,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: effectiveIsNight ? Colors.white38 : inkColor.withValues(alpha: 0.6),
-                    fontFamily: 'LXGWWenKai',
+                    fontFamily: fontFamily,
                   ),
                 ),
                 const Spacer(),
@@ -277,7 +278,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: primaryColor,
-                    fontFamily: 'LXGWWenKai',
+                    fontFamily: fontFamily,
                   ),
                 ),
               ],
@@ -308,9 +309,9 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _IntensityLabel(label: '微弱', value: 0.1, current: _intensity / 10, color: primaryColor),
-                  _IntensityLabel(label: '适中', value: 0.5, current: _intensity / 10, color: primaryColor),
-                  _IntensityLabel(label: '强烈', value: 0.9, current: _intensity / 10, color: primaryColor),
+                  _IntensityLabel(label: '微弱', value: 0.1, current: _intensity / 10, color: primaryColor, fontFamily: fontFamily),
+                  _IntensityLabel(label: '适中', value: 0.5, current: _intensity / 10, color: primaryColor, fontFamily: fontFamily),
+                  _IntensityLabel(label: '强烈', value: 0.9, current: _intensity / 10, color: primaryColor, fontFamily: fontFamily),
                 ],
               ),
             ),
@@ -376,7 +377,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                         color: canSave ? Colors.white : (effectiveIsNight ? Colors.white24 : inkColor.withValues(alpha: 0.2)),
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
-                        fontFamily: 'LXGWWenKai',
+                        fontFamily: fontFamily,
                         letterSpacing: 2,
                       ),
                     ),
@@ -397,12 +398,14 @@ class _IntensityLabel extends StatelessWidget {
   final double value;
   final double current;
   final Color color;
+  final String fontFamily;
 
   const _IntensityLabel({
     required this.label,
     required this.value,
     required this.current,
     required this.color,
+    required this.fontFamily,
   });
 
   @override
@@ -422,7 +425,7 @@ class _IntensityLabel extends StatelessWidget {
         fontSize: 12,
         fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
         color: isActive ? color : color.withValues(alpha: 0.3),
-        fontFamily: 'LXGWWenKai',
+        fontFamily: fontFamily,
       ),
     );
   }

@@ -482,7 +482,31 @@ class DiaryUtils {
   static BoxDecoration getPopupDecoration(String paperStyle, bool isNight, {Color? customBgColor}) {
     final themeId = UserState().selectedIslandThemeId.value;
     final isCottonCandy = themeId == 'cotton_candy';
+    final isLego = themeId == 'lego';
     final Color bgColor = customBgColor ?? getPopupBackgroundColor(paperStyle, isNight);
+
+    if (isLego) {
+      final Color depthColor = isNight ? const Color(0xFF1B160E) : const Color(0xFFEADAB9);
+      final Color shadowColor = isNight ? const Color(0x80000000) : const Color(0x3D5D4037);
+      return BoxDecoration(
+        color: bgColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          // 1. 固态 3D 积木厚度实色层（零羽化）
+          BoxShadow(
+            color: depthColor,
+            blurRadius: 0,
+            offset: const Offset(0, 4.0),
+          ),
+          // 2. 底层环境遮蔽软影
+          BoxShadow(
+            color: shadowColor,
+            blurRadius: 5.0,
+            offset: const Offset(0, 5.0),
+          ),
+        ],
+      );
+    }
 
     return BoxDecoration(
       color: bgColor,

@@ -907,66 +907,103 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                       );
                     },
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Positioned(
-                          bottom: currentScreenWidth * 0.04,
-                          child: Container(
-                            width: isWide ? 480 : currentScreenWidth * 0.8,
-                            height: isWide ? 200 : currentScreenWidth * 0.4,
-                            decoration: BoxDecoration(
-                              gradient: RadialGradient(
-                                colors: [
-                                  _getIslandBottomLightColorForCurrentTime(),
-                                  _getIslandBottomLightColorForCurrentTime()
-                                      .withValues(alpha: 0.0),
-                                ],
-                                stops: const [0.15, 1.0],
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 600), // 黄金 600ms 过渡
+                      switchInCurve: Curves.easeInOutCubic,
+                      switchOutCurve: Curves.easeInOutCubic,
+                      transitionBuilder: (Widget child, Animation<double> animation) {
+                        // 判定是否是正在淡入的新小岛
+                        final isNewChild = child.key == ValueKey(islandPath);
+                        
+                        // 精准驱动上下沉降平移：新小岛从下方升起，旧小岛向下方沉降隐去
+                        final slideTween = isNewChild
+                            ? Tween<Offset>(begin: const Offset(0.0, 0.06), end: Offset.zero)
+                            : Tween<Offset>(begin: Offset.zero, end: const Offset(0.0, 0.06));
+
+                        return FadeTransition(
+                          opacity: animation,
+                          child: ScaleTransition(
+                            scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInOutCubic,
+                              ),
+                            ),
+                            child: SlideTransition(
+                              position: slideTween.animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeInOutCubic,
+                                ),
+                              ),
+                              child: child,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Stack(
+                        key: ValueKey(islandPath), // 以当前小岛资源路径为 key，触发丝滑转场
+                        alignment: Alignment.center,
+                        children: [
+                          Positioned(
+                            bottom: currentScreenWidth * 0.04,
+                            child: Container(
+                              width: isWide ? 480 : currentScreenWidth * 0.8,
+                              height: isWide ? 200 : currentScreenWidth * 0.4,
+                              decoration: BoxDecoration(
+                                gradient: RadialGradient(
+                                  colors: [
+                                    _getIslandBottomLightColorForCurrentTime(),
+                                    _getIslandBottomLightColorForCurrentTime()
+                                        .withValues(alpha: 0.0),
+                                  ],
+                                  stops: const [0.15, 1.0],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        ImageFiltered(
-                          imageFilter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.4),
-                          child: Image.asset(
-                            islandPath,
-                            width:
-                                (currentScreenWidth <= 600
-                                    ? currentScreenWidth * 0.9
-                                    : 540.0) *
-                                1.05,
-                            fit: BoxFit.contain,
-                            color: _getIslandGlowColorForCurrentTime(),
-                          ),
-                        ),
-                        ShaderMask(
-                          blendMode: BlendMode.srcATop,
-                          shaderCallback: (bounds) {
-                            return RadialGradient(
-                              center: const Alignment(0, 0.85),
-                              radius: 0.6,
-                              colors: [
-                                _getIslandBottomRockLightColorForCurrentTime(),
-                                Colors.transparent,
-                              ],
-                              stops: const [0.0, 1.0],
-                            ).createShader(bounds);
-                          },
-                          child: GestureDetector(
-                            onTap: () {
-                              _toggleZoom(context, isWide);
-                            },
-                            child: Image.asset(
-                              islandPath,
-                              width: currentScreenWidth <= 600
-                                  ? currentScreenWidth * 0.9
-                                  : 540.0,
-                              fit: BoxFit.contain,
+                          // 替换原高能耗的高斯模糊发光 ImageFiltered 为超高性能的椭圆 RadialGradient 渐变光晕
+                          Container(
+                            width: isWide ? 500 : currentScreenWidth * 0.85,
+                            height: isWide ? 220 : currentScreenWidth * 0.42,
+                            decoration: BoxDecoration(
+                              gradient: RadialGradient(
+                                colors: [
+                                  _getIslandGlowColorForCurrentTime().withValues(alpha: 0.5),
+                                  _getIslandGlowColorForCurrentTime().withValues(alpha: 0.0),
+                                ],
+                                stops: const [0.2, 1.0],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                          ShaderMask(
+                            blendMode: BlendMode.srcATop,
+                            shaderCallback: (bounds) {
+                              return RadialGradient(
+                                center: const Alignment(0, 0.85),
+                                radius: 0.6,
+                                colors: [
+                                  _getIslandBottomRockLightColorForCurrentTime(),
+                                  Colors.transparent,
+                                ],
+                                stops: const [0.0, 1.0],
+                              ).createShader(bounds);
+                            },
+                            child: GestureDetector(
+                              onTap: () {
+                                _toggleZoom(context, isWide);
+                              },
+                              child: Image.asset(
+                                islandPath,
+                                width: currentScreenWidth <= 600
+                                    ? currentScreenWidth * 0.9
+                                    : 540.0,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },

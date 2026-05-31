@@ -24,7 +24,7 @@ class MoodSelectorHeader extends StatefulWidget {
   });
 
   static const List<Map<String, String>> moods = [
-    {'label': '开心', 'icon': 'assets/icons/happy.png', 'color': '0xFFFFE484'},
+    {'label': '开心', 'icon': 'assets/icons/happy.png', 'color': '0xFFFFA000'},
     {'label': '平静', 'icon': 'assets/icons/calm.png', 'color': '0xFFA4D4E4'},
     {'label': '低落', 'icon': 'assets/icons/down.png', 'color': '0xFF84A4E4'},
     {
@@ -71,6 +71,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final double screenWidth = MediaQuery.of(context).size.width;
     final themeId = UserState().selectedIslandThemeId.value;
     final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
+    final bool isLego = themeId == 'lego';
 
     final pillWidget = Padding(
       padding: EdgeInsets.only(
@@ -83,6 +84,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOutCubic,
           clipBehavior: Clip.antiAlias,
+          margin: isLego ? const EdgeInsets.only(bottom: 6) : null,
           decoration: BoxDecoration(
             color: isCottonCandyDark
                 ? null
@@ -100,26 +102,43 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                   )
                 : null,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: isCottonCandyDark
-                  ? const Color(0xFFC0A6FF).withValues(alpha: 0.8)
-                  : inkColor.withValues(alpha: isDark ? 0.1 : 0.08),
-              width: isCottonCandyDark ? 1.5 : 1,
-            ),
-            boxShadow: [
-              if (isCottonCandyDark)
-                BoxShadow(
-                  color: const Color(0xFFC0A6FF).withValues(alpha: 0.12),
-                  blurRadius: 16,
-                  spreadRadius: 1,
-                ),
-              if (!isDark && !isSelected)
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-            ],
+            border: isLego
+                ? null
+                : Border.all(
+                    color: isCottonCandyDark
+                        ? const Color(0xFFC0A6FF).withValues(alpha: 0.8)
+                        : inkColor.withValues(alpha: isDark ? 0.1 : 0.08),
+                    width: isCottonCandyDark ? 1.5 : 1,
+                  ),
+            boxShadow: isLego
+                ? [
+                    // 1. 固态 3D 积木厚度实色层（零羽化）
+                    BoxShadow(
+                      color: isDark ? const Color(0xFF1B160E) : const Color(0xFFEADAB9),
+                      blurRadius: 0,
+                      offset: const Offset(0, 4.0),
+                    ),
+                    // 2. 底层环境遮蔽软影
+                    BoxShadow(
+                      color: isDark ? Colors.black.withValues(alpha: 0.4) : const Color(0xFFDCC8A0).withValues(alpha: 0.4),
+                      blurRadius: 4.0,
+                      offset: const Offset(0, 5.0),
+                    ),
+                  ]
+                : [
+                    if (isCottonCandyDark)
+                      BoxShadow(
+                        color: const Color(0xFFC0A6FF).withValues(alpha: 0.12),
+                        blurRadius: 16,
+                        spreadRadius: 1,
+                      ),
+                    if (!isDark && !isSelected)
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                  ],
           ),
           child: Material(
             color: Colors.transparent,
@@ -189,6 +208,11 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (themeId == 'lego')
+            Padding(
+              padding: const EdgeInsets.only(bottom: 24, top: 4),
+              child: _buildLegoTopStudsRow(),
+            ),
           Padding(
             padding: const EdgeInsets.only(left: 4, top: 4),
             child: Text(
@@ -201,17 +225,19 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          CustomPaint(
-            size: const Size(double.infinity, 2),
-            painter: HandDrawnLinePainter(
-              color: isCottonCandyDark
-                  ? const Color(0xFFC0A6FF).withValues(alpha: 0.45)
-                  : const Color(0xFFD4A373).withValues(alpha: isNight ? 0.15 : 0.3),
-              strokeWidth: 1.5,
-            ),
-          ),
-          const SizedBox(height: 8),
+          if (themeId != 'lego') const SizedBox(height: 12),
+          themeId == 'lego'
+              ? const SizedBox(height: 4)
+              : CustomPaint(
+                  size: const Size(double.infinity, 2),
+                  painter: HandDrawnLinePainter(
+                    color: isCottonCandyDark
+                        ? const Color(0xFFC0A6FF).withValues(alpha: 0.45)
+                        : const Color(0xFFD4A373).withValues(alpha: isNight ? 0.15 : 0.3),
+                    strokeWidth: 1.5,
+                  ),
+                ),
+          if (themeId != 'lego') const SizedBox(height: 8),
           pillWidget,
         ],
       );
@@ -553,6 +579,132 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                   : inkColor.withValues(alpha: 0.5),
               fontFamily: 'LXGWWenKai',
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 渲染高度逼真的 3D 乐高拼接阻隔条 (Lego Divider Strip)
+  Widget _buildLegoDivider(bool isNight) {
+    final Color barColor = isNight ? const Color(0xFF382F1E) : const Color(0xFFFCDD9B); // 主积木杆颜色
+    final Color highlightColor = isNight ? const Color(0xFF4C3E27) : const Color(0xFFFFFCE0);
+    final Color shadowColor = isNight ? const Color(0xFF1B160E) : const Color(0xFFDCC8A0);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        // 1. 中间的主体扁长积木滑条 (带微弱投影与厚度亮边)
+        Container(
+          height: 7,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: barColor,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: highlightColor, width: 0.6),
+            boxShadow: [
+              BoxShadow(
+                color: shadowColor.withValues(alpha: 0.4),
+                blurRadius: 4,
+                offset: const Offset(0, 1.5),
+              ),
+            ],
+          ),
+        ),
+
+        // 2. 左端的凸起拼接口盖 (2 颗微距颗粒)
+        Positioned(
+          left: 0,
+          child: _buildLegoDividerEnd(isNight, barColor, highlightColor, shadowColor),
+        ),
+
+        // 3. 右端的凸起拼接口盖 (2 颗微距颗粒)
+        Positioned(
+          right: 0,
+          child: _buildLegoDividerEnd(isNight, barColor, highlightColor, shadowColor),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegoDividerEnd(bool isNight, Color barColor, Color highlightColor, Color shadowColor) {
+    return Container(
+      width: 28,
+      height: 11,
+      decoration: BoxDecoration(
+        color: barColor,
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: highlightColor, width: 0.6),
+        boxShadow: [
+          BoxShadow(
+            color: shadowColor.withValues(alpha: 0.5),
+            blurRadius: 2,
+            offset: const Offset(0, 1.2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildTinyStud(highlightColor, shadowColor),
+          _buildTinyStud(highlightColor, shadowColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTinyStud(Color highlightColor, Color shadowColor) {
+    return Container(
+      width: 5,
+      height: 5,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        shape: BoxShape.circle,
+        border: Border.all(color: highlightColor, width: 0.4),
+        boxShadow: [
+          BoxShadow(
+            color: shadowColor.withValues(alpha: 0.8),
+            blurRadius: 0.8,
+            offset: const Offset(0.3, 0.6),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 渲染位于信纸顶部、整齐排布的乐高圆形凸起颗粒一排 (Top Studs Row)
+  Widget _buildLegoTopStudsRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: List.generate(13, (index) => _buildLegoTopStud(UserState().isNight)),
+    );
+  }
+
+  Widget _buildLegoTopStud(bool isNight) {
+    final Color studColor = isNight ? const Color(0xFF2C2518) : const Color(0xFFFCF0D5);
+    final Color highlightColor = isNight ? const Color(0xFF4C3E27) : const Color(0xFFFFFCE0);
+    final Color shadowColor = isNight ? const Color(0xFF1B160E) : const Color(0xFFDCC8A0);
+
+    return Container(
+      width: 11,
+      height: 11,
+      decoration: BoxDecoration(
+        color: studColor.withValues(alpha: 0.85), // 微融底色
+        shape: BoxShape.circle,
+        border: Border.all(color: highlightColor, width: 0.6),
+        boxShadow: [
+          // 凸起颗粒的微小下沉投影
+          BoxShadow(
+            color: shadowColor.withValues(alpha: 0.85),
+            blurRadius: 1.5,
+            offset: const Offset(0.5, 1.2),
+          ),
+          // 边缘反光高光
+          BoxShadow(
+            color: highlightColor.withValues(alpha: 0.7),
+            blurRadius: 0.6,
+            offset: const Offset(-0.3, -0.3),
           ),
         ],
       ),

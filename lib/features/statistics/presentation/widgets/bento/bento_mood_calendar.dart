@@ -18,197 +18,225 @@ extension _BentoMoodCalendar on _StatisticsPageState {
 
     final int daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
     final int firstWeekday = DateTime(now.year, now.month, 1).weekday; // 1=Mon, 7=Sun
+    final String themeId = UserState().selectedIslandThemeId.value;
+    final bool isLego = themeId == 'lego';
+
+    final Widget cardBody = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildBentoHeader(
+          context: context,
+          title: '情绪日历',
+          helpContent: '每个日期会显示当天最主要的心情。点开某一天，可以回看那天写下的日记和情绪。',
+          isNight: isNight,
+          rightAction: Icon(
+            CupertinoIcons.calendar,
+            size: 18,
+            color: isCottonCandy
+                ? const Color(0xFFF7AAB6)
+                : (isNight ? Colors.white54 : Colors.black38),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // 星期表头
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: ['一', '二', '三', '四', '五', '六', '日'].map((day) {
+            return Text(
+              day,
+              style: TextStyle(
+                fontSize: 12,
+                color: isNight
+                    ? Colors.white38
+                    : (isCottonCandy ? const Color(0xFF9A7A69) : Colors.black38),
+                fontWeight: FontWeight.bold,
+                fontFamily: 'LXGWWenKai',
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final double screenWidth = MediaQuery.of(context).size.width;
+            final double aspectRatio = screenWidth > 600 ? 1.3 : 1.0;
+            
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7, 
+                childAspectRatio: aspectRatio,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+              ),
+              itemCount: daysInMonth + firstWeekday - 1,
+              itemBuilder: (context, index) {
+                if (index < firstWeekday - 1) return const SizedBox.shrink();
+                final day = index - (firstWeekday - 1) + 1;
+                final entries = daysEntriesMap[day] ?? [];
+                final entry = entries.isNotEmpty ? entries.last : null;
+
+                return GestureDetector(
+                  onTap: () {
+                    if (entry != null) {
+                      // 已有日记
+                    } else {
+                      final targetDate = DateTime(now.year, now.month, day);
+                      if (targetDate.isBefore(DateTime.now())) {
+                         _handleBackfill(context, targetDate, isNight);
+                      }
+                    }
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: day == now.day
+                          ? (isCottonCandy
+                              ? const Color(0xFFFFF2F4)
+                              : (isNight ? const Color(0xFF3D2C2F) : const Color(0xFFFFF0F2)))
+                          : (isCottonCandy
+                              ? const Color(0xFFFFEDE7).withValues(alpha: 0.6)
+                              : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.03))),
+                      borderRadius: BorderRadius.circular(isCottonCandy ? 14 : 12),
+                      border: Border.all(
+                        color: day == now.day
+                            ? (isCottonCandy
+                                ? const Color(0xFFF7AAB6)
+                                : (isNight ? const Color(0xFFF7AAB6).withValues(alpha: 0.6) : const Color(0xFFF7AAB6)))
+                            : (isCottonCandy
+                                ? const Color(0xFFF8DDD5).withValues(alpha: 0.45)
+                                : (isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))),
+                        width: day == now.day ? 1.5 : 1.0,
+                      ),
+                      boxShadow: day == now.day && isCottonCandy
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFFF7AAB6).withValues(alpha: 0.15),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              )
+                            ]
+                          : null,
+                    ),
+                    child: entry != null
+                        ? Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Positioned(
+                                left: -2,
+                                top: -3,
+                                child: Text(
+                                  '$day',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: day == now.day ? FontWeight.bold : FontWeight.w600,
+                                    color: day == now.day
+                                        ? (isCottonCandy ? const Color(0xFFF76F87) : (isNight ? const Color(0xFFF7AAB6) : const Color(0xFFF76F87)))
+                                        : (isNight
+                                            ? Colors.white70
+                                            : (isCottonCandy ? const Color(0xFF7A5A4A) : Colors.black54)),
+                                    fontFamily: 'LXGWWenKai',
+                                  ),
+                                ),
+                              ),
+                              Center(
+                                child: _MoodCalendarIcon(
+                                  moodIndex: entry.moodIndex % kMoods.length,
+                                  isCottonCandy: isCottonCandy,
+                                  size: isCottonCandy ? 24 : 22,
+                                ),
+                              ),
+                              if (entries.length > 1)
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 1.5,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: entries
+                                        .take(4)
+                                        .map((e) => _buildMoodDot(
+                                              e.moodIndex % kMoods.length,
+                                              isNight,
+                                              isCottonCandy,
+                                            ))
+                                        .toList(),
+                                  ),
+                                ),
+                            ],
+                          )
+                        : Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Center(
+                                child: Text(
+                                  '$day',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: day == now.day ? FontWeight.bold : FontWeight.normal,
+                                    color: day == now.day
+                                        ? (isCottonCandy ? const Color(0xFFF76F87) : (isNight ? const Color(0xFFF7AAB6) : const Color(0xFFF76F87)))
+                                        : (isNight
+                                            ? Colors.white70
+                                            : (isCottonCandy ? const Color(0xFF7A5A4A) : Colors.black54)),
+                                    fontFamily: 'LXGWWenKai',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
+    );
+
+    if (isLego) {
+      return Container(
+        decoration: BoxDecoration(
+          color: isNight ? const Color(0xFF1E2024) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isNight
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isNight ? Colors.black38 : Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _LegoStudBackgroundPainter(isNight: isNight),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: cardBody,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return _buildGlassCard(
       isNight: isNight,
       backgroundColor: isCottonCandy ? const Color(0xFFFFF4EF) : null,
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildBentoHeader(
-            context: context,
-            title: '情绪日历',
-            helpContent: '每个日期会显示当天最主要的心情。点开某一天，可以回看那天写下的日记和情绪。',
-            isNight: isNight,
-            rightAction: Icon(
-              CupertinoIcons.calendar,
-              size: 18,
-              color: isCottonCandy
-                  ? const Color(0xFFF7AAB6)
-                  : (isNight ? Colors.white54 : Colors.black38),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // 星期表头
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ['一', '二', '三', '四', '五', '六', '日'].map((day) {
-              return Text(
-                day,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isNight
-                      ? Colors.white38
-                      : (isCottonCandy ? const Color(0xFF9A7A69) : Colors.black38),
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'LXGWWenKai',
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 8),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final double screenWidth = MediaQuery.of(context).size.width;
-              final double aspectRatio = screenWidth > 600 ? 1.3 : 1.0;
-              
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 7, 
-                  childAspectRatio: aspectRatio,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                itemCount: daysInMonth + firstWeekday - 1,
-                itemBuilder: (context, index) {
-                  if (index < firstWeekday - 1) return const SizedBox.shrink();
-                  final day = index - (firstWeekday - 1) + 1;
-                  final entries = daysEntriesMap[day] ?? [];
-                  final entry = entries.isNotEmpty ? entries.last : null;
-
-                  return GestureDetector(
-                    onTap: () {
-                      if (entry != null) {
-                        // 已有日记
-                      } else {
-                        final targetDate = DateTime(now.year, now.month, day);
-                        if (targetDate.isBefore(DateTime.now())) {
-                           _handleBackfill(context, targetDate, isNight);
-                        }
-                      }
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: day == now.day
-                            ? (isCottonCandy
-                                ? const Color(0xFFFFF2F4)
-                                : (isNight ? const Color(0xFF3D2C2F) : const Color(0xFFFFF0F2)))
-                            : (isCottonCandy
-                                ? const Color(0xFFFFEDE7).withValues(alpha: 0.6)
-                                : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.03))),
-                        borderRadius: BorderRadius.circular(isCottonCandy ? 14 : 12),
-                        border: Border.all(
-                          color: day == now.day
-                              ? (isCottonCandy
-                                  ? const Color(0xFFF7AAB6)
-                                  : (isNight ? const Color(0xFFF7AAB6).withValues(alpha: 0.6) : const Color(0xFFF7AAB6)))
-                              : (isCottonCandy
-                                  ? const Color(0xFFF8DDD5).withValues(alpha: 0.45)
-                                  : (isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))),
-                          width: day == now.day ? 1.5 : 1.0,
-                        ),
-                        boxShadow: day == now.day && isCottonCandy
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFFF7AAB6).withValues(alpha: 0.15),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: entry != null
-                          ? Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                Positioned(
-                                  left: -2,
-                                  top: -3,
-                                  child: Text(
-                                    '$day',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: day == now.day ? FontWeight.bold : FontWeight.w600,
-                                      color: day == now.day
-                                          ? (isCottonCandy ? const Color(0xFFF76F87) : (isNight ? const Color(0xFFF7AAB6) : const Color(0xFFF76F87)))
-                                          : (isNight
-                                              ? Colors.white70
-                                              : (isCottonCandy ? const Color(0xFF7A5A4A) : Colors.black54)),
-                                      fontFamily: 'LXGWWenKai',
-                                    ),
-                                  ),
-                                ),
-                                if (entries.length > 1)
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 7.0,
-                                    child: Center(
-                                      child: _MoodCalendarIcon(
-                                        moodIndex: entry.moodIndex % kMoods.length,
-                                        isCottonCandy: isCottonCandy,
-                                        size: isCottonCandy ? 24 : 22,
-                                      ),
-                                    ),
-                                  )
-                                else
-                                  Center(
-                                    child: _MoodCalendarIcon(
-                                      moodIndex: entry.moodIndex % kMoods.length,
-                                      isCottonCandy: isCottonCandy,
-                                      size: isCottonCandy ? 24 : 22,
-                                    ),
-                                  ),
-                                if (entries.length > 1)
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 1.5,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: entries
-                                          .take(4)
-                                          .map((e) => _buildMoodDot(
-                                                e.moodIndex % kMoods.length,
-                                                isNight,
-                                                isCottonCandy,
-                                              ))
-                                          .toList(),
-                                    ),
-                                  ),
-                              ],
-                            )
-                          : Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                Center(
-                                  child: Text(
-                                    '$day',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: day == now.day ? FontWeight.bold : FontWeight.normal,
-                                      color: day == now.day
-                                          ? (isCottonCandy ? const Color(0xFFF76F87) : (isNight ? const Color(0xFFF7AAB6) : const Color(0xFFF76F87)))
-                                          : (isNight
-                                              ? Colors.white70
-                                              : (isCottonCandy ? const Color(0xFF7A5A4A) : Colors.black54)),
-                                      fontFamily: 'LXGWWenKai',
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      ),
+      child: cardBody,
     );
   }
 

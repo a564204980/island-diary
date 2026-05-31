@@ -276,6 +276,7 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      showDragHandle: false, // 禁用系统默认的外部悬浮拖拽条，确保仅显示自定义组件内高保真把手
       builder: (context) => PaperPickerSheet(
         currentStyle: currentPaperStyle,
         accentColor: accentColor,

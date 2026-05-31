@@ -74,7 +74,6 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
         ? const Color(0xFFC0A6FF)
         : const Color(0xFFFFA726);
 
-
     return GestureDetector(
       onTap: () => setState(() => _selectedEmojiIndex = index),
       child: AnimatedContainer(
@@ -127,8 +126,11 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
         ? const Color(0xFFC0A6FF)
         : const Color(0xFFFFA726); // Dreamy purple in night mode, energetic orange in day mode
     final bool isDark = widget.isNight;
+    final themeId = UserState().selectedIslandThemeId.value;
+    final String fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+    
     final Color bgColor = isDark
-        ? (UserState().selectedIslandThemeId.value == 'cotton_candy'
+        ? (themeId == 'cotton_candy'
             ? const Color(0xFF241E3D).withValues(alpha: 0.95)
             : const Color(0xFF1E1E1E))
         : const Color(0xFFFFF9F2);
@@ -176,7 +178,7 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: inkColor.withAlpha(230),
-                          fontFamily: 'LXGWWenKai',
+                          fontFamily: fontFamily,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -185,7 +187,7 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
                         style: TextStyle(
                           fontSize: 14,
                           color: inkColor.withAlpha(102),
-                          fontFamily: 'LXGWWenKai',
+                          fontFamily: fontFamily,
                         ),
                       ),
                     ],
@@ -207,7 +209,7 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: inkColor.withAlpha(153),
-                  fontFamily: 'LXGWWenKai',
+                  fontFamily: fontFamily,
                 ),
               ),
               const SizedBox(height: 12),
@@ -225,14 +227,14 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
                       setState(() => _errorText = null);
                     }
                   },
-                  style: TextStyle(color: inkColor, fontFamily: 'LXGWWenKai'),
+                  style: TextStyle(color: inkColor, fontFamily: fontFamily),
                   decoration: InputDecoration(
                     hintText: "比如：期待又紧张",
                     errorText: _errorText,
                     counterText: "", // 隐藏右下角的计数器，保持简约
-                    errorStyle: const TextStyle(
+                    errorStyle: TextStyle(
                       fontSize: 12,
-                      fontFamily: 'LXGWWenKai',
+                      fontFamily: fontFamily,
                     ),
                     hintStyle: TextStyle(
                       color: inkColor.withAlpha(51),
@@ -254,7 +256,7 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: inkColor.withAlpha(153),
-                  fontFamily: 'LXGWWenKai',
+                  fontFamily: fontFamily,
                 ),
               ),
               const SizedBox(height: 12),
@@ -298,7 +300,7 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
                           color: isSelected
                               ? primaryColor
                               : inkColor.withAlpha(153),
-                          fontFamily: 'LXGWWenKai',
+                          fontFamily: fontFamily,
                         ),
                       ),
                     ),
@@ -316,7 +318,7 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: inkColor.withAlpha(153),
-                      fontFamily: 'LXGWWenKai',
+                      fontFamily: fontFamily,
                     ),
                   ),
                   const Spacer(),
@@ -325,7 +327,7 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
                     style: TextStyle(
                       fontSize: 12,
                       color: inkColor.withAlpha(102),
-                      fontFamily: 'LXGWWenKai',
+                      fontFamily: fontFamily,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -379,7 +381,7 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
                           style: TextStyle(
                             fontSize: 16,
                             color: inkColor.withAlpha(102),
-                            fontFamily: 'LXGWWenKai',
+                            fontFamily: fontFamily,
                           ),
                         ),
                       ),
@@ -418,13 +420,13 @@ class _CustomMoodPickerPopupState extends State<CustomMoodPickerPopup> {
                           ],
                         ),
                         alignment: Alignment.center,
-                        child: const Text(
+                        child: Text(
                           "保存这份心情",
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontFamily: 'LXGWWenKai',
+                            fontFamily: fontFamily,
                           ),
                         ),
                       ),

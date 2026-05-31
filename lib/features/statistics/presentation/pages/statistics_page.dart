@@ -503,77 +503,80 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
           backgroundColor: Colors.transparent,
           body: Stack(
             children: [
-              // 0. 节日特定背景
-              if (themeId == 'lantern_festival' || themeId == 'cotton_candy')
+              // 0. 节日特定背景/主题特定背景
+              if (themeId == 'lantern_festival' || themeId == 'cotton_candy' || themeId == 'lego')
                 Positioned.fill(
                   child: Image.asset(
                     themeId == 'lantern_festival'
                         ? 'assets/images/background/page_yuanxiaojie_bg.png'
-                        : (isNight
-                            ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
-                            : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png'),
+                        : (themeId == 'lego'
+                            ? 'assets/images/theme/legao/legao_data_bg.png'
+                            : (isNight
+                                ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
+                                : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png')),
                     fit: BoxFit.cover,
                   ),
                 ),
 
-
               SafeArea(
-                bottom: false,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(isNight, filteredDiaries),
-                    Expanded(
-                      child: filteredDiaries.isEmpty && _currentRange != StatTimeRange.month
-                        ? _buildEmptyState(isNight)
-                        : Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 800),
-                              child: ReorderableListView.builder(
-                                key: ValueKey('$_currentRange'), // 切换维度时重置
-                                padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-                                physics: const BouncingScrollPhysics(),
-                                itemCount: _getModuleOrder().length,
-                                onReorder: _onReorder,
-                                proxyDecorator: (child, index, animation) {
-                                  return AnimatedBuilder(
-                                    animation: animation,
-                                    builder: (context, child) {
-                                      final double animValue = Curves.easeInOut.transform(animation.value);
-                                      final double scale = lerpDouble(1, 1.02, animValue)!;
-                                      return Transform.scale(
-                                        scale: scale,
-                                        child: Material(
-                                          color: Colors.transparent,
-                                          elevation: animValue * 8,
-                                          shadowColor: Colors.black.withValues(alpha: 0.26),
-                                          child: child,
-                                        ),
-                                      );
-                                    },
-                                    child: child,
-                                  );
-                                },
-                                itemBuilder: (context, index) {
-                                  final order = _getModuleOrder();
-                                  final id = order[index];
-                                  final module = _buildModuleById(id, isNight, filteredDiaries);
-                                  
-                                  if (module is SizedBox && module.child == null) {
-                                     return SizedBox(key: ValueKey('empty_$id'));
-                                  }
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 30.0), // 整体底高度向上提缩 30，精致贴合，避免缝隙漏出或底部留白过大
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(isNight, filteredDiaries),
+                      Expanded(
+                        child: filteredDiaries.isEmpty && _currentRange != StatTimeRange.month
+                          ? _buildEmptyState(isNight)
+                          : Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 800),
+                                child: ReorderableListView.builder(
+                                  key: ValueKey('$_currentRange'), // 切换维度时重置
+                                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                                  physics: const BouncingScrollPhysics(),
+                                  itemCount: _getModuleOrder().length,
+                                  onReorder: _onReorder,
+                                  proxyDecorator: (child, index, animation) {
+                                    return AnimatedBuilder(
+                                      animation: animation,
+                                      builder: (context, child) {
+                                        final double animValue = Curves.easeInOut.transform(animation.value);
+                                        final double scale = lerpDouble(1, 1.02, animValue)!;
+                                        return Transform.scale(
+                                          scale: scale,
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            elevation: animValue * 8,
+                                            shadowColor: Colors.black.withValues(alpha: 0.26),
+                                            child: child,
+                                          ),
+                                        );
+                                      },
+                                      child: child,
+                                    );
+                                  },
+                                  itemBuilder: (context, index) {
+                                    final order = _getModuleOrder();
+                                    final id = order[index];
+                                    final module = _buildModuleById(id, isNight, filteredDiaries);
+                                    
+                                    if (module is SizedBox && module.child == null) {
+                                       return SizedBox(key: ValueKey('empty_$id'));
+                                    }
 
-                                  return Padding(
-                                    key: ValueKey(id),
-                                    padding: const EdgeInsets.only(bottom: 16),
-                                    child: module,
-                                  );
-                                },
+                                    return Padding(
+                                      key: ValueKey(id),
+                                      padding: const EdgeInsets.only(bottom: 16),
+                                      child: module,
+                                    );
+                                  },
+                                ),
                               ),
                             ),
-                          ),
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

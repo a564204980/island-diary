@@ -8,7 +8,7 @@ List<MoodItem> kMoods = [
     label: '开心',
     iconPath: 'assets/icons/happy.png',
     imagePath: 'assets/images/icons/select8.png',
-    glowColor: Color(0xFFFFE484),
+    glowColor: Color(0xFFFFA000),
   ),
   // 1: 平静 (原索引 4)
   const MoodItem(

@@ -16,27 +16,36 @@ class PremiumBentoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String themeId = UserState().selectedIslandThemeId.value;
+
     return Container(
       height: 140,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        border: !isVip
+        border: themeId == 'lego'
             ? Border.all(
-                color: isNight
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.white.withValues(alpha: 0.6),
+                color: Colors.white.withValues(alpha: 0.6), // 100% 还原图1中极为精致柔和的卡片外圈白描边
+                width: 1.5,
               )
-            : null,
+            : (!isVip
+                ? Border.all(
+                    color: isNight
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.white.withValues(alpha: 0.6),
+                  )
+                : null),
         boxShadow: [
           BoxShadow(
-            color: isVip
-                ? const Color(0xFFAB47BC).withValues(alpha: 0.3)
-                : (isNight
-                    ? Colors.black.withValues(alpha: 0.3)
-                    : const Color(0xFFB0BEC5).withValues(alpha: 0.2)),
-            blurRadius: 20,
-            spreadRadius: 2,
-            offset: const Offset(0, 10),
+            color: themeId == 'lego'
+                ? const Color(0xFF9A74EC).withValues(alpha: 0.18) // 稍微加一点色彩浓度，保证浮动微光感
+                : (isVip
+                    ? const Color(0xFFAB47BC).withValues(alpha: 0.3)
+                    : (isNight
+                        ? Colors.black.withValues(alpha: 0.3)
+                        : const Color(0xFFB0BEC5).withValues(alpha: 0.2))),
+            blurRadius: themeId == 'lego' ? 16 : 20, // 稍微蓬松一点，营造浮动空气感
+            spreadRadius: themeId == 'lego' ? 1 : 2, // 稍微带 1 像素扩展，表现自然微光
+            offset: themeId == 'lego' ? const Offset(0, 6) : const Offset(0, 10), // 微调向下偏移，体现悬浮高度
           ),
         ],
       ),
@@ -44,9 +53,14 @@ class PremiumBentoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         child: Stack(
           children: [
-            // 极光渐变背景
+            // 极光渐变背景 / 乐高专属卡面背景
             Positioned.fill(
-              child: AnimatedGradient(isVip: isVip, isNight: isNight),
+              child: themeId == 'lego'
+                  ? Image.asset(
+                      'assets/images/theme/legao/my/my_vip_bg.png',
+                      fit: BoxFit.cover,
+                    )
+                  : AnimatedGradient(isVip: isVip, isNight: isNight),
             ),
 
             // 内容
@@ -104,25 +118,44 @@ class PremiumBentoCard extends StatelessWidget {
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                        horizontal: 24,
+                        vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: isVip
-                            ? Colors.white.withValues(alpha: 0.2)
-                            : (isNight ? Colors.white : const Color(0xFF3E2723)),
-                        borderRadius: BorderRadius.circular(16),
-                        border: isVip ? Border.all(color: Colors.white30) : null,
+                        color: themeId == 'lego'
+                            ? Colors.white.withValues(alpha: 0.15) // 半透明白色，完美承接底图粉紫，呈现图1质感
+                            : (isVip
+                                ? Colors.white.withValues(alpha: 0.2)
+                                : (isNight ? Colors.white : const Color(0xFF3E2723))),
+                        borderRadius: BorderRadius.circular(99), // 完美胶囊圆角
+                        border: themeId == 'lego'
+                            ? Border.all(
+                                color: Colors.white.withValues(alpha: 0.45), // 精致的白色描边
+                                width: 1,
+                              )
+                            : null,
+                        boxShadow: themeId == 'lego'
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : null,
                       ),
                       child: Text(
-                        isVip ? '查看专属权益' : '立即入驻',
+                        themeId == 'lego' ? '查看专属权益' : (isVip ? '查看专属权益' : '立即入驻'),
                         style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isVip
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: themeId == 'lego'
                               ? Colors.white
-                              : (isNight ? const Color(0xFF3E2723) : Colors.white),
+                              : (isVip
+                                  ? Colors.white
+                                  : (isNight ? const Color(0xFF3E2723) : Colors.white)),
                           fontFamily: 'LXGWWenKai',
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),

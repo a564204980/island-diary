@@ -28,26 +28,34 @@ class DecorationGridItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userState = UserState();
+    final Widget content = Opacity(
+      opacity: isOwned ? 1.0 : 0.7,
+      child: _buildItemContent(userState),
+    );
+
+    if (!shouldAnimate) {
+      return GestureDetector(
+        onTap: () => _handleTap(context),
+        child: content,
+      );
+    }
+
     return GestureDetector(
       onTap: () => _handleTap(context),
-      child: AnimatedOpacity(
-        duration: 300.ms,
-        opacity: isOwned ? 1.0 : 0.7,
-        child: _buildItemContent(userState),
-      )
+      child: content
           .animate(
-            delay: shouldAnimate ? (index % 10 * 50).ms : Duration.zero,
-            autoPlay: shouldAnimate,
+            delay: (index % 10 * 50).ms,
+            autoPlay: true,
           )
-          .fadeIn(duration: shouldAnimate ? 400.ms : Duration.zero)
+          .fadeIn(duration: 400.ms)
           .moveY(
-            begin: shouldAnimate ? 15 : 0,
+            begin: 15,
             end: 0,
             curve: Curves.easeOutCubic,
           )
-          .then(delay: shouldAnimate ? 600.ms : Duration.zero)
+          .then(delay: 600.ms)
           .shake(
-            hz: (shouldAnimate && shouldHighlight) ? 4 : 0,
+            hz: shouldHighlight ? 4 : 0,
             rotation: 0.05,
             duration: 400.ms,
           ),
@@ -123,7 +131,7 @@ class DecorationGridItem extends StatelessWidget {
               ? const Color(0xFFFFD97D).withValues(alpha: 0.1)
               : const Color(0xFFFFFDE7))
           : (isNight ? Colors.white.withValues(alpha: 0.03) : Colors.white),
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(20), // 适应3列，圆角微缩到20
       gradient: (isSelected && deco?.rarity == MascotRarity.legendary)
           ? LinearGradient(
               begin: Alignment.topLeft,
@@ -147,20 +155,14 @@ class DecorationGridItem extends StatelessWidget {
                 offset: const Offset(0, 8),
               ),
             ]
-          : [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isNight ? 0.1 : 0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+          : null,
     );
   }
 
   Widget _buildWatermark() {
     return Positioned.fill(
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(20), // 对齐20像素圆角
         child: Opacity(
           opacity: isNight ? 0.05 : 0.08,
           child: Transform.scale(
@@ -178,24 +180,27 @@ class DecorationGridItem extends StatelessWidget {
   }
 
   Widget _buildContent() {
-    return Column(
-      children: [
-        Expanded(
-          child: deco == null
-              ? Center(
-                  child: Icon(
-                    Icons.block_rounded,
-                    size: 40,
-                    color: isNight ? Colors.white24 : Colors.black12,
-                  ),
-                )
-              : _buildDecorationImage(),
-        ),
-        const SizedBox(height: 10),
-        _buildTitleRow(),
-        const SizedBox(height: 4),
-        _buildDescription(),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8), // 底部优雅留白
+      child: Column(
+        children: [
+          Expanded(
+            child: deco == null
+                ? Center(
+                    child: Icon(
+                      Icons.block_rounded,
+                      size: 40,
+                      color: isNight ? Colors.white24 : Colors.black12,
+                    ),
+                  )
+                : _buildDecorationImage(),
+          ),
+          const SizedBox(height: 6), // 间距收紧
+          _buildTitleRow(),
+          const SizedBox(height: 3),
+          _buildDescription(),
+        ],
+      ),
     );
   }
 
@@ -216,6 +221,35 @@ class DecorationGridItem extends StatelessWidget {
         child: image,
       );
     }
+    final Widget mainImage = isSelected
+        ? Transform.scale(scale: 1.1, child: image)
+        : image;
+
+    if (!shouldAnimate) {
+      if (!isOwned) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            mainImage,
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.lock_outline_rounded,
+                size: 18,
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        );
+      }
+      return mainImage;
+    }
+
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -245,24 +279,27 @@ class DecorationGridItem extends StatelessWidget {
   }
 
   Widget _buildTitleRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (deco != null) _buildRarityTag(),
-        Flexible(
-          child: Text(
-            deco?.name ?? '取消',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: isNight ? Colors.white : const Color(0xFF3E2723),
-              fontFamily: 'LXGWWenKai',
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8), // 左右收紧 8 像素安全边距
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (deco != null) _buildRarityTag(),
+          Flexible(
+            child: Text(
+              deco?.name ?? '取消',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12, // 标题字号由 14 优化到 12
+                fontWeight: FontWeight.bold,
+                color: isNight ? Colors.white : const Color(0xFF3E2723),
+                fontFamily: 'LXGWWenKai',
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -270,8 +307,8 @@ class DecorationGridItem extends StatelessWidget {
     return Opacity(
       opacity: isOwned ? 1.0 : 0.5,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), // padding 缩紧
+        margin: const EdgeInsets.only(right: 4), // 间距缩紧
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -293,15 +330,15 @@ class DecorationGridItem extends StatelessWidget {
             if (deco!.rarity == MascotRarity.legendary) ...[
               const Icon(
                 Icons.workspace_premium,
-                size: 11,
+                size: 9, // 图标缩小到 9
                 color: Colors.white,
               ),
-              const SizedBox(width: 3),
+              const SizedBox(width: 2),
             ],
             Text(
               deco!.rarity.label,
               style: const TextStyle(
-                fontSize: 10,
+                fontSize: 8, // 字号调小为 8
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
                 letterSpacing: 0.5,
@@ -318,23 +355,26 @@ class DecorationGridItem extends StatelessWidget {
         ? '回归最初的纯净模样'
         : (isOwned
             ? deco!.description
-            : '解锁成就：${MascotAchievement.getByRewardId(deco!.id)?.description ?? "未知要求"}');
-    return Text(
-      desc,
-      textAlign: TextAlign.center,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontSize: 10,
-        color: isNight
-            ? (isOwned
-                ? Colors.white38
-                : const Color(0xFFFFD97D).withValues(alpha: 0.4))
-            : (isOwned
-                ? const Color(0xFF8D6E63)
-                : const Color(0xFFD32F2F).withValues(alpha: 0.6)),
-        fontFamily: 'LXGWWenKai',
-        fontWeight: isOwned ? FontWeight.normal : FontWeight.w600,
+            : '解锁：${MascotAchievement.getByRewardId(deco!.id)?.description ?? "未知"}');
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8), // 左右收紧 8 像素安全边距，防贴边
+      child: Text(
+        desc,
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 8.5, // 描述文字缩小到 8.5，绝不溢出
+          color: isNight
+              ? (isOwned
+                  ? Colors.white38
+                  : const Color(0xFFFFD97D).withValues(alpha: 0.4))
+              : (isOwned
+                  ? const Color(0xFF8D6E63)
+                  : const Color(0xFFD32F2F).withValues(alpha: 0.6)),
+          fontFamily: 'LXGWWenKai',
+          fontWeight: isOwned ? FontWeight.normal : FontWeight.w600,
+        ),
       ),
     );
   }

@@ -38,6 +38,10 @@ mixin ProfileMixin on LifeLineMixin {
     if (themeMode.value == 'dark') {
       return true;
     }
+    // 特殊主题模式（棉花糖和乐高）在自动模式下，不随时间自动切换，默认保持白天
+    if (selectedIslandThemeId.value == 'cotton_candy' || selectedIslandThemeId.value == 'lego') {
+      return false;
+    }
     final hour = DateTime.now().hour;
     return hour >= 17 || hour < 6;
   }
@@ -128,9 +132,7 @@ mixin ProfileMixin on LifeLineMixin {
       currentThemeColor.value = const Color(0xFF0D1B2A);
       return;
     } else if (selectedIslandThemeId.value == 'cotton_candy') {
-      final isNightMode = themeMode.value == 'dark' ||
-          (themeMode.value == 'system' &&
-              (DateTime.now().hour < 10 || DateTime.now().hour >= 18));
+      final isNightMode = isNight;
       currentBackgroundPath.value = isNightMode
           ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
           : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png';
@@ -218,11 +220,43 @@ mixin ProfileMixin on LifeLineMixin {
   }
 
   void _checkAndResetDailyTask(SharedPreferences prefs) {
-    // 【调试模式】极其强硬地强制开启劳动节任务，绕过所有判定
-    final newTask = DailyTask.getHolidayTask(DateTime(2026, 5, 1))!;
+    final now = DateTime.now();
+    final taskJson = prefs.getString(UserState().n(_K.currentDailyTask));
+
+    bool needReset = false;
+    if (lastVisitTime != null) {
+      if (lastVisitTime!.year != now.year ||
+          lastVisitTime!.month != now.month ||
+          lastVisitTime!.day != now.day) {
+        needReset = true;
+      }
+    }
+
+    if (taskJson != null && !needReset) {
+      try {
+        final cachedTask = DailyTask.fromMap(jsonDecode(taskJson));
+        // 安全校验：如果缓存的任务是节日活动任务，但根据当前日期该活动已过期（不符），则强行重置
+        if (cachedTask.isHoliday) {
+          final currentHoliday = DailyTask.getHolidayTask(now);
+          if (currentHoliday == null || currentHoliday.id != cachedTask.id) {
+            needReset = true;
+          }
+        }
+        
+        if (!needReset) {
+          dailyTask.value = cachedTask;
+          return;
+        }
+      } catch (_) {}
+    }
+
+    // 获取动态任务：优先判定节日/预热任务，若无则分配普通每日任务
+    final holidayTask = DailyTask.getHolidayTask(now);
+    final newTask = holidayTask ?? DailyTask.getNormalTask(now);
+
     dailyTask.value = newTask;
     prefs.setString(UserState().n(_K.currentDailyTask), jsonEncode(newTask.toMap()));
-    debugPrint("DAILY_TASK: 已执行极其强硬的强制重置 -> ${newTask.id}");
+    debugPrint("DAILY_TASK: 已重置并生成任务 -> ${newTask.id}");
   }
 
   /// 允许外部手动触发任务完成（如查看统计页）

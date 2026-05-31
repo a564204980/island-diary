@@ -124,10 +124,10 @@ class _AchievementPageState extends State<AchievementPage> {
                               )
                             : SliverGrid(
                                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: isWide ? 4 : 3,
-                                  mainAxisSpacing: 24,
-                                  crossAxisSpacing: 16,
-                                  childAspectRatio: isWide ? 0.8 : 0.75,
+                                  crossAxisCount: isWide ? 5 : 4, // 增加列数（宽屏5列，手机4列），使每个勋章模块更加小巧精致
+                                  mainAxisSpacing: 18,
+                                  crossAxisSpacing: 12,
+                                  childAspectRatio: isWide ? 0.85 : 0.8,
                                 ),
                                 delegate: SliverChildBuilderDelegate(
                                   (context, index) {

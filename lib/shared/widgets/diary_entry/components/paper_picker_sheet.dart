@@ -38,7 +38,8 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
   static const double listPadding = 16.0;
 
   Map<String, String> _getEffectiveStyles() {
-    if (UserState().selectedIslandThemeId.value == 'cotton_candy') {
+    final themeId = UserState().selectedIslandThemeId.value;
+    if (themeId == 'cotton_candy' || themeId == 'lego') {
       return {
         'classic': '默认',
         ...PaperPickerSheet.styles,
@@ -97,10 +98,16 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final bool isNight = UserState().isNight;
-    final Color bgColor = DiaryUtils.getPopupBackgroundColor(
-      widget.currentStyle,
-      isNight,
-    );
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isLego = themeId == 'lego';
+    final String fontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
+
+    final Color bgColor = isNight
+        ? (themeId == 'cotton_candy'
+            ? const Color(0xFF241E3D).withValues(alpha: 0.95)
+            : const Color(0xFF1E1E1E))
+        : const Color(0xFFFEF9F0);
+
     final Color textColor = DiaryUtils.getInkColor(
       widget.currentStyle,
       isNight,
@@ -112,15 +119,43 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
         sigmaY: isNight ? 15 : 0,
       ),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        decoration: DiaryUtils.getPopupDecoration(
-          widget.currentStyle,
-          isNight,
-        ),
+        padding: const EdgeInsets.only(top: 8, bottom: 24),
+        margin: isLego ? const EdgeInsets.only(bottom: 6) : null,
+        decoration: isLego
+            ? BoxDecoration(
+                color: bgColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: [
+                  // 1. 固态 3D 积木厚度实色层（零羽化）
+                  BoxShadow(
+                    color: isNight ? const Color(0xFF1B160E) : const Color(0xFFEADAB9),
+                    blurRadius: 0,
+                    offset: const Offset(0, 4.0),
+                  ),
+                  // 2. 底层环境遮蔽软影
+                  BoxShadow(
+                    color: isNight ? Colors.black.withValues(alpha: 0.4) : const Color(0xFFDCC8A0).withValues(alpha: 0.4),
+                    blurRadius: 5.0,
+                    offset: const Offset(0, 5.0),
+                  ),
+                ],
+              )
+            : DiaryUtils.getPopupDecoration(
+                widget.currentStyle,
+                isNight,
+              ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 顶部指示条
+            const SizedBox(height: 4),
+            DiaryUtils.buildPopupDragHandle(
+              widget.currentStyle,
+              isNight,
+              textColor,
+            ),
+            const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
@@ -132,7 +167,7 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: textColor,
-                      fontFamily: 'LXGWWenKai',
+                      fontFamily: fontFamily,
                     ),
                   ),
                   IconButton(
@@ -180,9 +215,11 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                                 decoration: BoxDecoration(
                                   color: isNight
                                       ? Colors.black26
-                                      : (UserState().selectedIslandThemeId.value == 'cotton_candy' && key == 'classic'
-                                          ? const Color(0xFFFBF3E9)
-                                          : Colors.white),
+                                      : (UserState().selectedIslandThemeId.value == 'lego' && key == 'classic'
+                                          ? const Color(0xFFFDF3E3)
+                                          : (UserState().selectedIslandThemeId.value == 'cotton_candy' && key == 'classic'
+                                              ? const Color(0xFFFBF3E9)
+                                              : Colors.white)),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: isSelected
@@ -272,7 +309,7 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                                 fontWeight: isSelected
                                     ? FontWeight.bold
                                     : FontWeight.normal,
-                                fontFamily: 'LXGWWenKai',
+                                fontFamily: fontFamily,
                               ),
                             ),
                           ],

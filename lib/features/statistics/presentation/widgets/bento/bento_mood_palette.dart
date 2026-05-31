@@ -138,6 +138,8 @@ extension _BentoMoodPalette on _StatisticsPageState {
                         child: Text(
                           textToShow,
                           key: ValueKey<String>(textToShow),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 11,
                             height: 1.4,
@@ -256,7 +258,10 @@ extension _BentoMoodPalette on _StatisticsPageState {
 
         // 固定 7 行，每小格边长等于高度 / 7
         const int rowCount = 7;
-        final double cellSize = height / rowCount;
+        final String themeId = UserState().selectedIslandThemeId.value;
+        final double cellSize = themeId == 'lego'
+            ? ((height - 7 * 1.2) / rowCount) - 1.5
+            : (height / rowCount) - 1.5;
 
         Widget contentWidget;
 
@@ -269,6 +274,56 @@ extension _BentoMoodPalette on _StatisticsPageState {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: List.generate(rowCount, (rowIdx) {
+                  final String themeId = UserState().selectedIslandThemeId.value;
+                  final bool isLego = themeId == 'lego';
+                  if (isLego) {
+                    final Color whiteColor = isNight
+                        ? const Color(0xFF2C2F36).withValues(alpha: 0.12)
+                        : const Color(0xFFF9F9FB).withValues(alpha: 0.15);
+                    return Container(
+                      width: cellSize,
+                      height: cellSize,
+                      margin: const EdgeInsets.all(0.6),
+                      decoration: BoxDecoration(
+                        color: whiteColor,
+                        borderRadius: BorderRadius.circular(1.8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isNight ? Colors.white.withValues(alpha: 0.01) : Colors.white.withValues(alpha: 0.12),
+                            offset: const Offset(-0.8, -0.8),
+                            blurRadius: 0.8,
+                          ),
+                          BoxShadow(
+                            color: isNight ? Colors.black.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.02),
+                            offset: const Offset(0.8, 0.8),
+                            blurRadius: 0.8,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Container(
+                          width: cellSize * 0.54,
+                          height: cellSize * 0.54,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: whiteColor,
+                            boxShadow: [
+                              BoxShadow(
+                                color: isNight ? Colors.white.withValues(alpha: 0.02) : Colors.white.withValues(alpha: 0.15),
+                                offset: const Offset(-0.8, -0.8),
+                                blurRadius: 0.8,
+                              ),
+                              BoxShadow(
+                                color: isNight ? Colors.black.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.03),
+                                offset: const Offset(0.8, 0.8),
+                                blurRadius: 0.8,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
                   return Container(
                     width: cellSize,
                     height: cellSize,
@@ -343,6 +398,56 @@ extension _BentoMoodPalette on _StatisticsPageState {
                     final int itemIdx = colIdx * rowCount + rowIdx;
                     if (itemIdx >= paletteItems.length) {
                       // 填充半透明的灰色/粉色微晶边框网格，保持整体画布无缝铺满且不显得太空
+                      final String themeId = UserState().selectedIslandThemeId.value;
+                      final bool isLego = themeId == 'lego';
+                      if (isLego) {
+                        final Color whiteColor = isNight
+                            ? const Color(0xFF2C2F36).withValues(alpha: 0.12)
+                            : const Color(0xFFF9F9FB).withValues(alpha: 0.15);
+                        return Container(
+                          width: cellSize,
+                          height: cellSize,
+                          margin: const EdgeInsets.all(0.6),
+                          decoration: BoxDecoration(
+                            color: whiteColor,
+                            borderRadius: BorderRadius.circular(1.8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: isNight ? Colors.white.withValues(alpha: 0.01) : Colors.white.withValues(alpha: 0.12),
+                                offset: const Offset(-0.8, -0.8),
+                                blurRadius: 0.8,
+                              ),
+                              BoxShadow(
+                                color: isNight ? Colors.black.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.02),
+                                offset: const Offset(0.8, 0.8),
+                                blurRadius: 0.8,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: cellSize * 0.54,
+                              height: cellSize * 0.54,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: whiteColor,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: isNight ? Colors.white.withValues(alpha: 0.02) : Colors.white.withValues(alpha: 0.15),
+                                    offset: const Offset(-0.8, -0.8),
+                                    blurRadius: 0.8,
+                                  ),
+                                  BoxShadow(
+                                    color: isNight ? Colors.black.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.03),
+                                    offset: const Offset(0.8, 0.8),
+                                    blurRadius: 0.8,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }
                       return Container(
                         width: cellSize,
                         height: cellSize,
@@ -364,45 +469,95 @@ extension _BentoMoodPalette on _StatisticsPageState {
                     final bool isSelected = _selectedPaletteDay == itemIdx + 1000;
                     final color = _getMoodColor(item.moodIndex % kMoods.length, isNight, isCottonCandy);
 
-                    // 3D果冻渲染（直角，无缝贴合）
-                    Widget cellWidget = Container(
-                      width: cellSize,
-                      height: cellSize,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            color,
-                            Color.lerp(color, Colors.black, isNight ? 0.12 : 0.08) ?? color,
+                    final String themeId = UserState().selectedIslandThemeId.value;
+                    final bool isLego = themeId == 'lego';
+
+                    Widget cellWidget;
+                    if (isLego) {
+                      cellWidget = Container(
+                        width: cellSize,
+                        height: cellSize,
+                        margin: const EdgeInsets.all(0.6),
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(1.8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isNight ? Colors.white10 : Colors.white.withValues(alpha: 0.35),
+                              offset: const Offset(-0.8, -0.8),
+                              blurRadius: 0.8,
+                            ),
+                            BoxShadow(
+                              color: isNight ? Colors.black54 : Colors.black.withValues(alpha: 0.22),
+                              offset: const Offset(0.8, 0.8),
+                              blurRadius: 0.8,
+                            ),
                           ],
                         ),
-                      ),
-                      child: Stack(
-                        children: [
-                          // 晶莹高光层
-                          Container(
+                        child: Center(
+                          child: Container(
+                            width: cellSize * 0.54,
+                            height: cellSize * 0.54,
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Colors.white.withValues(alpha: isCottonCandy ? 0.35 : 0.25),
-                                  Colors.transparent,
-                                ],
-                                stops: const [0.0, 0.7],
+                              shape: BoxShape.circle,
+                              color: color,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: isNight ? Colors.white12 : Colors.white.withValues(alpha: 0.45),
+                                  offset: const Offset(-0.8, -0.8),
+                                  blurRadius: 0.8,
+                                ),
+                                BoxShadow(
+                                  color: isNight ? Colors.black.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.28),
+                                  offset: const Offset(0.8, 0.8),
+                                  blurRadius: 0.8,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    } else {
+                      // 3D果冻渲染（直角，无缝贴合）
+                      cellWidget = Container(
+                        width: cellSize,
+                        height: cellSize,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              color,
+                              Color.lerp(color, Colors.black, isNight ? 0.12 : 0.08) ?? color,
+                            ],
+                          ),
+                        ),
+                        child: Stack(
+                          children: [
+                            // 晶莹高光层
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.white.withValues(alpha: isCottonCandy ? 0.35 : 0.25),
+                                    Colors.transparent,
+                                  ],
+                                  stops: const [0.0, 0.7],
+                                ),
                               ),
                             ),
-                          ),
-                          // 细微的顶部与左侧立体亮线（拟物化玻璃边沿）
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: _InnerBorderPainter(isNight: isNight),
+                            // 细微的顶部与左侧立体亮线（拟物化玻璃边沿）
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: _InnerBorderPainter(isNight: isNight),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
+                          ],
+                        ),
+                      );
+                    }
 
                     // 如果被点选，叠加极具发光描边高亮
                     if (isSelected) {

@@ -144,6 +144,49 @@ extension _BentoUtils on _StatisticsPageState {
     final EdgeInsetsGeometry finalPadding = (padding == EdgeInsets.zero)
         ? EdgeInsets.zero
         : const EdgeInsets.all(12);
+
+    final String themeId = UserState().selectedIslandThemeId.value;
+    final bool isLego = themeId == 'lego';
+    final bool isCottonCandy = themeId == 'cotton_candy';
+
+    if (isLego) {
+      return Container(
+        decoration: BoxDecoration(
+          color: isNight ? const Color(0xFF1E2024) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isNight
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isNight ? Colors.black38 : Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _LegoStudBackgroundPainter(isNight: isNight),
+                ),
+              ),
+              Padding(
+                padding: finalPadding,
+                child: child,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return GlassBento(
       isNight: isNight,
       padding: finalPadding,
@@ -604,4 +647,76 @@ class _HandDrawnUnderlinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _LegoStudBackgroundPainter extends CustomPainter {
+  final bool isNight;
+  _LegoStudBackgroundPainter({required this.isNight});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cellSize = 13.0; // 微缩积木背景单元，小巧精致
+    final int cols = (size.width / cellSize).ceil();
+    final int rows = (size.height / cellSize).ceil();
+
+    for (int c = 0; c < cols; c++) {
+      for (int r = 0; r < rows; r++) {
+        final double cx = c * cellSize + cellSize / 2;
+        final double cy = r * cellSize + cellSize / 2;
+        final double radius = cellSize * 0.28;
+
+        // 计算纵向位置渐变因子：从顶部往下递减，在 50% 处刚好降为 0.0
+        final double ratio = cy / size.height;
+        double factor = 1.0;
+        if (ratio < 0.5) {
+          factor = 1.0 - (ratio / 0.5);
+        } else {
+          factor = 0.0;
+        }
+
+        if (factor <= 0.0) continue; // 50% 以下跳过绘制，极致性能优化
+
+        final Color currentStudColor = isNight
+            ? const Color(0xFF2C2F36).withValues(alpha: 0.12 * factor)
+            : const Color(0xFFF9F9FB).withValues(alpha: 0.15 * factor);
+
+        // 绘制 Stud 圆盘
+        final Paint paint = Paint()..color = currentStudColor;
+        canvas.drawCircle(Offset(cx, cy), radius, paint);
+
+        // 绘制高光微光影立体感
+        final Paint highlightPaint = Paint()
+          ..color = isNight
+              ? Colors.white.withValues(alpha: 0.01 * factor)
+              : Colors.white.withValues(alpha: 0.2 * factor)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.8;
+        canvas.drawArc(
+          Rect.fromCircle(center: Offset(cx, cy), radius: radius),
+          -3.14 * 0.75,
+          3.14,
+          false,
+          highlightPaint,
+        );
+
+        final Paint shadowPaint = Paint()
+          ..color = isNight
+              ? Colors.black.withValues(alpha: 0.08 * factor)
+              : Colors.black.withValues(alpha: 0.04 * factor)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.8;
+        canvas.drawArc(
+          Rect.fromCircle(center: Offset(cx, cy), radius: radius),
+          3.14 * 0.25,
+          3.14,
+          false,
+          shadowPaint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LegoStudBackgroundPainter oldDelegate) =>
+      oldDelegate.isNight != isNight;
 }

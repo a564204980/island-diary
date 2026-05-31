@@ -479,24 +479,22 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
         ? Colors.white60
         : const Color(0xFF8A7462);
 
-    // 仅在棉花糖主题下映射专属精美手绘插图，其他主题保持通用默认图
+    // 统一根据天气状态映射相符的精美治愈插图与卡通图标背景
     String bgAsset = 'assets/images/background/data_3_qingtian.png';
     String weatherAsset = 'assets/images/background/data_3_qingtian2.png';
 
-    if (isCottonCandy) {
-      if (state.id == 'mistMorning' ||
-          state.id == 'lightRain' ||
-          state.id == 'continuousRain' ||
-          state.id == 'thunder') {
-        bgAsset = 'assets/images/background/data_3_xiayu.png';
-        weatherAsset = 'assets/images/background/data_3_xiayu2.png';
-      } else if (state.id == 'cloudDrift' || state.id == 'softBreeze') {
-        bgAsset = 'assets/images/background/data_3_duoyun.png';
-        weatherAsset = 'assets/images/background/data_3_duoyun2.png';
-      } else {
-        bgAsset = 'assets/images/background/data_3_qingtian.png';
-        weatherAsset = 'assets/images/background/data_3_qingtian2.png';
-      }
+    if (state.id == 'mistMorning' ||
+        state.id == 'lightRain' ||
+        state.id == 'continuousRain' ||
+        state.id == 'thunder') {
+      bgAsset = 'assets/images/background/data_3_xiayu.png';
+      weatherAsset = 'assets/images/background/data_3_xiayu2.png';
+    } else if (state.id == 'cloudDrift' || state.id == 'softBreeze') {
+      bgAsset = 'assets/images/background/data_3_duoyun.png';
+      weatherAsset = 'assets/images/background/data_3_duoyun2.png';
+    } else {
+      bgAsset = 'assets/images/background/data_3_qingtian.png';
+      weatherAsset = 'assets/images/background/data_3_qingtian2.png';
     }
 
     final Widget content = Stack(

@@ -21,13 +21,13 @@ class MascotPreviewHero extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 280,
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      height: 200, // 高度从 280 缩紧至 200，精致紧凑，释放 80 像素空间
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
       decoration: BoxDecoration(
         color: isNight
             ? Colors.white.withValues(alpha: 0.03)
             : Colors.white.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isNight ? Colors.white10 : Colors.white.withValues(alpha: 0.9),
           width: 1.5,
@@ -37,7 +37,7 @@ class MascotPreviewHero extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.only(top: 4, bottom: 42),
             child: ListenableBuilder(
               listenable: Listenable.merge([
                 userState.selectedMascotDecoration,
@@ -46,7 +46,7 @@ class MascotPreviewHero extends StatelessWidget {
               builder: (context, _) {
                 return StaticSprite(
                   assetPath: mascotType,
-                  size: 200,
+                  size: 130, // 头像尺寸由 200 精简为 130，比例更和谐
                 );
               },
             )
@@ -63,8 +63,8 @@ class MascotPreviewHero extends StatelessWidget {
                   color: userState.selectedMascotDecoration.value != null &&
                           MascotDecoration.getByPath(userState.selectedMascotDecoration.value!)?.rarity ==
                               MascotRarity.legendary
-                      ? const Color(0xFFFFD97D).withValues(alpha: 0.3)
-                      : Colors.white.withValues(alpha: 0.1),
+                       ? const Color(0xFFFFD97D).withValues(alpha: 0.3)
+                       : Colors.white.withValues(alpha: 0.1),
                 ),
           ),
           _buildPreviewBadge(context),
@@ -75,7 +75,7 @@ class MascotPreviewHero extends StatelessWidget {
 
   Widget _buildPreviewBadge(BuildContext context) {
     return Positioned(
-      bottom: 16,
+      bottom: 12, // 间距收紧
       child: ListenableBuilder(
         listenable: Listenable.merge([
           userState.selectedMascotDecoration,

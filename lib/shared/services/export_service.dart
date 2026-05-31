@@ -612,7 +612,7 @@ class ExportService {
         textColor = const PdfColor.fromInt(0xFFC4B69E);
       } else {
         final bgColors = [0xFFFEF0F0, 0xFFEEFBEE, 0xFFF3EEFB, 0xFFFFF3E4, 0xFFEEF7FB, 0xFFFEE4E4, 0xFFE4EEFB, 0xFFFFFBE4];
-        final textColors = [0xFFFFA4A4, 0xFFA4E4A4, 0xFFC4A4E4, 0xFFFFC484, 0xFFA4D4E4, 0xFFFF8484, 0xFF84A4E4, 0xFFFFE484];
+        final textColors = [0xFFFFA4A4, 0xFFA4E4A4, 0xFFC4A4E4, 0xFFFFC484, 0xFFA4D4E4, 0xFFFF8484, 0xFF84A4E4, 0xFFFFA000];
         bgColor = PdfColor.fromInt(bgColors[moodIdx]);
         textColor = PdfColor.fromInt(textColors[moodIdx]);
       }

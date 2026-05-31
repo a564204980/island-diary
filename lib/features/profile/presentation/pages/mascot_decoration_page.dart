@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
@@ -90,14 +91,14 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     const headerHeight = 70.0 + 46.0;
     final screenWidthForGrid = (screenWidth > 800 ? 800 : screenWidth);
-    final crossAxisCount = screenWidthForGrid > 600 ? 3 : 2;
+    final crossAxisCount = screenWidthForGrid > 600 ? 4 : 3; // 精准对齐 3 列微格
     final gridWidth = screenWidthForGrid - 48;
-    final itemWidth = (gridWidth - (crossAxisCount - 1) * 16) / crossAxisCount;
-    final itemAspectRatio = screenWidthForGrid > 600 ? 0.75 : 0.8;
+    final itemWidth = (gridWidth - (crossAxisCount - 1) * 10) / crossAxisCount;
+    final itemAspectRatio = screenWidthForGrid > 600 ? 0.8 : 0.82;
     final itemHeight = itemWidth / itemAspectRatio;
 
     final rowIndex = (index / crossAxisCount).floor();
-    final scrollOffset = headerHeight + (rowIndex * (itemHeight + 16));
+    final scrollOffset = headerHeight + (rowIndex * (itemHeight + 10)); // 间距 10
 
     _scrollController.animateTo(
       scrollOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
@@ -128,7 +129,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
         backgroundColor: isNight
             ? const Color(0xFF0D1B2A)
             : const Color(0xFFE6F3F5),
-        extendBodyBehindAppBar: false,
+        extendBodyBehindAppBar: true,
         appBar: _buildStandardAppBar(context, isNight),
         body: !_isInitialized
             ? const SizedBox.shrink()
@@ -143,8 +144,9 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                       return Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 800),
-                          child: Column(
-                            children: [
+                          child: SafeArea(
+                            child: Column(
+                              children: [
                               // --- 固定区域：预览英雄区域 ---
                               ListenableBuilder(
                                 listenable: Listenable.merge([
@@ -237,10 +239,10 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
   
                                           return SliverGrid(
                                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                              crossAxisCount: constraints.maxWidth > 600 ? 3 : 2,
-                                              mainAxisSpacing: 16,
-                                              crossAxisSpacing: 16,
-                                              childAspectRatio: constraints.maxWidth > 600 ? 0.75 : 0.8,
+                                              crossAxisCount: constraints.maxWidth > 600 ? 4 : 3, // 手机端3列，更轻巧精致
+                                              mainAxisSpacing: 10,
+                                              crossAxisSpacing: 10,
+                                              childAspectRatio: constraints.maxWidth > 600 ? 0.8 : 0.82,
                                             ),
                                             delegate: SliverChildBuilderDelegate(
                                               (context, index) {
@@ -258,7 +260,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                                   isOwned: ownedIds.contains(deco.id),
                                                   index: index,
                                                   shouldHighlight: deco.id == widget.initialDecorationId,
-                                                  shouldAnimate: true,
+                                                  shouldAnimate: false,
                                                 );
                                               },
                                               childCount: displayedDecorations.length,
@@ -273,9 +275,10 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                             ],
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
+                ),
                 ],
               ),
       ),
@@ -675,6 +678,11 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
       scrolledUnderElevation: 0,
       elevation: 0,
       centerTitle: true,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isNight ? Brightness.dark : Brightness.light,
+      ),
       leading: IconButton(
         icon: Icon(
           Icons.arrow_back_ios_new_rounded,

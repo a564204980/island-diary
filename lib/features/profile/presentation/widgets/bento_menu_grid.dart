@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/pages/security_center_page.dart';
@@ -11,7 +11,6 @@ import 'package:island_diary/core/models/life_line_profile.dart';
 
 class BentoMenuGrid extends StatelessWidget {
   final bool isNight;
-
   const BentoMenuGrid({super.key, required this.isNight});
 
   @override
@@ -19,9 +18,7 @@ class BentoMenuGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool isWide = constraints.maxWidth > 600;
-
         if (isWide) {
-          // iPad / 宽屏模式：采用更紧凑的三列布局
           return Column(
             children: [
               Row(
@@ -32,7 +29,7 @@ class BentoMenuGrid extends StatelessWidget {
                   Expanded(
                     child: _buildMenuActionBento(
                       context,
-                      title: '岛屿安全',
+                      title: '\u5c9b\u5c7f\u5b89\u5168',
                       icon: Icons.lock_outline,
                       color: const Color(0xFF81C784),
                       targetPage: const SecurityCenterPage(),
@@ -41,7 +38,7 @@ class BentoMenuGrid extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildQuickActionBento(
-                      title: '回忆导出',
+                      title: '\u56de\u5fc6\u5bfc\u51fa',
                       icon: Icons.ios_share,
                       color: const Color(0xFF64B5F6),
                     ),
@@ -55,7 +52,7 @@ class BentoMenuGrid extends StatelessWidget {
                   Expanded(
                     child: _buildMenuActionBento(
                       context,
-                      title: '小软的衣帽间',
+                      title: '\u5c0f\u8f6f\u7684\u8863\u5e3d\u95f4',
                       icon: Icons.auto_fix_high_rounded,
                       color: const Color(0xFFFFB74D),
                       targetPage: const MascotDecorationPage(),
@@ -65,7 +62,7 @@ class BentoMenuGrid extends StatelessWidget {
                   Expanded(
                     child: _buildMenuActionBento(
                       context,
-                      title: '岛屿成就',
+                      title: '\u5c9b\u5c7f\u6210\u5c31',
                       icon: Icons.emoji_events_outlined,
                       color: const Color(0xFFFF7043),
                       targetPage: const AchievementPage(),
@@ -75,7 +72,7 @@ class BentoMenuGrid extends StatelessWidget {
                   Expanded(
                     child: _buildMenuActionBento(
                       context,
-                      title: '关于小岛',
+                      title: '\u5173\u4e8e\u5c0f\u5c9b',
                       icon: Icons.info_outline,
                       color: const Color(0xFFBA68C8),
                       targetPage: const AboutIslandPage(),
@@ -86,19 +83,14 @@ class BentoMenuGrid extends StatelessWidget {
             ],
           ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0);
         }
-
-        // 默认手机模式布局
         return Column(
           children: [
-            // 第一部分：1(左大) : 2(右小叠放) 布局
             IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // 左侧：主题模式 (大)
                   Expanded(flex: 1, child: _buildThemeBento(context)),
                   const SizedBox(width: 12),
-                  // 右侧：岛屿安全 + 小软的衣帽间 (两个小)
                   Expanded(
                     flex: 1,
                     child: Column(
@@ -106,7 +98,7 @@ class BentoMenuGrid extends StatelessWidget {
                         Expanded(
                           child: _buildMenuActionBento(
                             context,
-                            title: '岛屿安全',
+                            title: '\u5c9b\u5c7f\u5b89\u5168',
                             icon: Icons.lock_outline,
                             color: const Color(0xFF81C784),
                             targetPage: const SecurityCenterPage(),
@@ -115,7 +107,7 @@ class BentoMenuGrid extends StatelessWidget {
                         const SizedBox(height: 12),
                         Expanded(
                           child: _buildQuickActionBento(
-                            title: '回忆导出',
+                            title: '\u56de\u5fc6\u5bfc\u51fa',
                             icon: Icons.ios_share,
                             color: const Color(0xFF64B5F6),
                           ),
@@ -127,7 +119,6 @@ class BentoMenuGrid extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            // 第二部分：平行排列
             IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -135,7 +126,7 @@ class BentoMenuGrid extends StatelessWidget {
                   Expanded(
                     child: _buildMenuActionBento(
                       context,
-                      title: '小软的衣帽间',
+                      title: '\u5c0f\u8f6f\u7684\u8863\u5e3d\u95f4',
                       icon: Icons.auto_fix_high_rounded,
                       color: const Color(0xFFFFB74D),
                       targetPage: const MascotDecorationPage(),
@@ -145,7 +136,7 @@ class BentoMenuGrid extends StatelessWidget {
                   Expanded(
                     child: _buildMenuActionBento(
                       context,
-                      title: '岛屿成就',
+                      title: '\u5c9b\u5c7f\u6210\u5c31',
                       icon: Icons.emoji_events_outlined,
                       color: const Color(0xFFFF7043),
                       targetPage: const AchievementPage(),
@@ -155,13 +146,11 @@ class BentoMenuGrid extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            // 人生线管理卡片
             _buildLifeLineBento(context),
             const SizedBox(height: 12),
-            // 第三部分：关于小岛 (整合后的新入口)
             _buildMenuActionBento(
               context,
-              title: '关于小岛',
+              title: '\u5173\u4e8e\u5c0f\u5c9b',
               icon: Icons.info_outline,
               color: const Color(0xFFBA68C8),
               targetPage: const AboutIslandPage(),
@@ -175,105 +164,20 @@ class BentoMenuGrid extends StatelessWidget {
   Widget _buildThemeBento(BuildContext context) {
     final themeId = UserState().selectedIslandThemeId.value;
     final bool isUnsupported = themeId == 'lego' || themeId == 'cotton_candy';
-
-    return BentoBox(
-      isNight: isNight,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4DB6AC).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.palette_rounded, size: 18, color: Color(0xFF4DB6AC)),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '主题模式',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: isNight ? Colors.white70 : Colors.black87,
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ValueListenableBuilder<String>(
-            valueListenable: UserState().themeMode,
-            builder: (context, mode, _) {
-              return _buildThemeOptions(context, mode, isUnsupported);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildThemeOptions(BuildContext context, String currentMode, bool isUnsupported) {
-    final List<Map<String, dynamic>> options = [
-      {'label': '日间', 'mode': 'light', 'icon': Icons.wb_sunny_outlined},
-      {'label': '夜间', 'mode': 'dark', 'icon': Icons.nightlight_outlined},
-      {'label': '自动', 'mode': 'auto', 'icon': Icons.auto_awesome_outlined},
-    ];
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: options.map((opt) {
-        final bool isSelected = currentMode == opt['mode'];
-        return GestureDetector(
-          onTap: () {
-            if (isUnsupported) {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('当前岛屿主题拥有专属明暗，不支持手动切换明暗模式哦~'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              return;
-            }
-            UserState().setThemeMode(opt['mode']);
-          },
-          child: Opacity(
-            opacity: isUnsupported ? 0.35 : 1.0,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? (isNight
-                        ? const Color(0xFFFFF176).withValues(alpha: 0.15)
-                        : const Color(0xFFFFF176).withValues(alpha: 0.3))
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFFFFF176).withValues(alpha: 0.5)
-                      : Colors.transparent,
-                ),
-              ),
-              child: Icon(
-                opt['icon'] as IconData,
-                size: 18,
-                color: isSelected
-                    ? (isNight ? const Color(0xFFFFF176) : const Color(0xFF7B5C2E))
-                    : (isNight ? Colors.white24 : Colors.black12),
-              ),
-            ),
-          ),
+    return ValueListenableBuilder<String>(
+      valueListenable: UserState().themeMode,
+      builder: (context, currentMode, _) {
+        return _ThemeOptionsWidget(
+          isNight: isNight,
+          currentMode: currentMode,
+          isUnsupported: isUnsupported,
         );
-      }).toList(),
+      },
     );
   }
 
-  Widget _buildMenuActionBento(BuildContext context, {
+  Widget _buildMenuActionBento(
+    BuildContext context, {
     required String title,
     required IconData icon,
     required Color color,
@@ -281,7 +185,6 @@ class BentoMenuGrid extends StatelessWidget {
   }) {
     return GestureDetector(
       onTap: () {
-        final isNight = UserState().isNight;
         Navigator.push(
           context,
           PageRouteBuilder(
@@ -332,6 +235,7 @@ class BentoMenuGrid extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildLifeLineBento(BuildContext context) {
     return GestureDetector(
       onTap: () {
@@ -361,7 +265,7 @@ class BentoMenuGrid extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '人生线',
+                    '\u4eba\u751f\u7ebf',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -373,10 +277,16 @@ class BentoMenuGrid extends StatelessWidget {
                     valueListenable: UserState().currentLifeLineId,
                     builder: (context, id, _) {
                       final profiles = UserState().lifeLines.value;
-                      final current = profiles.firstWhere((p) => p.id == id, 
-                        orElse: () => LifeLineProfile(id: 'default', name: '海岛新居民', createdAt: 0));
+                      final current = profiles.firstWhere(
+                        (p) => p.id == id,
+                        orElse: () => LifeLineProfile(
+                          id: 'default',
+                          name: '\u6d77\u5c9b\u65b0\u5c45\u6c11',
+                          createdAt: 0,
+                        ),
+                      );
                       return Text(
-                        '当前: ${current.name}',
+                        '\u5f53\u524d: ${current.name}',
                         style: TextStyle(
                           fontSize: 10,
                           color: isNight ? Colors.white38 : Colors.black38,
@@ -389,6 +299,144 @@ class BentoMenuGrid extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ThemeOptionsWidget extends StatelessWidget {
+  final bool isNight;
+  final String currentMode;
+  final bool isUnsupported;
+
+  const _ThemeOptionsWidget({
+    required this.isNight,
+    required this.currentMode,
+    required this.isUnsupported,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const List<String> modes = ['light', 'dark', 'auto'];
+    final int selectedIndex = modes.indexOf(currentMode).clamp(0, 2);
+
+    const List<IconData> icons = [
+      Icons.wb_sunny_outlined,
+      Icons.nightlight_outlined,
+      Icons.auto_awesome_outlined,
+    ];
+    const List<Color> iconColors = [
+      Color(0xFFEBB447),
+      Color(0xFF9E8DE3),
+      Color(0xFFEBB447),
+    ];
+
+    return BentoBox(
+      isNight: isNight,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4DB6AC).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.palette_rounded, size: 18, color: Color(0xFF4DB6AC)),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '\u4e3b\u9898\u6a21\u5f0f',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Opacity(
+            opacity: isUnsupported ? 0.35 : 1.0,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: isNight ? const Color(0xFF1E1C16) : const Color(0xFFFFFDF6),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: isNight
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : const Color(0xFFF4EFE6),
+                  width: 1,
+                ),
+              ),
+              child: SizedBox(
+                height: 36,
+                child: Stack(
+                  children: [
+                    AnimatedAlign(
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeInOut,
+                      alignment: selectedIndex == 0
+                          ? Alignment.centerLeft
+                          : (selectedIndex == 1
+                              ? Alignment.center
+                              : Alignment.centerRight),
+                      child: FractionallySizedBox(
+                        widthFactor: 0.33,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isNight
+                                ? const Color(0xFF2C281F)
+                                : const Color(0xFFFEF5DC),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isNight
+                                  ? const Color(0xFFFFF176).withValues(alpha: 0.2)
+                                  : const Color(0xFFFBE4A8),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Row(
+                        children: List.generate(modes.length, (i) {
+                          return Expanded(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                if (isUnsupported) {
+                                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('\u5f53\u524d\u5c9b\u5c7f\u4e3b\u9898\u62e5\u6709\u4e13\u5c5e\u660e\u6697\uff0c\u4e0d\u652f\u6301\u624b\u52a8\u5207\u6362\u660e\u6697\u6a21\u5f0f\u54e6~'),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                UserState().setThemeMode(modes[i]);
+                              },
+                              child: Center(
+                                child: Icon(icons[i], size: 20, color: iconColors[i]),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

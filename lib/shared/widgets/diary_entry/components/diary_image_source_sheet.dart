@@ -72,6 +72,7 @@ class DiaryImageSourceSheet extends StatelessWidget {
     required Color accentColor,
     required Color inkColor,
   }) {
+    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
     return Material(
       color: Colors.transparent,
       child: ListTile(
@@ -86,7 +87,7 @@ class DiaryImageSourceSheet extends StatelessWidget {
         title: Text(
           title,
           style: TextStyle(
-            fontFamily: 'LXGWWenKai',
+            fontFamily: fontFamily,
             fontSize: 17,
             fontWeight: FontWeight.w600,
             color: inkColor.withValues(alpha: 0.8),

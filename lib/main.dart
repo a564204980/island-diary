@@ -42,8 +42,11 @@ class IslandDiaryApp extends StatelessWidget {
         final isLego = userState.selectedIslandThemeId.value == 'lego';
         final defaultFont = isLego ? 'SweiFistLeg' : 'ArphicKaiti';
         final darkFont = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
+        
+        final isDark = userState.isNight;
 
         return MaterialApp(
+          key: const ValueKey('IslandDiaryAppRoot'),
           title: '岛屿日记',
           debugShowCheckedModeBanner: false,
           scrollBehavior: AppScrollBehavior(),
@@ -83,7 +86,7 @@ class IslandDiaryApp extends StatelessWidget {
               ),
             ),
           ),
-          themeMode: userState.isNight ? ThemeMode.dark : ThemeMode.light,
+          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,

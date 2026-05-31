@@ -28,13 +28,15 @@ class EditorHeader extends StatelessWidget {
     final String weekStr = _getChineseWeekDay(dateTime.weekday);
     final String timeStr = DateFormat('HH:mm').format(dateTime);
 
+    final themeId = UserState().selectedIslandThemeId.value;
     final bool hasPaperBg = paperStyle.startsWith('note') ||
-        (paperStyle == 'classic' &&
-            UserState().selectedIslandThemeId.value == 'cotton_candy');
+        (paperStyle == 'classic' && themeId == 'cotton_candy');
 
     final Color bgColor = hasPaperBg
         ? Colors.transparent
-        : (isNight ? const Color(0xFF121212) : const Color(0xFFFAF8F5));
+        : (isNight 
+            ? const Color(0xFF121212) 
+            : (themeId == 'lego' ? const Color(0xFFFDF3E3) : const Color(0xFFFAF8F5)));
     
     return Container(
       color: bgColor, // 确保置顶时遮挡下方文字
@@ -105,6 +107,48 @@ class EditorHeader extends StatelessWidget {
     required VoidCallback onTap,
     required bool isNight,
   }) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isLego = themeId == 'lego';
+
+    if (isLego) {
+      final Color btnColor = isNight ? const Color(0xFF2C2518) : const Color(0xFFFFFDF2); // 高保真极柔和米黄白色
+      final Color depthColor = isNight ? const Color(0xFF1B160E) : const Color(0xFFEADAB9); // 3D 厚度实色积木层
+      final Color shadowColor = isNight ? const Color(0x80000000) : const Color(0x3D5D4037);
+      final Color arrowColor = isNight ? Colors.white70 : const Color(0xFF5D4037); // 经典的深木巧克力色
+
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 48,
+          height: 38,
+          margin: const EdgeInsets.only(bottom: 4), // 留出 3D 投影和软影的浮空空间
+          decoration: BoxDecoration(
+            color: btnColor,
+            borderRadius: BorderRadius.circular(16), // 还原图1中温润圆润的扁矩形大圆角
+            boxShadow: [
+              // 1. 上层 3D 积木厚度实色层（零羽化）
+              BoxShadow(
+                color: depthColor,
+                blurRadius: 0,
+                offset: const Offset(0, 3.5),
+              ),
+              // 2. 底层环境遮蔽软影
+              BoxShadow(
+                color: shadowColor,
+                blurRadius: 5.0,
+                offset: const Offset(0, 5.0),
+              ),
+            ],
+          ),
+          child: Icon(
+            Icons.arrow_back_rounded, // 还原图1中粗壮可爱的向左直箭头，符合积木拼装感
+            size: 20,
+            color: arrowColor,
+          ),
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -125,6 +169,65 @@ class EditorHeader extends StatelessWidget {
 
   Widget _buildSaveBtn({required bool isNight, required VoidCallback onTap}) {
     final themeId = UserState().selectedIslandThemeId.value;
+    final bool isLego = themeId == 'lego';
+
+    if (isLego) {
+      final Color btnColor = isNight ? const Color(0xFF3B6B15) : const Color(0xFF76B131); // 乐高亮绿色塑料积木板
+      final Color depthColor = isNight ? const Color(0xFF25470B) : const Color(0xFF598E20); // 3D 厚度实色积木层
+      final Color shadowColor = isNight ? const Color(0x80000000) : const Color(0x3D335213); // 塑料积木底部遮蔽影
+      final Color textColor = Colors.white;
+
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          margin: const EdgeInsets.only(bottom: 4), // 留出 3D 投影和软影的浮空空间
+          decoration: BoxDecoration(
+            color: btnColor,
+            borderRadius: BorderRadius.circular(16), // 与左侧返回积木按钮完全一致的温润圆润大圆角
+            boxShadow: [
+              // 1. 上层 3D 积木厚度实色层（零羽化）
+              BoxShadow(
+                color: depthColor,
+                blurRadius: 0,
+                offset: const Offset(0, 3.5),
+              ),
+              // 2. 底层环境遮蔽软影
+              BoxShadow(
+                color: shadowColor,
+                blurRadius: 5.0,
+                offset: const Offset(0, 5.0),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 还原图1中飞向右上角的灵动纸飞机
+              Transform.rotate(
+                angle: -0.4, // 逆时针微调旋转，使其朝向右上角展翅高飞
+                child: Icon(
+                  Icons.send_rounded,
+                  size: 15,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                "保存",
+                style: TextStyle(
+                  fontSize: 13,
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
 
     final Color itemColor = isCottonCandyDark

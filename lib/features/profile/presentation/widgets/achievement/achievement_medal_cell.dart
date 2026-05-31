@@ -78,8 +78,8 @@ class AchievementMedalCell extends StatelessWidget {
           ),
           // 右上角添加奖励类型角标
           Positioned(
-            top: 14,
-            right: 14,
+            top: 6,
+            right: 6,
             child: _buildRewardBadge(primaryColor),
           ),
           if (!isUnlocked) _buildLockIcon(),

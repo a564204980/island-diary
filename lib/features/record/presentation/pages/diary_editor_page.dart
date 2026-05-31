@@ -80,11 +80,14 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       builder: (context, themeMode, _) {
         final bool isNight = UserState().isNight;
         final Color accentColor = DiaryUtils.getAccentColor(currentPaperStyle, isNight);
+        final themeId = UserState().selectedIslandThemeId.value;
         final Color bgColor = isNight
             ? const Color(0xFF121212)
-            : (UserState().selectedIslandThemeId.value == 'cotton_candy' && currentPaperStyle == 'classic'
-                ? const Color(0xFFFBF3E9)
-                : const Color(0xFFFAF8F5));
+            : (themeId == 'lego'
+                ? const Color(0xFFFDF3E3)
+                : (themeId == 'cotton_candy' && currentPaperStyle == 'classic'
+                    ? const Color(0xFFFBF3E9)
+                    : const Color(0xFFFAF8F5)));
 
         return PopScope(
           canPop: true,
@@ -350,6 +353,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       currentPaperStyle,
       effectiveIsNight,
     ).withValues(alpha: 0.9);
+    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -382,7 +386,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: textColor,
-                    fontFamily: 'LXGWWenKai',
+                    fontFamily: fontFamily,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -510,6 +514,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     required Color textColor,
     VoidCallback? onTap,
   }) {
+    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -540,7 +545,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: textColor,
-                      fontFamily: 'LXGWWenKai',
+                      fontFamily: fontFamily,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -549,7 +554,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     style: TextStyle(
                       fontSize: 12,
                       color: textColor.withValues(alpha: 0.5),
-                      fontFamily: 'LXGWWenKai',
+                      fontFamily: fontFamily,
                     ),
                   ),
                 ],

@@ -112,31 +112,33 @@ class _ProfilePageState extends State<ProfilePage> {
 
         return Stack(
           children: [
-            // 节日特定背景
-            if (themeId == 'lantern_festival' || themeId == 'cotton_candy')
+            // 节日与主题特定背景
+            if (themeId == 'lantern_festival' || themeId == 'cotton_candy' || themeId == 'lego')
               Positioned.fill(
                 child: Image.asset(
                   themeId == 'lantern_festival'
                       ? 'assets/images/background/page_yuanxiaojie_bg.png'
-                      : (isNight
-                          ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
-                          : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png'),
+                      : (themeId == 'lego'
+                          ? 'assets/images/theme/legao/legao_my_bg.png'
+                          : (isNight
+                              ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
+                              : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png')),
                   fit: BoxFit.cover,
                 ),
               ),
 
-            // 背景模糊（节日与棉花岛下保持清晰）
+            // 背景模糊（特定主题下保持清晰）
             Positioned.fill(
               child: BackdropFilter(
                 filter: ImageFilter.blur(
-                  sigmaX: (themeId == 'lantern_festival' || themeId == 'cotton_candy') ? 0 : 10,
-                  sigmaY: (themeId == 'lantern_festival' || themeId == 'cotton_candy') ? 0 : 10,
+                  sigmaX: (themeId == 'lantern_festival' || themeId == 'cotton_candy' || themeId == 'lego') ? 0 : 10,
+                  sigmaY: (themeId == 'lantern_festival' || themeId == 'cotton_candy' || themeId == 'lego') ? 0 : 10,
                 ),
                 child: Container(
                   color: Colors.black.withValues(
                     alpha: themeId == 'lantern_festival' 
                         ? 0.3 
-                        : (themeId == 'cotton_candy' ? 0.0 : 0.0),
+                        : 0.0,
                   ),
                 ),
               ),
@@ -154,8 +156,6 @@ class _ProfilePageState extends State<ProfilePage> {
                       ProfileHeader(isNight: isNight, isVip: isVip),
                       const SizedBox(height: 32),
                       PremiumBentoCard(isVip: isVip, isNight: isNight),
-                      const SizedBox(height: 16),
-                      DailyTaskCard(isNight: isNight),
                       const SizedBox(height: 24),
                       BentoMenuGrid(isNight: isNight),
                       const SizedBox(height: 80),

@@ -17,7 +17,7 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     
     <application
-        android:label="island_diary"
+        android:label="岛屿日记"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

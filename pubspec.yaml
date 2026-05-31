@@ -52,6 +52,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   isar_generator: any
   build_runner: ^2.4.13
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
@@ -106,6 +107,8 @@ flutter:
     - assets/images/theme/miamhuadao/note/
     - assets/images/theme/legao/
     - assets/images/theme/legao/icons/
+    - assets/images/theme/legao/pages/
+    - assets/images/theme/legao/my/
 
 
   fonts:
@@ -147,3 +150,8 @@ flutter:
     - family: SweiFistLeg
       fonts:
         - asset: assets/fonts/SweiFistLegCJKjp-Medium-2.ttf
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/app_icon.png"
