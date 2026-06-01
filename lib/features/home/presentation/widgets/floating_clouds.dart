@@ -113,7 +113,7 @@ class _SingleCloudState extends State<_SingleCloud>
     _currentBaseDuration = _getRandomDuration();
 
     // 随机一个初始的位移进度，防止云朵在刚打开页面时同步从右侧钻出
-    _animationValue = _random.nextDouble();
+    _animationNotifier.value = _random.nextDouble();
 
     // 监听全局云朵速度倍率
     UserState().cloudSpeedMultiplier.addListener(_onSpeedMultiplierChanged);
@@ -155,8 +155,6 @@ class _SingleCloudState extends State<_SingleCloud>
 
   // 精准重绘监听器，避免全量局部刷新
   final ValueNotifier<double> _animationNotifier = ValueNotifier<double>(0.0);
-  set _animationValue(double val) => _animationNotifier.value = val;
-  double get _animationValue => _animationNotifier.value;
 
   void _onSpeedMultiplierChanged() {
     if (mounted) {

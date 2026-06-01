@@ -160,8 +160,8 @@ class AchievementDetailSheet extends StatelessWidget {
                 Navigator.pop(context);
                 if (!isUnlocked) return;
 
-                // 优先引导去穿戴装扮
-                if (achievement.rewardDecorationId != null) {
+                // 优先引导去穿戴装扮，前提是装扮配置确实存在
+                if (achievement.rewardDecorationId != null && decoration != null) {
                   if (onGoWear != null) {
                     onGoWear!(achievement.rewardDecorationId!);
                   } else {
@@ -171,7 +171,7 @@ class AchievementDetailSheet extends StatelessWidget {
                     );
                   }
                 }
-                // 如果没有装扮但有称号奖励，则弹名称选择面板
+                // 如果没有装扮（或装扮未注册）但有称号奖励，则弹名称选择面板
                 else if (achievement.rewardTitle != null) {
                   showModalBottomSheet(
                     context: context,
@@ -195,7 +195,7 @@ class AchievementDetailSheet extends StatelessWidget {
               child: Text(
                 !isUnlocked
                     ? '继续努力'
-                    : (achievement.rewardDecorationId != null
+                    : ((achievement.rewardDecorationId != null && decoration != null)
                           ? '这就去穿戴奖励'
                           : (achievement.rewardTitle != null
                                 ? '这就去佩戴称号'

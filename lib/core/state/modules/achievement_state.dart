@@ -26,8 +26,13 @@ mixin AchievementMixin on ProfileMixin, DiaryMixin {
     // 强制同步新增的眼镜：满足“全部解锁”需求
     final current = List<String>.from(ownedDecorationIds.value);
     bool added = false;
+    final rewards = MascotAchievement.allAchievements.map((a) => a.rewardDecorationId).whereType<String>().toSet();
     for (var d in MascotDecoration.allDecorations) {
       if (d.category == MascotDecorationCategory.glasses && !current.contains(d.id)) {
+        current.add(d.id);
+        added = true;
+      } else if (!rewards.contains(d.id) && !current.contains(d.id)) {
+        // 如果是新上架的非成就奖励饰品，自动为老用户解锁
         current.add(d.id);
         added = true;
       }
@@ -46,10 +51,13 @@ mixin AchievementMixin on ProfileMixin, DiaryMixin {
     final currentOwned = List<String>.from(ownedDecorationIds.value);
     final unlockedMap = unlockedAchievements.value;
     final currentMascots = List<String>.from(unlockedMascotPaths.value);
-    
-    // 强制解锁所有眼镜（满足用户特殊要求）
+    // 强制解锁所有眼镜（满足用户特殊要求）以及非成就奖励的新饰品
+    final rewards = MascotAchievement.allAchievements.map((a) => a.rewardDecorationId).whereType<String>().toSet();
     for (var d in MascotDecoration.allDecorations) {
       if (d.category == MascotDecorationCategory.glasses && !currentOwned.contains(d.id)) {
+        currentOwned.add(d.id);
+        needsSync = true;
+      } else if (!rewards.contains(d.id) && !currentOwned.contains(d.id)) {
         currentOwned.add(d.id);
         needsSync = true;
       }

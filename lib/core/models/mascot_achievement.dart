@@ -176,6 +176,7 @@ class MascotAchievement {
       rewardDecorationId: 'panda_hat',
       rewardTitle: '岛上新邻',
       rewardPoints: 20,
+      imagePath: 'assets/images/chengjiu/1.png',
     ),
     MascotAchievement(
       id: 'seven_days_milestone',
@@ -185,8 +186,7 @@ class MascotAchievement {
       targetValue: 7,
       rewardTitle: '旅岛信使',
       rewardPoints: 30,
-      imagePath: 'assets/images/emoji/medal/medal21.png',
-      medalScale: 1.2,
+      imagePath: 'assets/images/chengjiu/2.png',
     ),
     MascotAchievement(
       id: 'lingxi_unlock',
@@ -197,8 +197,7 @@ class MascotAchievement {
       rewardMascotPath: 'assets/images/emoji/marshmallow3.png',
       rewardTitle: '灵犀之友',
       rewardPoints: 50,
-      imagePath: 'assets/images/emoji/medal/medal8.png',
-      medalScale: 1.2,
+      imagePath: 'assets/images/chengjiu/3.png',
     ),
     MascotAchievement(
       id: 'month_milestone',
@@ -209,6 +208,7 @@ class MascotAchievement {
       rewardDecorationId: 'retro_heart_bow',
       rewardTitle: '旧梦拾遗',
       rewardPoints: 100,
+      imagePath: 'assets/images/chengjiu/4.png',
     ),
     MascotAchievement(
       id: 'three_days_streak',
@@ -218,8 +218,7 @@ class MascotAchievement {
       targetValue: 3,
       rewardTitle: '点点微光',
       rewardPoints: 20,
-      imagePath: 'assets/images/emoji/medal/medal3.png',
-      medalScale: 1.7,
+      imagePath: 'assets/images/chengjiu/5.png',
     ),
     MascotAchievement(
       id: 'fifteen_days_streak',
@@ -229,8 +228,7 @@ class MascotAchievement {
       targetValue: 15,
       rewardTitle: '海岛羁绊',
       rewardPoints: 80,
-      imagePath: 'assets/images/emoji/medal/medal22.png',
-      medalScale: 1.2,
+      imagePath: 'assets/images/chengjiu/6.png',
     ),
     MascotAchievement(
       id: 'streak_30_days',
@@ -250,6 +248,7 @@ class MascotAchievement {
       targetValue: 5,
       rewardTitle: '情绪切片',
       rewardPoints: 40,
+      imagePath: 'assets/images/chengjiu/7.png',
     ),
     MascotAchievement(
       id: 'all_moods_explorer',
@@ -260,6 +259,7 @@ class MascotAchievement {
       rewardDecorationId: 'funny_tails',
       rewardTitle: '浮生掠影',
       rewardPoints: 200,
+      imagePath: 'assets/images/chengjiu/8.png',
     ),
     MascotAchievement(
       id: 'morning_ritual',
@@ -269,7 +269,7 @@ class MascotAchievement {
       targetValue: 7,
       rewardTitle: '向阳而栖',
       rewardPoints: 50,
-      imagePath: 'assets/images/emoji/medal/medal7.png',
+      imagePath: 'assets/images/chengjiu/9.png',
       medalScale: 1.2,
     ),
     MascotAchievement(
@@ -280,7 +280,7 @@ class MascotAchievement {
       targetValue: 5,
       rewardTitle: '引星入梦',
       rewardPoints: 50,
-      imagePath: 'assets/images/emoji/medal/medal6.png',
+      imagePath: 'assets/images/chengjiu/10.png',
       medalScale: 1.2,
     ),
     MascotAchievement(
@@ -291,7 +291,7 @@ class MascotAchievement {
       targetValue: 500,
       rewardTitle: '孤独乐章',
       rewardPoints: 60,
-      imagePath: 'assets/images/emoji/medal/medal18.png',
+      imagePath: 'assets/images/chengjiu/11.png',
       medalScale: 1.2,
     ),
     MascotAchievement(

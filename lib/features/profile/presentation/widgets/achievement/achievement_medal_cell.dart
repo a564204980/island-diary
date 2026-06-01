@@ -63,18 +63,28 @@ class AchievementMedalCell extends StatelessWidget {
           if (isUnlocked && isHonor)
             const Positioned.fill(child: SweepLightEffect()),
           Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: ClipOval(
-              child: Transform.translate(
-                offset: achievement.medalOffset,
-                child: Transform.scale(
-                  scale: achievement.medalScale,
-                  child: Center(
-                    child: _buildMedalIcon(decoration, primaryColor),
+            padding: EdgeInsets.all(achievement.imagePath != null ? 0.0 : 10.0),
+            child: achievement.imagePath != null
+                ? Transform.translate(
+                    offset: achievement.medalOffset,
+                    child: Transform.scale(
+                      scale: achievement.medalScale,
+                      child: SizedBox.expand(
+                        child: _buildMedalIcon(decoration, primaryColor),
+                      ),
+                    ),
+                  )
+                : ClipOval(
+                    child: Transform.translate(
+                      offset: achievement.medalOffset,
+                      child: Transform.scale(
+                        scale: achievement.medalScale,
+                        child: Center(
+                          child: _buildMedalIcon(decoration, primaryColor),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
           ),
           // 右上角添加奖励类型角标
           Positioned(
@@ -146,13 +156,16 @@ class AchievementMedalCell extends StatelessWidget {
 
   Widget _buildMedalIcon(MascotDecoration? decoration, Color color) {
     if (isUnlocked) {
-      if (decoration != null && decoration.path.isNotEmpty) {
-        return Image.asset(decoration.path, fit: BoxFit.contain);
-      }
-      
       // 优先显示指定的勋章图片
       if (achievement.imagePath != null && achievement.imagePath!.isNotEmpty) {
-        return Image.asset(achievement.imagePath!, fit: BoxFit.contain);
+        return Image.asset(
+          achievement.imagePath!,
+          fit: BoxFit.contain,
+        );
+      }
+
+      if (decoration != null && decoration.path.isNotEmpty) {
+        return Image.asset(decoration.path, fit: BoxFit.contain);
       }
       
       // 无饰品，但有称号：显示称号本身的盾牌图标勋章
@@ -209,17 +222,20 @@ class AchievementMedalCell extends StatelessWidget {
             0.2126, 0.7152, 0.0722, 0, 0,
             0,      0,      0,      1, 0,
           ]),
-          child: (decoration != null && decoration.path.isNotEmpty)
-              ? Image.asset(decoration.path, fit: BoxFit.contain)
-              : (achievement.imagePath != null && achievement.imagePath!.isNotEmpty)
-                  ? Image.asset(achievement.imagePath!, fit: BoxFit.contain)
+          child: (achievement.imagePath != null && achievement.imagePath!.isNotEmpty)
+              ? Image.asset(
+                  achievement.imagePath!,
+                  fit: BoxFit.contain,
+                )
+              : ((decoration != null && decoration.path.isNotEmpty)
+                  ? Image.asset(decoration.path, fit: BoxFit.contain)
                   : Icon(
                       achievement.rewardTitle != null 
                         ? achievement.titleTier.badge 
                         : achievement.condition.icon, 
                       size: 30, 
                       color: Colors.grey
-                    ),
+                    )),
         ),
       );
     }

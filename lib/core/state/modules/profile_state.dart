@@ -32,14 +32,19 @@ mixin ProfileMixin on LifeLineMixin {
   MascotEvent? _pendingDecorationEvent;
 
   bool get isNight {
+    // 乐高模式没有晚上模式，始终保持白天
+    if (selectedIslandThemeId.value == 'lego') {
+      return false;
+    }
+
     if (themeMode.value == 'light') {
       return false;
     }
     if (themeMode.value == 'dark') {
       return true;
     }
-    // 特殊主题模式（棉花糖和乐高）在自动模式下，不随时间自动切换，默认保持白天
-    if (selectedIslandThemeId.value == 'cotton_candy' || selectedIslandThemeId.value == 'lego') {
+    // 特殊主题模式（棉花糖）在自动模式下，不随时间自动切换，默认保持白天
+    if (selectedIslandThemeId.value == 'cotton_candy') {
       return false;
     }
     final hour = DateTime.now().hour;

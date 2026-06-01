@@ -66,6 +66,7 @@ class DecorationGridItem extends StatelessWidget {
     return Container(
       decoration: _buildItemDecoration(),
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           if (deco != null) _buildWatermark(),
           _buildContent(),
@@ -288,8 +289,8 @@ class DecorationGridItem extends StatelessWidget {
           Flexible(
             child: Text(
               deco?.name ?? '取消',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12, // 标题字号由 14 优化到 12
                 fontWeight: FontWeight.bold,
@@ -382,8 +383,8 @@ class DecorationGridItem extends StatelessWidget {
   Widget _buildCheckBadge() {
     final rarityColor = deco?.rarity.color ?? const Color(0xFFFFD97D);
     return Positioned(
-      top: 0,
-      right: 0,
+      top: -5,
+      right: -5,
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(color: rarityColor, shape: BoxShape.circle),

@@ -123,7 +123,7 @@ class PremiumBentoCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: themeId == 'lego'
-                            ? Colors.white.withValues(alpha: 0.15) // 半透明白色，完美承接底图粉紫，呈现图1质感
+                            ? const Color(0xFFEADBFC) // 柔和且不透明的马卡龙淡粉紫色背景，与底色完美契合
                             : (isVip
                                 ? Colors.white.withValues(alpha: 0.2)
                                 : (isNight ? Colors.white : const Color(0xFF3E2723))),
@@ -150,7 +150,7 @@ class PremiumBentoCard extends StatelessWidget {
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: themeId == 'lego'
-                              ? Colors.white
+                              ? const Color(0xFF673AB7) // 深靛紫色，与实色淡粉紫底高对比度且融洽
                               : (isVip
                                   ? Colors.white
                                   : (isNight ? const Color(0xFF3E2723) : Colors.white)),

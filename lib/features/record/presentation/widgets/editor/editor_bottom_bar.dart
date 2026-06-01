@@ -79,7 +79,7 @@ class EditorBottomBar extends StatelessWidget {
     final bool isWide = screenWidth > 800;
     final double toolbarMaxWidth = isWide ? 800.0 : double.infinity;
 
-    final bool isFloating = !isEmojiOpen && viewInsetsBottom <= 0;
+    final bool isFloating = !isEmojiOpen;
     final bool showPreviewBar = !isMixedLayout && blocks.whereType<ImageBlock>().isNotEmpty;
 
     final themeId = UserState().selectedIslandThemeId.value;

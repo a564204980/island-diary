@@ -316,7 +316,7 @@ extension _BentoMoodFlow on _StatisticsPageState {
                               ...[
                                 // 辅助垂线
                                 Positioned(
-                                  left: (_selectedMoodFlowX! + 0.5) / daysCount * finalWidth,
+                                  left: (_selectedMoodFlowX! + 0.18) / (daysCount - 0.32) * finalWidth,
                                   top: 0,
                                   bottom: 32,
                                   child: Container(
@@ -338,7 +338,7 @@ extension _BentoMoodFlow on _StatisticsPageState {
                                               : HSLColor.fromAHSL(1.0, (label.hashCode % 360).toDouble(), 0.5, 0.6).toColor()
                                           )
                                   ]..sort((a, b) => double.parse(b.value).compareTo(double.parse(a.value))),
-                                  relativeX: (_selectedMoodFlowX! + 0.5) / daysCount,
+                                  relativeX: (_selectedMoodFlowX! + 0.18) / (daysCount - 0.32),
                                   chartWidth: finalWidth,
                                   isNight: isNight,
                                   width: isCottonCandy ? 138 : 150,

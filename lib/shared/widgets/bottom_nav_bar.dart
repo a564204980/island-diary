@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/shared/widgets/slime_onboarding.dart';
 import 'package:island_diary/shared/widgets/slime_button.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
@@ -392,26 +391,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
       child: Center(
         child: Container(
           constraints: BoxConstraints(maxWidth: barMaxWidth),
-          child: ValueListenableBuilder<bool>(
-            valueListenable: UserState().hasFinishedOnboarding,
-            builder: (context, hasFinished, _) {
-              if (!hasFinished) return _buildOnboarding();
-              return _buildSlimeAndNav(barMaxWidth);
-            },
-          ),
+          child: _buildSlimeAndNav(barMaxWidth),
         ),
       ),
-    );
-  }
-
-  Widget _buildOnboarding() {
-    return SlimeOnboarding(
-      key: const ValueKey('slime_onboarding'),
-      isNight: widget.isNight,
-      onSlimeAction: _openMoodPicker,
-      onComplete: () {
-        UserState().completeOnboarding();
-      },
     );
   }
 

@@ -58,6 +58,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           (UserState().themeMode.value == 'system' &&
               (DateTime.now().hour < 10 || DateTime.now().hour >= 18));
     }
+    if (themeId == 'lego') {
+      return false;
+    }
     if (themeId != 'default' && themeId != 'starry_night') {
       return false;
     }
@@ -217,11 +220,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       return 'assets/images/home_small_demo2.png';
     }
 
-    final int currentHour = DateTime.now().hour;
-    if (currentHour >= 10 && currentHour < 18) {
-      return 'assets/images/home_small_demo.png';
+    if (_isNight) {
+      return 'assets/images/home_small_demo2.png';
     }
-    return 'assets/images/home_small_demo2.png';
+    return 'assets/images/home_small_demo.png';
   }
 
   Color _getIslandGlowColorForCurrentTime() {

@@ -533,47 +533,6 @@ extension _BentoMoodTrend on _StatisticsPageState {
                                   ),
                                 ),
                               ),
-                              // 自定义提示框
-                              if (_selectedMoodTrendX != null) ...[
-                                // 辅助垂线
-                                Positioned(
-                                  left:
-                                      (_selectedMoodTrendX! + 0.4) /
-                                      (aggregatedPoints.length - 0.2) *
-                                      finalWidth,
-                                  top: 0,
-                                  bottom: 40,
-                                  child: Container(
-                                    width: 1,
-                                    color: isNight
-                                        ? Colors.white.withValues(alpha: 0.15)
-                                        : Colors.black.withValues(alpha: 0.1),
-                                  ),
-                                ),
-                                _buildBentoTooltip(
-                                  title:
-                                      '${aggregatedPoints[_selectedMoodTrendX!]['label']}日 ${aggregatedPoints[_selectedMoodTrendX!]['subLabel']}',
-                                  items: [
-                                    _BentoTooltipItem(
-                                      label: '情绪指数',
-                                      value: spots[_selectedMoodTrendX!].y
-                                          .toStringAsFixed(1),
-                                      color: spots[_selectedMoodTrendX!].y >= 0
-                                          ? themeColor
-                                          : (isNight
-                                                ? const Color(0xFF448AFF)
-                                                : const Color(0xFF2196F3)),
-                                    ),
-                                  ],
-                                  relativeX:
-                                      (_selectedMoodTrendX! + 0.4) /
-                                      (aggregatedPoints.length - 0.2),
-                                  chartWidth: finalWidth,
-                                  isNight: isNight,
-                                  useCottonCandyStyle: isCottonCandy,
-                                ),
-                              ],
-
                               // 🌸 波峰极值心情插画贴纸 (一比一复刻设计图样式)
                               if (maxIdx != -1 &&
                                   aggregatedPoints[maxIdx]['moodIcon'] !=
@@ -630,6 +589,47 @@ extension _BentoMoodTrend on _StatisticsPageState {
                                     ),
                                   );
                                 }(),
+                              ],
+
+                              // 自定义提示框 (移动到表情后方绘制，确保层级最高遮住表情)
+                              if (_selectedMoodTrendX != null) ...[
+                                // 辅助垂线
+                                Positioned(
+                                  left:
+                                      (_selectedMoodTrendX! + 0.4) /
+                                      (aggregatedPoints.length - 0.2) *
+                                      finalWidth,
+                                  top: 0,
+                                  bottom: 40,
+                                  child: Container(
+                                    width: 1,
+                                    color: isNight
+                                        ? Colors.white.withValues(alpha: 0.15)
+                                        : Colors.black.withValues(alpha: 0.1),
+                                  ),
+                                ),
+                                _buildBentoTooltip(
+                                  title:
+                                      '${aggregatedPoints[_selectedMoodTrendX!]['label']}日 ${aggregatedPoints[_selectedMoodTrendX!]['subLabel']}',
+                                  items: [
+                                    _BentoTooltipItem(
+                                      label: '情绪指数',
+                                      value: spots[_selectedMoodTrendX!].y
+                                          .toStringAsFixed(1),
+                                      color: spots[_selectedMoodTrendX!].y >= 0
+                                          ? themeColor
+                                          : (isNight
+                                                ? const Color(0xFF448AFF)
+                                                : const Color(0xFF2196F3)),
+                                    ),
+                                  ],
+                                  relativeX:
+                                      (_selectedMoodTrendX! + 0.4) /
+                                      (aggregatedPoints.length - 0.2),
+                                  chartWidth: finalWidth,
+                                  isNight: isNight,
+                                  useCottonCandyStyle: isCottonCandy,
+                                ),
                               ],
                             ],
                           ),

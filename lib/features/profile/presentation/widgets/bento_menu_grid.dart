@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/pages/security_center_page.dart';
@@ -325,11 +325,6 @@ class _ThemeOptionsWidget extends StatelessWidget {
       Icons.nightlight_outlined,
       Icons.auto_awesome_outlined,
     ];
-    const List<Color> iconColors = [
-      Color(0xFFEBB447),
-      Color(0xFF9E8DE3),
-      Color(0xFFEBB447),
-    ];
 
     return BentoBox(
       isNight: isNight,
@@ -361,7 +356,7 @@ class _ThemeOptionsWidget extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Opacity(
-            opacity: isUnsupported ? 0.35 : 1.0,
+            opacity: isUnsupported ? 0.70 : 1.0,
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
@@ -407,6 +402,19 @@ class _ThemeOptionsWidget extends StatelessWidget {
                     Positioned.fill(
                       child: Row(
                         children: List.generate(modes.length, (i) {
+                          final bool isSelected = i == selectedIndex;
+                          
+                          // 🌸 乐高/自动等环境下极富美感的高清晰色彩增强体系 (拒绝低辨识度的偏淡细线)
+                          final List<Color> activeIconColors = [
+                            isNight ? const Color(0xFFFFB74D) : const Color(0xFFE65100), // 白天模式：亮太阳橙
+                            isNight ? const Color(0xFFB39DDB) : const Color(0xFF5E35B1), // 夜晚模式：深紫罗兰
+                            isNight ? const Color(0xFF80DEEA) : const Color(0xFF00ACC1), // 自动模式：极光深青
+                          ];
+                          
+                          final Color inactiveColor = isNight 
+                              ? Colors.white.withValues(alpha: 0.4) 
+                              : const Color(0xFF8D7A66).withValues(alpha: 0.45); // 中度质感泥褐色，完美清晰
+
                           return Expanded(
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
@@ -415,7 +423,7 @@ class _ThemeOptionsWidget extends StatelessWidget {
                                   ScaffoldMessenger.of(context).hideCurrentSnackBar();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('\u5f53\u524d\u5c9b\u5c7f\u4e3b\u9898\u62e5\u6709\u4e13\u5c5e\u660e\u6697\uff0c\u4e0d\u652f\u6301\u624b\u52a8\u5207\u6362\u660e\u6697\u6a21\u5f0f\u54e6~'),
+                                      content: Text('当前岛屿主题拥有专属明暗，不支持手动切换明暗，保持白天哦~'),
                                       duration: Duration(seconds: 2),
                                     ),
                                   );
@@ -424,7 +432,11 @@ class _ThemeOptionsWidget extends StatelessWidget {
                                 UserState().setThemeMode(modes[i]);
                               },
                               child: Center(
-                                child: Icon(icons[i], size: 20, color: iconColors[i]),
+                                child: Icon(
+                                  icons[i], 
+                                  size: 20, 
+                                  color: isSelected ? activeIconColors[i] : inactiveColor,
+                                ),
                               ),
                             ),
                           );
