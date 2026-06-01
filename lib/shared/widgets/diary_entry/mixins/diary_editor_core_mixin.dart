@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../models/diary_block.dart';
-import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import '../utils/diary_utils.dart';
@@ -250,7 +249,9 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       if (isEmojiOpen) setState(() => isEmojiOpen = false);
       
       // 延迟到下一帧弹出，规避 Navigator 锁定问题
-      Future.microtask(() => IslandAlert.show(context, message: '从心出发，总要留下点什么（日记内容不能为空哦）'));
+      Future.microtask(() {
+        if (mounted) IslandAlert.show(context, message: '从心出发，总要留下点什么（日记内容不能为空哦）');
+      });
       return false;
     }
 
@@ -259,7 +260,9 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       FocusScope.of(context).unfocus();
       if (isEmojiOpen) setState(() => isEmojiOpen = false);
       
-      Future.microtask(() => IslandAlert.show(context, message: '先选个心情再出发吧~', icon: '✨'));
+      Future.microtask(() {
+        if (mounted) IslandAlert.show(context, message: '先选个心情再出发吧~', icon: '✨');
+      });
       return false;
     }
 
@@ -269,7 +272,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           .map((b) => b.controller.text)
           .join('\n');
 
-      List<MascotAchievement> achievements = [];
+      List<dynamic> achievements = [];
 
       if (widget.entry != null) {
         debugPrint("DIARY_EDITOR: 正在保存更新 (修改模式)...");

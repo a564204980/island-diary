@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/shared/widgets/static_sprite.dart';
 
 class FormGridItem extends StatelessWidget {
@@ -36,18 +35,7 @@ class FormGridItem extends StatelessWidget {
           if (path.contains('marshmallow4.png')) {
             msg = '开通会员即可解锁此形象';
           } else {
-            try {
-              final achievement = MascotAchievement.allAchievements
-                  .where((a) => a.rewardMascotPath == path)
-                  .firstOrNull;
-              if (achievement != null) {
-                msg = '达成成就【${achievement.title}】即可解锁';
-              } else {
-                msg = '达成特定成就即可解锁该形象';
-              }
-            } catch (_) {
-              msg = '达成特定成就即可解锁该形象';
-            }
+            msg = '快去探索岛屿解锁该形象吧~';
           }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

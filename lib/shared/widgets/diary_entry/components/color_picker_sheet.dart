@@ -43,7 +43,6 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
     final bool isNight = UserState().isNight;
     // 使用统一的主题取色逻辑
     final Color accentColor = DiaryUtils.getAccentColor(widget.paperStyle, isNight);
-    final Color bgColor = DiaryUtils.getPopupBackgroundColor(widget.paperStyle, isNight);
     final Color textColor = DiaryUtils.getInkColor(widget.paperStyle, isNight).withValues(alpha: 0.9);
 
     final List<Color> currentColors = isBackground 

@@ -65,7 +65,6 @@ class VipPurchaseButton extends StatelessWidget {
               GestureDetector(
                 onTap: () async {
                   await userState.setIsVipLevel(selectedIndex + 1);
-                  await userState.checkAchievements();
                 },
                 child: Container(
                   width: double.infinity,

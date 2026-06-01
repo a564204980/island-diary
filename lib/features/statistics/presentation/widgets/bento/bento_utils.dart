@@ -147,7 +147,6 @@ extension _BentoUtils on _StatisticsPageState {
 
     final String themeId = UserState().selectedIslandThemeId.value;
     final bool isLego = themeId == 'lego';
-    final bool isCottonCandy = themeId == 'cotton_candy';
 
     if (isLego) {
       return Container(

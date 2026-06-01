@@ -15,10 +15,10 @@ class EditorBottomBar extends StatelessWidget {
   final List<DiaryBlock> blocks;
   final bool isMixedLayout;
 
-  // 工具栏回调
   final VoidCallback onEmojiToggle;
   final VoidCallback onImagePick;
-  final VoidCallback onStickerClick;
+
+  // 工具栏回调
   final VoidCallback onColorClick;
   final VoidCallback onBgColorClick;
   final VoidCallback onLocationClick;
@@ -26,7 +26,6 @@ class EditorBottomBar extends StatelessWidget {
   final VoidCallback onFontClick;
   final VoidCallback onDateClick;
   final VoidCallback onTimeClick;
-  final VoidCallback onCreateSticker;
   final VoidCallback onWeatherClick;
   final VoidCallback onMoreClick;
   final VoidCallback onClose;
@@ -53,7 +52,6 @@ class EditorBottomBar extends StatelessWidget {
     required this.isMixedLayout,
     required this.onEmojiToggle,
     required this.onImagePick,
-    required this.onStickerClick,
     required this.onColorClick,
     required this.onBgColorClick,
     required this.onLocationClick,
@@ -61,7 +59,6 @@ class EditorBottomBar extends StatelessWidget {
     required this.onFontClick,
     required this.onDateClick,
     required this.onTimeClick,
-    required this.onCreateSticker,
     required this.onWeatherClick,
     required this.onMoreClick,
     required this.onClose,
@@ -165,7 +162,6 @@ class EditorBottomBar extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _buildNavItem("图片", Icons.image_outlined, false, onImagePick),
-                        _buildNavItem("贴纸", Icons.auto_awesome_motion_outlined, false, onStickerClick),
                         _buildNavItem("表情", Icons.face_rounded, isEmojiOpen, onEmojiToggle),
                         _buildNavItem("文字", Icons.title_rounded, false, onFontSizeClick),
                         _buildNavItem("涂鸦", Icons.brush_outlined, false, onColorClick),
@@ -258,7 +254,6 @@ class EditorBottomBar extends StatelessWidget {
     if (themeId == 'lego') {
       final Map<String, String> legoIcons = {
         "图片": "assets/images/theme/legao/pages/tupian.png",
-        "贴纸": "assets/images/theme/legao/pages/tiezhi.png",
         "表情": "assets/images/theme/legao/pages/biaoqing.png",
         "文字": "assets/images/theme/legao/pages/wenzi.png",
         "涂鸦": "assets/images/theme/legao/pages/tuya.png",

@@ -281,14 +281,6 @@ mixin ProfileMixin on LifeLineMixin {
       task.isClaimed = true;
       dailyTask.value = task;
       _saveDailyTask();
-      
-      // 增加成就点
-      if (this is AchievementMixin) {
-        (this as UserState).achievementPoints.value += task.rewardPoints;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt(UserState().n(_K.achievementPoints), (this as UserState).achievementPoints.value);
-      }
-      
       debugPrint("DAILY_TASK: 奖励已领取 -> +${task.rewardPoints}点");
     }
   }

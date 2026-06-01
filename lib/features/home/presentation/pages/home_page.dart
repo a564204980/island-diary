@@ -10,8 +10,6 @@ import 'package:island_diary/features/home/presentation/widgets/floating_bricks.
 import 'package:island_diary/features/home/presentation/widgets/rising_lanterns.dart';
 import 'package:island_diary/features/home/presentation/widgets/twinkling_stars.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/shared/widgets/diary_entry/components/diary_success_overlay.dart';
-import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/core/models/mascot_persona.dart';
 import 'package:island_diary/features/record/presentation/pages/record_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/profile_page.dart';
@@ -109,11 +107,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // 监听 AI 想法
     UserState().mascotThought.addListener(_onThoughtChanged);
 
-    // 首次进入首页时检测成就与启动事件
+    // 首次进入首页时检测启动事件
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
-        UserState().checkAchievements();
-
         // 我们给 AI 一点时间处理 (2秒内如果 AI 没响，再出保底)
         UserState().checkAppStartEvents();
 
@@ -369,28 +365,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _showSuccessEffect(List<MascotAchievement> achievements) async {
-    if (achievements.isEmpty || !mounted) return;
-
-    // 目前一次保存通常触发一个或几个成就，我们展示最重要的那个或者第一个
-    final achievement = achievements.first;
-
-    // 使用 WidgetsBinding 确保在渲染周期外安全操作 Overlay
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      OverlayEntry? overlayEntry;
-      overlayEntry = OverlayEntry(
-        builder: (context) => DiarySuccessOverlay(
-          achievement: achievement,
-          onFinished: () {
-            overlayEntry?.remove();
-          },
-        ),
-      );
-
-      Overlay.of(context).insert(overlayEntry);
-    });
+  Future<void> _showSuccessEffect(List<dynamic> achievements) async {
+    // 彻底不渲染成就解锁动画，下线成就系统
   }
 
   @override

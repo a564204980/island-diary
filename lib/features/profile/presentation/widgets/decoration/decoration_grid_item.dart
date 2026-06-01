@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
-import 'package:island_diary/core/models/mascot_achievement.dart';
-import 'package:island_diary/features/profile/presentation/widgets/achievement_detail_sheet.dart';
 
 class DecorationGridItem extends StatelessWidget {
   final MascotDecoration? deco;
@@ -78,19 +76,8 @@ class DecorationGridItem extends StatelessWidget {
 
   void _handleTap(BuildContext context) async {
     if (!isOwned) {
-      final achievement = MascotAchievement.getByRewardId(deco?.id ?? '');
-      if (achievement == null) return;
-      final userState = UserState();
-      showModalBottomSheet(
-        context: context,
-        backgroundColor: Colors.transparent,
-        isScrollControlled: true,
-        builder: (context) => AchievementDetailSheet(
-          achievement: achievement,
-          isUnlocked: false,
-          stats: userState.getAchievementStats(),
-          isNight: isNight,
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('快去探索岛屿解锁这个精美饰品吧~')),
       );
       return;
     }
@@ -146,7 +133,7 @@ class DecorationGridItem extends StatelessWidget {
         color: isSelected
             ? rarityColor
             : (isNight ? Colors.white10 : const Color(0xFFEFEBE9)),
-        width: isSelected ? 2.5 : 1,
+        width: 2.0, // 统一使用 2.0 宽度，确保选中与未选中状态的可用空间完全一致，防止任何文字挤压
       ),
       boxShadow: isSelected
           ? [
@@ -289,10 +276,11 @@ class DecorationGridItem extends StatelessWidget {
           Flexible(
             child: Text(
               deco?.name ?? '取消',
-              maxLines: 2,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 12, // 标题字号由 14 优化到 12
+                fontSize: 11, // 标题字号由 12 进一步缩小到 11，更显秀气精致并能容纳更多字符
                 fontWeight: FontWeight.bold,
                 color: isNight ? Colors.white : const Color(0xFF3E2723),
                 fontFamily: 'LXGWWenKai',
@@ -356,7 +344,7 @@ class DecorationGridItem extends StatelessWidget {
         ? '回归最初的纯净模样'
         : (isOwned
             ? deco!.description
-            : '解锁：${MascotAchievement.getByRewardId(deco!.id)?.description ?? "未知"}');
+            : '快去探索岛屿解锁吧~');
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8), // 左右收紧 8 像素安全边距，防贴边
       child: Text(

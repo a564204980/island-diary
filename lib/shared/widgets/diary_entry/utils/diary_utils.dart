@@ -200,8 +200,9 @@ class DiaryUtils {
       );
     } else if (normalizedPath.startsWith('/') ||
         normalizedPath.contains('cache/') ||
-        normalizedPath.contains('files/')) {
-      // 移动端文件路径
+        normalizedPath.contains('files/') ||
+        normalizedPath.contains('custom_stickers')) {
+      // 移动端/本地贴纸文件路径
       if (kIsWeb) {
         // 在 Web 平台上，所有的本地文件路径实际上是由浏览器代理的 blob 或相对路径，必须使用 Image.network
         image = Image.network(

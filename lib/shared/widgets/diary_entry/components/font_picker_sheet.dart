@@ -28,7 +28,6 @@ class DiaryFontPickerSheet extends StatelessWidget {
     ];
 
     final bool isNight = UserState().isNight;
-    final Color bgColor = DiaryUtils.getPopupBackgroundColor('standard', isNight);
     final Color textColor = DiaryUtils.getInkColor('standard', isNight);
 
     return BackdropFilter(

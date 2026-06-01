@@ -59,8 +59,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
 
   List<MascotDecoration> _getFilteredDecorations(List<String> ownedIds) {
     return MascotDecoration.allDecorations.where((deco) {
-      final bool isOwned = ownedIds.contains(deco.id);
-      if (!isOwned) return false;
+      // 默认解锁所有饰品，不再在此过滤未拥有的饰品
 
       // 分类过滤
       if (_selectedCategory != null && deco.category != _selectedCategory) {
@@ -257,7 +256,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                                   deco: deco,
                                                   isSelected: isSelected,
                                                   isNight: isNight,
-                                                  isOwned: ownedIds.contains(deco.id),
+                                                  isOwned: true,
                                                   index: index,
                                                   shouldHighlight: deco.id == widget.initialDecorationId,
                                                   shouldAnimate: false,

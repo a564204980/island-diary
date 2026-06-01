@@ -81,7 +81,7 @@ mixin DiaryMixin on ProfileMixin {
     }
   }
 
-  Future<List<MascotAchievement>> saveDiary() async {
+  Future<List<dynamic>> saveDiary() async {
     final draft = diaryDraft.value;
     if (draft == null) {
       return [];
@@ -109,17 +109,6 @@ mixin DiaryMixin on ProfileMixin {
     // 检查每日任务
     completeTaskIfType(DailyTaskType.writeDiary);
 
-    // 检查是否有新成就达成
-    if (this is AchievementMixin) {
-      final newAchievements = await (this as AchievementMixin).checkAchievements();
-      if (newAchievements.isNotEmpty) {
-        notifyMascotEvent(MascotEvent(
-          type: MascotEventType.achievementUnlocked,
-          description: newAchievements.map((MascotAchievement e) => e.title).join('、'),
-        ));
-      }
-      return newAchievements;
-    }
     return [];
   }
 
@@ -176,9 +165,6 @@ mixin DiaryMixin on ProfileMixin {
     savedDiaries.value = [];
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(UserState().n(_K.savedDiaries));
-    if (this is AchievementMixin) {
-      (this as AchievementMixin).checkAchievements();
-    }
   }
 
   Future<void> generateMockDiaries() async {

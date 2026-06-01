@@ -1135,4 +1135,31 @@ const List<MascotDecoration> _hatDecorations = [
       ),
     },
   ),
+  MascotDecoration(
+    id: 'clown_hat',
+    name: '小丑帽',
+    path: 'assets/images/emoji/decorate/decorate44.png',
+    description: '缤纷色彩的小丑帽，戴上它，欢乐与童趣将永远伴随你的小岛之旅。',
+    rarity: MascotRarity.rare,
+    category: MascotDecorationCategory.hat,
+    defaultConfig: MascotDecorationConfig(offset: Offset(0, -18), scale: 1.4),
+    characterConfigs: {
+      'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+        offset: Offset(0, -10),
+        scale: 1.18,
+      ),
+      'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+        offset: Offset(0, -10),
+        scale: 1.18,
+      ),
+      'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+        offset: Offset(0, -10),
+        scale: 1.18,
+      ),
+      'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+        offset: Offset(0, -10),
+        scale: 1.18,
+      ),
+    },
+  ),
 ];

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:island_diary/core/services/sticker_service.dart';
+import 'package:island_diary/core/services/sticker_segmentation_service.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_image_source_sheet.dart';
 
@@ -87,8 +88,12 @@ class _StickerPickerPopupState extends State<StickerPickerPopup> {
     if (image == null) return;
 
     setState(() => _isLoading = true);
-    final bytes = await File(image.path).readAsBytes();
-    await StickerService().saveAsSticker(bytes);
+    
+    // 自动调用谷歌端侧自拍分割服务抠图并烘焙白色卡通描边
+    final croppedBytes = await StickerSegmentationService().segmentAndCropSubject(image.path);
+    final finalBytes = croppedBytes ?? await File(image.path).readAsBytes();
+    
+    await StickerService().saveAsSticker(finalBytes);
 
     await _loadCustomStickers();
   }

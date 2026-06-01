@@ -3,7 +3,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/pages/security_center_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/mascot_decoration_page.dart';
-import 'package:island_diary/features/profile/presentation/pages/achievement_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/about_island_page.dart';
 import 'package:island_diary/features/profile/presentation/widgets/bento_box.dart';
 import 'package:island_diary/features/profile/presentation/widgets/life_line_switcher_sheet.dart';
@@ -56,16 +55,6 @@ class BentoMenuGrid extends StatelessWidget {
                       icon: Icons.auto_fix_high_rounded,
                       color: const Color(0xFFFFB74D),
                       targetPage: const MascotDecorationPage(),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildMenuActionBento(
-                      context,
-                      title: '\u5c9b\u5c7f\u6210\u5c31',
-                      icon: Icons.emoji_events_outlined,
-                      color: const Color(0xFFFF7043),
-                      targetPage: const AchievementPage(),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -132,16 +121,6 @@ class BentoMenuGrid extends StatelessWidget {
                       targetPage: const MascotDecorationPage(),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildMenuActionBento(
-                      context,
-                      title: '\u5c9b\u5c7f\u6210\u5c31',
-                      icon: Icons.emoji_events_outlined,
-                      color: const Color(0xFFFF7043),
-                      targetPage: const AchievementPage(),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -191,9 +170,10 @@ class BentoMenuGrid extends StatelessWidget {
             opaque: true,
             barrierColor: isNight ? Colors.black : const Color(0xFFFDFCF7),
             pageBuilder: (context, animation, secondaryAnimation) => targetPage,
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           ),
         );
       },
@@ -257,7 +237,11 @@ class BentoMenuGrid extends StatelessWidget {
                 color: const Color(0xFF818CF8).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.alt_route_rounded, size: 18, color: Color(0xFF818CF8)),
+              child: const Icon(
+                Icons.alt_route_rounded,
+                size: 18,
+                color: Color(0xFF818CF8),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -340,7 +324,11 @@ class _ThemeOptionsWidget extends StatelessWidget {
                   color: const Color(0xFF4DB6AC).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.palette_rounded, size: 18, color: Color(0xFF4DB6AC)),
+                child: const Icon(
+                  Icons.palette_rounded,
+                  size: 18,
+                  color: Color(0xFF4DB6AC),
+                ),
               ),
               const SizedBox(width: 12),
               Text(
@@ -348,7 +336,9 @@ class _ThemeOptionsWidget extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   fontFamily: 'LXGWWenKai',
                 ),
               ),
@@ -360,7 +350,9 @@ class _ThemeOptionsWidget extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: isNight ? const Color(0xFF1E1C16) : const Color(0xFFFFFDF6),
+                color: isNight
+                    ? const Color(0xFF1E1C16)
+                    : const Color(0xFFFFFDF6),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: isNight
@@ -379,8 +371,8 @@ class _ThemeOptionsWidget extends StatelessWidget {
                       alignment: selectedIndex == 0
                           ? Alignment.centerLeft
                           : (selectedIndex == 1
-                              ? Alignment.center
-                              : Alignment.centerRight),
+                                ? Alignment.center
+                                : Alignment.centerRight),
                       child: FractionallySizedBox(
                         widthFactor: 0.33,
                         child: Container(
@@ -391,7 +383,9 @@ class _ThemeOptionsWidget extends StatelessWidget {
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                               color: isNight
-                                  ? const Color(0xFFFFF176).withValues(alpha: 0.2)
+                                  ? const Color(
+                                      0xFFFFF176,
+                                    ).withValues(alpha: 0.2)
                                   : const Color(0xFFFBE4A8),
                               width: 1,
                             ),
@@ -403,27 +397,39 @@ class _ThemeOptionsWidget extends StatelessWidget {
                       child: Row(
                         children: List.generate(modes.length, (i) {
                           final bool isSelected = i == selectedIndex;
-                          
+
                           // 🌸 乐高/自动等环境下极富美感的高清晰色彩增强体系 (拒绝低辨识度的偏淡细线)
                           final List<Color> activeIconColors = [
-                            isNight ? const Color(0xFFFFB74D) : const Color(0xFFE65100), // 白天模式：亮太阳橙
-                            isNight ? const Color(0xFFB39DDB) : const Color(0xFF5E35B1), // 夜晚模式：深紫罗兰
-                            isNight ? const Color(0xFF80DEEA) : const Color(0xFF00ACC1), // 自动模式：极光深青
+                            isNight
+                                ? const Color(0xFFFFB74D)
+                                : const Color(0xFFE65100), // 白天模式：亮太阳橙
+                            isNight
+                                ? const Color(0xFFB39DDB)
+                                : const Color(0xFF5E35B1), // 夜晚模式：深紫罗兰
+                            isNight
+                                ? const Color(0xFF80DEEA)
+                                : const Color(0xFF00ACC1), // 自动模式：极光深青
                           ];
-                          
-                          final Color inactiveColor = isNight 
-                              ? Colors.white.withValues(alpha: 0.4) 
-                              : const Color(0xFF8D7A66).withValues(alpha: 0.45); // 中度质感泥褐色，完美清晰
+
+                          final Color inactiveColor = isNight
+                              ? Colors.white.withValues(alpha: 0.4)
+                              : const Color(
+                                  0xFF8D7A66,
+                                ).withValues(alpha: 0.45); // 中度质感泥褐色，完美清晰
 
                           return Expanded(
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () {
                                 if (isUnsupported) {
-                                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).hideCurrentSnackBar();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('当前岛屿主题拥有专属明暗，不支持手动切换明暗，保持白天哦~'),
+                                      content: Text(
+                                        '当前岛屿主题拥有专属明暗，不支持手动切换明暗，保持白天哦~',
+                                      ),
                                       duration: Duration(seconds: 2),
                                     ),
                                   );
@@ -433,9 +439,11 @@ class _ThemeOptionsWidget extends StatelessWidget {
                               },
                               child: Center(
                                 child: Icon(
-                                  icons[i], 
-                                  size: 20, 
-                                  color: isSelected ? activeIconColors[i] : inactiveColor,
+                                  icons[i],
+                                  size: 20,
+                                  color: isSelected
+                                      ? activeIconColors[i]
+                                      : inactiveColor,
                                 ),
                               ),
                             ),

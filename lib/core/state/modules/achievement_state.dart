@@ -1,60 +1,34 @@
 part of '../user_state.dart';
 
-/// 5. 成就与统计模块
-mixin AchievementMixin on ProfileMixin, DiaryMixin {
-  final ValueNotifier<List<String>> ownedDecorationIds = ValueNotifier<List<String>>([]);
-  final ValueNotifier<List<String>> unlockedMascotPaths = ValueNotifier<List<String>>([]);
+mixin AchievementMixin on ProfileMixin, DiaryMixin, DecorationMixin {
   final ValueNotifier<int> achievementPoints = ValueNotifier<int>(0);
-  final ValueNotifier<Map<String, String>> unlockedAchievements = ValueNotifier<Map<String, String>>({});
+  final ValueNotifier<Map<String, String>> unlockedAchievements =
+      ValueNotifier<Map<String, String>>({});
 
-  Future<void> loadAchievement(SharedPreferences prefs) async {
-    achievementPoints.value = prefs.getInt(_K.achievementPoints) ?? 0;
-    final mapJson = prefs.getString(_K.unlockedAchievementsMap);
+  Future<void> loadAchievements(SharedPreferences prefs) async {
+    achievementPoints.value = prefs.getInt(n(_K.achievementPoints)) ?? 0;
+    final mapJson = prefs.getString(n(_K.unlockedAchievementsMap));
     if (mapJson != null) {
       try {
-        unlockedAchievements.value = Map<String, String>.from(jsonDecode(mapJson));
+        unlockedAchievements.value = Map<String, String>.from(
+          jsonDecode(mapJson),
+        );
       } catch (_) {}
-    } else {
-      final old = prefs.getStringList(_K.unlockedAchievements);
-      if (old != null) {
-        final m = {for (var id in old) id: DateTime.now().toIso8601String()};
-        unlockedAchievements.value = m;
-        await prefs.setString(_K.unlockedAchievementsMap, jsonEncode(m));
-      }
     }
-    ownedDecorationIds.value = prefs.getStringList(_K.ownedDecorations) ?? _defaultOwnedIds;
-    // 强制同步新增的眼镜：满足“全部解锁”需求
-    final current = List<String>.from(ownedDecorationIds.value);
-    bool added = false;
-    final rewards = MascotAchievement.allAchievements.map((a) => a.rewardDecorationId).whereType<String>().toSet();
-    for (var d in MascotDecoration.allDecorations) {
-      if (d.category == MascotDecorationCategory.glasses && !current.contains(d.id)) {
-        current.add(d.id);
-        added = true;
-      } else if (!rewards.contains(d.id) && !current.contains(d.id)) {
-        // 如果是新上架的非成就奖励饰品，自动为老用户解锁
-        current.add(d.id);
-        added = true;
-      }
-    }
-    if (added) {
-      ownedDecorationIds.value = current;
-      prefs.setStringList(_K.ownedDecorations, current);
-    }
-    unlockedMascotPaths.value = prefs.getStringList(_K.unlockedMascots) ?? ['assets/images/emoji/marshmallow2.png'];
   }
 
-  /// 同步奖励逻辑：确保所有已达成成就的对应奖励饰品都已加入拥有列表
-  /// 常用于数据模型变更后的补偿（例如给老成就补发新奖励）
   Future<void> syncAchievementRewards() async {
     bool needsSync = false;
     final currentOwned = List<String>.from(ownedDecorationIds.value);
     final unlockedMap = unlockedAchievements.value;
     final currentMascots = List<String>.from(unlockedMascotPaths.value);
-    // 强制解锁所有眼镜（满足用户特殊要求）以及非成就奖励的新饰品
-    final rewards = MascotAchievement.allAchievements.map((a) => a.rewardDecorationId).whereType<String>().toSet();
+    final rewards = MascotAchievement.allAchievements
+        .map((a) => a.rewardDecorationId)
+        .whereType<String>()
+        .toSet();
     for (var d in MascotDecoration.allDecorations) {
-      if (d.category == MascotDecorationCategory.glasses && !currentOwned.contains(d.id)) {
+      if (d.category == MascotDecorationCategory.glasses &&
+          !currentOwned.contains(d.id)) {
         currentOwned.add(d.id);
         needsSync = true;
       } else if (!rewards.contains(d.id) && !currentOwned.contains(d.id)) {
@@ -62,47 +36,28 @@ mixin AchievementMixin on ProfileMixin, DiaryMixin {
         needsSync = true;
       }
     }
-
     for (var a in MascotAchievement.allAchievements) {
       if (unlockedMap.containsKey(a.id)) {
-        if (a.rewardDecorationId != null && !currentOwned.contains(a.rewardDecorationId!)) {
+        if (a.rewardDecorationId != null &&
+            !currentOwned.contains(a.rewardDecorationId!)) {
           currentOwned.add(a.rewardDecorationId!);
-          needsSync = true;
-        }
-        if (a.rewardMascotPath != null && !currentMascots.contains(a.rewardMascotPath!)) {
-          currentMascots.add(a.rewardMascotPath!);
           needsSync = true;
         }
       }
     }
-
     if (needsSync) {
       ownedDecorationIds.value = currentOwned;
       unlockedMascotPaths.value = currentMascots;
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(_K.ownedDecorations, currentOwned);
-      await prefs.setStringList(_K.unlockedMascots, currentMascots);
-      debugPrint('Decoration Rewards Synced: Unlocked glasses and rewards.');
+      await prefs.setStringList(n(_K.ownedDecorations), currentOwned);
+      await prefs.setStringList(n(_K.unlockedMascots), currentMascots);
     }
-  }
-
-  List<String> get _defaultOwnedIds {
-    final rewards = MascotAchievement.allAchievements.map((a) => a.rewardDecorationId).whereType<String>().toSet();
-    return MascotDecoration.allDecorations.map((d) => d.id).where((id) {
-      final deco = MascotDecoration.allDecorations.where((de) => de.id == id).firstOrNull;
-      if (deco == null) {
-        return false;
-      }
-      // 眼镜全解锁，或者非成就奖励物品
-      return deco.category == MascotDecorationCategory.glasses || !rewards.contains(id);
-    }).toList();
   }
 
   Future<List<MascotAchievement>> checkAchievements() async {
     final stats = getAchievementStats();
     final m = Map<String, String>.from(unlockedAchievements.value);
     final o = List<String>.from(ownedDecorationIds.value);
-    final mf = List<String>.from(unlockedMascotPaths.value);
     int p = 0;
     bool changed = false;
     List<MascotAchievement> newlyUnlocked = [];
@@ -111,11 +66,9 @@ mixin AchievementMixin on ProfileMixin, DiaryMixin {
       if (!m.containsKey(a.id) && a.isMet(stats)) {
         m[a.id] = DateTime.now().toIso8601String();
         p += a.rewardPoints.toInt();
-        if (a.rewardDecorationId != null && !o.contains(a.rewardDecorationId!)) {
+        if (a.rewardDecorationId != null &&
+            !o.contains(a.rewardDecorationId!)) {
           o.add(a.rewardDecorationId!);
-        }
-        if (a.rewardMascotPath != null && !mf.contains(a.rewardMascotPath!)) {
-          mf.add(a.rewardMascotPath!);
         }
         newlyUnlocked.add(a);
         changed = true;
@@ -124,29 +77,25 @@ mixin AchievementMixin on ProfileMixin, DiaryMixin {
     if (changed) {
       unlockedAchievements.value = m;
       ownedDecorationIds.value = o;
-      unlockedMascotPaths.value = mf;
       achievementPoints.value += p.toInt();
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_K.unlockedAchievementsMap, jsonEncode(m));
-      await prefs.setStringList(_K.ownedDecorations, o);
-      await prefs.setStringList(_K.unlockedMascots, mf);
-      await prefs.setInt(_K.achievementPoints, achievementPoints.value);
+      await prefs.setString(n(_K.unlockedAchievementsMap), jsonEncode(m));
+      await prefs.setStringList(n(_K.ownedDecorations), o);
+      await prefs.setInt(n(_K.achievementPoints), achievementPoints.value);
     }
     return newlyUnlocked;
   }
 
-  /// [DEBUG] 一键解锁所有饰品、成就与会员权限 (仅供测试使用)
   Future<void> unlockAllForTesting() async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now().toIso8601String();
 
-    // 1. 解锁所有饰品 (动态覆盖分片库)
-    final allDecoIds = MascotDecoration.allDecorations.map((d) => d.id).toList();
+    final allDecoIds = MascotDecoration.allDecorations
+        .map((d) => d.id)
+        .toList();
     ownedDecorationIds.value = allDecoIds;
-    await prefs.setStringList(_K.ownedDecorations, allDecoIds);
-    debugPrint('DEBUG: [Mascot] Total ${allDecoIds.length} decorations unlocked.');
+    await prefs.setStringList(n(_K.ownedDecorations), allDecoIds);
 
-    // 2. 解锁所有皮肤 (云织系列)
     final allMascots = [
       'assets/images/emoji/marshmallow.png',
       'assets/images/emoji/marshmallow2.png',
@@ -154,9 +103,8 @@ mixin AchievementMixin on ProfileMixin, DiaryMixin {
       'assets/images/emoji/marshmallow4.png',
     ];
     unlockedMascotPaths.value = allMascots;
-    await prefs.setStringList(_K.unlockedMascots, allMascots);
+    await prefs.setStringList(n(_K.unlockedMascots), allMascots);
 
-    // 3. 解锁所有成就并累计点数
     final allAchievementsMap = <String, String>{};
     int totalPoints = 0;
     for (var a in MascotAchievement.allAchievements) {
@@ -165,65 +113,35 @@ mixin AchievementMixin on ProfileMixin, DiaryMixin {
     }
     unlockedAchievements.value = allAchievementsMap;
     achievementPoints.value = totalPoints;
-    await prefs.setString(_K.unlockedAchievementsMap, jsonEncode(allAchievementsMap));
-    await prefs.setInt(_K.achievementPoints, totalPoints);
-
-    // 4. 解锁终身会员
-    await setIsVipLevel(3);
-
-    // 5. 预填日记草稿 (包含图片，方便测试)
-    final testImages = [
-      '【哲风壁纸】云彩-夜晚-夜景.png',
-      '【哲风壁纸】休闲-室内-居家.png',
-      '【哲风壁纸】冷艳御姐-壁纸-暗调.png',
-      '【哲风壁纸】可爱小狗-小狗-护眼.png',
-      '【哲风壁纸】可爱玩偶-地面落叶.png',
-      '壁hi.png',
-    ];
-    
-    final random = Random();
-    final imageCount = random.nextInt(5) + 1; // 1-5 随机数量
-    final selectedImages = List<String>.from(testImages)..shuffle(random);
-    
-    final blocks = <Map<String, dynamic>>[
-      {'type': 'text', 'content': '今天在岛屿上发现了一个秘密角落...'},
-    ];
-    
-    for (int i = 0; i < imageCount; i++) {
-      blocks.add({'type': 'image', 'path': 'assets/images/test/${selectedImages[i % selectedImages.length]}'});
-      if (i == 0) {
-        blocks.add({'type': 'text', 'content': '这里的景色真是太美了，感觉整个人都治愈了。'});
-      }
-    }
-
-    await saveDraft(
-      content: '今天在岛屿上发现了一个秘密角落...\n这里的景色真是太美了，感觉整个人都治愈了。',
-      moodIndex: 4, // 平静
-      intensity: 8.0,
-      weather: '晴',
-      temp: '26°C',
-      location: '神秘沙滩',
-      blocks: blocks,
-      isMixedLayout: true,
+    await prefs.setString(
+      n(_K.unlockedAchievementsMap),
+      jsonEncode(allAchievementsMap),
     );
+    await prefs.setInt(n(_K.achievementPoints), totalPoints);
 
-    debugPrint('Debug: All items, achievements, VIP unlocked and draft pre-filled for testing.');
+    await setIsVipLevel(3);
   }
 
   Map<String, int> getAchievementStats() {
     final diaries = savedDiaries.value;
     final stats = <String, int>{};
     stats[AchievementCondition.totalDiaries.name] = diaries.length;
-    final dates = diaries.map((e) => DateTime(e.dateTime.year, e.dateTime.month, e.dateTime.day)).toSet().toList()..sort((a, b) => b.compareTo(a));
+    final dates =
+        diaries
+            .map(
+              (e) =>
+                  DateTime(e.dateTime.year, e.dateTime.month, e.dateTime.day),
+            )
+            .toSet()
+            .toList()
+          ..sort((a, b) => b.compareTo(a));
     int streak = 0, maxS = 0;
     if (dates.isNotEmpty) {
       streak = maxS = 1;
       for (int i = 0; i < dates.length - 1; i++) {
         if (dates[i].difference(dates[i + 1]).inDays == 1) {
           streak++;
-          if (streak > maxS) {
-            maxS = streak;
-          }
+          if (streak > maxS) maxS = streak;
         } else {
           streak = 1;
         }
@@ -234,29 +152,33 @@ mixin AchievementMixin on ProfileMixin, DiaryMixin {
     for (var e in diaries) {
       int l = e.content.length;
       tw += l;
-      if (l > mw) {
-        mw = l;
-      }
+      if (l > mw) mw = l;
       int h = e.dateTime.hour;
-      if (h >= 5 && h <= 10) {
-        mor++;
-      }
-      if (h >= 0 && h <= 4) {
-        nit++;
-      }
+      if (h >= 5 && h <= 10) mor++;
+      if (h >= 0 && h <= 4) nit++;
     }
     stats[AchievementCondition.totalWords.name] = tw;
     stats[AchievementCondition.maxSingleWords.name] = mw;
     stats[AchievementCondition.morningDiaries.name] = mor;
     stats[AchievementCondition.nightDiaries.name] = nit;
-    stats[AchievementCondition.photoDiaries.name] = diaries.where((e) => e.blocks.any((b) => b['type'] == 'image')).length;
-    stats[AchievementCondition.uniqueTags.name] = diaries.where((e) => e.tag != null).map((e) => e.tag!).toSet().length;
+    stats[AchievementCondition.photoDiaries.name] = diaries
+        .where((e) => e.blocks.any((b) => b['type'] == 'image'))
+        .length;
+    stats[AchievementCondition.uniqueTags.name] = diaries
+        .where((e) => e.tag != null)
+        .map((e) => e.tag!)
+        .toSet()
+        .length;
     stats[AchievementCondition.activeDays.name] = dates.length;
     stats[AchievementCondition.totalMoods.name] = diaries.length;
-    stats[AchievementCondition.uniqueMoods.name] = diaries.map((e) => e.moodIndex).whereType<int>().toSet().length;
-    stats[AchievementCondition.totalDecorationsOwned.name] = ownedDecorationIds.value.length;
+    stats[AchievementCondition.uniqueMoods.name] = diaries
+        .map((e) => e.moodIndex)
+        .whereType<int>()
+        .toSet()
+        .length;
+    stats[AchievementCondition.totalDecorationsOwned.name] =
+        ownedDecorationIds.value.length;
     stats[AchievementCondition.vipLevel.name] = vipLevel.value;
-    stats[AchievementCondition.isResident.name] = 1; // 只要进入 app 即为入驻
     return stats;
   }
 }

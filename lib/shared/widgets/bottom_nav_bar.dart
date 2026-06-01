@@ -6,7 +6,6 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/slime_button.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
-import 'package:island_diary/core/models/mascot_achievement.dart';
 
 import 'nav_item.dart';
 import 'nav_bar_clipper.dart';
@@ -16,7 +15,7 @@ class BottomNavBar extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
   final bool isNight;
-  final Function(List<MascotAchievement>)? onSaveSuccess;
+  final Function(List<dynamic>)? onSaveSuccess;
   final bool forceHideDialogue;
 
   const BottomNavBar({
@@ -474,7 +473,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     ).then((result) {
       UserState().isDiarySheetOpen.value = false;
       if (result is List && result.isNotEmpty) {
-        widget.onSaveSuccess?.call(List<MascotAchievement>.from(result));
+        widget.onSaveSuccess?.call(List<dynamic>.from(result));
       }
     });
   }

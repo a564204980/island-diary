@@ -13,8 +13,6 @@ import '../widgets/editor/editor_header.dart';
 import '../widgets/editor/editor_content_list.dart';
 import '../widgets/editor/editor_bottom_bar.dart';
 import 'package:island_diary/shared/widgets/mood_picker/custom_mood_picker_popup.dart';
-import 'package:island_diary/shared/widgets/sticker_picker/sticker_picker_popup.dart';
-import 'package:island_diary/shared/widgets/diary_entry/components/interactive_sticker.dart';
 
 class DiaryEditorPage extends StatefulWidget {
   final int? moodIndex;
@@ -41,7 +39,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         DiaryEditorFormatMixin<DiaryEditorPage>,
         DiaryEditorInsertMixin<DiaryEditorPage> {
   double _scrollOffset = 0;
-  String? _activeStickerId;
 
   @override
   void initState() {
@@ -117,10 +114,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   onTap: () {
                     FocusScope.of(context).unfocus();
                     if (isEmojiOpen) toggleEmoji();
-                    // 点击空白处取消贴纸选中
-                    if (_activeStickerId != null) {
-                      setState(() => _activeStickerId = null);
-                    }
                   },
                   child: Center(
                     child: ConstrainedBox(
@@ -203,42 +196,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   ),
                 ),
 
-                // 3. 贴纸悬浮层 (层级高于文字，但受到顶部裁剪约束)
-                Positioned.fill(
-                  top: 80, // 顶部裁剪线（避开 Header）
-                  bottom: 100, // 底部裁剪线（避开工具栏）
-                  child: ClipRect(
-                    child: Stack(
-                      children: [
-                        ...blocks.whereType<StickerBlock>().map((sticker) {
-                          return InteractiveSticker(
-                            key: ValueKey(sticker.id),
-                            block: sticker,
-                            isSelected: sticker.id == _activeStickerId,
-                            scrollOffset: _scrollOffset,
-                            onTap: () {
-                              setState(() {
-                                _activeStickerId = sticker.id;
-                                // 置顶逻辑
-                                blocks.remove(sticker);
-                                blocks.add(sticker);
-                              });
-                            },
-                            onRemove: () {
-                              setState(() {
-                                blocks.remove(sticker);
-                                _activeStickerId = null;
-                              });
-                              onBlocksChanged();
-                            },
-                            onChanged: onBlocksChanged,
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ),
-
                 // 4. 底部悬浮工具栏
                 Positioned(
                   bottom: 0,
@@ -262,8 +219,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     onFontClick: showTextStylePicker,
                     onDateClick: onDateClick,
                     onTimeClick: onTimeClick,
-                    onStickerClick: _showStickerPicker,
-                    onCreateSticker: () {}, 
                     onWeatherClick: onWeatherClick,
                     onMoreClick: onMoreClick,
                     onClose: () => Navigator.of(context).pop(),
@@ -304,30 +259,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
             });
             onBlocksChanged();
           }
-        },
-      ),
-    );
-  }
-
-  void _showStickerPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      showDragHandle: false,
-      builder: (context) => StickerPickerPopup(
-        paperStyle: currentPaperStyle,
-        isNight: UserState().isNight,
-        onStickerSelected: (path) {
-          Navigator.pop(context);
-          setState(() {
-            // 将新贴纸初始位置设为屏幕中心附近
-            final double initialX = MediaQuery.of(context).size.width / 2 - 75;
-            final double initialY = _scrollOffset + MediaQuery.of(context).size.height / 3;
-            final newSticker = StickerBlock(path, dx: initialX, dy: initialY);
-            blocks.add(newSticker);
-            _activeStickerId = newSticker.id; // 新贴纸默认选中
-          });
-          onBlocksChanged();
         },
       ),
     );

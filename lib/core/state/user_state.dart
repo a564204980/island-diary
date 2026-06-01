@@ -24,9 +24,9 @@ part 'modules/profile_state.dart';
 part 'modules/diary_state.dart';
 part 'modules/decoration_state.dart';
 part 'modules/security_state.dart';
-part 'modules/achievement_state.dart';
 part 'modules/preference_state.dart';
 part 'modules/life_line_state.dart';
+part 'modules/achievement_state.dart';
 
 class _K {
   static const userName = 'user_name';
@@ -47,7 +47,7 @@ class _K {
   static const lastSoulInsightDate = 'last_soul_insight_date';
   static const currentDailyTask = 'current_daily_task';
   static const lastBirthdayGiftYear = 'last_birthday_gift_year';
-  
+
   static const savedDiaries = 'saved_diaries_v1';
   static const draftContent = 'diary_draft_content';
   static const draftMood = 'diary_draft_mood';
@@ -84,8 +84,7 @@ class _K {
   static const intruderLogs = 'intruder_logs';
 
   static const achievementPoints = 'achievement_points';
-  static const unlockedAchievements = 'unlocked_achievements';
-  static const unlockedAchievementsMap = 'unlocked_achievements_map';
+  static const unlockedAchievementsMap = 'unlocked_achievements_v2';
   static const ownedDecorations = 'owned_decoration_ids';
   static const unlockedMascots = 'unlocked_mascot_paths';
 
@@ -108,28 +107,35 @@ class _K {
 }
 
 /// 聚合状态管理类
-class UserState with LifeLineMixin, ProfileMixin, DiaryMixin, DecorationMixin, SecurityMixin, AchievementMixin, PreferenceMixin {
+class UserState
+    with
+        LifeLineMixin,
+        ProfileMixin,
+        DiaryMixin,
+        DecorationMixin,
+        SecurityMixin,
+        AchievementMixin,
+        PreferenceMixin {
   static final UserState _instance = UserState._internal();
   factory UserState() => _instance;
   UserState._internal();
 
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     loadLifeLines(prefs); // 首先加载人生线，以确定命名空间
     loadProfile(prefs);
     await loadDiaries(prefs);
     await loadDecoration(prefs);
     loadSecurity(prefs);
+    await loadAchievements(prefs);
     loadPreference(prefs);
-    await loadAchievement(prefs);
-    await syncAchievementRewards(); // 启动时强制同步一次
   }
 
   Future<void> factoryReset() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    
+
     // 重置内存状态
     userName.value = '';
     userBio.value = '';
@@ -137,7 +143,7 @@ class UserState with LifeLineMixin, ProfileMixin, DiaryMixin, DecorationMixin, S
     currentLifeLineId.value = 'default';
     savedDiaries.value = [];
     placedFurniture.value = [];
-    
+
     // 重新从空白状态初始化
     loadLifeLines(prefs);
     loadProfile(prefs);
@@ -154,8 +160,8 @@ class UserState with LifeLineMixin, ProfileMixin, DiaryMixin, DecorationMixin, S
     isSlimeInBottomMenu.dispose();
     selectedMascotDecoration.dispose();
     ownedDecorationIds.dispose();
-    unlockedMascotPaths.dispose();
     unlockedAchievements.dispose();
     achievementPoints.dispose();
+    unlockedMascotPaths.dispose();
   }
 }

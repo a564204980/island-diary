@@ -106,12 +106,10 @@ class MascotFormSelectionSheet extends StatelessWidget {
             child: ListenableBuilder(
               listenable: Listenable.merge([
                 userState.selectedMascotType,
-                userState.unlockedMascotPaths,
                 userState.vipLevel,
               ]),
               builder: (context, _) {
                 final currentType = userState.selectedMascotType.value;
-                final unlockedPaths = userState.unlockedMascotPaths.value;
                 final isVip = userState.isVip.value;
 
                 final targetPaths = [
@@ -130,11 +128,11 @@ class MascotFormSelectionSheet extends StatelessWidget {
                   bool aLocked =
                       (aPath == 'assets/images/emoji/marshmallow4.png')
                       ? !isVip
-                      : !unlockedPaths.contains(aPath);
+                      : false;
                   bool bLocked =
                       (bPath == 'assets/images/emoji/marshmallow4.png')
                       ? !isVip
-                      : !unlockedPaths.contains(bPath);
+                      : false;
                   if (aLocked != bLocked) return aLocked ? 1 : -1;
                   return 0;
                 });
@@ -151,13 +149,11 @@ class MascotFormSelectionSheet extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final form = filteredForms[index];
                     final path = form['path']!;
-                    bool isLocked = !unlockedPaths.contains(path);
+                    bool isLocked = false;
                     String? lockHint;
                     if (path == 'assets/images/emoji/marshmallow4.png') {
                       isLocked = !isVip;
                       lockHint = isLocked ? '星光计划专属' : null;
-                    } else if (isLocked) {
-                      lockHint = '待成就解锁';
                     }
                     return FormGridItem(
                       form: form,

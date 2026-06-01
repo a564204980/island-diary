@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/widgets/life_line_switcher_sheet.dart';
-import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/features/profile/presentation/pages/profile_edit_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/settings_page.dart';
+import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -268,21 +268,7 @@ class ProfileHeader extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  PageRouteBuilder(
-                    opaque: true,
-                    barrierColor: isNight
-                        ? Colors.black
-                        : const Color(0xFFFDFCF7),
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                        const SettingsPage(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
-                  ),
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
               },
               icon: Icons.settings_outlined, // 无 label，自动渲染为精美对称小正圆形

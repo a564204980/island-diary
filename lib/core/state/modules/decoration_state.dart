@@ -10,7 +10,16 @@ mixin DecorationMixin {
   final ValueNotifier<int> floorPattern = ValueNotifier<int>(0);
   final ValueNotifier<Uint8List?> decorationSnapshot = ValueNotifier<Uint8List?>(null);
 
+  // 补回由成就解耦出来的饰品拥有权与角色解锁属性
+  final ValueNotifier<List<String>> ownedDecorationIds = ValueNotifier<List<String>>([]);
+  final ValueNotifier<List<String>> unlockedMascotPaths = ValueNotifier<List<String>>([]);
+
   Future<void> loadDecoration(SharedPreferences prefs) async {
+    final owned = prefs.getStringList(UserState().n(_K.ownedDecorations)) ?? [];
+    ownedDecorationIds.value = owned;
+    final mascots = prefs.getStringList(UserState().n(_K.unlockedMascots)) ?? ['assets/images/residents/soft.png'];
+    unlockedMascotPaths.value = mascots;
+
     final snapshotBase64 = prefs.getString(UserState().n(_K.decorationSnapshot));
     if (snapshotBase64 != null) {
       try {
@@ -43,6 +52,24 @@ mixin DecorationMixin {
         final decoded = jsonDecode(f) as List;
         placedFurniture.value = decoded.map((e) => PlacedFurniture.fromMap(Map<String, dynamic>.from(e))).where((pf) => !pf.item.imagePath.contains('assets/images/residents/')).toList();
       } catch (_) {}
+    }
+  }
+
+  Future<void> unlockDecoration(String id) async {
+    if (!ownedDecorationIds.value.contains(id)) {
+      final updated = List<String>.from(ownedDecorationIds.value)..add(id);
+      ownedDecorationIds.value = updated;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(UserState().n(_K.ownedDecorations), updated);
+    }
+  }
+
+  Future<void> unlockMascot(String path) async {
+    if (!unlockedMascotPaths.value.contains(path)) {
+      final updated = List<String>.from(unlockedMascotPaths.value)..add(path);
+      unlockedMascotPaths.value = updated;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(UserState().n(_K.unlockedMascots), updated);
     }
   }
 

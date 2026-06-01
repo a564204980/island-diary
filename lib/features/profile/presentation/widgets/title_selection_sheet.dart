@@ -21,7 +21,7 @@ class TitleSelectionSheet extends StatelessWidget {
       height: MediaQuery.of(context).size.height * 0.82,
       decoration: BoxDecoration(
         color: isNight ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,28 +88,12 @@ class TitleSelectionSheet extends StatelessWidget {
             child: ValueListenableBuilder<Map<String, String>>(
               valueListenable: userState.unlockedAchievements,
               builder: (context, unlocked, _) {
-                // 排序逻辑：
-                // 1. 已解锁的排前面
-                // 2. 已解锁内部：按获得时间（unlockedAt）先后排列
-                // 3. 未解锁内部：按难度（rewardPoints）从小到大排
+                // 已解锁的排前面，未解锁的排后面
                 final sorted = [...titleAchievements]
                   ..sort((a, b) {
-                    final aDateStr = unlocked[a.id];
-                    final bDateStr = unlocked[b.id];
-                    final aUnlocked = aDateStr != null ? 0 : 1;
-                    final bUnlocked = bDateStr != null ? 0 : 1;
-                    
-                    if (aUnlocked != bUnlocked) {
-                      return aUnlocked.compareTo(bUnlocked);
-                    }
-                    
-                    if (aUnlocked == 0) {
-                      // 均为已解锁：按获得时间排序
-                      return aDateStr!.compareTo(bDateStr!);
-                    } else {
-                      // 均为未解锁：按难度排序
-                      return a.rewardPoints.compareTo(b.rewardPoints);
-                    }
+                    final aUnlocked = unlocked.containsKey(a.id) ? 0 : 1;
+                    final bUnlocked = unlocked.containsKey(b.id) ? 0 : 1;
+                    return aUnlocked.compareTo(bUnlocked);
                   });
                 return ValueListenableBuilder<List<String>>(
                   valueListenable: userState.selectedTitles,
