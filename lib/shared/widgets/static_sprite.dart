@@ -36,6 +36,15 @@ class StaticSprite extends StatelessWidget {
                       ? 0.0
                       : -1.0 + 2.0 * index / (frameCount - 1);
 
+                  // 检查是否戴了帽子（selectedMascotDecoration不为空）
+                  String targetPath = assetPath;
+                  final userState = UserState();
+                  final hasHat = userState.selectedMascotDecoration.value != null &&
+                      userState.selectedMascotDecoration.value!.isNotEmpty;
+                  if (hasHat && targetPath.contains('marshmallow')) {
+                    targetPath = targetPath.replaceAll('.png', '_noEars.png');
+                  }
+
                   return FittedBox(
                     fit: BoxFit.none,
                     alignment: Alignment(xOffset, 0.0),
@@ -43,7 +52,7 @@ class StaticSprite extends StatelessWidget {
                       width: size * frameCount,
                       height: size,
                       child: Image.asset(
-                        assetPath,
+                        targetPath,
                         fit: BoxFit.fill,
                         gaplessPlayback: true,
                       ),

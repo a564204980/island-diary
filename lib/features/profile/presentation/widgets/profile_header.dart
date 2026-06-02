@@ -167,7 +167,7 @@ class ProfileHeader extends StatelessWidget {
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
                     color: isNight ? Colors.white : const Color(0xFF1F2937),
-                    fontFamily: 'LXGWWenKai',
+                    fontFamily: _getFontFamily(),
                     letterSpacing: 1.5,
                   ),
                 );
@@ -205,7 +205,7 @@ class ProfileHeader extends StatelessWidget {
                 fontSize: 13,
                 height: 1.5,
                 color: isNight ? Colors.white38 : Colors.black38,
-                fontFamily: 'LXGWWenKai',
+                fontFamily: _getFontFamily(),
                 letterSpacing: 0.5,
               ),
             );
@@ -224,7 +224,7 @@ class ProfileHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // 称号标签展示区
+        // 称号标签展示区 (横向滚动，确保永远在单行显示)
         Expanded(
           child: ValueListenableBuilder<List<String>>(
             valueListenable: userState.selectedTitles,
@@ -239,21 +239,26 @@ class ProfileHeader extends StatelessWidget {
                   ),
                 );
               }
-              return Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.start,
-                children: titles.map((title) {
-                  final tier = MascotAchievement.allAchievements
-                      .where((a) => a.rewardTitle == title)
-                      .firstOrNull
-                      ?.titleTier;
-                  return _buildTagItem(title, tier, isNight);
-                }).toList(),
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: titles.map((title) {
+                    final tier = MascotAchievement.allAchievements
+                        .where((a) => a.rewardTitle == title)
+                        .firstOrNull
+                        ?.titleTier;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: _buildTagItem(title, tier, isNight),
+                    );
+                  }).toList(),
+                ),
               );
             },
           ),
         ),
+        const SizedBox(width: 8),
         // 按钮组
         Row(
           children: [
@@ -323,7 +328,7 @@ class ProfileHeader extends StatelessWidget {
               fontSize: 12,
               fontWeight: FontWeight.bold,
               color: tier != null ? Colors.white : const Color(0xFF818CF8),
-              fontFamily: 'LXGWWenKai',
+              fontFamily: _getFontFamily(),
             ),
           ),
         ],
@@ -405,7 +410,7 @@ class ProfileHeader extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   color: textColor,
-                  fontFamily: 'LXGWWenKai',
+                  fontFamily: _getFontFamily(),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -445,12 +450,12 @@ class ProfileHeader extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               '修改头像',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                fontFamily: 'LXGWWenKai',
+                fontFamily: _getFontFamily(),
               ),
             ),
             const SizedBox(height: 24),
@@ -508,7 +513,7 @@ class ProfileHeader extends StatelessWidget {
         label,
         style: TextStyle(
           color: isNight ? Colors.white : Colors.black87,
-          fontFamily: 'LXGWWenKai',
+          fontFamily: _getFontFamily(),
         ),
       ),
       onTap: onTap,
@@ -521,5 +526,9 @@ class ProfileHeader extends StatelessWidget {
       isScrollControlled: true,
       builder: (context) => const LifeLineSwitcherSheet(),
     );
+  }
+
+  String _getFontFamily() {
+    return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
   }
 }

@@ -46,23 +46,23 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               const Icon(Icons.cake_rounded, size: 80, color: Color(0xFF7B5C2E)),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 '生日快乐！',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
-                  fontFamily: 'LXGWWenKai',
+                  fontFamily: _getFontFamily(),
                   decoration: TextDecoration.none,
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 '您的岛屿专属礼物已存入成就系统',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.white70,
-                  fontFamily: 'LXGWWenKai',
+                  fontFamily: _getFontFamily(),
                   decoration: TextDecoration.none,
                 ),
               ),
@@ -75,13 +75,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     color: const Color(0xFF7B5C2E),
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  child: const Text(
+                  child: Text(
                     '收下礼物',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      fontFamily: 'LXGWWenKai',
+                      fontFamily: _getFontFamily(),
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -168,5 +168,9 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       },
     );
+  }
+
+  String _getFontFamily() {
+    return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
   }
 }

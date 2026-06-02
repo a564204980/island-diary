@@ -82,7 +82,7 @@ class PremiumBentoCard extends StatelessWidget {
                               fontWeight: FontWeight.w900,
                               color: Colors.white,
                               letterSpacing: 1,
-                              fontFamily: 'LXGWWenKai',
+                              fontFamily: _getFontFamily(),
                             ),
                           ),
                           Text(
@@ -90,7 +90,7 @@ class PremiumBentoCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.white.withValues(alpha: 0.8),
-                              fontFamily: 'LXGWWenKai',
+                              fontFamily: _getFontFamily(),
                             ),
                           ),
                         ],
@@ -154,7 +154,7 @@ class PremiumBentoCard extends StatelessWidget {
                               : (isVip
                                   ? Colors.white
                                   : (isNight ? const Color(0xFF3E2723) : Colors.white)),
-                          fontFamily: 'LXGWWenKai',
+                          fontFamily: _getFontFamily(),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -167,6 +167,10 @@ class PremiumBentoCard extends StatelessWidget {
         ),
       ),
     ).animate().slideX(begin: -0.1, end: 0, curve: Curves.easeOutCubic, delay: 300.ms).fadeIn(delay: 300.ms);
+  }
+
+  String _getFontFamily() {
+    return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
   }
 }
 

@@ -12,23 +12,23 @@ const List<MascotDecoration> _hatDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -6), scale: 1.1),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, -14),
+        offset: Offset(0, -10),
         scale: 1,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, -14),
+        offset: Offset(0, -10),
         scale: 1,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, -14),
+        offset: Offset(0, -10),
         scale: 1,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, -14),
+        offset: Offset(0, -10),
         scale: 1,
       ),
       'assets/images/emoji/marshmallow5.png': MascotDecorationConfig(
-        offset: Offset(0, -14),
+        offset: Offset(0, -10),
         scale: 1,
       ),
     },
@@ -42,19 +42,19 @@ const List<MascotDecoration> _hatDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 0.8),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, -74),
+        offset: Offset(0, -60),
         scale: 0.8,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, -74),
+        offset: Offset(0, -60),
         scale: 0.8,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, -74),
+        offset: Offset(0, -60),
         scale: 0.8,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, -74),
+        offset: Offset(0, -54),
         scale: 0.8,
       ),
     },
@@ -104,11 +104,11 @@ const List<MascotDecoration> _hatDecorations = [
         scale: 1.34,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(5, -62),
+        offset: Offset(5, -54),
         scale: 1.34,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(5, -70),
+        offset: Offset(5, -60),
         scale: 1.32,
       ),
     },
@@ -123,19 +123,19 @@ const List<MascotDecoration> _hatDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.2),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, -46),
+        offset: Offset(0, -40),
         scale: 0.9,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, -46),
+        offset: Offset(0, -40),
         scale: 0.9,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, -46),
+        offset: Offset(0, -40),
         scale: 0.9,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, -46),
+        offset: Offset(0, -40),
         scale: 0.9,
       ),
     },
@@ -150,19 +150,19 @@ const List<MascotDecoration> _hatDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -40), scale: 1.0),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(-2, -34),
+        offset: Offset(-2, -24),
         scale: 1.0,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(-2, -34),
+        offset: Offset(-2, -24),
         scale: 1.0,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(-2, -34),
+        offset: Offset(-2, -24),
         scale: 1.0,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(-2, -34),
+        offset: Offset(-2, -24),
         scale: 1.0,
       ),
     },
@@ -177,19 +177,19 @@ const List<MascotDecoration> _hatDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -6), scale: 2.2),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, 10),
+        offset: Offset(0, 32),
         scale: 1.78,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, 10),
+        offset: Offset(0, 32),
         scale: 1.78,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, 10),
+        offset: Offset(0, 32),
         scale: 1.78,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, 10),
+        offset: Offset(0, 32),
         scale: 1.78,
       ),
     },
@@ -233,8 +233,8 @@ const List<MascotDecoration> _hatDecorations = [
         scale: 0.78,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, -40),
-        scale: 0.7,
+        offset: Offset(0, -30),
+        scale: 0.8,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
         offset: Offset(0, -40),
@@ -284,7 +284,7 @@ const List<MascotDecoration> _hatDecorations = [
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
         offset: Offset(-4, -40),
-        scale: 1.1,
+        scale: 1.0,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
         offset: Offset(-4, -40),
@@ -336,20 +336,20 @@ const List<MascotDecoration> _hatDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.6),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, -40),
-        scale: 1,
+        offset: Offset(0, -30),
+        scale: 1.1,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, -40),
-        scale: 1,
+        offset: Offset(0, -30),
+        scale: 1.1,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, -40),
-        scale: 1,
+        offset: Offset(0, -30),
+        scale: 1.1,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, -40),
-        scale: 1,
+        offset: Offset(0, -30),
+        scale: 1.1,
       ),
     },
   ),
@@ -363,20 +363,20 @@ const List<MascotDecoration> _hatDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -12), scale: 1.6),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(-4, -50),
-        scale: 1.24,
+        offset: Offset(-4, -30),
+        scale: 1.1,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(-4, -50),
-        scale: 1.24,
+        offset: Offset(-4, -30),
+        scale: 1.1,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(-4, -50),
-        scale: 1.24,
+        offset: Offset(-4, -30),
+        scale: 1.1,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(-4, -50),
-        scale: 1.24,
+        offset: Offset(-4, -30),
+        scale: 1.1,
       ),
     },
   ),
@@ -452,7 +452,7 @@ const List<MascotDecoration> _hatDecorations = [
         scale: 0.84,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, -74),
+        offset: Offset(0, -64),
         scale: 0.9,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
@@ -505,11 +505,11 @@ const List<MascotDecoration> _hatDecorations = [
         scale: 0.8,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, -40),
+        offset: Offset(0, -30),
         scale: 0.8,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, -40),
+        offset: Offset(0, -30),
         scale: 0.8,
       ),
     },

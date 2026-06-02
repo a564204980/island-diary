@@ -433,6 +433,8 @@ mixin ProfileMixin on LifeLineMixin {
     await setIsVipLevel(value ? 1 : 0);
   }
 
+  DateTime? _lastThemeChangeSpeakTime;
+
   Future<void> setThemeMode(String mode) async {
     if (['auto', 'light', 'dark'].contains(mode)) {
       themeMode.value = mode;
@@ -440,30 +442,37 @@ mixin ProfileMixin on LifeLineMixin {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(UserState().n(_K.themeMode), mode);
 
-      // 触发吉祥物主题切换对话
-      final modeNames = {
-        'light': '白昼模式',
-        'dark': '深夜模式',
-        'auto': '自动模式',
-      };
-      final modeName = modeNames[mode] ?? mode;
+      // 限制 10 秒的冷却时间，防止频繁切换导致小软一直说话
+      final now = DateTime.now();
+      if (_lastThemeChangeSpeakTime == null ||
+          now.difference(_lastThemeChangeSpeakTime!).inSeconds >= 10) {
+        _lastThemeChangeSpeakTime = now;
 
-      String path = 'assets/images/emoji/marshmallow2.png';
-      if (this is UserState) {
-        path = (this as UserState).selectedMascotType.value;
-      }
+        // 触发吉祥物主题切换对话
+        final modeNames = {
+          'light': '白昼模式',
+          'dark': '深夜模式',
+          'auto': '自动模式',
+        };
+        final modeName = modeNames[mode] ?? mode;
 
-      final event = MascotEvent(
-        type: MascotEventType.themeChanged,
-        description: modeName,
-      );
+        String path = 'assets/images/emoji/marshmallow2.png';
+        if (this is UserState) {
+          path = (this as UserState).selectedMascotType.value;
+        }
 
-      if (deepseekApiKey.value.isNotEmpty && deepseekApiKey.value != 'YOUR_API_KEY') {
-        notifyMascotEvent(event);
-      } else {
-        final String effectiveKey = mode == 'auto' ? (isNight ? 'dark' : 'light') : mode;
-        final localQuote = MascotPersona.getThemeChangedQuote(path, effectiveKey);
-        mascotThought.value = localQuote;
+        final event = MascotEvent(
+          type: MascotEventType.themeChanged,
+          description: modeName,
+        );
+
+        if (deepseekApiKey.value.isNotEmpty && deepseekApiKey.value != 'YOUR_API_KEY') {
+          notifyMascotEvent(event);
+        } else {
+          final String effectiveKey = mode == 'auto' ? (isNight ? 'dark' : 'light') : mode;
+          final localQuote = MascotPersona.getThemeChangedQuote(path, effectiveKey);
+          mascotThought.value = localQuote;
+        }
       }
     }
   }
