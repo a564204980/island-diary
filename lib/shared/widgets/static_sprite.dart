@@ -39,10 +39,13 @@ class StaticSprite extends StatelessWidget {
                   // 检查是否戴了帽子（selectedMascotDecoration不为空）
                   String targetPath = assetPath;
                   final userState = UserState();
-                  final hasHat = userState.selectedMascotDecoration.value != null &&
-                      userState.selectedMascotDecoration.value!.isNotEmpty;
+                  final selectedDecoPath = userState.selectedMascotDecoration.value;
+                  final hasHat = selectedDecoPath != null && selectedDecoPath.isNotEmpty;
                   if (hasHat && targetPath.contains('marshmallow')) {
-                    targetPath = targetPath.replaceAll('.png', '_noEars.png');
+                    final deco = MascotDecoration.getByPath(selectedDecoPath);
+                    if (deco == null || !deco.keepEars) {
+                      targetPath = targetPath.replaceAll('.png', '_noEars.png');
+                    }
                   }
 
                   return FittedBox(

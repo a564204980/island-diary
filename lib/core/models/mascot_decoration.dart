@@ -54,6 +54,9 @@ class MascotDecoration {
   /// 针对不同形象的特定配置字典
   final Map<String, MascotDecorationConfig> characterConfigs;
 
+  /// 是否在佩戴时保留卡通形象的耳朵图片（不替换为 _noEars.png）
+  final bool keepEars;
+
   const MascotDecoration({
     required this.id,
     required this.name,
@@ -63,6 +66,7 @@ class MascotDecoration {
     this.category = MascotDecorationCategory.hat,
     this.defaultConfig = const MascotDecorationConfig(),
     this.characterConfigs = const {},
+    this.keepEars = false,
   });
 
   /// 获取指定卡通形象对应的装扮配置
