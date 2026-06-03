@@ -479,22 +479,38 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
         ? Colors.white60
         : const Color(0xFF8A7462);
 
-    // 统一根据天气状态映射相符的精美治愈插图与卡通图标背景
-    String bgAsset = 'assets/images/background/data_3_qingtian.png';
-    String weatherAsset = 'assets/images/background/data_3_qingtian2.png';
+    // 统一根据天气状态和夜间模式映射相符的精美治愈插图与卡通图标背景
+    String bgAsset = isNight
+        ? 'assets/images/background/data_3_qingtian_night.png'
+        : 'assets/images/background/data_3_qingtian.png';
+    String weatherAsset = isNight
+        ? 'assets/images/background/data_3_qingtian2_night.png'
+        : 'assets/images/background/data_3_qingtian2.png';
 
     if (state.id == 'mistMorning' ||
         state.id == 'lightRain' ||
         state.id == 'continuousRain' ||
         state.id == 'thunder') {
-      bgAsset = 'assets/images/background/data_3_xiayu.png';
-      weatherAsset = 'assets/images/background/data_3_xiayu2.png';
+      bgAsset = isNight
+          ? 'assets/images/background/data_3_xiayu_night.png'
+          : 'assets/images/background/data_3_xiayu.png';
+      weatherAsset = isNight
+          ? 'assets/images/background/data_3_xiayu2_night.png'
+          : 'assets/images/background/data_3_xiayu2.png';
     } else if (state.id == 'cloudDrift' || state.id == 'softBreeze') {
-      bgAsset = 'assets/images/background/data_3_duoyun.png';
-      weatherAsset = 'assets/images/background/data_3_duoyun2.png';
+      bgAsset = isNight
+          ? 'assets/images/background/data_3_duoyun_night.png'
+          : 'assets/images/background/data_3_duoyun.png';
+      weatherAsset = isNight
+          ? 'assets/images/background/data_3_duoyun2_night.png'
+          : 'assets/images/background/data_3_duoyun2.png';
     } else {
-      bgAsset = 'assets/images/background/data_3_qingtian.png';
-      weatherAsset = 'assets/images/background/data_3_qingtian2.png';
+      bgAsset = isNight
+          ? 'assets/images/background/data_3_qingtian_night.png'
+          : 'assets/images/background/data_3_qingtian.png';
+      weatherAsset = isNight
+          ? 'assets/images/background/data_3_qingtian2_night.png'
+          : 'assets/images/background/data_3_qingtian2.png';
     }
 
     final Widget content = Stack(
@@ -608,36 +624,14 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
       ],
     );
 
-    if (isNight) {
-      return _buildGlassCard(
-        isNight: isNight,
-        padding: EdgeInsets.zero,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: isCottonCandy
-                ? null
-                : const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF23232F), Color(0xFF16161D)],
-                  ),
-            color: isCottonCandy ? Colors.transparent : null,
-          ),
-          child: content,
-        ),
-      );
-    } else {
-      return _buildGlassCard(
-        isNight: isNight,
-        backgroundColor: isCottonCandy
-            ? const Color(0xFFFFF4EF).withValues(alpha: 1)
-            : null,
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-        child: content,
-      );
-    }
+    return _buildGlassCard(
+      isNight: isNight,
+      backgroundColor: isCottonCandy
+          ? (isNight ? null : const Color(0xFFFFF4EF).withValues(alpha: 1))
+          : null,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+      child: content,
+    );
   }
 
   Widget _buildMoodWeatherMetricChip({

@@ -125,4 +125,18 @@ final List<FurnitureItem> houseplantItems = [
     visualOffset: const Offset(0, 0),
     canStack: true,
   ),
+  FurnitureItem(
+    id: 'air_conditioner_forest_1',
+    name: '森氧立式空调',
+    imagePath: 'assets/images/decoration/houseplant/kongtiao.png',
+    category: '植物',
+    subCategory: '植物',
+    gridW: 2,
+    gridH: 2,
+    intrinsicWidth: 160.0,
+    intrinsicHeight: 500.0,
+    quantity: 5,
+    visualScale: 0.92,
+    visualOffset: const Offset(0, 0),
+  ),
 ];

@@ -56,8 +56,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
     precacheImage(const AssetImage('assets/images/paper.png'), context);
 
     for (var mood in kMoods) {
-      final img = mood.imagePath;
-      if (img != null) precacheImage(AssetImage(img), context);
       final icon = mood.iconPath;
       if (icon != null) precacheImage(AssetImage(icon), context);
     }
