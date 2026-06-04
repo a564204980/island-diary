@@ -63,6 +63,7 @@ class StatisticsPage extends StatefulWidget {
 
 class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStateMixin {
   List<DiaryEntry> _allDiaries = [];
+  bool _isScrolling = false;
   StatTimeRange _currentRange = StatTimeRange.month;
   late AnimationController _waveAnimController;
   final Map<String, Future<String>> _moodTrendSummaryFutures = {};
@@ -531,46 +532,64 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                           : Center(
                               child: ConstrainedBox(
                                 constraints: const BoxConstraints(maxWidth: 800),
-                                child: ReorderableListView.builder(
-                                  key: ValueKey('$_currentRange'), // 切换维度时重置
-                                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-                                  physics: const BouncingScrollPhysics(),
-                                  itemCount: _getModuleOrder().length,
-                                  onReorder: _onReorder,
-                                  proxyDecorator: (child, index, animation) {
-                                    return AnimatedBuilder(
-                                      animation: animation,
-                                      builder: (context, child) {
-                                        final double animValue = Curves.easeInOut.transform(animation.value);
-                                        final double scale = lerpDouble(1, 1.02, animValue)!;
-                                        return Transform.scale(
-                                          scale: scale,
-                                          child: Material(
-                                            color: Colors.transparent,
-                                            elevation: animValue * 8,
-                                            shadowColor: Colors.black.withValues(alpha: 0.26),
-                                            child: child,
-                                          ),
-                                        );
-                                      },
-                                      child: child,
-                                    );
-                                  },
-                                  itemBuilder: (context, index) {
-                                    final order = _getModuleOrder();
-                                    final id = order[index];
-                                    final module = _buildModuleById(id, isNight, filteredDiaries);
-                                    
-                                    if (module is SizedBox && module.child == null) {
-                                       return SizedBox(key: ValueKey('empty_$id'));
+                                child: NotificationListener<ScrollNotification>(
+                                  onNotification: (ScrollNotification notification) {
+                                    if (notification is ScrollStartNotification) {
+                                      if (!_isScrolling) {
+                                        setState(() {
+                                          _isScrolling = true;
+                                        });
+                                      }
+                                    } else if (notification is ScrollEndNotification) {
+                                      if (_isScrolling) {
+                                        setState(() {
+                                          _isScrolling = false;
+                                        });
+                                      }
                                     }
-
-                                    return Padding(
-                                      key: ValueKey(id),
-                                      padding: const EdgeInsets.only(bottom: 16),
-                                      child: module,
-                                    );
+                                    return false;
                                   },
+                                  child: ReorderableListView.builder(
+                                    key: ValueKey('$_currentRange'), // 切换维度时重置
+                                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                                    physics: const BouncingScrollPhysics(),
+                                    itemCount: _getModuleOrder().length,
+                                    onReorder: _onReorder,
+                                    proxyDecorator: (child, index, animation) {
+                                      return AnimatedBuilder(
+                                        animation: animation,
+                                        builder: (context, child) {
+                                          final double animValue = Curves.easeInOut.transform(animation.value);
+                                          final double scale = lerpDouble(1, 1.02, animValue)!;
+                                          return Transform.scale(
+                                            scale: scale,
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              elevation: animValue * 8,
+                                              shadowColor: Colors.black.withValues(alpha: 0.26),
+                                              child: child,
+                                            ),
+                                          );
+                                        },
+                                        child: child,
+                                      );
+                                    },
+                                    itemBuilder: (context, index) {
+                                      final order = _getModuleOrder();
+                                      final id = order[index];
+                                      final module = _buildModuleById(id, isNight, filteredDiaries);
+                                      
+                                      if (module is SizedBox && module.child == null) {
+                                         return SizedBox(key: ValueKey('empty_$id'));
+                                      }
+
+                                      return Padding(
+                                        key: ValueKey(id),
+                                        padding: const EdgeInsets.only(bottom: 16),
+                                        child: module,
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
                             ),

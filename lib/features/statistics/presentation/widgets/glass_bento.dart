@@ -8,6 +8,7 @@ class GlassBento extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final double blurSigma;
   final Color? backgroundColor;
+  final bool isScrolling;
 
   const GlassBento({
     super.key,
@@ -16,12 +17,34 @@ class GlassBento extends StatelessWidget {
     this.padding,
     this.blurSigma = 16.0,
     this.backgroundColor,
+    this.isScrolling = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final themeId = UserState().selectedIslandThemeId.value;
     final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
+
+    final container = Container(
+      decoration: BoxDecoration(
+        color: isCottonCandyDark
+            ? const Color(0xCC2A3771)
+            : (isNight
+                ? (backgroundColor ?? Colors.transparent)
+                : const Color(0xFFFDFBFE)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isCottonCandyDark
+              ? const Color(0xFF9986E1).withValues(alpha: 0.5)
+              : (isNight
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.white.withValues(alpha: 0.8)),
+          width: isCottonCandyDark ? 3.0 : 1.5,
+        ),
+      ),
+      padding: padding ?? const EdgeInsets.all(10),
+      child: child,
+    );
 
     return RepaintBoundary(
       child: Container(
@@ -39,29 +62,12 @@ class GlassBento extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-            child: Container(
-              decoration: BoxDecoration(
-                color: isCottonCandyDark
-                    ? const Color(0xCC2A3771)
-                    : (isNight
-                        ? (backgroundColor ?? Colors.transparent)
-                        : const Color(0xFFFDFBFE)),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: isCottonCandyDark
-                      ? const Color(0xFF9986E1).withValues(alpha: 0.5)
-                      : (isNight
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.white.withValues(alpha: 0.8)),
-                  width: isCottonCandyDark ? 3.0 : 1.5,
+          child: isScrolling || blurSigma <= 0.0
+              ? container
+              : BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+                  child: container,
                 ),
-              ),
-              padding: padding ?? const EdgeInsets.all(10),
-              child: child,
-            ),
-          ),
         ),
       ),
     );

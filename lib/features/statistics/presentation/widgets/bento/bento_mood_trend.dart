@@ -10,6 +10,7 @@ extension _BentoMoodTrend on _StatisticsPageState {
       return _buildGlassCard(
         isNight: isNight,
         padding: const EdgeInsets.all(16),
+        hideLegoBackground: true,
         child: const SizedBox(
           height: 200,
           child: Center(
@@ -251,6 +252,7 @@ extension _BentoMoodTrend on _StatisticsPageState {
       isNight: isNight,
       backgroundColor: isCottonCandy ? const Color(0xFFFFF4EF) : null,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      hideLegoBackground: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -402,7 +404,7 @@ extension _BentoMoodTrend on _StatisticsPageState {
                               width: finalWidth,
                               child: Stack(
                                 children: [
-                                  if (UserState().selectedIslandThemeId.value == 'lego')
+                                  if (false && UserState().selectedIslandThemeId.value == 'lego')
                                     Positioned(
                                       left: 0,
                                       right: 0,

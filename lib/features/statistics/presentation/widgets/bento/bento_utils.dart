@@ -140,6 +140,7 @@ extension _BentoUtils on _StatisticsPageState {
     required Widget child,
     EdgeInsetsGeometry? padding,
     Color? backgroundColor,
+    bool hideLegoBackground = false,
   }) {
     final EdgeInsetsGeometry finalPadding = (padding == EdgeInsets.zero)
         ? EdgeInsets.zero
@@ -171,11 +172,12 @@ extension _BentoUtils on _StatisticsPageState {
           borderRadius: BorderRadius.circular(16),
           child: Stack(
             children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _LegoStudBackgroundPainter(isNight: isNight),
+              if (!hideLegoBackground)
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _LegoStudBackgroundPainter(isNight: isNight),
+                  ),
                 ),
-              ),
               Padding(
                 padding: finalPadding,
                 child: child,
@@ -190,6 +192,7 @@ extension _BentoUtils on _StatisticsPageState {
       isNight: isNight,
       padding: finalPadding,
       backgroundColor: backgroundColor,
+      isScrolling: _isScrolling,
       child: child,
     );
   }

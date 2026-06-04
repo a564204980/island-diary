@@ -31,7 +31,7 @@ class LifeLineSwitcherSheet extends StatelessWidget {
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                       color: isNight ? Colors.white : const Color(0xFF1F2937),
-                      fontFamily: 'LXGWWenKai',
+                      fontFamily: _getFontFamily(),
                       letterSpacing: 1,
                     ),
                   ),
@@ -41,7 +41,7 @@ class LifeLineSwitcherSheet extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       color: isNight ? Colors.white54 : Colors.black54,
-                      fontFamily: 'LXGWWenKai',
+                      fontFamily: _getFontFamily(),
                     ),
                   ),
                 ],
@@ -168,7 +168,7 @@ class LifeLineSwitcherSheet extends StatelessWidget {
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: isNight ? Colors.white : const Color(0xFF1F2937),
-                      fontFamily: 'LXGWWenKai',
+                      fontFamily: _getFontFamily(),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -177,7 +177,7 @@ class LifeLineSwitcherSheet extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12.5,
                       color: isNight ? Colors.white54 : Colors.black54,
-                      fontFamily: 'LXGWWenKai',
+                      fontFamily: _getFontFamily(),
                     ),
                   ),
                 ],
@@ -238,21 +238,21 @@ class LifeLineSwitcherSheet extends StatelessWidget {
                 const SizedBox(height: 32),
                 Text(
                   '正在穿梭至「${profile.name}」的时空...',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    fontFamily: 'LXGWWenKai',
+                    fontFamily: _getFontFamily(),
                     letterSpacing: 1,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   '时空波长同步中...',
                   style: TextStyle(
                     color: Colors.white38,
                     fontSize: 12,
-                    fontFamily: 'LXGWWenKai',
+                    fontFamily: _getFontFamily(),
                   ),
                 ),
               ],
@@ -269,7 +269,7 @@ class LifeLineSwitcherSheet extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('开启新的人生线', style: TextStyle(fontFamily: 'LXGWWenKai', fontWeight: FontWeight.bold)),
+        title: Text('开启新的人生线', style: TextStyle(fontFamily: _getFontFamily(), fontWeight: FontWeight.bold)),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -323,5 +323,9 @@ class LifeLineSwitcherSheet extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getFontFamily() {
+    return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
   }
 }

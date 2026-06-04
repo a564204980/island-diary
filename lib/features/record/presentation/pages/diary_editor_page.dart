@@ -38,21 +38,10 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         DiaryEditorMediaMixin<DiaryEditorPage>,
         DiaryEditorFormatMixin<DiaryEditorPage>,
         DiaryEditorInsertMixin<DiaryEditorPage> {
-  double _scrollOffset = 0;
-
   @override
   void initState() {
     super.initState();
     initializeEditor(entry: widget.entry, initialDate: widget.initialDate);
-    
-    // 监听滚动，用于同步贴纸位置
-    scrollController.addListener(() {
-      if (mounted) {
-        setState(() {
-          _scrollOffset = scrollController.offset;
-        });
-      }
-    });
   }
 
   @override

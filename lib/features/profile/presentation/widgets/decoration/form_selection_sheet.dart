@@ -88,7 +88,7 @@ class MascotFormSelectionSheet extends StatelessWidget {
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: isNight ? Colors.white : const Color(0xFF1F2937),
-                    fontFamily: 'LXGWWenKai',
+                    fontFamily: _getFontFamily(),
                   ),
                 ),
                 const Spacer(),
@@ -172,5 +172,9 @@ class MascotFormSelectionSheet extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getFontFamily() {
+    return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
   }
 }

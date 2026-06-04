@@ -51,14 +51,14 @@ class TitleSelectionSheet extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 22, fontWeight: FontWeight.w900,
                             color: isNight ? Colors.white : const Color(0xFF0F172A),
-                            fontFamily: 'LXGWWenKai',
+                            fontFamily: _getFontFamily(),
                           )),
                       const SizedBox(height: 3),
                       Text('点亮成就，佩戴属于你的荣耀',
                           style: TextStyle(
                             fontSize: 12,
                             color: isNight ? Colors.white38 : const Color(0xFF64748B),
-                            fontFamily: 'LXGWWenKai',
+                            fontFamily: _getFontFamily(),
                           )),
                     ],
                   ),
@@ -172,7 +172,7 @@ class TitleSelectionSheet extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12, fontWeight: FontWeight.bold,
                         color: isNight ? Colors.white30 : Colors.black38,
-                        fontFamily: 'LXGWWenKai',
+                        fontFamily: _getFontFamily(),
                       )),
                 ],
               ),
@@ -185,7 +185,7 @@ class TitleSelectionSheet extends StatelessWidget {
                   color: isNight
                       ? Colors.white.withValues(alpha: 0.25)
                       : Colors.black.withValues(alpha: 0.35),
-                  fontFamily: 'LXGWWenKai',
+                  fontFamily: _getFontFamily(),
                 )),
           ],
         ),
@@ -266,10 +266,10 @@ class TitleSelectionSheet extends StatelessWidget {
                           Icon(tier.badge, size: 12, color: Colors.white),
                           const SizedBox(width: 4),
                           Text(a.rewardTitle!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.bold,
-                                color: Colors.white, fontFamily: 'LXGWWenKai',
-                                shadows: [Shadow(color: Colors.black26, blurRadius: 2)],
+                                color: Colors.white, fontFamily: _getFontFamily(),
+                                shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
                               )),
                         ],
                       ),
@@ -289,7 +289,7 @@ class TitleSelectionSheet extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 10,
                               color: isNight ? Colors.white60 : Colors.black54,
-                              fontFamily: 'LXGWWenKai',
+                              fontFamily: _getFontFamily(),
                             ),
                           ),
                         ),
@@ -309,5 +309,9 @@ class TitleSelectionSheet extends StatelessWidget {
       ),
     ).animate(target: isSelected ? 1 : 0)
      .scale(begin: const Offset(1, 1), end: const Offset(1.03, 1.03), duration: 180.ms);
+  }
+
+  String _getFontFamily() {
+    return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
   }
 }

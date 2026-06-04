@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_search_panel.dart';
@@ -38,41 +37,15 @@ class _RecordPageState extends State<RecordPage> {
   late final ScrollController _scrollController;
   late final ValueNotifier<DateTime> _headerDate;
 
-  // 智感握姿侧边感应属性
-  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
-  bool _isLeftHandGrip = false;
-
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
     _headerDate = ValueNotifier<DateTime>(DateTime.now());
-
-    // 智能握姿侧边感应初始化：高精度监听重力倾斜角
-    // 右手单手握持时，由于手掌自然的握力夹角与大拇指舒展，手机会微向左倾斜（event.x 为正值，阈值 > 2.2）
-    // 左手单手握持时，手机会微向右倾斜（event.x 为负值，阈值 < -2.2）
-    _accelerometerSubscription = accelerometerEvents.listen((AccelerometerEvent event) {
-      if (!mounted) return;
-      final double x = event.x;
-      if (x > 2.2) {
-        if (_isLeftHandGrip) {
-          setState(() {
-            _isLeftHandGrip = false;
-          });
-        }
-      } else if (x < -2.2) {
-        if (!_isLeftHandGrip) {
-          setState(() {
-            _isLeftHandGrip = true;
-          });
-        }
-      }
-    });
   }
 
   @override
   void dispose() {
-    _accelerometerSubscription?.cancel();
     _scrollController.dispose();
     _headerDate.dispose();
     super.dispose();
@@ -376,13 +349,9 @@ class _RecordPageState extends State<RecordPage> {
                 ),
               ),
 
-              // 智能握姿侧边悬浮工具栏：当检测为左手握持时智能靠左，右手握持时靠右，支持回弹极速移位
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 500),
-                curve: Curves.easeOutBack, // 赋予高弹性回弹，动效极其动感逼真
-                left: _isLeftHandGrip ? 20 : null,
-                right: _isLeftHandGrip ? null : 20,
-                bottom: 100,
+              Positioned(
+                right: 20,
+                bottom: 200,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

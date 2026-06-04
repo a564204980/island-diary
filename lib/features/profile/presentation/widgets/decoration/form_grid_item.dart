@@ -41,8 +41,8 @@ class FormGridItem extends StatelessWidget {
             SnackBar(
               content: Text(
                 msg,
-                style: const TextStyle(
-                  fontFamily: 'LXGWWenKai',
+                style: TextStyle(
+                  fontFamily: _getFontFamily(),
                   color: Colors.white,
                   fontSize: 13,
                 ),
@@ -114,7 +114,7 @@ class FormGridItem extends StatelessWidget {
                                       : (isNight
                                             ? Colors.white
                                             : const Color(0xFF3E2723)),
-                                  fontFamily: 'LXGWWenKai',
+                                  fontFamily: _getFontFamily(),
                                 ),
                               ),
                             ),
@@ -135,7 +135,7 @@ class FormGridItem extends StatelessWidget {
                                         ? Colors.orangeAccent
                                         : Colors.deepOrange)
                                   : (isNight ? Colors.white38 : Colors.black26),
-                              fontFamily: 'LXGWWenKai',
+                              fontFamily: _getFontFamily(),
                               fontWeight: isLocked
                                   ? FontWeight.bold
                                   : FontWeight.normal,
@@ -211,11 +211,11 @@ class FormGridItem extends StatelessWidget {
           ],
           Text(
             rarity,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontSize: 9,
               fontWeight: FontWeight.bold,
-              fontFamily: 'LXGWWenKai',
+              fontFamily: _getFontFamily(),
               letterSpacing: 0.5,
             ),
           ),
@@ -272,5 +272,9 @@ class FormGridItem extends StatelessWidget {
     if (rarity == '传说') return const Color(0xFFF59E0B);
     if (rarity == '卓越') return const Color(0xFFA855F7);
     return const Color(0xFF94A3B8);
+  }
+
+  String _getFontFamily() {
+    return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
   }
 }

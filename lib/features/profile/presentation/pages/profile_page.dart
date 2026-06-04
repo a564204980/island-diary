@@ -4,7 +4,6 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/widgets/profile_header.dart';
 import 'package:island_diary/features/profile/presentation/widgets/premium_bento_card.dart';
 import 'package:island_diary/features/profile/presentation/widgets/bento_menu_grid.dart';
-import 'package:island_diary/features/profile/presentation/widgets/daily_task_card.dart';
 import 'dart:async';
 
 class ProfilePage extends StatefulWidget {
@@ -58,7 +57,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const SizedBox(height: 12),
               Text(
-                '您的岛屿专属礼物已存入成就系统',
+                '您的岛屿专属礼物已自动为您发放',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.white70,
@@ -154,7 +153,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: [
                       const SizedBox(height: 20),
                       ProfileHeader(isNight: isNight, isVip: isVip),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       PremiumBentoCard(isVip: isVip, isNight: isNight),
                       const SizedBox(height: 24),
                       BentoMenuGrid(isNight: isNight),

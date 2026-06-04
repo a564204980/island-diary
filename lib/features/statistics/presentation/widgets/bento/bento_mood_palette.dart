@@ -53,6 +53,7 @@ extension _BentoMoodPalette on _StatisticsPageState {
       isNight: isNight,
       backgroundColor: isCottonCandy ? const Color(0xFFFFF4EF) : null,
       padding: const EdgeInsets.all(16),
+      hideLegoBackground: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -61,9 +62,9 @@ extension _BentoMoodPalette on _StatisticsPageState {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 左侧占比 32%
+              // 左侧占比 26%
               Expanded(
-                flex: 32,
+                flex: 26,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -154,14 +155,14 @@ extension _BentoMoodPalette on _StatisticsPageState {
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
               // 右侧密集马赛克画布
               Expanded(
-                flex: 68,
+                flex: 74,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 28), // 进一步下沉至 28px，完美拉开与标题的距离并优美撑高卡片高度
                   child: AspectRatio(
-                    aspectRatio: 2.8, // 提高长宽比，横向展示更多精致果冻格子（约 20 列），大幅度减少/避免滚动
+                    aspectRatio: UserState().selectedIslandThemeId.value == 'lego' ? 2.0 : 2.8, // 提高长宽比，横向展示更多精致果冻格子（约 20 列），大幅度减少/避免滚动
                     child: rightCanvas,
                   ),
                 ),
@@ -380,15 +381,22 @@ extension _BentoMoodPalette on _StatisticsPageState {
             ],
           );
         } else {
-          // 本月有日记：无缝拼贴正方形色块列表，垂直固定 7 行，支持横向自由滚动
+          // 本月有日记：无缝拼贴正方形色块列表，垂直固定 7 行
           final int activeCols = (paletteItems.length / rowCount).ceil();
-          // 计算可用宽度下最大能铺满的列数，上限为 20 列，用来填补右侧多余空白防止太空
-          final int totalCols = (width / cellSize).floor().clamp(1, 20);
-          final int showCols = max(activeCols, totalCols);
+          // 根据主题决定每列实际占用的宽度（乐高主题包含外边距）
+          final double colWidth = themeId == 'lego' ? (cellSize + 1.2) : cellSize;
+          // 计算可用宽度下刚好能放下的最大列数，上限为 20 列，用来填补右侧多余空白防止太空
+          final int totalCols = (width / colWidth).floor().clamp(1, 20);
+          final int showCols = totalCols; // 强制列数等于最大可用列数，以完美铺满宽度且绝不溢出
+
+          // 若实际列数超过了最大显示列数，截取最近的数据展示
+          final List<_PaletteItem> displayItems = activeCols > totalCols
+              ? paletteItems.sublist(paletteItems.length - totalCols * rowCount)
+              : paletteItems;
 
           contentWidget = SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
+            physics: const NeverScrollableScrollPhysics(),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: List.generate(showCols, (colIdx) {
@@ -396,7 +404,7 @@ extension _BentoMoodPalette on _StatisticsPageState {
                   mainAxisSize: MainAxisSize.min,
                   children: List.generate(rowCount, (rowIdx) {
                     final int itemIdx = colIdx * rowCount + rowIdx;
-                    if (itemIdx >= paletteItems.length) {
+                    if (itemIdx >= displayItems.length) {
                       // 填充半透明的灰色/粉色微晶边框网格，保持整体画布无缝铺满且不显得太空
                       final String themeId = UserState().selectedIslandThemeId.value;
                       final bool isLego = themeId == 'lego';
@@ -465,7 +473,7 @@ extension _BentoMoodPalette on _StatisticsPageState {
                       );
                     }
 
-                    final item = paletteItems[itemIdx];
+                    final item = displayItems[itemIdx];
                     final bool isSelected = _selectedPaletteDay == itemIdx + 1000;
                     final color = _getMoodColor(item.moodIndex % kMoods.length, isNight, isCottonCandy);
 

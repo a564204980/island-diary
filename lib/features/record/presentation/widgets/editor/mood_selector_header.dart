@@ -585,93 +585,9 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     );
   }
 
-  /// 渲染高度逼真的 3D 乐高拼接阻隔条 (Lego Divider Strip)
-  Widget _buildLegoDivider(bool isNight) {
-    final Color barColor = isNight ? const Color(0xFF382F1E) : const Color(0xFFFCDD9B); // 主积木杆颜色
-    final Color highlightColor = isNight ? const Color(0xFF4C3E27) : const Color(0xFFFFFCE0);
-    final Color shadowColor = isNight ? const Color(0xFF1B160E) : const Color(0xFFDCC8A0);
 
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.center,
-      children: [
-        // 1. 中间的主体扁长积木滑条 (带微弱投影与厚度亮边)
-        Container(
-          height: 7,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: barColor,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: highlightColor, width: 0.6),
-            boxShadow: [
-              BoxShadow(
-                color: shadowColor.withValues(alpha: 0.4),
-                blurRadius: 4,
-                offset: const Offset(0, 1.5),
-              ),
-            ],
-          ),
-        ),
 
-        // 2. 左端的凸起拼接口盖 (2 颗微距颗粒)
-        Positioned(
-          left: 0,
-          child: _buildLegoDividerEnd(isNight, barColor, highlightColor, shadowColor),
-        ),
 
-        // 3. 右端的凸起拼接口盖 (2 颗微距颗粒)
-        Positioned(
-          right: 0,
-          child: _buildLegoDividerEnd(isNight, barColor, highlightColor, shadowColor),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLegoDividerEnd(bool isNight, Color barColor, Color highlightColor, Color shadowColor) {
-    return Container(
-      width: 28,
-      height: 11,
-      decoration: BoxDecoration(
-        color: barColor,
-        borderRadius: BorderRadius.circular(3),
-        border: Border.all(color: highlightColor, width: 0.6),
-        boxShadow: [
-          BoxShadow(
-            color: shadowColor.withValues(alpha: 0.5),
-            blurRadius: 2,
-            offset: const Offset(0, 1.2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildTinyStud(highlightColor, shadowColor),
-          _buildTinyStud(highlightColor, shadowColor),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTinyStud(Color highlightColor, Color shadowColor) {
-    return Container(
-      width: 5,
-      height: 5,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        shape: BoxShape.circle,
-        border: Border.all(color: highlightColor, width: 0.4),
-        boxShadow: [
-          BoxShadow(
-            color: shadowColor.withValues(alpha: 0.8),
-            blurRadius: 0.8,
-            offset: const Offset(0.3, 0.6),
-          ),
-        ],
-      ),
-    );
-  }
 
   /// 渲染位于信纸顶部、整齐排布的乐高圆形凸起颗粒一排 (Top Studs Row)
   Widget _buildLegoTopStudsRow() {

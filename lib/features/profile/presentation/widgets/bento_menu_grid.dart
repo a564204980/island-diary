@@ -207,7 +207,7 @@ class BentoMenuGrid extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: isNight ? Colors.white70 : Colors.black87,
-                fontFamily: 'LXGWWenKai',
+                fontFamily: _getFontFamily(),
               ),
             ),
           ),
@@ -221,7 +221,6 @@ class BentoMenuGrid extends StatelessWidget {
       onTap: () {
         showModalBottomSheet(
           context: context,
-          backgroundColor: Colors.transparent,
           isScrollControlled: true,
           builder: (context) => const LifeLineSwitcherSheet(),
         );
@@ -254,7 +253,7 @@ class BentoMenuGrid extends StatelessWidget {
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: isNight ? Colors.white70 : Colors.black87,
-                      fontFamily: 'LXGWWenKai',
+                      fontFamily: _getFontFamily(),
                     ),
                   ),
                   ValueListenableBuilder<String>(
@@ -285,6 +284,10 @@ class BentoMenuGrid extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getFontFamily() {
+    return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
   }
 }
 
@@ -339,7 +342,7 @@ class _ThemeOptionsWidget extends StatelessWidget {
                   color: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                  fontFamily: 'LXGWWenKai',
+                  fontFamily: _getFontFamily(),
                 ),
               ),
             ],
@@ -459,5 +462,9 @@ class _ThemeOptionsWidget extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getFontFamily() {
+    return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
   }
 }

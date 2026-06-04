@@ -20,61 +20,70 @@ class SettingsPage extends StatelessWidget {
           extendBodyBehindAppBar: true,
           body: Stack(
             children: [
-              // 1. 动态渐变背景
+              // 1. 艺术渐变与慢速漂浮光晕背景
               _buildBackground(isNight),
               
-              // 2. 内容层
+              // 2. 主体滚动内容
               SafeArea(
                 child: CustomScrollView(
                   physics: const BouncingScrollPhysics(),
                   slivers: [
-                    // 自定义标题栏
+                    // 返回与大标题栏
                     SliverToBoxAdapter(
-                      child: _buildHeader(context, isNight).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2, end: 0),
+                      child: _buildHeader(context, isNight)
+                          .animate()
+                          .fadeIn(duration: 600.ms)
+                          .slideY(begin: -0.2, end: 0, curve: Curves.easeOutCubic),
                     ),
+                    
+                    const SliverToBoxAdapter(child: SizedBox(height: 10)),
                     
                     // 偏好与数据
                     SliverToBoxAdapter(
                       child: _buildSection(
                         title: '偏好与数据',
+                        subtitle: '备份你的回忆，管理本地数据',
                         isNight: isNight,
                         children: [
-                          _buildPremiumTile(
-                            context,
-                            '加密导出',
-                            Icons.ios_share_rounded,
-                            const Color(0xFF10B981),
-                            isNight,
+                          _SettingsTile(
+                            title: '加密导出',
+                            icon: Icons.ios_share_rounded,
+                            accentColor: const Color(0xFF10B981),
+                            isNight: isNight,
                             onTap: () async {
                               final success = await BackupService.exportData();
                               if (!context.mounted) return;
                               if (success) {
-                                _showToast(context, '回忆已成功打包并准备导出');
+                                _showToast(context, '回忆已成功打包并准备导出 📦');
                               } else {
-                                _showToast(context, '导出失败，请检查权限设置');
+                                _showToast(context, '导出失败，请检查文件系统读写权限');
                               }
                             },
                           ),
                           _buildDivider(isNight),
-                          _buildPremiumTile(
-                            context,
-                            '回忆导入',
-                            Icons.system_update_alt_rounded,
-                            const Color(0xFF0EA5E9),
-                            isNight,
+                          _SettingsTile(
+                            title: '回忆导入',
+                            icon: Icons.system_update_alt_rounded,
+                            accentColor: const Color(0xFF0EA5E9),
+                            isNight: isNight,
                             onTap: () => _handleImport(context, isNight),
                           ),
                           _buildDivider(isNight),
-                          _buildPremiumTile(
-                            context,
-                            '恢复购买',
-                            Icons.shopping_cart_checkout_rounded,
-                            const Color(0xFF3B82F6),
-                            isNight,
-                            onTap: () => _showActionDialog(context, '恢复购买', '正在连接 App Store，验证您的偏好设置与订阅记录...', isNight, isRestore: true),
+                          _SettingsTile(
+                            title: '恢复购买',
+                            icon: Icons.shopping_cart_checkout_rounded,
+                            accentColor: const Color(0xFF3B82F6),
+                            isNight: isNight,
+                            onTap: () => _showActionDialog(
+                              context, 
+                              '恢复购买', 
+                              '正在连接 App Store，验证您的偏好设置与订阅记录...', 
+                              isNight, 
+                              isRestore: true
+                            ),
                           ),
                         ],
-                      ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
+                      ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
                     ),
                     
                     const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -83,27 +92,31 @@ class SettingsPage extends StatelessWidget {
                     SliverToBoxAdapter(
                       child: _buildSection(
                         title: '支持与反馈',
+                        subtitle: '为我们评分，提供改进意见',
                         isNight: isNight,
                         children: [
-                          _buildPremiumTile(
-                            context,
-                            '去评分',
-                            Icons.star_outline_rounded,
-                            const Color(0xFFF59E0B),
-                            isNight,
-                            onTap: () => _showActionDialog(context, '去评分', '岛屿计划离不开您的支持，我们将带您前往 App Store 留下宝贵的评价。', isNight),
+                          _SettingsTile(
+                            title: '去评分',
+                            icon: Icons.star_outline_rounded,
+                            accentColor: const Color(0xFFF59E0B),
+                            isNight: isNight,
+                            onTap: () => _showActionDialog(
+                              context, 
+                              '去评分', 
+                              '岛屿计划离不开您的支持，我们将带您前往商店留下宝贵的评价 ⭐', 
+                              isNight
+                            ),
                           ),
                           _buildDivider(isNight),
-                          _buildPremiumTile(
-                            context,
-                            '意见反馈',
-                            Icons.chat_bubble_outline_rounded,
-                            const Color(0xFFEC4899),
-                            isNight,
+                          _SettingsTile(
+                            title: '意见反馈',
+                            icon: Icons.chat_bubble_outline_rounded,
+                            accentColor: const Color(0xFFEC4899),
+                            isNight: isNight,
                             onTap: () => _showLegalDialog(context, '意见反馈', LegalText.feedbackInfo, isNight),
                           ),
                         ],
-                      ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1, end: 0),
+                      ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
                     ),
                     
                     const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -112,27 +125,26 @@ class SettingsPage extends StatelessWidget {
                     SliverToBoxAdapter(
                       child: _buildSection(
                         title: '法律条款',
+                        subtitle: '数据安全保护与服务条款',
                         isNight: isNight,
                         children: [
-                          _buildPremiumTile(
-                            context,
-                            '隐私政策',
-                            Icons.privacy_tip_outlined,
-                            const Color(0xFF6366F1),
-                            isNight,
+                          _SettingsTile(
+                            title: '隐私政策',
+                            icon: Icons.privacy_tip_outlined,
+                            accentColor: const Color(0xFF6366F1),
+                            isNight: isNight,
                             onTap: () => _showLegalDialog(context, '隐私政策', LegalText.privacyPolicy, isNight),
                           ),
                           _buildDivider(isNight),
-                          _buildPremiumTile(
-                            context,
-                            '用户协议',
-                            Icons.gavel_rounded,
-                            const Color(0xFF94A3B8),
-                            isNight,
+                          _SettingsTile(
+                            title: '用户协议',
+                            icon: Icons.gavel_rounded,
+                            accentColor: const Color(0xFF94A3B8),
+                            isNight: isNight,
                             onTap: () => _showLegalDialog(context, '用户协议', LegalText.userAgreement, isNight),
                           ),
                         ],
-                      ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
+                      ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
                     ),
 
                     const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -141,35 +153,34 @@ class SettingsPage extends StatelessWidget {
                     SliverToBoxAdapter(
                       child: _buildSection(
                         title: '实验室',
+                        subtitle: '专为开发者或测试人员准备的功能',
                         isNight: isNight,
                         children: [
-                          _buildPremiumTile(
-                            context,
-                            '调试：一键解锁',
-                            Icons.bug_report_rounded,
-                            const Color(0xFF8B5CF6),
-                            isNight,
+                          _SettingsTile(
+                            title: '调试：一键解锁',
+                            icon: Icons.bug_report_rounded,
+                            accentColor: const Color(0xFF8B5CF6),
+                            isNight: isNight,
                             onTap: () {
                               UserState().unlockAllForTesting();
-                              _showToast(context, '已触发全量解锁测试模式');
+                              _showToast(context, '已触发全量解锁测试模式 ⚡');
                             },
                           ),
                           _buildDivider(isNight),
-                          _buildPremiumTile(
-                            context,
-                            '调试：生成测试日记 (100条)',
-                            Icons.playlist_add_rounded,
-                            const Color(0xFF10B981),
-                            isNight,
+                          _SettingsTile(
+                            title: '调试：生成测试日记 (100条)',
+                            icon: Icons.playlist_add_rounded,
+                            accentColor: const Color(0xFF10B981),
+                            isNight: isNight,
                             onTap: () async {
                               await UserState().generateMockDiaries();
                               if (context.mounted) {
-                                _showToast(context, '已生成 100 条测试日记数据');
+                                _showToast(context, '已成功生成 100 条测试数据 📅');
                               }
                             },
                           ),
                         ],
-                      ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0),
+                      ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
                     ),
                     
                     const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -178,19 +189,19 @@ class SettingsPage extends StatelessWidget {
                     SliverToBoxAdapter(
                       child: _buildSection(
                         title: '危险区域',
+                        subtitle: '涉及永久删除数据的高危操作',
                         isNight: isNight,
                         children: [
-                          _buildPremiumTile(
-                            context,
-                            '抹除所有回忆',
-                            Icons.delete_forever_rounded,
-                            const Color(0xFFEF4444),
-                            isNight,
+                          _SettingsTile(
+                            title: '抹除所有回忆',
+                            icon: Icons.delete_forever_rounded,
+                            accentColor: const Color(0xFFEF4444),
+                            isNight: isNight,
                             onTap: () {
                               _showActionDialog(
                                 context,
                                 '抹除所有回忆',
-                                '警告：此操作将永久删除该岛屿上的所有人生线、日记、房间布局及偏好设置。执行后岛屿将重回最初的状态。',
+                                '警告：此操作将永久删除该岛屿上的所有回忆、房间布局及偏好设置。执行后将无法找回。',
                                 isNight,
                                 onConfirm: () async {
                                   await UserState().factoryReset();
@@ -206,7 +217,7 @@ class SettingsPage extends StatelessWidget {
                             },
                           ),
                         ],
-                      ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1, end: 0),
+                      ).animate().fadeIn(delay: 550.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
                     ),
                     
                     const SliverToBoxAdapter(child: SizedBox(height: 80)),
@@ -220,41 +231,76 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
+  String _getFontFamily() {
+    return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+  }
+
   Widget _buildBackground(bool isNight) {
     return Container(
       decoration: BoxDecoration(
-        color: isNight ? const Color(0xFF0D1B2A) : const Color(0xFFE6F3F5), // 同步“我的”页面背景
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isNight
+              ? [
+                  const Color(0xFF0F172A),
+                  const Color(0xFF0D1B2A),
+                  const Color(0xFF1E1E38),
+                ]
+              : [
+                  const Color(0xFFF9F6F0),
+                  const Color(0xFFEAF4F4),
+                  const Color(0xFFE6EBE0),
+                ],
+        ),
       ),
       child: Stack(
         children: [
-          if (isNight) ...[
-            // 夜晚模式保留动态星云以增加质感
-            Positioned(
-              top: -100,
-              right: -100,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+          // 慢速运动背景光影 1
+          Positioned(
+            top: -120,
+            right: -80,
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    isNight
+                        ? const Color(0xFF6366F1).withValues(alpha: 0.18)
+                        : const Color(0xFFA5F3FC).withValues(alpha: 0.4),
+                    Colors.transparent
+                  ],
                 ),
-              ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: 0, end: 50, duration: 4.seconds),
-            ),
-            Positioned(
-              bottom: 100,
-              left: -50,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFEC4899).withValues(alpha: 0.05),
+              ),
+            )
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .move(begin: const Offset(0, 0), end: const Offset(-40, 50), duration: 6.seconds, curve: Curves.easeInOut),
+          ),
+          
+          // 慢速运动背景光影 2
+          Positioned(
+            bottom: 80,
+            left: -100,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    isNight
+                        ? const Color(0xFFEC4899).withValues(alpha: 0.12)
+                        : const Color(0xFFFBCFE8).withValues(alpha: 0.35),
+                    Colors.transparent
+                  ],
                 ),
-              ).animate(onPlay: (c) => c.repeat(reverse: true)).moveX(begin: 0, end: 30, duration: 3.seconds),
-            ),
-          ],
-          // 白天模式保持纯正，不再添加额外装饰球，确保与“我的”页完全一致
+              ),
+            )
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .move(begin: const Offset(0, 0), end: const Offset(50, -30), duration: 7.seconds, curve: Curves.easeInOut),
+          ),
         ],
       ),
     );
@@ -262,80 +308,113 @@ class SettingsPage extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context, bool isNight) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       child: Row(
         children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              width: 44,
-              height: 44,
-              alignment: Alignment.centerLeft,
-              color: Colors.transparent, // 确保点击区域
-              child: Icon(
-                Icons.arrow_back_ios_new_rounded, 
-                size: 22, 
-                color: isNight ? Colors.white : const Color(0xFF1F2937)
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isNight ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.03),
+                border: Border.all(
+                  color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04),
+                  width: 1,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 6.0), // 稍微偏左对齐ios返回箭头
+                child: Icon(
+                  Icons.arrow_back_ios, 
+                  size: 16, 
+                  color: isNight ? Colors.white70 : const Color(0xFF1F2937)
+                ),
               ),
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
               '系统设置',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                fontFamily: 'LXGWWenKai',
-                letterSpacing: 2,
+                fontFamily: _getFontFamily(),
+                letterSpacing: 3,
               ),
             ),
           ),
-          const SizedBox(width: 40), // 占位保持居中
+          const SizedBox(width: 42), // 占位居中
         ],
       ),
     );
   }
 
-  Widget _buildSection({required String title, required List<Widget> children, required bool isNight}) {
+  Widget _buildSection({
+    required String title, 
+    required String subtitle, 
+    required List<Widget> children, 
+    required bool isNight
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 12),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'LXGWWenKai',
-                color: isNight ? Colors.white38 : Colors.black38,
-                letterSpacing: 1,
-              ),
-            ),
-          ),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.95), // 提高一点不透明度，在背景更亮时保持清晰
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(
-                    color: isNight ? Colors.white.withValues(alpha: 0.12) : Colors.white,
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isNight ? 0.2 : 0.08),
-                      blurRadius: 30,
-                      offset: const Offset(0, 12),
+            padding: const EdgeInsets.only(left: 4, bottom: 10),
+            child: Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: _getFontFamily(),
+                        color: isNight ? Colors.white.withValues(alpha: 0.87) : const Color(0xFF374151),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isNight ? Colors.white30 : Colors.black38,
+                        fontFamily: _getFontFamily(),
+                      ),
                     ),
                   ],
                 ),
+              ],
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: isNight ? Colors.white.withValues(alpha: 0.04) : Colors.white.withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.8),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isNight ? 0.15 : 0.03),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
                 child: Column(children: children),
               ),
             ),
@@ -345,69 +424,28 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPremiumTile(
-    BuildContext context, 
-    String title, 
-    IconData icon, 
-    Color accentColor,
-    bool isNight, 
-    {required VoidCallback onTap}
-  ) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: 20, color: accentColor),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: isNight ? Colors.white : Colors.black87,
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-              const Spacer(),
-              Icon(
-                Icons.arrow_forward_ios_rounded, 
-                size: 14, 
-                color: isNight ? Colors.white24 : Colors.black26
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-
   Widget _buildDivider(bool isNight) {
     return Padding(
-      padding: const EdgeInsets.only(left: 72),
+      padding: const EdgeInsets.only(left: 68),
       child: Divider(
         height: 1, 
         thickness: 0.8, 
-        color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04)
+        color: isNight ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04)
       ),
     );
   }
 
   void _showToast(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: Text(
+          message, 
+          style: TextStyle(fontFamily: _getFontFamily(), fontSize: 14)
+        ), 
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: UserState().isNight ? const Color(0xFF1E1E2E) : const Color(0xFF3F3D56),
+      ),
     );
   }
 
@@ -421,24 +459,30 @@ class SettingsPage extends StatelessWidget {
         final result = await BackupService.importData();
         if (!context.mounted) return;
         if (result == 'SUCCESS') {
-          _showToast(context, '回忆已成功找回，岛屿状态已重置');
+          _showToast(context, '回忆已成功找回，岛屿状态已重建 ✨');
         } else if (result == 'INVALID_SIGNATURE' || result == 'INVALID_FORMAT') {
-          _showToast(context, '文件校验未通过：非法的加密晶体');
+          _showToast(context, '文件校验未通过：非法的加密水晶 🔮');
         } else if (result == 'PASSWORD_ERROR') {
-          _showToast(context, '解密失败：备份密码不正确');
+          _showToast(context, '解密失败：备份密码不正确 🔑');
         } else if (result == 'FAILED') {
-          _showToast(context, '导入失败，请确保文件未损坏');
+          _showToast(context, '导入失败，请确保文件完整未损坏');
         }
       },
     );
   }
 
-  void _showActionDialog(BuildContext context, String title, String content, bool isNight, {bool isRestore = false, VoidCallback? onConfirm}) {
+  void _showActionDialog(
+    BuildContext context, 
+    String title, 
+    String content, 
+    bool isNight, 
+    {bool isRestore = false, VoidCallback? onConfirm}
+  ) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.4),
       builder: (context) {
-        bool isLoading = onConfirm == null; // 仅在展示类对话框中开启初始加载
+        bool isLoading = onConfirm == null; 
         return StatefulBuilder(
           builder: (context, setState) {
             if (onConfirm == null) {
@@ -456,19 +500,19 @@ class SettingsPage extends StatelessWidget {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
                 child: Container(
-                  padding: const EdgeInsets.all(28),
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: isNight ? const Color(0xFF1E293B).withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(32),
+                    borderRadius: BorderRadius.circular(28),
                     border: Border.all(
-                      color: isNight ? Colors.white.withValues(alpha: 0.1) : Colors.white,
+                      color: isNight ? Colors.white.withValues(alpha: 0.12) : Colors.white,
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: Colors.black.withValues(alpha: 0.15),
                         blurRadius: 40,
-                        offset: const Offset(0, 20),
+                        offset: const Offset(0, 16),
                       ),
                     ],
                   ),
@@ -478,16 +522,16 @@ class SettingsPage extends StatelessWidget {
                       Text(
                         title, 
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 19,
                           fontWeight: FontWeight.w900, 
                           color: isNight ? Colors.white : const Color(0xFF1A1A1A),
-                          fontFamily: 'LXGWWenKai',
+                          fontFamily: _getFontFamily(),
                         )
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Container(
                         height: 2,
-                        width: 40,
+                        width: 32,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(1),
                           gradient: const LinearGradient(
@@ -495,45 +539,47 @@ class SettingsPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       if (isLoading)
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(isNight ? const Color(0xFFCE93D8) : const Color(0xFF7E57C2)),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isNight ? const Color(0xFFCE93D8) : const Color(0xFF7E57C2)
+                            ),
                             strokeWidth: 2.5,
                           ),
                         ),
                       Text(
                         onConfirm != null 
                           ? content 
-                          : (isLoading ? content : (isRestore ? '您的所有权益（VIP等级、专属饰品）已成功恢复。' : '正在为您跳转至商店...')),
+                          : (isLoading ? content : (isRestore ? '您的所有权益（VIP等级、专属饰品）已成功恢复。' : '已为您跳转至对应页面。')),
                         style: TextStyle(
-                          color: isNight ? Colors.white70 : Colors.black54, 
-                          fontSize: 15, 
+                          color: isNight ? Colors.white70 : Colors.black87, 
+                          fontSize: 14, 
                           height: 1.6,
-                          fontFamily: 'LXGWWenKai'
+                          fontFamily: _getFontFamily()
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 28),
                       if (onConfirm != null)
                         Row(
                           children: [
                             Expanded(
-                              child: _buildCrystalButton(
-                                context, 
-                                '取消', 
-                                isNight, 
+                              child: _SettingsDialogBtn(
+                                label: '取消', 
+                                isNight: isNight, 
+                                isDanger: false,
                                 onPressed: () => Navigator.pop(context)
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _buildCrystalButton(
-                                context, 
-                                '确认执行', 
-                                isNight, 
+                              child: _SettingsDialogBtn(
+                                label: '确认执行', 
+                                isNight: isNight, 
+                                isDanger: true,
                                 onPressed: () {
                                   Navigator.pop(context);
                                   onConfirm();
@@ -543,17 +589,17 @@ class SettingsPage extends StatelessWidget {
                           ],
                         )
                       else if (!isLoading)
-                        _buildCrystalButton(
-                          context, 
-                          '好', 
-                          isNight, 
+                        _SettingsDialogBtn(
+                          label: '好', 
+                          isNight: isNight, 
+                          isDanger: false,
                           onPressed: () => Navigator.pop(context)
                         ),
                     ],
                   ),
                 ),
               ),
-            ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack).fadeIn();
+            );
           },
         );
       },
@@ -567,30 +613,29 @@ class SettingsPage extends StatelessWidget {
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 30, vertical: 60),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
           child: Container(
             decoration: BoxDecoration(
               color: isNight ? const Color(0xFF1E293B).withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.95),
-              borderRadius: BorderRadius.circular(36),
+              borderRadius: BorderRadius.circular(32),
               border: Border.all(
                 color: isNight ? Colors.white.withValues(alpha: 0.1) : Colors.white,
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 50,
-                  offset: const Offset(0, 25),
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 40,
+                  offset: const Offset(0, 20),
                 ),
               ],
             ),
             child: Stack(
               children: [
-                // 内容区域
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 40, 28, 28),
+                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -598,25 +643,25 @@ class SettingsPage extends StatelessWidget {
                         title, 
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 22,
+                          fontSize: 20,
                           color: isNight ? Colors.white : const Color(0xFF1A1A1A), 
                           fontWeight: FontWeight.w900, 
-                          fontFamily: 'LXGWWenKai',
+                          fontFamily: _getFontFamily(),
                           letterSpacing: 1.2,
                         )
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Container(
-                        height: 2.5,
-                        width: 50,
+                        height: 2,
+                        width: 40,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(2),
+                          borderRadius: BorderRadius.circular(1),
                           gradient: const LinearGradient(
                             colors: [Color(0xFF818CF8), Color(0xFFC084FC)],
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       Flexible(
                         child: SingleChildScrollView(
                           physics: const BouncingScrollPhysics(),
@@ -624,34 +669,33 @@ class SettingsPage extends StatelessWidget {
                             content,
                             style: TextStyle(
                               color: isNight ? Colors.white70 : Colors.black87, 
-                              height: 1.8, 
-                              fontSize: 14.5, 
-                              fontFamily: 'LXGWWenKai',
+                              height: 1.7, 
+                              fontSize: 14, 
+                              fontFamily: _getFontFamily(),
                               letterSpacing: 0.4,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 32),
-                      _buildCrystalButton(
-                        context, 
-                        '好', 
-                        isNight, 
+                      const SizedBox(height: 24),
+                      _SettingsDialogBtn(
+                        label: '我知道了', 
+                        isNight: isNight, 
+                        isDanger: false,
                         onPressed: () => Navigator.pop(context)
                       ),
                     ],
                   ),
                 ),
-                // 右上角关闭键
                 Positioned(
-                  right: 12,
-                  top: 12,
+                  right: 8,
+                  top: 8,
                   child: IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: Icon(
                       Icons.close_rounded, 
                       color: isNight ? Colors.white38 : Colors.black26, 
-                      size: 24
+                      size: 22
                     ),
                   ),
                 ),
@@ -659,37 +703,175 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
         ),
-      ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack).fadeIn(),
+      ),
     );
   }
+}
 
-  Widget _buildCrystalButton(BuildContext context, String label, bool isNight, {required VoidCallback onPressed}) {
+// ============== 下方为私有按压微动效组件与精致的水晶弹窗按钮 ==============
+
+class _SettingsTile extends StatefulWidget {
+  final String title;
+  final IconData icon;
+  final Color accentColor;
+  final bool isNight;
+  final VoidCallback onTap;
+
+  const _SettingsTile({
+    required this.title,
+    required this.icon,
+    required this.accentColor,
+    required this.isNight,
+    required this.onTap,
+  });
+
+  @override
+  State<_SettingsTile> createState() => _SettingsTileState();
+}
+
+class _SettingsTileState extends State<_SettingsTile> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // 渐变叶片/花瓣形状的图标容器背景
+    final iconBgDecoration = BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          widget.accentColor.withValues(alpha: 0.2),
+          widget.accentColor.withValues(alpha: 0.06),
+        ],
+      ),
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(14),
+        bottomRight: Radius.circular(14),
+        topRight: Radius.circular(6),
+        bottomLeft: Radius.circular(6),
+      ),
+      border: Border.all(
+        color: widget.accentColor.withValues(alpha: 0.12),
+        width: 1,
+      ),
+    );
+
     return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 14),
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOutCubic,
+        transform: Matrix4.diagonal3Values(_isPressed ? 0.97 : 1.0, _isPressed ? 0.97 : 1.0, 1.0),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
-          border: Border.all(
-            color: isNight ? Colors.white10 : Colors.white.withValues(alpha: 0.5),
-            width: 1,
+          color: _isPressed
+              ? (widget.isNight ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.02))
+              : Colors.transparent,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: iconBgDecoration,
+                child: Icon(
+                  widget.icon, 
+                  size: 19, 
+                  color: widget.accentColor
+                ),
+              ),
+              const SizedBox(width: 14),
+              Text(
+                widget.title,
+                style: TextStyle(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w600,
+                  color: widget.isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF1F2937),
+                  fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai',
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                Icons.arrow_forward_ios_rounded, 
+                size: 13, 
+                color: widget.isNight ? Colors.white24 : Colors.black26
+              ),
+            ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsDialogBtn extends StatefulWidget {
+  final String label;
+  final bool isNight;
+  final bool isDanger;
+  final VoidCallback onPressed;
+
+  const _SettingsDialogBtn({
+    required this.label,
+    required this.isNight,
+    required this.isDanger,
+    required this.onPressed,
+  });
+
+  @override
+  State<_SettingsDialogBtn> createState() => _SettingsDialogBtnState();
+}
+
+class _SettingsDialogBtnState extends State<_SettingsDialogBtn> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final themeColor = widget.isDanger 
+        ? const Color(0xFFEF4444) 
+        : (widget.isNight ? const Color(0xFF818CF8) : const Color(0xFF7E57C2));
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onPressed,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOutCubic,
+        transform: Matrix4.diagonal3Values(_isPressed ? 0.95 : 1.0, _isPressed ? 0.95 : 1.0, 1.0),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          // 危险操作与常规操作按钮的渐变色板
+          gradient: widget.isDanger
+              ? const LinearGradient(
+                  colors: [Color(0xFFF87171), Color(0xFFEF4444)],
+                )
+              : LinearGradient(
+                  colors: widget.isNight
+                      ? [const Color(0xFF6366F1), const Color(0xFF4F46E5)]
+                      : [const Color(0xFF9333EA), const Color(0xFF7E57C2)],
+                ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
+              color: themeColor.withValues(alpha: _isPressed ? 0.15 : 0.3),
+              blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Text(
-          label,
+          widget.label,
           style: TextStyle(
-            color: isNight ? const Color(0xFFCE93D8) : const Color(0xFF7E57C2),
+            color: Colors.white,
             fontWeight: FontWeight.w900,
-            fontSize: 16,
-            fontFamily: 'LXGWWenKai',
+            fontSize: 14.5,
+            fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai',
           ),
         ),
       ),
