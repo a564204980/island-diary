@@ -9,6 +9,7 @@ class StaticSprite extends StatelessWidget {
   final double size;
   final int frameCount;
   final int frameIndex;
+  final bool ignoreDecorations;
 
   const StaticSprite({
     super.key,
@@ -16,6 +17,7 @@ class StaticSprite extends StatelessWidget {
     this.size = 48.0,
     this.frameCount = 1,
     this.frameIndex = 0,
+    this.ignoreDecorations = false,
   });
 
   @override
@@ -40,10 +42,12 @@ class StaticSprite extends StatelessWidget {
                   String targetPath = assetPath;
                   final userState = UserState();
                   final selectedDecoPath = userState.selectedMascotDecoration.value;
-                  final hasHat = selectedDecoPath != null && selectedDecoPath.isNotEmpty;
-                  if (hasHat && targetPath.contains('marshmallow')) {
+                  final hasDeco = !ignoreDecorations && selectedDecoPath != null && selectedDecoPath.isNotEmpty;
+                  if (hasDeco && targetPath.contains('marshmallow')) {
                     final deco = MascotDecoration.getByPath(selectedDecoPath);
-                    if (deco == null || !deco.keepEars) {
+                    final isHat = deco?.category == MascotDecorationCategory.hat;
+                    final keepEars = deco?.keepEars ?? false;
+                    if (isHat && !keepEars) {
                       targetPath = targetPath.replaceAll('.png', '_noEars.png');
                     }
                   }
@@ -67,37 +71,99 @@ class StaticSprite extends StatelessWidget {
           ),
 
           // 2. 动态装扮图层 (响应全局状态)
-          Positioned.fill(
-            child: ListenableBuilder(
-            listenable: Listenable.merge([
-              userState.selectedMascotDecoration,
-              userState.selectedGlassesDecoration,
-              userState.isGlassesAboveHat,
-            ]),
-            builder: (context, _) {
-              final String? decoPath = userState.selectedMascotDecoration.value;
-              final String? glsPath = userState.selectedGlassesDecoration.value;
-              final bool isGlassesAbove = userState.isGlassesAboveHat.value;
+          if (!ignoreDecorations)
+            Positioned.fill(
+              child: ListenableBuilder(
+              listenable: Listenable.merge([
+                userState.selectedMascotDecoration,
+                userState.selectedGlassesDecoration,
+                userState.selectedEarringDecoration,
+                userState.isGlassesAboveHat,
+              ]),
+              builder: (context, _) {
+                final String? decoPath = userState.selectedMascotDecoration.value;
+                final String? glsPath = userState.selectedGlassesDecoration.value;
+                final String? earPath = userState.selectedEarringDecoration.value;
+                final bool isGlassesAbove = userState.isGlassesAboveHat.value;
 
-              final hatLayer = decoPath != null
-                  ? _buildDecorationLayer(decoPath, assetPath, size)
-                  : const SizedBox.shrink();
-              final glassesLayer = glsPath != null
-                  ? _buildDecorationLayer(glsPath, assetPath, size)
-                  : const SizedBox.shrink();
+                final earDeco = MascotDecoration.getByPath(earPath);
+                final earringLayer = earDeco != null
+                    ? _buildEarringLayer(earDeco, assetPath, size)
+                    : const SizedBox.shrink();
 
-              return Stack(
-                children: isGlassesAbove 
-                  ? [hatLayer, glassesLayer] // 眼镜盖住帽子
-                  : [glassesLayer, hatLayer], // 帽子盖住眼镜
-              );
-            },
+                final deco = MascotDecoration.getByPath(decoPath);
+                final isEarring = deco?.category == MascotDecorationCategory.face;
+                final isOther = deco?.category == MascotDecorationCategory.other;
+                final earringLegacyLayer = (isEarring && deco != null)
+                    ? _buildEarringLayer(deco, assetPath, size)
+                    : const SizedBox.shrink();
+
+                final hatLayer = (!isEarring && !isOther && decoPath != null)
+                    ? _buildDecorationLayer(decoPath, assetPath, size)
+                    : const SizedBox.shrink();
+                final glassesLayer = glsPath != null
+                    ? _buildDecorationLayer(glsPath, assetPath, size)
+                    : const SizedBox.shrink();
+
+                return Stack(
+                  children: isGlassesAbove 
+                    ? [earringLayer, earringLegacyLayer, hatLayer, glassesLayer] // 耳饰 -> 帽子 -> 眼镜
+                    : [earringLayer, earringLegacyLayer, glassesLayer, hatLayer], // 耳饰 -> 眼镜 -> 帽子
+                );
+              },
+            ),
           ),
-        ),
       ],
     ),
   );
 }
+
+  Widget _buildEarringLayer(MascotDecoration deco, String mascotPath, double size) {
+    return Builder(
+      builder: (context) {
+        final decoConfig = deco.getConfigForCharacter(mascotPath);
+        
+        final leftPath = deco.leftPath ?? deco.path;
+        final leftOffset = decoConfig.leftOffset ?? decoConfig.offset;
+        final leftScale = decoConfig.leftScale ?? decoConfig.scale;
+
+        final rightPath = deco.rightPath ?? deco.path;
+        final rightOffset = decoConfig.rightOffset ?? decoConfig.offset;
+        final rightScale = decoConfig.rightScale ?? decoConfig.scale;
+
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: Transform.translate(
+                offset: leftOffset * (size / 200.0),
+                child: Transform.scale(
+                  scale: leftScale,
+                  child: Image.asset(
+                    leftPath,
+                    fit: BoxFit.contain,
+                    gaplessPlayback: true,
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Transform.translate(
+                offset: rightOffset * (size / 200.0),
+                child: Transform.scale(
+                  scale: rightScale,
+                  child: Image.asset(
+                    rightPath,
+                    fit: BoxFit.contain,
+                    gaplessPlayback: true,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Widget _buildDecorationLayer(String path, String mascotPath, double size) {
     return Builder(

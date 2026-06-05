@@ -88,13 +88,31 @@ class DecorationGridItem extends StatelessWidget {
     if (deco == null) {
       await userState.setMascotDecoration(null);
       await userState.setSelectedGlassesDecoration(null);
+      await userState.setSelectedEarringDecoration(null);
+      await userState.setSelectedBackgroundDecoration(null);
       return;
     }
 
     final bool isGlasses = deco?.category == MascotDecorationCategory.glasses;
+    final bool isEarring = deco?.category == MascotDecorationCategory.face;
+    final bool isBackground = deco?.category == MascotDecorationCategory.other;
     final bool isOverlayEnabled = userState.isGlassesOverlayEnabled.value;
 
-    if (isOverlayEnabled && isGlasses) {
+    if (isEarring) {
+      // 耳饰独占独立槽位，永远支持与任何帽子/眼镜叠戴共存
+      if (userState.selectedEarringDecoration.value == deco?.path) {
+        await userState.setSelectedEarringDecoration(null);
+      } else {
+        await userState.setSelectedEarringDecoration(deco?.path);
+      }
+    } else if (isBackground) {
+      // 背景独占独立槽位，永远支持与任何帽子/眼镜/耳饰叠戴共存
+      if (userState.selectedBackgroundDecoration.value == deco?.path) {
+        await userState.setSelectedBackgroundDecoration(null);
+      } else {
+        await userState.setSelectedBackgroundDecoration(deco?.path);
+      }
+    } else if (isOverlayEnabled && isGlasses) {
       // 叠戴模式开启且是眼镜：操作独立眼镜槽位
       if (userState.selectedGlassesDecoration.value == deco?.path) {
         userState.setSelectedGlassesDecoration(null);
@@ -102,7 +120,7 @@ class DecorationGridItem extends StatelessWidget {
         userState.setSelectedGlassesDecoration(deco?.path);
       }
     } else {
-      // 叠戴模式关闭 或 非眼镜物品：操作基础槽位
+      // 叠戴模式关闭 或 非眼镜物品（如帽子/其他）：操作基础槽位
       if (userState.selectedMascotDecoration.value == deco?.path) {
         userState.setMascotDecoration(null);
       } else {
@@ -160,6 +178,7 @@ class DecorationGridItem extends StatelessWidget {
               fit: BoxFit.contain,
               color: isOwned ? null : Colors.black.withValues(alpha: 0.1),
               colorBlendMode: isOwned ? null : BlendMode.srcATop,
+              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
             ),
           ),
         ),
@@ -197,6 +216,7 @@ class DecorationGridItem extends StatelessWidget {
       deco!.path,
       fit: BoxFit.contain,
       gaplessPlayback: true,
+      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
     );
     if (!isOwned) {
       image = ColorFiltered(

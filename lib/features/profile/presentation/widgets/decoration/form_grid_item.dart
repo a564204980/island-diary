@@ -84,6 +84,7 @@ class FormGridItem extends StatelessWidget {
                                         assetPath: path,
                                         size: 80,
                                         frameCount: 1,
+                                        ignoreDecorations: true,
                                       )
                                       .animate(target: isSelected ? 1 : 0)
                                       .scale(

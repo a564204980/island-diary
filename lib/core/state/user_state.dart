@@ -99,6 +99,8 @@ class _K {
   static const preferredFontFamily = 'preferred_font_family';
   static const mascotDecoration = 'selected_mascot_decoration';
   static const selectedGlassesDecoration = 'selected_glasses_decoration';
+  static const selectedEarringDecoration = 'selected_earring_decoration';
+  static const selectedBackgroundDecoration = 'selected_background_decoration';
   static const isGlassesOverlayEnabled = 'is_glasses_overlay_enabled';
   static const isGlassesAboveHat = 'is_glasses_above_hat';
   static const mascotType = 'selected_mascot_type';
@@ -119,6 +121,7 @@ class UserState
   static final UserState _instance = UserState._internal();
   factory UserState() => _instance;
   UserState._internal();
+  final ValueNotifier<int> refreshNavbarBgTrigger = ValueNotifier<int>(0);
 
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -159,9 +162,13 @@ class UserState
     diaryDraft.dispose();
     isSlimeInBottomMenu.dispose();
     selectedMascotDecoration.dispose();
+    selectedGlassesDecoration.dispose();
+    selectedEarringDecoration.dispose();
+    selectedBackgroundDecoration.dispose();
     ownedDecorationIds.dispose();
     unlockedAchievements.dispose();
     achievementPoints.dispose();
     unlockedMascotPaths.dispose();
+    refreshNavbarBgTrigger.dispose();
   }
 }

@@ -34,6 +34,25 @@ class MascotPreviewHero extends StatelessWidget {
         final activeDec = mascotDec ?? glassesDec;
         final hasDec = activeDec != null;
 
+        final currentForm = MascotFormSelectionSheet.mascotForms.firstWhere(
+          (form) => form['path'] == mascotType,
+          orElse: () => MascotFormSelectionSheet.mascotForms.first,
+        );
+        final String formName = currentForm['name']!;
+        final String formDesc = currentForm['desc']!;
+        final String formRarityStr = currentForm['rarity']!;
+        
+        MascotRarity formRarity = MascotRarity.common;
+        if (formRarityStr == '传说') formRarity = MascotRarity.legendary;
+        if (formRarityStr == '卓越') formRarity = MascotRarity.epic;
+        if (formRarityStr == '稀有') formRarity = MascotRarity.rare;
+
+        final String displayName = hasDec ? activeDec.name : formName;
+        final String displayDesc = hasDec ? activeDec.description : formDesc;
+        final MascotRarity displayRarity = hasDec
+            ? activeDec.rarity
+            : formRarity;
+
         return Container(
           width: double.infinity,
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
@@ -52,11 +71,27 @@ class MascotPreviewHero extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
+              // 高达专属背景图片层（带淡入淡出动效，夜间不使用）
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (hasDec && activeDec.id == 'mask' && !isNight)
+                      ? 1.0
+                      : 0.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/emoji/modules_bg/gaoda_bg.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
               // 专属传说背景图片层（带淡入淡出动效，夜间不使用）
               Positioned.fill(
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 300),
-                  opacity: (hasDec && activeDec.rarity == MascotRarity.legendary && !isNight)
+                  opacity: (hasDec && activeDec.rarity == MascotRarity.legendary && activeDec.category != MascotDecorationCategory.hat && !isNight)
                       ? 1.0
                       : 0.0,
                   child: ClipRRect(
@@ -131,8 +166,7 @@ class MascotPreviewHero extends StatelessWidget {
                     // 固定高度的装扮信息区域，保证有无装扮时卡片高度完全一致
                     SizedBox(
                       height: 56,
-                      child: hasDec
-                          ? AnimatedOpacity(
+                      child: AnimatedOpacity(
                               duration: const Duration(milliseconds: 250),
                               opacity: 1.0,
                               child: Column(
@@ -149,8 +183,8 @@ class MascotPreviewHero extends StatelessWidget {
                                         decoration: BoxDecoration(
                                           gradient: LinearGradient(
                                             colors: [
-                                              activeDec.rarity.color.withValues(alpha: 0.0),
-                                              activeDec.rarity.color.withValues(alpha: 0.6),
+                                              displayRarity.color.withValues(alpha: 0.0),
+                                              displayRarity.color.withValues(alpha: 0.6),
                                             ],
                                           ),
                                         ),
@@ -161,16 +195,16 @@ class MascotPreviewHero extends StatelessWidget {
                                         child: Container(
                                           width: 4,
                                           height: 4,
-                                          color: activeDec.rarity.color.withValues(alpha: 0.8),
+                                          color: displayRarity.color.withValues(alpha: 0.8),
                                         ),
                                       ),
                                       const SizedBox(width: 12),
                                       // 椭圆胶囊品质标签
-                                      _buildRarityTag(activeDec.rarity),
+                                      _buildRarityTag(displayRarity),
                                       const SizedBox(width: 8),
                                       // 装备名称
                                       Text(
-                                        activeDec.name,
+                                        displayName,
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
@@ -187,7 +221,7 @@ class MascotPreviewHero extends StatelessWidget {
                                         child: Container(
                                           width: 4,
                                           height: 4,
-                                          color: activeDec.rarity.color.withValues(alpha: 0.8),
+                                          color: displayRarity.color.withValues(alpha: 0.8),
                                         ),
                                       ),
                                       const SizedBox(width: 4),
@@ -197,8 +231,8 @@ class MascotPreviewHero extends StatelessWidget {
                                         decoration: BoxDecoration(
                                           gradient: LinearGradient(
                                             colors: [
-                                              activeDec.rarity.color.withValues(alpha: 0.6),
-                                              activeDec.rarity.color.withValues(alpha: 0.0),
+                                              displayRarity.color.withValues(alpha: 0.6),
+                                              displayRarity.color.withValues(alpha: 0.0),
                                             ],
                                           ),
                                         ),
@@ -213,7 +247,7 @@ class MascotPreviewHero extends StatelessWidget {
                                     child: SizedBox(
                                       height: 30, // 限制描述文字高度，最多支持 2 行折行，防止溢出
                                       child: Text(
-                                        activeDec.description,
+                                        displayDesc,
                                         textAlign: TextAlign.center,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -229,8 +263,7 @@ class MascotPreviewHero extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                            )
-                          : const SizedBox.shrink(),
+                            ),
                     ),
                     const SizedBox(height: 8),
                     _buildButtons(context, hasDec),
@@ -474,7 +507,6 @@ class MascotPreviewHero extends StatelessWidget {
   void _showFormSelectionSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) =>
           MascotFormSelectionSheet(isNight: isNight, userState: userState),

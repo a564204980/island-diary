@@ -14,6 +14,8 @@ mixin PreferenceMixin on ProfileMixin {
   final ValueNotifier<String> preferredFontFamily = ValueNotifier<String>('LXGWWenKai');
   final ValueNotifier<String?> selectedMascotDecoration = ValueNotifier<String?>(null);
   final ValueNotifier<String?> selectedGlassesDecoration = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> selectedEarringDecoration = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> selectedBackgroundDecoration = ValueNotifier<String?>(null);
   final ValueNotifier<bool> isGlassesOverlayEnabled = ValueNotifier<bool>(false);
   final ValueNotifier<bool> isGlassesAboveHat = ValueNotifier<bool>(true);
   // 新增：记录最后一次交互是否为眼镜类饰品
@@ -36,6 +38,8 @@ mixin PreferenceMixin on ProfileMixin {
     preferredFontFamily.value = prefs.getString(UserState().n(_K.preferredFontFamily)) ?? 'LXGWWenKai';
     selectedMascotDecoration.value = prefs.getString(UserState().n(_K.mascotDecoration));
     selectedGlassesDecoration.value = prefs.getString(UserState().n(_K.selectedGlassesDecoration));
+    selectedEarringDecoration.value = prefs.getString(UserState().n(_K.selectedEarringDecoration));
+    selectedBackgroundDecoration.value = prefs.getString(UserState().n(_K.selectedBackgroundDecoration));
     isGlassesOverlayEnabled.value = prefs.getBool(UserState().n(_K.isGlassesOverlayEnabled)) ?? false;
     isGlassesAboveHat.value = prefs.getBool(UserState().n(_K.isGlassesAboveHat)) ?? true;
     selectedMascotType.value = prefs.getString(UserState().n(_K.mascotType)) ?? 'assets/images/emoji/marshmallow2.png';
@@ -130,6 +134,40 @@ mixin PreferenceMixin on ProfileMixin {
       notifyMascotEvent(MascotEvent(
         type: MascotEventType.decorationChanged,
         description: "戴上了${deco?.name ?? '新饰品'}",
+      ));
+    }
+  }
+
+  Future<void> setSelectedEarringDecoration(String? a) async {
+    selectedEarringDecoration.value = a;
+    final p = await SharedPreferences.getInstance();
+    a == null
+        ? await p.remove(UserState().n(_K.selectedEarringDecoration))
+        : await p.setString(UserState().n(_K.selectedEarringDecoration), a);
+
+    if (a != null) {
+      completeTaskIfType(DailyTaskType.changeDecoration);
+      final deco = MascotDecoration.getByPath(a);
+      notifyMascotEvent(MascotEvent(
+        type: MascotEventType.decorationChanged,
+        description: "戴上了${deco?.name ?? '新耳饰'}",
+      ));
+    }
+  }
+
+  Future<void> setSelectedBackgroundDecoration(String? a) async {
+    selectedBackgroundDecoration.value = a;
+    final p = await SharedPreferences.getInstance();
+    a == null
+        ? await p.remove(UserState().n(_K.selectedBackgroundDecoration))
+        : await p.setString(UserState().n(_K.selectedBackgroundDecoration), a);
+
+    if (a != null) {
+      completeTaskIfType(DailyTaskType.changeDecoration);
+      final deco = MascotDecoration.getByPath(a);
+      notifyMascotEvent(MascotEvent(
+        type: MascotEventType.decorationChanged,
+        description: "戴上了${deco?.name ?? '新背景'}",
       ));
     }
   }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 part 'mascot_decoration_hats.dart';
 part 'mascot_decoration_glasses.dart';
-part 'mascot_decoration_other.dart';
+part 'mascot_decoration_earrings.dart';
 
 /// 装饰品分类
 enum MascotDecorationCategory {
@@ -10,10 +10,10 @@ enum MascotDecorationCategory {
   hat('帽子'),
   /// 眼镜
   glasses('眼镜'),
-  /// 面饰 (如胡须、口红等)
-  face('面饰'),
+  /// 耳饰 (如耳环、耳钉等)
+  face('耳饰'),
   /// 其他
-  other('其他');
+  other('背景');
 
   final String label;
   const MascotDecorationCategory(this.label);
@@ -35,8 +35,19 @@ enum MascotRarity {
 class MascotDecorationConfig {
   final Offset offset;
   final double scale;
+  final Offset? leftOffset;
+  final double? leftScale;
+  final Offset? rightOffset;
+  final double? rightScale;
 
-  const MascotDecorationConfig({this.offset = Offset.zero, this.scale = 1.0});
+  const MascotDecorationConfig({
+    this.offset = Offset.zero,
+    this.scale = 1.0,
+    this.leftOffset,
+    this.leftScale,
+    this.rightOffset,
+    this.rightScale,
+  });
 }
 
 /// 装饰品模型
@@ -57,6 +68,10 @@ class MascotDecoration {
   /// 是否在佩戴时保留卡通形象的耳朵图片（不替换为 _noEars.png）
   final bool keepEars;
 
+  /// 针对左右耳饰的独立图层路径
+  final String? leftPath;
+  final String? rightPath;
+
   const MascotDecoration({
     required this.id,
     required this.name,
@@ -67,6 +82,8 @@ class MascotDecoration {
     this.defaultConfig = const MascotDecorationConfig(),
     this.characterConfigs = const {},
     this.keepEars = false,
+    this.leftPath,
+    this.rightPath,
   });
 
   /// 获取指定卡通形象对应的装扮配置
@@ -78,7 +95,7 @@ class MascotDecoration {
   static const List<MascotDecoration> allDecorations = [
     ..._hatDecorations,
     ..._glassesDecorations,
-    ..._otherDecorations,
+    ..._earringDecorations,
   ];
 
   /// 根据路径查找配置

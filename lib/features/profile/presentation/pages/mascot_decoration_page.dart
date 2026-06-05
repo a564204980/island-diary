@@ -24,6 +24,9 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
 
 
 
+  bool _isSearchActive = false;
+  final FocusNode _searchFocusNode = FocusNode();
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -60,6 +63,9 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
   List<MascotDecoration> _getFilteredDecorations(List<String> ownedIds) {
     return MascotDecoration.allDecorations.where((deco) {
       // 默认解锁所有饰品，不再在此过滤未拥有的饰品
+      if (deco.category == MascotDecorationCategory.other) {
+        return false;
+      }
 
       // 分类过滤
       if (_selectedCategory != null && deco.category != _selectedCategory) {
@@ -110,6 +116,8 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
+    UserState().refreshNavbarBgTrigger.value++;
     super.dispose();
   }
 
@@ -151,6 +159,8 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                 listenable: Listenable.merge([
                                   userState.selectedMascotDecoration,
                                   userState.selectedGlassesDecoration,
+                                  userState.selectedEarringDecoration,
+                                  userState.selectedBackgroundDecoration,
                                   userState.selectedMascotType,
                                 ]),
                                 builder: (context, _) => MascotPreviewHero(
@@ -160,13 +170,19 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                 ),
                               ),
   
-                              // --- 固定搜索栏 ---
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 6,
-                                ),
-                                child: _buildSearchBar(isNight),
+                              // --- 动态可折叠搜索栏 ---
+                              AnimatedSize(
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeInOut,
+                                child: _isSearchActive
+                                    ? Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 24,
+                                          vertical: 6,
+                                        ),
+                                        child: _buildSearchBar(isNight),
+                                      )
+                                    : const SizedBox.shrink(),
                               ),
   
                               // --- 滚动过滤区域 ---
@@ -175,52 +191,62 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                   controller: _scrollController,
                                   physics: const BouncingScrollPhysics(),
                                   slivers: [
-                                    // --- 标题与分类区域 ---
+                                    // --- 标题区域 ---
                                     SliverToBoxAdapter(
                                       child: Padding(
-                                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+                                        child: Row(
                                           children: [
-                                            Row(
-                                              children: [
-                                                _buildSectionIndicator(),
-                                                const SizedBox(width: 12),
-                                                Text(
-                                                  _searchQuery.isEmpty ? '挑选装扮' : '搜索结果',
-                                                  style: TextStyle(
-                                                    fontSize: 20,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: isNight ? Colors.white : const Color(0xFF3E2723),
-                                                    fontFamily: 'LXGWWenKai',
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                                const Spacer(),
-                                                Text(
-                                                  '${userState.ownedDecorationIds.value.length} 个已解锁',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: isNight ? Colors.white38 : Colors.black26,
-                                                    fontFamily: 'LXGWWenKai',
-                                                  ),
-                                                ),
-                                              ],
+                                            _buildSectionIndicator(),
+                                            const SizedBox(width: 12),
+                                            Text(
+                                              _searchQuery.isEmpty ? '挑选装扮' : '搜索结果',
+                                              style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: isNight ? Colors.white : const Color(0xFF3E2723),
+                                                fontFamily: 'LXGWWenKai',
+                                                letterSpacing: 0.5,
+                                              ),
                                             ),
-                                            const SizedBox(height: 16),
-                                            _buildCategoryFilters(isNight),
+                                            const Spacer(),
+                                            Text(
+                                              '${userState.ownedDecorationIds.value.length} 个已解锁',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: isNight ? Colors.white38 : Colors.black26,
+                                                fontFamily: 'LXGWWenKai',
+                                              ),
+                                            ),
                                           ],
+                                        ),
+                                      ),
+                                    ),
+  
+                                    // --- 吸顶分类过滤区域 ---
+                                    SliverPersistentHeader(
+                                      pinned: true,
+                                      delegate: _StickyCategoryHeaderDelegate(
+                                        height: 54.0,
+                                        backgroundColor: isNight
+                                            ? const Color(0xFF0D1B2A)
+                                            : const Color(0xFFE6F3F5),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 6),
+                                          child: _buildCategoryFilters(isNight),
                                         ),
                                       ),
                                     ),
   
                                     // --- 网格列表 ---
                                     SliverPadding(
-                                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                                      padding: const EdgeInsets.fromLTRB(24, 6, 24, 32),
                                       sliver: ListenableBuilder(
                                         listenable: Listenable.merge([
                                           userState.selectedMascotDecoration,
                                           userState.selectedGlassesDecoration,
+                                          userState.selectedEarringDecoration,
+                                          userState.selectedBackgroundDecoration,
                                           userState.isGlassesOverlayEnabled,
                                           userState.selectedMascotType,
                                           userState.ownedDecorationIds,
@@ -228,6 +254,8 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                         builder: (context, _) {
                                           final currentDecoration = userState.selectedMascotDecoration.value;
                                           final currentGlasses = userState.selectedGlassesDecoration.value;
+                                          final currentEarring = userState.selectedEarringDecoration.value;
+                                          final currentBackground = userState.selectedBackgroundDecoration.value;
                                           final isOverlay = userState.isGlassesOverlayEnabled.value;
                                           final ownedIds = userState.ownedDecorationIds.value;
                                           final displayedDecorations = _getFilteredDecorations(ownedIds);
@@ -247,10 +275,16 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                                               (context, index) {
                                                 final deco = displayedDecorations[index];
                                                 final bool isGlasses = deco.category == MascotDecorationCategory.glasses;
-                                                // 判定逻辑：如果是眼镜且处于叠戴模式，检查眼镜槽位；否则检查基础槽位
-                                                final bool isSelected = (isOverlay && isGlasses) 
-                                                    ? currentGlasses == deco.path
-                                                    : currentDecoration == deco.path;
+                                                final bool isEarring = deco.category == MascotDecorationCategory.face;
+                                                final bool isBackground = deco.category == MascotDecorationCategory.other;
+                                                
+                                                final bool isSelected = isEarring
+                                                    ? currentEarring == deco.path
+                                                    : isBackground
+                                                        ? currentBackground == deco.path
+                                                        : (isOverlay && isGlasses) 
+                                                            ? currentGlasses == deco.path
+                                                            : currentDecoration == deco.path;
   
                                                 return DecorationGridItem(
                                                   deco: deco,
@@ -310,6 +344,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
           Positioned.fill(
             left: 44,
             child: TextField(
+              focusNode: _searchFocusNode,
               controller: _searchController,
               onChanged: (value) {
                 setState(() => _searchQuery = value);
@@ -356,23 +391,6 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
             ),
           ),
         ),
-        Positioned(
-          bottom: 100,
-          left: -80,
-          child: Container(
-            width: 250,
-            height: 250,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  const Color(0xFFFFFFFF).withValues(alpha: 0.4),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -388,7 +406,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
             child: Row(
               children: [
                 _buildCategoryChip(null, '全部', isNight),
-                for (var category in MascotDecorationCategory.values) ...[
+                for (var category in MascotDecorationCategory.values.where((c) => c != MascotDecorationCategory.other)) ...[
                   const SizedBox(width: 8),
                   _buildCategoryChip(category, category.label, isNight),
                 ],
@@ -430,13 +448,8 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
     final userState = UserState();
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: isNight ? const Color(0xFF13131F) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -699,6 +712,62 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
           color: isNight ? Colors.white : const Color(0xFF1A1A1A),
         ),
       ),
+      actions: [
+        IconButton(
+          icon: Icon(
+            _isSearchActive ? Icons.close_rounded : Icons.search_rounded,
+            size: 22,
+            color: isNight ? Colors.white70 : Colors.black87,
+          ),
+          onPressed: () {
+            setState(() {
+              _isSearchActive = !_isSearchActive;
+              if (_isSearchActive) {
+                _searchFocusNode.requestFocus();
+              } else {
+                _searchFocusNode.unfocus();
+                _searchController.clear();
+                _searchQuery = '';
+              }
+            });
+          },
+        ),
+        const SizedBox(width: 8),
+      ],
     );
+  }
+}
+
+class _StickyCategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final double height;
+  final Color backgroundColor;
+
+  _StickyCategoryHeaderDelegate({
+    required this.child,
+    required this.height,
+    required this.backgroundColor,
+  });
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: backgroundColor,
+      alignment: Alignment.center,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _StickyCategoryHeaderDelegate oldDelegate) {
+    return oldDelegate.child != child ||
+        oldDelegate.height != height ||
+        oldDelegate.backgroundColor != backgroundColor;
   }
 }

@@ -2,7 +2,9 @@ import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/shared/widgets/slime_button.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
@@ -80,16 +82,30 @@ class _BottomNavBarState extends State<BottomNavBar> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final double barMaxWidth = screenWidth <= 600 ? screenWidth * 0.92 : 560.0;
+    final userState = UserState();
 
     return SizedBox(
       height: SlimeButton.containerHeight,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        clipBehavior: Clip.none,
-        children: [
-          _buildBackground(barMaxWidth),
-          _buildContentArea(barMaxWidth),
-        ],
+      child: ListenableBuilder(
+        listenable: Listenable.merge([
+          userState.selectedBackgroundDecoration,
+          userState.refreshNavbarBgTrigger,
+        ]),
+        builder: (context, _) {
+          final backgroundPath = userState.selectedBackgroundDecoration.value;
+          final backgroundDec = backgroundPath != null
+              ? MascotDecoration.getByPath(backgroundPath)
+              : null;
+
+          return Stack(
+            alignment: Alignment.bottomCenter,
+            clipBehavior: Clip.none,
+            children: [
+              _buildBackground(barMaxWidth),
+              _buildContentArea(barMaxWidth),
+            ],
+          );
+        },
       ),
     );
   }
@@ -112,16 +128,16 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 color: isLanternFestival
                     ? const Color(0xFFFF8A65).withValues(alpha: 0.15)
                     : (isCottonCandy
-                          ? const Color(0xFFFF94B8).withValues(alpha: 0.25)
-                          : (widget.isNight
-                                ? Colors.black.withValues(alpha: 0.18)
-                                : const Color(
-                                    0xFF1B3B5F,
-                                  ).withValues(alpha: 0.2))),
+                        ? const Color(0xFFFF94B8).withValues(alpha: 0.25)
+                        : (widget.isNight
+                            ? Colors.black.withValues(alpha: 0.18)
+                            : const Color(
+                                0xFF1B3B5F,
+                              ).withValues(alpha: 0.2))),
                 blurRadius:
                     (widget.isNight || isLanternFestival || isCottonCandy)
-                    ? 20
-                    : 40,
+                        ? 20
+                        : 40,
                 offset: Offset(
                   0,
                   (widget.isNight || isLanternFestival || isCottonCandy)
@@ -230,50 +246,50 @@ class _BottomNavBarState extends State<BottomNavBar> {
                           ],
                         )
                       : (isCottonCandy
-                            ? LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: widget.isNight
-                                    ? [
-                                        const Color(0xFF8676FF).withValues(alpha: 0.45),
-                                        const Color(0xFFB19FFB).withValues(alpha: 0.55),
-                                      ]
-                                    : [
-                                        const Color(
-                                          0xFFFFE1E9,
-                                        ).withValues(alpha: 0.5),
-                                        const Color(
-                                          0xFFFFCADB,
-                                        ).withValues(alpha: 0.65),
-                                      ],
-                              )
-                            : (widget.isNight
-                                  ? null
-                                  : LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: (widget.currentIndex == 1 && !isLego)
-                                          ? [
-                                              const Color(
-                                                0xFFF5E6CC,
-                                              ).withValues(alpha: 0.6),
-                                              const Color(
-                                                0xFFFFF8E1,
-                                              ).withValues(alpha: 0.4),
-                                            ]
-                                          : [
-                                              const Color(
-                                                0xFFB3E5FC,
-                                              ).withValues(alpha: 0.5),
-                                              const Color(
-                                                0xFFE1F5FE,
-                                              ).withValues(alpha: 0.3),
-                                            ],
-                                    ))),
+                          ? LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: widget.isNight
+                                  ? [
+                                      const Color(0xFF8676FF).withValues(alpha: 0.45),
+                                      const Color(0xFFB19FFB).withValues(alpha: 0.55),
+                                    ]
+                                  : [
+                                      const Color(
+                                        0xFFFFE1E9,
+                                      ).withValues(alpha: 0.5),
+                                      const Color(
+                                        0xFFFFCADB,
+                                      ).withValues(alpha: 0.65),
+                                    ],
+                            )
+                          : (widget.isNight
+                              ? null
+                              : LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: (widget.currentIndex == 1 && !isLego)
+                                      ? [
+                                          const Color(
+                                            0xFFF5E6CC,
+                                          ).withValues(alpha: 0.6),
+                                          const Color(
+                                            0xFFFFF8E1,
+                                          ).withValues(alpha: 0.4),
+                                        ]
+                                      : [
+                                          const Color(
+                                            0xFFB3E5FC,
+                                          ).withValues(alpha: 0.5),
+                                          const Color(
+                                            0xFFE1F5FE,
+                                          ).withValues(alpha: 0.3),
+                                        ],
+                                ))),
                   color: (widget.isNight && !isLanternFestival && !isCottonCandy)
                       ? ((widget.currentIndex == 1 && !isLego)
-                            ? const Color(0xFF4A3C31).withValues(alpha: 0.3)
-                            : const Color(0xFF736675).withValues(alpha: 0.2))
+                          ? const Color(0xFF4A3C31).withValues(alpha: 0.3)
+                          : const Color(0xFF736675).withValues(alpha: 0.2))
                       : null,
                 ),
               ),
@@ -362,12 +378,12 @@ class _BottomNavBarState extends State<BottomNavBar> {
                         ])
                   : ((isLanternFestival || widget.isNight)
                       ? ((widget.currentIndex == 1 && !isLego)
-                            ? const [Color(0xFFEEBB3C), Color(0xFF3E2723)]
-                            : const [
-                                Color(0xFFEEBB3C),
-                                Color(0xFFD4A373),
-                                Color(0xFF5D2E2E),
-                              ])
+                          ? const [Color(0xFFEEBB3C), Color(0xFF3E2723)]
+                          : const [
+                              Color(0xFFEEBB3C),
+                              Color(0xFFD4A373),
+                              Color(0xFF5D2E2E),
+                            ])
                       : [
                           const Color(0xFFFFF9C4).withValues(alpha: 0.8),
                           (widget.currentIndex == 1 && !isLego)
@@ -474,5 +490,176 @@ class _BottomNavBarState extends State<BottomNavBar> {
         widget.onSaveSuccess?.call(List<dynamic>.from(result));
       }
     });
+  }
+}
+
+class _NavBarParticlesBg extends StatefulWidget {
+  final String imagePath;
+  final String decorationId;
+
+  const _NavBarParticlesBg({
+    super.key,
+    required this.imagePath,
+    required this.decorationId,
+  });
+
+  @override
+  State<_NavBarParticlesBg> createState() => _NavBarParticlesBgState();
+}
+
+class _NavBarParticlesBgState extends State<_NavBarParticlesBg>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  Timer? _dismissTimer;
+  bool _isFadingOut = false;
+  bool _isGone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _controller.forward();
+
+    _dismissTimer = Timer(const Duration(seconds: 15), () {
+      if (mounted) {
+        setState(() {
+          _isFadingOut = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(_NavBarParticlesBg oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.decorationId != widget.decorationId) {
+      _controller.forward(from: 0.0);
+      _dismissTimer?.cancel();
+      _dismissTimer = Timer(const Duration(seconds: 15), () {
+        if (mounted) {
+          setState(() {
+            _isFadingOut = true;
+          });
+        }
+      });
+      setState(() {
+        _isFadingOut = false;
+        _isGone = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _dismissTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isGone) return const SizedBox.shrink();
+
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 1000),
+      opacity: _isFadingOut ? 0.0 : 1.0,
+      onEnd: () {
+        if (_isFadingOut) {
+          setState(() {
+            _isGone = true;
+          });
+        }
+      },
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final t = _controller.value;
+          final bgOpacity = ((t - 0.3) / 0.7).clamp(0.0, 1.0);
+          final double scaleProgress = ((t - 0.2) / 0.8).clamp(0.0, 1.0);
+          final curve = widget.decorationId == 'bg_modules_animation_2'
+              ? Curves.easeOutCubic
+              : Curves.easeOutBack;
+          final bgScale = 0.6 + 0.4 * curve.transform(scaleProgress);
+
+          return ShaderMask(
+            shaderCallback: (rect) {
+              return const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Colors.black],
+                stops: [0.0, 0.25],
+              ).createShader(rect);
+            },
+            blendMode: BlendMode.dstIn,
+            child: Stack(
+              children: [
+                if (widget.decorationId == 'bg_modules_animation_1')
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: bgOpacity,
+                      child: Transform.scale(
+                        scale: bgScale,
+                        alignment: Alignment.bottomCenter,
+                        child: Image.asset(
+                          'assets/images/emoji/modules_animation/1_1.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  )
+                  .animate(
+                    onPlay: (controller) => controller.repeat(reverse: true),
+                  )
+                  .fadeIn(duration: 2500.ms, curve: Curves.easeInOut),
+                if (widget.decorationId == 'bg_modules_animation_2')
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: bgOpacity,
+                      child: Transform.scale(
+                        scale: bgScale,
+                        alignment: Alignment.bottomCenter,
+                        child: Image.asset(
+                          'assets/images/emoji/modules_animation/2-2.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  )
+                  .animate()
+                  .moveY(
+                    begin: 40,
+                    end: 0,
+                    duration: 3500.ms,
+                    curve: Curves.easeOutCubic,
+                  ),
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: bgOpacity,
+                    child: Transform.scale(
+                      scale: bgScale,
+                      alignment: Alignment.bottomCenter,
+                      child: Builder(
+                        builder: (context) {
+                          final img = Image.asset(widget.imagePath, fit: BoxFit.cover);
+                          if (widget.decorationId == 'bg_modules_animation_2') {
+                            return img
+                                .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                                .fadeIn(duration: 2500.ms, curve: Curves.easeInOut);
+                          }
+                          return img;
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }

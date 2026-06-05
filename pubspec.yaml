@@ -87,6 +87,8 @@ flutter:
     - assets/images/emoji/
     - assets/images/emoji/decorate/
     - assets/images/emoji/glasses/
+    - assets/images/emoji/arrings/
+    - assets/images/emoji/modules_bg/
     - assets/images/emoji/wechat/face/
     - assets/images/emoji/wechat/gesture/
     - assets/images/emoji/wechat/animal/

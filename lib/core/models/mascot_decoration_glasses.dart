@@ -39,19 +39,19 @@ const List<MascotDecoration> _glassesDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.0),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, -10),
+        offset: Offset(0, 6),
         scale: 0.80,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, -6),
+        offset: Offset(0, 6),
         scale: 0.80,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, -10),
+        offset: Offset(0, 6),
         scale: 0.80,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, -10),
+        offset: Offset(0, 6),
         scale: 0.80,
       ),
     },
@@ -94,20 +94,20 @@ const List<MascotDecoration> _glassesDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.0),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, 4),
-        scale: 0.80,
+        offset: Offset(0, 18),
+        scale: 0.7,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, 4),
-        scale: 0.80,
+        offset: Offset(0, 18),
+        scale: 0.7,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, 4),
-        scale: 0.80,
+        offset: Offset(0, 18),
+        scale: 0.7,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, 4),
-        scale: 0.80,
+        offset: Offset(0, 18),
+        scale: 0.7,
       ),
     },
   ),
@@ -116,25 +116,25 @@ const List<MascotDecoration> _glassesDecorations = [
     name: '星愿舞会',
     path: 'assets/images/emoji/glasses/glasses6.png',
     description: '派对中最闪亮的星！戴上它，即使在黑夜也能看清每一个璀璨的梦想。',
-    rarity: MascotRarity.epic,
+    rarity: MascotRarity.rare,
     category: MascotDecorationCategory.glasses,
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.0),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, -6),
-        scale: 0.8,
+        offset: Offset(0, 8),
+        scale: 0.7,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, -4),
-        scale: 0.8,
+        offset: Offset(0, 8),
+        scale: 0.7,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, -6),
-        scale: 0.8,
+        offset: Offset(0, 8),
+        scale: 0.7,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, -6),
-        scale: 0.8,
+        offset: Offset(0, 8),
+        scale: 0.7,
       ),
     },
   ),
@@ -148,20 +148,20 @@ const List<MascotDecoration> _glassesDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.0),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, -2),
-        scale: 0.8,
+        offset: Offset(0, 9),
+        scale: 0.7,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, 0),
-        scale: 0.8,
+        offset: Offset(0, 9),
+        scale: 0.7,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, 0),
-        scale: 0.8,
+        offset: Offset(0, 9),
+        scale: 0.7,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, 0),
-        scale: 0.8,
+        offset: Offset(0, 9),
+        scale: 0.7,
       ),
     },
   ),
@@ -175,19 +175,19 @@ const List<MascotDecoration> _glassesDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.0),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, -12),
+        offset: Offset(2, -4),
         scale: 0.80,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, -12),
+        offset: Offset(2, -4),
         scale: 0.80,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, -12),
+        offset: Offset(2, -4),
         scale: 0.80,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, -12),
+        offset: Offset(2, -4),
         scale: 0.80,
       ),
     },
@@ -202,19 +202,19 @@ const List<MascotDecoration> _glassesDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.0),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, 2),
+        offset: Offset(0, 10),
         scale: 0.8,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, 4),
+        offset: Offset(0, 10),
         scale: 0.8,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, 2),
+        offset: Offset(0, 10),
         scale: 0.8,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, 2),
+        offset: Offset(0, 10),
         scale: 0.8,
       ),
     },
@@ -229,11 +229,11 @@ const List<MascotDecoration> _glassesDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.0),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, -4),
+        offset: Offset(0, 4),
         scale: 1.0,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, -4),
+        offset: Offset(0, 4),
         scale: 1,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
@@ -243,6 +243,33 @@ const List<MascotDecoration> _glassesDecorations = [
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
         offset: Offset(0, 4),
         scale: 1.0,
+      ),
+    },
+  ),
+  MascotDecoration(
+    id: 'glasses_red_pixel',
+    name: '红色像素眼镜框',
+    path: 'assets/images/emoji/glasses/glasses12.png',
+    description: '经典的红色像素风眼镜框，给可爱的小软增添一份复古与个性的极客范。',
+    rarity: MascotRarity.epic,
+    category: MascotDecorationCategory.glasses,
+    defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.0),
+    characterConfigs: {
+      'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+        offset: Offset(0, 14),
+        scale: 0.7,
+      ),
+      'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+        offset: Offset(0, 14),
+        scale: 0.7,
+      ),
+      'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+        offset: Offset(0, 14),
+        scale: 0.7,
+      ),
+      'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+        offset: Offset(0, 14),
+        scale: 0.7,
       ),
     },
   ),

@@ -3,6 +3,88 @@ part of 'mascot_decoration.dart';
 /// 帽子及头饰资产数据
 const List<MascotDecoration> _hatDecorations = [
   MascotDecoration(
+    id: 'colorful_party_hat',
+    name: '缤纷派对帽',
+    path: 'assets/images/emoji/decorate/decorate39.png',
+    description: '彩虹般的缤纷生日派对帽，戴上它，今天你就是最耀眼的派对主角！',
+    rarity: MascotRarity.rare,
+    category: MascotDecorationCategory.hat,
+    defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.2),
+    characterConfigs: {
+      'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+        offset: Offset(0, -80),
+        scale: 0.6,
+      ),
+      'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+        offset: Offset(0, -80),
+        scale: 0.6,
+      ),
+      'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+        offset: Offset(0, -80),
+        scale: 0.6,
+      ),
+      'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+        offset: Offset(0, -80),
+        scale: 0.6,
+      ),
+    },
+    keepEars: true,
+  ),
+  MascotDecoration(
+    id: 'kitty_flower_wreath',
+    name: '小花喵环',
+    path: 'assets/images/emoji/decorate/decorate49.png',
+    description: '头顶长出一朵可爱的向阳小花喵，给你带来双倍的粉嫩与俏皮。',
+    rarity: MascotRarity.rare,
+    category: MascotDecorationCategory.hat,
+    defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.4),
+    characterConfigs: {
+      'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+        offset: Offset(0, -38),
+        scale: 1.28,
+      ),
+      'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+        offset: Offset(0, -38),
+        scale: 1.28,
+      ),
+      'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+        offset: Offset(0, -38),
+        scale: 1.28,
+      ),
+      'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+        offset: Offset(0, -38),
+        scale: 1.28,
+      ),
+    },
+  ),
+  MascotDecoration(
+    id: 'wuzetian_crown',
+    name: '珠花凤冠',
+    path: 'assets/images/emoji/decorate/decorate48.png',
+    description: '明珠璀璨，凤影翩翩。精致的珠花与凤冠交织，在流光溢彩中更显矜贵。',
+    rarity: MascotRarity.epic,
+    category: MascotDecorationCategory.hat,
+    defaultConfig: MascotDecorationConfig(offset: Offset(0, -30), scale: 1.8),
+    characterConfigs: {
+      'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+        offset: Offset(2, 10),
+        scale: 1.1,
+      ),
+      'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+        offset: Offset(2, 10),
+        scale: 1.1,
+      ),
+      'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+        offset: Offset(2, 10),
+        scale: 1.1,
+      ),
+      'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+        offset: Offset(2, 10),
+        scale: 1.1,
+      ),
+    },
+  ),
+  MascotDecoration(
     id: 'mask',
     name: '高达头盔',
     path: 'assets/images/emoji/decorate/decorate1.png',
@@ -605,7 +687,7 @@ const List<MascotDecoration> _hatDecorations = [
     name: '好运虎头',
     path: 'assets/images/emoji/decorate/decorate25.png',
     description: '虎头虎脑，好运来到！传统虎头帽，守护你的每一天。',
-    rarity: MascotRarity.legendary,
+    rarity: MascotRarity.rare,
     category: MascotDecorationCategory.hat,
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.3),
     characterConfigs: {
@@ -1219,6 +1301,34 @@ const List<MascotDecoration> _hatDecorations = [
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
         offset: Offset(0, -70),
         scale: 0.5,
+      ),
+    },
+    keepEars: true,
+  ),
+  MascotDecoration(
+    id: 'cui_yu_liu_su_guan',
+    name: '翠羽流苏冠',
+    path: 'assets/images/emoji/decorate/decorate47.png',
+    description: '翠羽点翠，流苏摇曳。华丽典雅的冠冕，尽显东方神韵的尊贵与灵动。',
+    rarity: MascotRarity.legendary,
+    category: MascotDecorationCategory.hat,
+    defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.4),
+    characterConfigs: {
+      'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+        offset: Offset(0, -14),
+        scale: 1.1,
+      ),
+      'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+        offset: Offset(0, -10),
+        scale: 1.1,
+      ),
+      'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+        offset: Offset(0, -8),
+        scale: 1.1,
+      ),
+      'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+        offset: Offset(0, -14),
+        scale: 1.1,
       ),
     },
     keepEars: true,
