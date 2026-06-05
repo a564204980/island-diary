@@ -87,6 +87,54 @@ class MascotPreviewHero extends StatelessWidget {
                   ),
                 ),
               ),
+              // 如意凤冠专属背景图片层（带淡入淡出动效，夜间不使用）
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (hasDec && activeDec.id == 'phoenix_crown' && !isNight)
+                      ? 1.0
+                      : 0.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/emoji/modules_bg/ruyifengguan_bg.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+              // 可爱粉色发夹怪专属背景图片层（带淡入淡出动效，夜间不使用）
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (hasDec && activeDec.id == 'yellow_duck_hat' && !isNight)
+                      ? 1.0
+                      : 0.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/emoji/modules_bg/3.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+              // 糖心醒狮专属背景图片层（带淡入淡出动效，夜间不使用）
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (hasDec && activeDec.id == 'candy_heart_lion' && !isNight)
+                      ? 1.0
+                      : 0.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/emoji/modules_bg/4.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
               // 专属传说背景图片层（带淡入淡出动效，夜间不使用）
               Positioned.fill(
                 child: AnimatedOpacity(

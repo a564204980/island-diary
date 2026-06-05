@@ -17,7 +17,7 @@ import '../components/diary_image_source_sheet.dart';
 
 mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
   void onImageButtonPressed() async {
-    FocusScope.of(context).unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
     
     // VIP 校验：非会员限额 3 张
     final bool isVip = UserState().isVip.value;
@@ -51,6 +51,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     );
 
     if (!mounted) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     if (source == null) {
       setState(() => isImagePickerOpen = false);
       return;
@@ -250,7 +251,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
   }
 
   void onMusicButtonPressed() async {
-    FocusScope.of(context).unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
     await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
 
@@ -455,12 +456,14 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
 
   /// 专门用于贴纸创作的单图选择逻辑
   Future<String?> pickSingleImage() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final ImageSource? source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: Colors.transparent,
       showDragHandle: false,
       builder: (context) => DiaryImageSourceSheet(paperStyle: currentPaperStyle),
     );
+    FocusManager.instance.primaryFocus?.unfocus();
     if (source == null) return null;
 
     if (source == ImageSource.gallery) {

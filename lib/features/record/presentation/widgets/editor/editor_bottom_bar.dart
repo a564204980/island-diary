@@ -153,7 +153,7 @@ class EditorBottomBar extends StatelessWidget {
                   Padding(
                     padding: EdgeInsets.fromLTRB(
                       isLego ? 26 : 4,
-                      showPreviewBar ? 8 : 18,
+                      showPreviewBar ? 0 : 18,
                       isLego ? 26 : 4,
                       12,
                     ),
@@ -340,23 +340,23 @@ class EditorBottomBar extends StatelessWidget {
     if (imageBlocks.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      height: 86,
-      margin: const EdgeInsets.only(left: 20, right: 12, top: 12),
+      height: 60,
+      margin: const EdgeInsets.only(left: 14, right: 12, top: 8, bottom: 0),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: imageBlocks.length,
         itemBuilder: (context, index) {
           final img = imageBlocks[index];
           return Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.only(right: 10, top: 4),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  width: 70,
-                  height: 70,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: accentColor.withValues(alpha: 0.2)),
                     boxShadow: [
                       BoxShadow(
@@ -367,19 +367,19 @@ class EditorBottomBar extends StatelessWidget {
                     ],
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     child: DiaryUtils.buildImage(img.file.path, fit: BoxFit.cover),
                   ),
                 ),
                 Positioned(
-                  top: -8,
-                  right: -8,
+                  top: -5,
+                  right: -5,
                   child: GestureDetector(
                     onTap: () => onRemoveImage(blocks.indexOf(img)),
                     child: Container(
-                      padding: const EdgeInsets.all(4),
+                      padding: const EdgeInsets.all(3),
                       decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
-                      child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                      child: const Icon(Icons.close_rounded, color: Colors.white, size: 10),
                     ),
                   ),
                 ),

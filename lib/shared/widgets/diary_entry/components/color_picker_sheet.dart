@@ -1,8 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'diary_bottom_sheet.dart';
 import '../utils/diary_utils.dart';
 
 /// 专门用于日记文字和背景颜色选择的底栏面板
@@ -53,25 +53,18 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
         ? widget.currentBgColor 
         : widget.currentTextColor;
 
-    return BackdropFilter(
-      filter: ImageFilter.blur(
-        sigmaX: isNight ? 15 : 0,
-        sigmaY: isNight ? 15 : 0,
+    return DiaryBottomSheet(
+      paperStyle: widget.paperStyle,
+      showDragHandle: false,
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 24,
+        bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Container(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 24,
-          bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
-        ),
-        decoration: DiaryUtils.getPopupDecoration(
-          widget.paperStyle,
-          isNight,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           // 头部区域
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -270,9 +263,8 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
           const SizedBox(height: 12),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildHeaderButton({required IconData icon, required VoidCallback onPressed, required Color color}) {
     return Material(

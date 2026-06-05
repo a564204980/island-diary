@@ -6,6 +6,7 @@ import 'package:island_diary/features/profile/presentation/widgets/life_line_swi
 import 'package:island_diary/features/profile/presentation/pages/profile_edit_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/settings_page.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -441,14 +442,14 @@ class ProfileHeader extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: isNight ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 24),
+      showDragHandle: false,
+      builder: (context) => DiaryBottomSheet(
+        paperStyle: 'default',
+        showDragHandle: true,
+        isDiary: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               '修改头像',
@@ -458,7 +459,7 @@ class ProfileHeader extends StatelessWidget {
                 fontFamily: _getFontFamily(),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
             _buildPickerOption(
               context,
               icon: Icons.photo_library_rounded,
@@ -493,7 +494,6 @@ class ProfileHeader extends StatelessWidget {
                 if (photo != null) userState.setCustomAvatarPath(photo.path);
               },
             ),
-            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -508,6 +508,7 @@ class ProfileHeader extends StatelessWidget {
     required bool isNight,
   }) {
     return ListTile(
+      contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: isNight ? Colors.white70 : Colors.black54),
       title: Text(
         label,

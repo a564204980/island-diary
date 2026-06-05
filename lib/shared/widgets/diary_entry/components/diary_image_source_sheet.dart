@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'diary_bottom_sheet.dart';
 import '../utils/diary_utils.dart';
 import 'package:island_diary/core/state/user_state.dart';
 
@@ -16,27 +17,15 @@ class DiaryImageSourceSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isNight = UserState().isNight;
     final Color accentColor = DiaryUtils.getAccentColor(paperStyle, isNight);
-    final Color bgColor = DiaryUtils.getPopupBackgroundColor(paperStyle, isNight).withValues(alpha: 0.98);
     final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
 
-    return Container(
-      decoration: DiaryUtils.getPopupDecoration(
-        paperStyle,
-        isNight,
-        customBgColor: bgColor,
-      ),
+    return DiaryBottomSheet(
+      paperStyle: paperStyle,
+      showDragHandle: true,
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 顶部装饰条
-            const SizedBox(height: 12),
-            DiaryUtils.buildPopupDragHandle(
-              paperStyle,
-              isNight,
-              inkColor,
-            ),
-            const SizedBox(height: 12),
             _buildOption(
               context,
               icon: Icons.photo_library_rounded,

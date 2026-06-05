@@ -20,6 +20,7 @@ class DiaryEntry {
   final bool isImageGrid; // 是否开启图片九宫格
   final bool isMixedLayout; // 是否开启图文混排
   final bool isLiked; // 是否已点赞（朋友圈模式交互）
+  final Map<String, String> annotations; // 批注数据 (Key: 块索引_段落索引, Value: 批注内容)
 
   DiaryEntry({
     String? id,
@@ -39,8 +40,10 @@ class DiaryEntry {
     this.isImageGrid = false,
     this.isMixedLayout = false,
     this.isLiked = false,
+    Map<String, String>? annotations,
   }) : id = id ?? const Uuid().v4(),
-       replies = replies ?? [];
+       replies = replies ?? [],
+       annotations = annotations ?? {};
 
   Map<String, dynamic> toMap() {
     return {
@@ -61,6 +64,7 @@ class DiaryEntry {
       'isImageGrid': isImageGrid,
       'isMixedLayout': isMixedLayout,
       'isLiked': isLiked,
+      'annotations': annotations,
     };
   }
 
@@ -87,6 +91,9 @@ class DiaryEntry {
       isImageGrid: map['isImageGrid'] ?? false,
       isMixedLayout: map['isMixedLayout'] ?? false,
       isLiked: map['isLiked'] ?? false,
+      annotations: map['annotations'] != null
+          ? Map<String, String>.from(map['annotations'])
+          : {},
     );
   }
 
@@ -108,6 +115,7 @@ class DiaryEntry {
     bool? isImageGrid,
     bool? isMixedLayout,
     bool? isLiked,
+    Map<String, String>? annotations,
   }) {
     return DiaryEntry(
       id: id ?? this.id,
@@ -127,6 +135,7 @@ class DiaryEntry {
       isImageGrid: isImageGrid ?? this.isImageGrid,
       isMixedLayout: isMixedLayout ?? this.isMixedLayout,
       isLiked: isLiked ?? this.isLiked,
+      annotations: annotations ?? this.annotations,
     );
   }
 

@@ -1,6 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'diary_bottom_sheet.dart';
 import '../utils/diary_utils.dart';
 import 'package:island_diary/core/state/user_state.dart';
 
@@ -47,32 +47,18 @@ class DiaryTextStylePickerSheet extends StatelessWidget {
       {'label': '猫啃珠圆体', 'value': 'MaoKenZhuYuan'},
     ];
 
-    return BackdropFilter(
-      filter: ImageFilter.blur(
-        sigmaX: isNight ? 15 : 0,
-        sigmaY: isNight ? 15 : 0,
+    return DiaryBottomSheet(
+      paperStyle: paperStyle,
+      showDragHandle: true,
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 16,
+        bottom: 32 + MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Container(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 16,
-          bottom: 32 + MediaQuery.of(context).viewInsets.bottom,
-        ),
-        decoration: DiaryUtils.getPopupDecoration(
-          paperStyle,
-          isNight,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 顶部装饰条
-            DiaryUtils.buildPopupDragHandle(
-              paperStyle,
-              isNight,
-              accentColor,
-            ),
-            const SizedBox(height: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
 
             // 第一部分：文字大小
             _buildSectionTitle('设置文字大小', accentColor),
@@ -210,8 +196,7 @@ class DiaryTextStylePickerSheet extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
+      ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
   }
 
   Widget _buildSectionTitle(String title, Color accentColor) {

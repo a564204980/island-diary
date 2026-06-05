@@ -9,6 +9,7 @@ import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_form
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_insert_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/island_vip_guard_dialog.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 import '../widgets/editor/editor_header.dart';
 import '../widgets/editor/editor_content_list.dart';
 import '../widgets/editor/editor_bottom_bar.dart';
@@ -259,47 +260,29 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
 
   void _showMoreBottomSheet() {
     final bool isNight = UserState().isNight;
-    // 使用与主 build 一致的逻辑
-    final bool effectiveIsNight = isNight;
     final Color accentColor = DiaryUtils.getAccentColor(
       currentPaperStyle,
-      effectiveIsNight,
-    );
-    final Color bgColor = DiaryUtils.getPopupBackgroundColor(
-      currentPaperStyle,
-      effectiveIsNight,
+      isNight,
     );
     final Color textColor = DiaryUtils.getInkColor(
       currentPaperStyle,
-      effectiveIsNight,
+      isNight,
     ).withValues(alpha: 0.9);
     final String fontFamily = UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       showDragHandle: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          final Color opaqueBgColor = bgColor.withValues(alpha: 1.0);
-          return Container(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-            decoration: DiaryUtils.getPopupDecoration(
-              currentPaperStyle,
-              effectiveIsNight,
-              customBgColor: opaqueBgColor,
-            ),
-            child: Column(
+      builder: (context) => DiaryBottomSheet(
+        paperStyle: currentPaperStyle,
+        showDragHandle: true,
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+        child: StatefulBuilder(
+          builder: (context, setModalState) {
+            return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 顶部指示条
-                const SizedBox(height: 12),
-                DiaryUtils.buildPopupDragHandle(
-                  currentPaperStyle,
-                  effectiveIsNight,
-                  textColor,
-                ),
-                const SizedBox(height: 16),
                 Text(
                   "更多工具",
                   style: TextStyle(
@@ -418,11 +401,15 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                 ),
                 const SizedBox(height: 20),
               ],
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
-    );
+    ).then((_) {
+      if (mounted) {
+        FocusManager.instance.primaryFocus?.unfocus();
+      }
+    });
   }
 
   Widget _buildMoreMenuItem({

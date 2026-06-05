@@ -511,7 +511,7 @@ class DiaryUtils {
 
     return BoxDecoration(
       color: bgColor,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
       border: (isCottonCandy && isNight)
           ? const Border(
               top: BorderSide(
@@ -540,12 +540,12 @@ class DiaryUtils {
     return Center(
       child: Container(
         width: 40,
-        height: 4,
+        height: 4.5,
         decoration: BoxDecoration(
           color: (isCottonCandy && isNight)
               ? const Color(0xFFC0A6FF).withValues(alpha: 0.4)
-              : inkColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(2),
+              : inkColor.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(2.25),
         ),
       ),
     );

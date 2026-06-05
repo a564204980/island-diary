@@ -293,6 +293,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           paperStyle: currentPaperStyle,
           isImageGrid: isImageGrid,
           isMixedLayout: isMixedLayout,
+          annotations: widget.entry!.annotations,
         );
         await UserState().updateDiary(updatedEntry);
         debugPrint("DIARY_EDITOR: 更新保存成功。");

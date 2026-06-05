@@ -4,7 +4,7 @@ import 'package:island_diary/features/record/presentation/pages/diary_editor_pag
 import '../components/text_style_picker_sheet.dart';
 import '../components/color_picker_sheet.dart';
 import '../components/emoji_panel.dart';
-import '../utils/diary_utils.dart';
+import '../components/diary_bottom_sheet.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import './diary_editor_core_mixin.dart';
 
@@ -15,6 +15,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       isScrollControlled: true,
       builder: (context) => DiaryColorPickerSheet(
         currentTextColor: currentTextColor,
@@ -67,7 +68,10 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
         },
       ),
     ).then((_) {
-      if (mounted) setState(() => isColorPickerOpen = false);
+      if (mounted) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        setState(() => isColorPickerOpen = false);
+      }
     });
   }
 
@@ -77,6 +81,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       isScrollControlled: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
@@ -100,7 +105,10 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
         },
       ),
     ).then((_) {
-      if (mounted) setState(() => isColorPickerOpen = false);
+      if (mounted) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        setState(() => isColorPickerOpen = false);
+      }
     });
   }
 
@@ -151,50 +159,31 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       showDragHandle: false,
       isScrollControlled: true,
       builder: (context) {
-        final bool isNight = UserState().isNight;
-        final Color bgColor = DiaryUtils.getPopupBackgroundColor(currentPaperStyle, isNight).withValues(alpha: 1.0);
-        final Color inkColor = DiaryUtils.getInkColor(currentPaperStyle, isNight);
-
-        return Container(
+        return DiaryBottomSheet(
+          paperStyle: currentPaperStyle,
           height: MediaQuery.of(context).size.height * 0.55,
-          decoration: DiaryUtils.getPopupDecoration(
-            currentPaperStyle,
-            isNight,
-            customBgColor: bgColor,
-          ),
-          child: Column(
-            children: [
-              // 顶部指示条
-              const SizedBox(height: 12),
-              DiaryUtils.buildPopupDragHandle(
-                currentPaperStyle,
-                isNight,
-                inkColor,
-              ),
-              const SizedBox(height: 8),
-              
-              Expanded(
-                child: EmojiPanel(
-                  onEmojiSelected: (emoji) {
-                    onEmojiSelected(emoji);
-                  },
-                  onBackspace: handleEmojiBackspace,
-                  onSend: () {
-                    Navigator.pop(context);
-                    handleEmojiSend();
-                  },
-                  onCustomEmojiSelected: (emojiPath) {
-                    Navigator.pop(context);
-                    (this as dynamic).handleCustomEmojiSelected(emojiPath);
-                  },
-                  paperStyle: currentPaperStyle,
-                ),
-              ),
-            ],
+          child: EmojiPanel(
+            onEmojiSelected: (emoji) {
+              onEmojiSelected(emoji);
+            },
+            onBackspace: handleEmojiBackspace,
+            onSend: () {
+              Navigator.pop(context);
+              handleEmojiSend();
+            },
+            onCustomEmojiSelected: (emojiPath) {
+              Navigator.pop(context);
+              (this as dynamic).handleCustomEmojiSelected(emojiPath);
+            },
+            paperStyle: currentPaperStyle,
           ),
         );
       },
-    );
+    ).then((_) {
+      if (mounted) {
+        FocusManager.instance.primaryFocus?.unfocus();
+      }
+    });
   }
 
   void onEmojiSelected(String emoji) {

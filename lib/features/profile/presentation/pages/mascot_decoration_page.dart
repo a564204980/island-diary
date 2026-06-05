@@ -6,6 +6,7 @@ import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/features/profile/presentation/widgets/decoration/decoration_grid_item.dart';
 import 'package:island_diary/features/profile/presentation/widgets/decoration/mascot_preview_hero.dart';
 import 'package:island_diary/features/profile/presentation/widgets/decoration/form_selection_sheet.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 
 class MascotDecorationPage extends StatefulWidget {
   final String? initialDecorationId;
@@ -448,11 +449,16 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
     final userState = UserState();
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
+      builder: (context) => DiaryBottomSheet(
+        paperStyle: 'default',
+        showDragHandle: true,
+        isDiary: false,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
@@ -575,7 +581,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                 );
               },
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
           ],
         ),
       ),

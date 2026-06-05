@@ -1,6 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'diary_bottom_sheet.dart';
 import '../utils/diary_utils.dart';
 import 'diary_painters.dart';
 
@@ -102,60 +102,19 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
     final bool isLego = themeId == 'lego';
     final String fontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
 
-    final Color bgColor = isNight
-        ? (themeId == 'cotton_candy'
-            ? const Color(0xFF241E3D).withValues(alpha: 0.95)
-            : const Color(0xFF1E1E1E))
-        : const Color(0xFFFEF9F0);
-
     final Color textColor = DiaryUtils.getInkColor(
       widget.currentStyle,
       isNight,
     ).withValues(alpha: 0.9);
 
-    return BackdropFilter(
-      filter: ImageFilter.blur(
-        sigmaX: isNight ? 15 : 0,
-        sigmaY: isNight ? 15 : 0,
-      ),
-      child: Container(
-        padding: const EdgeInsets.only(top: 8, bottom: 24),
-        margin: isLego ? const EdgeInsets.only(bottom: 6) : null,
-        decoration: isLego
-            ? BoxDecoration(
-                color: bgColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                boxShadow: [
-                  // 1. 固态 3D 积木厚度实色层（零羽化）
-                  BoxShadow(
-                    color: isNight ? const Color(0xFF1B160E) : const Color(0xFFEADAB9),
-                    blurRadius: 0,
-                    offset: const Offset(0, 4.0),
-                  ),
-                  // 2. 底层环境遮蔽软影
-                  BoxShadow(
-                    color: isNight ? Colors.black.withValues(alpha: 0.4) : const Color(0xFFDCC8A0).withValues(alpha: 0.4),
-                    blurRadius: 5.0,
-                    offset: const Offset(0, 5.0),
-                  ),
-                ],
-              )
-            : DiaryUtils.getPopupDecoration(
-                widget.currentStyle,
-                isNight,
-              ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 顶部指示条
-            const SizedBox(height: 4),
-            DiaryUtils.buildPopupDragHandle(
-              widget.currentStyle,
-              isNight,
-              textColor,
-            ),
-            const SizedBox(height: 12),
+    return DiaryBottomSheet(
+      paperStyle: widget.currentStyle,
+      showDragHandle: true,
+      padding: const EdgeInsets.only(top: 8, bottom: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
@@ -322,7 +281,6 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
             ),
           ],
         ),
-      ),
     );
   }
 }

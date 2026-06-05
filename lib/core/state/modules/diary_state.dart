@@ -123,6 +123,7 @@ mixin DiaryMixin on ProfileMixin {
       tag: entry.tag, blocks: entry.blocks, weather: entry.weather, temp: entry.temp, location: entry.location,
       customDate: entry.customDate, customTime: entry.customTime, replies: [...entry.replies, DiaryReply(content: content, dateTime: DateTime.now())],
       paperStyle: entry.paperStyle, isImageGrid: entry.isImageGrid, isMixedLayout: entry.isMixedLayout, isLiked: entry.isLiked,
+      annotations: entry.annotations,
     );
     savedDiaries.value = List.from(savedDiaries.value)..[index] = updatedEntry;
     await _saveDiariesToStorage();
@@ -139,6 +140,7 @@ mixin DiaryMixin on ProfileMixin {
       tag: entry.tag, blocks: entry.blocks, weather: entry.weather, temp: entry.temp, location: entry.location,
       customDate: entry.customDate, customTime: entry.customTime, replies: entry.replies, paperStyle: entry.paperStyle,
       isImageGrid: entry.isImageGrid, isMixedLayout: entry.isMixedLayout, isLiked: !entry.isLiked,
+      annotations: entry.annotations,
     );
     await _saveDiariesToStorage();
   }

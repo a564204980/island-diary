@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -346,9 +347,40 @@ class DiaryTextEditingController extends TextEditingController {
     TextStyle? style,
     required bool withComposing,
     bool hideMarkdownSymbols = false,
+    Map<String, String>? annotations,
+    int blockIndex = 0,
+    void Function(String key)? onAnnotationTap,
   }) {
     final textContent = text;
     if (textContent.isEmpty) return TextSpan(style: style, text: textContent);
+
+    final List<Map<String, dynamic>> blockAnnotations = [];
+    if (annotations != null) {
+      annotations.forEach((key, value) {
+        final parts = key.split('_');
+        if (parts.length == 3 && int.tryParse(parts[0]) == blockIndex) {
+          final start = int.tryParse(parts[1]);
+          final end = int.tryParse(parts[2]);
+          if (start != null && end != null) {
+            Map<String, dynamic>? data;
+            try {
+              data = jsonDecode(value);
+            } catch (_) {}
+            
+            final colorHex = data?['colorHex'] ?? '#F7E5B4';
+            final comment = data?['comment'] ?? value;
+            
+            blockAnnotations.add({
+              'key': key,
+              'start': start,
+              'end': end,
+              'color': Color(int.parse(colorHex.replaceFirst('#', '0xFF'))),
+              'comment': comment,
+            });
+          }
+        }
+      });
+    }
 
     final TextStyle rootStyle =
         style?.copyWith(
@@ -365,6 +397,15 @@ class DiaryTextEditingController extends TextEditingController {
         );
 
     final List<Map<String, dynamic>> highlights = [];
+
+    for (var ann in blockAnnotations) {
+      highlights.add({
+        'start': ann['start'],
+        'end': ann['end'],
+        'style': const TextStyle(), // 仅用于分割边界，背景色使用 WidgetSpan 渲染
+        'priority': 8,
+      });
+    }
 
     // 1. 获取所有表情范围
     final String pattern = EmojiMapping.pattern;
@@ -718,7 +759,62 @@ class DiaryTextEditingController extends TextEditingController {
         continue;
       }
 
-      children.add(TextSpan(text: chunk, style: combinedStyle));
+      // 判断当前 chunk 是否属于批注高亮范围
+      Map<String, dynamic>? activeAnnotation;
+      for (var ann in blockAnnotations) {
+        if (start >= ann['start'] && end <= ann['end']) {
+          activeAnnotation = ann;
+          break;
+        }
+      }
+
+      if (activeAnnotation != null) {
+        final Color color = activeAnnotation['color'] as Color;
+        children.add(
+          TextSpan(
+            text: chunk,
+            style: combinedStyle.copyWith(backgroundColor: color),
+          ),
+        );
+      } else {
+        children.add(TextSpan(text: chunk, style: combinedStyle));
+      }
+
+      // Append bubble icon if this chunk ends exactly at an annotation's end
+      for (var ann in blockAnnotations) {
+        if (end == ann['end']) {
+          final annKey = ann['key'] as String;
+          children.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.top,
+              child: SelectionContainer.disabled(
+                child: Padding(
+                  // 负的 bottom padding 会让 WidgetSpan 向上浮起到文字行上方
+                  padding: const EdgeInsets.only(left: 1),
+                  child: SizedBox(
+                    width: 20,
+                    height: 18,
+                    child: Listener(
+                      behavior: HitTestBehavior.opaque,
+                      onPointerDown: (_) {
+                        if (onAnnotationTap != null) {
+                          onAnnotationTap(annKey);
+                        }
+                      },
+                      child: CustomPaint(
+                        painter: _CommentBubblePainter(
+                          fillColor: isNight ? const Color(0xFF3E3A36) : const Color(0xFFFDFBF7),
+                          strokeColor: isNight ? Colors.white38 : const Color(0xFF8B7355).withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+      }
     }
 
     // 在末尾增加一个微小的空节点，通常能解决 Flutter 中 WidgetSpan 作为行末元素时光标无法落位的问题
@@ -794,4 +890,68 @@ class AudioBlock extends DiaryBlock {
     'path': path,
     'name': name,
   };
+}
+
+class _CommentBubblePainter extends CustomPainter {
+  final Color fillColor;
+  final Color strokeColor;
+
+  _CommentBubblePainter({
+    required this.fillColor,
+    required this.strokeColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = fillColor
+      ..style = PaintingStyle.fill;
+
+    final strokePaint = Paint()
+      ..color = strokeColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    final path = Path();
+    
+    double w = size.width;
+    double h = size.height;
+    double mainH = h - 3; // 留出 3px 给底部的尖角
+
+    // 画圆角矩形主体
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, w, mainH),
+      const Radius.circular(5),
+    );
+    path.addRRect(rect);
+
+    // 在左下角拉出一个三角尖角指向文字
+    final trianglePath = Path()
+      ..moveTo(4, mainH)
+      ..lineTo(1, h)
+      ..lineTo(8, mainH)
+      ..close();
+
+    // 合并路径
+    final combinedPath = Path.combine(PathOperation.union, path, trianglePath);
+
+    canvas.drawPath(combinedPath, paint);
+    canvas.drawPath(combinedPath, strokePaint);
+
+    // 画三个小点。小点在主体矩形的正中央。
+    final dotPaint = Paint()
+      ..color = strokeColor.withValues(alpha: 0.8)
+      ..style = PaintingStyle.fill;
+
+    double centerY = mainH / 2;
+    double centerX = w / 2;
+    double dotSpacing = 3.5;
+    
+    canvas.drawCircle(Offset(centerX - dotSpacing, centerY), 0.7, dotPaint);
+    canvas.drawCircle(Offset(centerX, centerY), 0.7, dotPaint);
+    canvas.drawCircle(Offset(centerX + dotSpacing, centerY), 0.7, dotPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

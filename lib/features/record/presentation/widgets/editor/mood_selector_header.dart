@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/shared/widgets/diary_entry/components/hand_drawn_divider.dart';
+
 
 class MoodSelectorHeader extends StatefulWidget {
   final int? currentMoodIndex;
@@ -74,6 +74,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final bool isLego = themeId == 'lego';
 
     final pillWidget = Padding(
+      key: const ValueKey('mood_selector_pill_widget'),
       padding: EdgeInsets.only(
         top: 8,
         bottom: isSelected ? 8 : 24,
@@ -126,18 +127,18 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                     ),
                   ]
                 : [
-                    if (isCottonCandyDark)
-                      BoxShadow(
-                        color: const Color(0xFFC0A6FF).withValues(alpha: 0.12),
-                        blurRadius: 16,
-                        spreadRadius: 1,
-                      ),
-                    if (!isDark && !isSelected)
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
+                    BoxShadow(
+                      color: isCottonCandyDark
+                          ? const Color(0xFFC0A6FF).withValues(alpha: 0.12)
+                          : Colors.transparent,
+                      blurRadius: isCottonCandyDark ? 16 : 0,
+                      spreadRadius: isCottonCandyDark ? 1 : 0,
+                    ),
+                    const BoxShadow(
+                      color: Colors.transparent,
+                      blurRadius: 0,
+                      offset: Offset.zero,
+                    ),
                   ],
           ),
           child: Material(
@@ -167,8 +168,8 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                     ? CrossFadeState.showSecond
                     : CrossFadeState.showFirst,
                 duration: const Duration(milliseconds: 400),
-                firstCurve: Curves.easeIn,
-                secondCurve: Curves.easeOut,
+                firstCurve: const Interval(0.0, 0.3, curve: Curves.easeIn),
+                secondCurve: const Interval(0.6, 1.0, curve: Curves.easeOut),
                 sizeCurve: Curves.easeInOutCubic,
                 alignment: Alignment.topLeft,
                 layoutBuilder: (Widget topChild, Key topChildKey, Widget bottomChild, Key bottomChildKey) {
@@ -197,22 +198,27 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
       ),
     );
 
+    String quote = '';
     if (isSelected) {
       String label = _lastValidTag ?? '开心';
       if (_lastValidMoodIndex != null && _lastValidMoodIndex! < moods.length && _lastValidTag == null) {
         label = moods[_lastValidMoodIndex!]['label']!;
       }
-      final String quote = DiaryUtils.getMoodQuote(label);
+      quote = DiaryUtils.getMoodQuote(label);
+    }
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (themeId == 'lego')
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24, top: 4),
-              child: _buildLegoTopStudsRow(),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (isSelected && themeId == 'lego')
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24, top: 4),
+            child: _buildLegoTopStudsRow(),
+          )
+        else
+          const SizedBox.shrink(),
+        if (isSelected)
           Padding(
             padding: const EdgeInsets.only(left: 4, top: 4),
             child: Text(
@@ -224,26 +230,13 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                 fontFamily: 'LXGWWenKai',
               ),
             ),
-          ),
-          if (themeId != 'lego') const SizedBox(height: 12),
-          themeId == 'lego'
-              ? const SizedBox(height: 4)
-              : CustomPaint(
-                  size: const Size(double.infinity, 2),
-                  painter: HandDrawnLinePainter(
-                    color: isCottonCandyDark
-                        ? const Color(0xFFC0A6FF).withValues(alpha: 0.45)
-                        : const Color(0xFFD4A373).withValues(alpha: isNight ? 0.15 : 0.3),
-                    strokeWidth: 1.5,
-                  ),
-                ),
-          if (themeId != 'lego') const SizedBox(height: 8),
-          pillWidget,
-        ],
-      );
-    }
-
-    return pillWidget;
+          )
+        else
+          const SizedBox.shrink(),
+        const SizedBox.shrink(),
+        pillWidget,
+      ],
+    );
   }
 
   Widget _buildExpandedContent(BuildContext context) {
@@ -317,163 +310,176 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
         const SizedBox(height: 8),
         SizedBox(
           height: 115,
-          child: ShaderMask(
-            shaderCallback: (Rect bounds) {
-              return LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [Colors.white, Colors.white.withValues(alpha: 0.0)],
-                stops: const [0.9, 1.0],
-              ).createShader(bounds);
-            },
-            blendMode: BlendMode.dstIn,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  ...List.generate(moods.length, (index) {
-                    final mood = moods[index];
-                    final bool isSelected = currentMoodIndex == index;
-                    final Color moodColor = Color(
-                      int.parse(mood['color']!),
-                    );
-
-                    return Container(
-                      width: itemWidth,
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      child: InkWell(
-                        onTap: () => onMoodSelected(index),
-                        splashColor: Colors.transparent,
-                        highlightColor: Colors.transparent,
-                        hoverColor: Colors.transparent,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.fastOutSlowIn,
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 4,
-                          ),
-                          transform: Matrix4.translationValues(
-                            0,
-                            isSelected ? -6 : 0,
-                            0,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.15)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(32),
-                            border: Border.all(
-                              color: isSelected
-                                  ? moodColor.withValues(alpha: 0.6)
-                                  : Colors.transparent,
-                              width: 1.5,
+          child: Stack(
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    ...List.generate(moods.length, (index) {
+                      final mood = moods[index];
+                      final bool isSelected = currentMoodIndex == index;
+                      final Color moodColor = Color(
+                        int.parse(mood['color']!),
+                      );
+                      return Container(
+                        width: itemWidth,
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        child: InkWell(
+                          onTap: () => onMoodSelected(index),
+                          splashColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
+                          hoverColor: Colors.transparent,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.fastOutSlowIn,
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                              horizontal: 4,
                             ),
-                            boxShadow: [
-                              BoxShadow(
+                            transform: Matrix4.translationValues(
+                              0,
+                              isSelected ? -6 : 0,
+                              0,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.15)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(32),
+                              border: Border.all(
                                 color: isSelected
-                                    ? moodColor.withValues(
-                                        alpha: isDark ? 0.4 : 0.2,
-                                      )
+                                    ? moodColor.withValues(alpha: 0.6)
                                     : Colors.transparent,
-                                blurRadius: isDark ? 20 : 15,
-                                offset: Offset(0, isDark ? 4 : 8),
+                                width: 1.5,
                               ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              AnimatedScale(
-                                scale: isSelected ? 1.15 : 1.0,
-                                duration: const Duration(milliseconds: 400),
-                                curve: Curves.easeOutBack,
-                                child: SizedBox(
-                                  width: 44,
-                                  height: 44,
-                                  child: Center(
-                                    child: Image.asset(
-                                      mood['icon']!,
-                                      width: 28,
-                                      height: 28,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: isSelected
+                                      ? moodColor.withValues(
+                                          alpha: isDark ? 0.4 : 0.2,
+                                        )
+                                      : Colors.transparent,
+                                  blurRadius: isDark ? 20 : 15,
+                                  offset: Offset(0, isDark ? 4 : 8),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                AnimatedScale(
+                                  scale: isSelected ? 1.15 : 1.0,
+                                  duration: const Duration(milliseconds: 400),
+                                  curve: Curves.easeOutBack,
+                                  child: SizedBox(
+                                    width: 44,
+                                    height: 44,
+                                    child: Center(
+                                      child: Image.asset(
+                                        mood['icon']!,
+                                        width: 28,
+                                        height: 28,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  mood['label']!,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: isSelected
-                                        ? moodColor
-                                        : inkColor.withValues(
-                                            alpha: isDark ? 0.7 : 0.5,
-                                          ),
-                                    fontFamily: 'LXGWWenKai',
+                                const SizedBox(height: 8),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    mood['label']!,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: isSelected
+                                          ? moodColor
+                                          : inkColor.withValues(
+                                              alpha: isDark ? 0.7 : 0.5,
+                                            ),
+                                      fontFamily: 'LXGWWenKai',
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
-                  Container(
-                    width: itemWidth * 0.8,
-                    margin: const EdgeInsets.only(left: 8, right: 16),
-                    child: InkWell(
-                      onTap: onCustomTap,
-                      splashColor: Colors.transparent,
-                      highlightColor: Colors.transparent,
-                      hoverColor: Colors.transparent,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
+                      );
+                    }),
+                    Container(
+                      width: itemWidth * 0.8,
+                      margin: const EdgeInsets.only(left: 8, right: 16),
+                      child: InkWell(
+                        onTap: onCustomTap,
+                        splashColor: Colors.transparent,
+                        highlightColor: Colors.transparent,
+                        hoverColor: Colors.transparent,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: (isDark ? Colors.white : inkColor)
+                                      .withValues(alpha: 0.2),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.edit_note_rounded,
                                 color: (isDark ? Colors.white : inkColor)
-                                    .withValues(alpha: 0.2),
-                                width: 1,
+                                    .withValues(alpha: 0.4),
+                                size: 24,
                               ),
                             ),
-                            child: Icon(
-                              Icons.edit_note_rounded,
-                              color: (isDark ? Colors.white : inkColor)
-                                  .withValues(alpha: 0.4),
-                              size: 24,
+                            const SizedBox(height: 8),
+                            Text(
+                              "自定义",
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: (isDark ? Colors.white : inkColor)
+                                    .withValues(alpha: 0.4),
+                                fontFamily: 'LXGWWenKai',
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "自定义",
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: (isDark ? Colors.white : inkColor)
-                                  .withValues(alpha: 0.4),
-                              fontFamily: 'LXGWWenKai',
-                            ),
-                          ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 右侧渐变遮罩（替代有问题的 ShaderMask BlendMode.dstIn）
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: 40,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          (isDark ? const Color(0xFF1E1C1A) : const Color(0xFFFEF9F0)).withValues(alpha: 0.0),
+                          isDark ? const Color(0xFF1E1C1A) : const Color(0xFFFEF9F0),
                         ],
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
         const SizedBox(height: 12),

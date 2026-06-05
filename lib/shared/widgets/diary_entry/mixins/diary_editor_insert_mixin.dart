@@ -173,7 +173,10 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
         },
       ),
     ).then((_) {
-      if (mounted) setState(() => isColorPickerOpen = false);
+      if (mounted) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        setState(() => isColorPickerOpen = false);
+      }
     });
   }
 
@@ -229,7 +232,10 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
         },
       ),
     ).then((_) {
-      if (mounted) setState(() => isColorPickerOpen = false);
+      if (mounted) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        setState(() => isColorPickerOpen = false);
+      }
     });
   }
 
@@ -255,7 +261,10 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
         },
       ),
     ).then((_) {
-      if (mounted) setState(() => isColorPickerOpen = false);
+      if (mounted) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        setState(() => isColorPickerOpen = false);
+      }
     });
   }
 
@@ -291,7 +300,10 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
         },
       ),
     ).then((_) {
-      if (mounted) setState(() => isColorPickerOpen = false);
+      if (mounted) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        setState(() => isColorPickerOpen = false);
+      }
     });
   }
 }

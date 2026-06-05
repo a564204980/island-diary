@@ -303,4 +303,47 @@ const List<MascotDecoration> _earringDecorations = [
       ),
     },
   ),
+  MascotDecoration(
+    id: 'earring_black_horse_white_cat',
+    name: '黑马白猫',
+    path: 'assets/images/emoji/arrings/arrings8.png',
+    leftPath: 'assets/images/emoji/arrings/arrings8_l.png',
+    rightPath: 'assets/images/emoji/arrings/arrings8_r.png',
+    description: '左耳是神秘高贵的黑猫，右耳是软萌纯洁的白猫，黑白交织，带给你双倍的可爱加持。',
+    rarity: MascotRarity.rare,
+    category: MascotDecorationCategory.face,
+    keepEars: true,
+    defaultConfig: MascotDecorationConfig(
+      leftOffset: Offset(-55, 30),
+      leftScale: 0.65,
+      rightOffset: Offset(55, 30),
+      rightScale: 0.65,
+    ),
+    characterConfigs: {
+      'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+        leftOffset: Offset(-64, 50),
+        leftScale: 0.3,
+        rightOffset: Offset(64, 50),
+        rightScale: 0.3,
+      ),
+      'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+        leftOffset: Offset(-70, 30),
+        leftScale: 0.3,
+        rightOffset: Offset(70, 30),
+        rightScale: 0.3,
+      ),
+      'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+        leftOffset: Offset(-64, 60),
+        leftScale: 0.3,
+        rightOffset: Offset(64, 60),
+        rightScale: 0.3,
+      ),
+      'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+        leftOffset: Offset(-64, 60),
+        leftScale: 0.3,
+        rightOffset: Offset(64, 60),
+        rightScale: 0.3,
+      ),
+    },
+  ),
 ];
