@@ -199,7 +199,6 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted && newBottomBlock != null) {
         newBottomBlock!.controller.selection = const TextSelection.collapsed(offset: 0);
-        newBottomBlock!.focusNode.requestFocus();
         scrollToActiveBlock();
       }
     });

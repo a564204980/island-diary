@@ -60,31 +60,42 @@ flutter:
 
   assets:
     - assets/images/
-    - assets/images/decoration/baijian/
+    - assets/images/decoration/floor_decor/carpet/
     - assets/images/decoration/furniture/
-    - assets/images/decoration/floors/
-    - assets/images/decoration/carpets/
-    - assets/images/decoration/music/
-    - assets/images/decoration/kitchen/
-    - assets/images/decoration/livingRoom/
-    - assets/images/decoration/sofa/
-    - assets/images/decoration/table/
-    - assets/images/decoration/houseplant/
-    - assets/images/decoration/wall/
-    - assets/images/decoration/homeDecor/
-    - assets/images/decoration/shelving/
-    - assets/images/decoration/wardrobe/
-    - assets/images/decoration/window/
-    - assets/images/decoration/bed/
-    - assets/images/decoration/animal/
-    - assets/images/decoration/door/
-    - assets/images/decoration/refrigerators/
-    - assets/images/decoration/clothes/
+    - assets/images/decoration/furniture/bathroom/
+    - assets/images/decoration/furniture/bed/
+    - assets/images/decoration/furniture/cabinet/
+    - assets/images/decoration/furniture/chair/
+    - assets/images/decoration/furniture/kitchen/
+    - assets/images/decoration/furniture/lamp/
+    - assets/images/decoration/furniture/living_room/
+    - assets/images/decoration/furniture/sofa/
+    - assets/images/decoration/furniture/table/
+    - assets/images/decoration/furniture/houseplant/
+    - assets/images/decoration/furniture/pet/
+    - assets/images/decoration/ornaments/bathroom/
+    - assets/images/decoration/ornaments/computer/
+    - assets/images/decoration/ornaments/houseplant/
+    - assets/images/decoration/ornaments/kitchen/
+    - assets/images/decoration/ornaments/living_room/
+    - assets/images/decoration/ornaments/pet/
+    - assets/images/decoration/ornaments/toy/
+    - assets/images/decoration/renovation/floorboard/
+    - assets/images/decoration/renovation/tile/
+    - assets/images/decoration/renovation/wallpaper/
+    - assets/images/decoration/renovation/mailbox/
+    - assets/images/decoration/wall_decor/ac/
+    - assets/images/decoration/wall_decor/bathroom/
+    - assets/images/decoration/wall_decor/frame/
+    - assets/images/decoration/wall_decor/lamp/
+    - assets/images/decoration/wall_decor/painting/
     - assets/images/note/
     - assets/images/icons/
     - assets/images/icons/5/
     - assets/icons/
     - assets/images/emoji/
+    - assets/images/emoji/animation/1/
+    - assets/images/emoji/animation/1/blink/
     - assets/images/emoji/decorate/
     - assets/images/emoji/glasses/
     - assets/images/emoji/arrings/

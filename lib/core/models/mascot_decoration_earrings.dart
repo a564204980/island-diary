@@ -346,4 +346,47 @@ const List<MascotDecoration> _earringDecorations = [
       ),
     },
   ),
+  MascotDecoration(
+    id: 'earring_flower_candy_shake',
+    name: '花糖摇摇耳环',
+    path: 'assets/images/emoji/arrings/arrings10.png',
+    leftPath: 'assets/images/emoji/arrings/arrings10_l.png',
+    rightPath: 'assets/images/emoji/arrings/arrings10_r.png',
+    description: '缤纷花朵拼接糖果色的摇摇耳环，随风摇曳，充满甜美与童趣的色彩。',
+    rarity: MascotRarity.epic,
+    category: MascotDecorationCategory.face,
+    keepEars: true,
+    defaultConfig: MascotDecorationConfig(
+      leftOffset: Offset(-55, 30),
+      leftScale: 0.65,
+      rightOffset: Offset(55, 30),
+      rightScale: 0.65,
+    ),
+    characterConfigs: {
+      'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
+        leftOffset: Offset(-70, 50),
+        leftScale: 0.3,
+        rightOffset: Offset(70, 50),
+        rightScale: 0.3,
+      ),
+      'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
+        leftOffset: Offset(-70, 36),
+        leftScale: 0.3,
+        rightOffset: Offset(70, 36),
+        rightScale: 0.3,
+      ),
+      'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
+        leftOffset: Offset(-70, 60),
+        leftScale: 0.3,
+        rightOffset: Offset(70, 60),
+        rightScale: 0.3,
+      ),
+      'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
+        leftOffset: Offset(-68, 60),
+        leftScale: 0.3,
+        rightOffset: Offset(70, 60),
+        rightScale: 0.3,
+      ),
+    },
+  ),
 ];

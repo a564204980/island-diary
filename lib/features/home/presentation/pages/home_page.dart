@@ -19,10 +19,9 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/statistics/presentation/pages/statistics_page.dart';
 import 'package:island_diary/shared/widgets/frosted_rainbow.dart';
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
-import 'package:island_diary/features/record/presentation/widgets/scrolling_sun_background.dart';
-import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
 import 'package:island_diary/features/home/presentation/widgets/island_theme_picker.dart';
+import 'package:island_diary/features/home/presentation/widgets/room_scene_overlay.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -434,44 +433,37 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               ? ValueListenableBuilder<bool>(
                                   valueListenable: UserState().isDiarySheetOpen,
                                   builder: (context, isOpen, child) {
-                                    return ValueListenableBuilder<String>(
-                                      valueListenable: UserState().homeDisplayMode,
-                                      builder: (context, mode, _) {
-                                        return Text(
-                                          _isLandscape
-                                              ? '心情漫游'
-                                              : mode == 'house'
-                                                  ? '${UserState().userName.value}的小窝'
-                                                  : '${UserState().userName.value}的小岛',
-                                          style: TextStyle(
-                                            color:
-                                                (isNight ||
-                                                    UserState()
-                                                            .selectedIslandThemeId
-                                                            .value ==
-                                                        'lantern_festival')
-                                                ? Colors.white
-                                                : const Color(0xFF5A3E28),
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.bold,
-                                            shadows: isNight
-                                                ? [
-                                                    Shadow(
-                                                      color: Colors.black
-                                                          .withValues(
-                                                            alpha: 0.3,
-                                                          ),
-                                                      offset: const Offset(
-                                                        0,
-                                                        2,
+                                    return Text(
+                                      _isLandscape
+                                          ? '心情漫游'
+                                          : '${UserState().userName.value}的小岛',
+                                      style: TextStyle(
+                                        color:
+                                            (isNight ||
+                                                UserState()
+                                                        .selectedIslandThemeId
+                                                        .value ==
+                                                    'lantern_festival')
+                                            ? Colors.white
+                                            : const Color(0xFF5A3E28),
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        shadows: isNight
+                                            ? [
+                                                Shadow(
+                                                  color: Colors.black
+                                                      .withValues(
+                                                        alpha: 0.3,
                                                       ),
-                                                      blurRadius: 4,
-                                                    ),
-                                                  ]
-                                                : null,
-                                          ),
-                                        );
-                                      },
+                                                  offset: const Offset(
+                                                    0,
+                                                    2,
+                                                  ),
+                                                  blurRadius: 4,
+                                                ),
+                                              ]
+                                            : null,
+                                      ),
                                     )
                                     .animate(target: isOpen ? 0 : 1)
                                     .fade(duration: 400.ms);
@@ -520,65 +512,41 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           Row(
                             children: [
                               if (_currentNavIndex == 0) ...[
+                                 _buildTopIconButton(
+                                   icon: Icons.auto_fix_high_rounded,
+                                   isNight: isNight,
+                                   onTap: () {
+                                     showModalBottomSheet(
+                                       context: context,
+                                       backgroundColor:
+                                           Colors.transparent,
+                                       isScrollControlled: true,
+                                       showDragHandle: false,
+                                       builder: (context) =>
+                                           const IslandThemePicker(),
+                                     );
+                                   },
+                                 ),
+                                  const SizedBox(width: 16),
+                                  _buildTopIconButton(
+                                    icon: Icons.home_work_rounded,
+                                    isNight: isNight,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const RoomDecorationPage(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                 const SizedBox(width: 16),
                                 _buildTopIconButton(
                                   icon: _isLandscape
                                       ? Icons.fullscreen_exit_rounded
                                       : Icons.fullscreen_rounded,
                                   isNight: isNight,
                                   onTap: _toggleOrientation,
-                                ),
-                                const SizedBox(width: 16),
-                                ValueListenableBuilder<String>(
-                                  valueListenable: UserState().homeDisplayMode,
-                                  builder: (context, mode, _) {
-                                    return Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        _buildTopIconButton(
-                                          icon: Icons.auto_fix_high_rounded,
-                                          isNight: isNight,
-                                          onTap: () {
-                                            if (mode == 'island') {
-                                              // 室外场景：弹出主题切换底栏
-                                              showModalBottomSheet(
-                                                context: context,
-                                                backgroundColor:
-                                                    Colors.transparent,
-                                                isScrollControlled: true,
-                                                showDragHandle: false,
-                                                builder: (context) =>
-                                                    const IslandThemePicker(),
-                                              );
-                                            } else {
-                                              // 室内场景：跳转到家具装修页
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      const DecorationPage(),
-                                                ),
-                                              );
-                                            }
-                                          },
-                                        ),
-                                        const SizedBox(width: 16),
-                                        _buildTopIconButton(
-                                          icon: mode == 'island'
-                                              ? Icons.cottage_outlined
-                                              : Icons.landscape_outlined,
-                                          isNight: isNight,
-                                          onTap: () {
-                                            final nextMode = mode == 'island'
-                                                ? 'house'
-                                                : 'island';
-                                            UserState().setHomeDisplayMode(
-                                              nextMode,
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    );
-                                  },
                                 ),
                               ],
                               if (_currentNavIndex == 1) ...[
@@ -689,13 +657,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return MultiValueListenableBuilder(
       listenables: [
         UserState().currentBackgroundPath,
-        UserState().homeDisplayMode,
         UserState().selectedIslandThemeId,
       ],
       builder: (context, values, _) {
         final currentBgPath = values[0] as String;
-        final displayMode = values[1] as String;
-        final themeId = values[2] as String;
+        final themeId = values[1] as String;
         final islandPath = _getIslandImageForCurrentTime();
 
         // --- 背景及小岛单独调整配置区 ---
@@ -728,22 +694,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         }
         // ---------------------------
 
-        return IndexedStack(
-          index: displayMode == 'house' ? 1 : 0,
-          children: [
-            _buildIslandContent(
-              isNight,
-              isWide,
-              currentBgPath,
-              islandPath,
-              bgScale,
-              bgOffsetY,
-              islandScale,
-              islandOffsetY,
-              themeId,
-            ),
-            _buildHouseContent(isNight, isWide, themeId),
-          ],
+        return _buildIslandContent(
+          isNight,
+          isWide,
+          currentBgPath,
+          islandPath,
+          bgScale,
+          bgOffsetY,
+          islandScale,
+          islandOffsetY,
+          themeId,
         );
       },
     );
@@ -1025,95 +985,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildHouseContent(bool isNight, bool isWide, String themeId) {
-    return ValueListenableBuilder<Uint8List?>(
-      valueListenable: UserState().decorationSnapshot,
-      builder: (context, snapshot, _) {
-        return Stack(
-          key: const ValueKey('house'),
-          children: [
-            // 1. 背景层
-            Positioned.fill(child: ScrollingSunBackground(isNight: isNight, themeId: themeId)),
-            // 2. 气氛滤镜
-            Positioned.fill(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 1000),
-                decoration: BoxDecoration(
-                  gradient: isNight
-                      ? LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            const Color(0xFF2D1B10).withValues(alpha: 0.35),
-                            const Color(0xFF1A0F0A).withValues(alpha: 0.55),
-                          ],
-                        )
-                      : LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            const Color(0xFFFFFFFF).withValues(alpha: 0.1),
-                            const Color(0xFFE5DED4).withValues(alpha: 0.35),
-                          ],
-                        ),
-                ),
-              ),
-            ),
-            // 3. 房屋快照
-            Positioned.fill(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  if (snapshot == null) {
-                    return Center(
-                      child: Text(
-                        "小屋还在装修中...",
-                        style: TextStyle(
-                          color: isNight ? Colors.white30 : Colors.black26,
-                          fontFamily: 'LXGWWenKai',
-                        ),
-                      ),
-                    );
-                  }
-
-                  // 复用类似 RecordPage 的比例计算，但为了首页美感稍作调整
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 60),
-                      child: AspectRatio(
-                        aspectRatio: 1.0, // 强制 1:1 容器
-                        child: Container(
-                          decoration: isNight
-                              ? BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(
-                                        0xFF818CF8,
-                                      ).withValues(alpha: 0.15),
-                                      blurRadius: 100,
-                                      spreadRadius: 20,
-                                    ),
-                                  ],
-                                )
-                              : null,
-                          child: Center(
-                            child: Image.memory(snapshot, fit: BoxFit.contain)
-                                .animate()
-                                .fadeIn(duration: 800.ms)
-                                .scale(begin: const Offset(0.95, 0.95)),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   Widget _buildBarrageLayer() {
     return Stack(

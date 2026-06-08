@@ -555,10 +555,20 @@ extension _BentoMoodTrend on _StatisticsPageState {
                                   return Positioned(
                                     left: spotX - 14.0,
                                     top: (spotY - 14.0).clamp(4.0, 140.0),
-                                    child: _buildMoodTrendIconStick(
-                                      iconPath: iconPath,
-                                      isMax: true,
-                                      isNight: isNight,
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () {
+                                        if (_selectedMoodTrendX == maxIdx) {
+                                          updateMoodTrendX(null);
+                                        } else {
+                                          updateMoodTrendX(maxIdx);
+                                        }
+                                      },
+                                      child: _buildMoodTrendIconStick(
+                                        iconPath: iconPath,
+                                        isMax: true,
+                                        isNight: isNight,
+                                      ),
                                     ),
                                   );
                                 }(),
@@ -584,10 +594,20 @@ extension _BentoMoodTrend on _StatisticsPageState {
                                   return Positioned(
                                     left: spotX - 14.0,
                                     top: (spotY - 14.0 + 3).clamp(4.0, 140.0),
-                                    child: _buildMoodTrendIconStick(
-                                      iconPath: iconPath,
-                                      isMax: false,
-                                      isNight: isNight,
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () {
+                                        if (_selectedMoodTrendX == minIdx) {
+                                          updateMoodTrendX(null);
+                                        } else {
+                                          updateMoodTrendX(minIdx);
+                                        }
+                                      },
+                                      child: _buildMoodTrendIconStick(
+                                        iconPath: iconPath,
+                                        isMax: false,
+                                        isNight: isNight,
+                                      ),
                                     ),
                                   );
                                 }(),

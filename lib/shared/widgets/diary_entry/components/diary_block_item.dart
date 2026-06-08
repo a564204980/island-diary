@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:io';
@@ -109,7 +110,7 @@ class DiaryBlockItem extends StatelessWidget {
       data: Theme.of(context).copyWith(
         textSelectionTheme: TextSelectionThemeData(
           cursorColor: inkColor,
-          selectionColor: inkColor.withValues(alpha: 0.2),
+          selectionColor: inkColor.withValues(alpha: 0.28),
           selectionHandleColor: inkColor,
         ),
       ),
@@ -131,9 +132,12 @@ class DiaryBlockItem extends StatelessWidget {
           readOnly: false,
           showCursor: true,
           cursorColor: inkColor,
+          selectionHeightStyle: ui.BoxHeightStyle.tight,
+          selectionWidthStyle: ui.BoxWidthStyle.tight,
           style: TextStyle(
             fontSize: 20, 
             height: 1.6,
+            leadingDistribution: TextLeadingDistribution.even,
             color: inkColor,
             fontFamilyFallback: const ['LXGWWenKai'],
           ),

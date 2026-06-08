@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import '../../domain/models/furniture_item.dart';
 import '../../domain/models/placed_furniture.dart';
@@ -78,6 +80,17 @@ class DecorationController extends ChangeNotifier {
     }
 
     _availableItems = FurnitureDbService.getAllItems();
+
+    // 过滤掉本地被删除了的资源文件，防止抛出 AssetNotFound 异常并显示空白卡片
+    try {
+      final AssetManifest manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+      final Set<String> assets = manifest.listAssets().toSet();
+      _availableItems = _availableItems.where((item) {
+        return assets.contains(item.imagePath);
+      }).toList();
+    } catch (e) {
+      debugPrint('Failed to filter missing assets using AssetManifest: $e');
+    }
 
     // 加载已保存的家具布局
     final saved = UserState().placedFurniture.value;

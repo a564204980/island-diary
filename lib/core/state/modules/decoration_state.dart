@@ -10,7 +10,7 @@ mixin DecorationMixin {
   final ValueNotifier<int> floorPattern = ValueNotifier<int>(0);
   final ValueNotifier<Uint8List?> decorationSnapshot = ValueNotifier<Uint8List?>(null);
 
-  // 补回由成就解耦出来的饰品拥有权与角色解锁属性
+  // 饰品拥有权与角色解锁属性
   final ValueNotifier<List<String>> ownedDecorationIds = ValueNotifier<List<String>>([]);
   final ValueNotifier<List<String>> unlockedMascotPaths = ValueNotifier<List<String>>([]);
 

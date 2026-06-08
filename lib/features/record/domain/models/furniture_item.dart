@@ -44,6 +44,8 @@ class FurnitureColorVariant {
 }
 
 class FurnitureItem {
+  static void Function(FurnitureItem item)? itemMigrator;
+
   String id;
   String name;
   String imagePath;
@@ -277,7 +279,7 @@ class FurnitureItem {
 
   factory FurnitureItem.fromMap(Map<String, dynamic> map) {
     final rect = map['spriteRect'] as Map<String, dynamic>;
-    return FurnitureItem(
+    final item = FurnitureItem(
       id: map['id'] ?? '',
       name: map['name'] ?? '',
       imagePath: map['imagePath'] ?? '',
@@ -342,6 +344,8 @@ class FurnitureItem {
               .toList() ??
           const [],
     );
+    itemMigrator?.call(item);
+    return item;
   }
 }
 

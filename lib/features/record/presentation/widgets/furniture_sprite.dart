@@ -48,6 +48,7 @@ class FurnitureSprite extends StatefulWidget {
 class _FurnitureSpriteState extends State<FurnitureSprite> {
   ui.Image? _image;
   ImageStream? _imageStream;
+  ImageStreamListener? _listener;
 
   @override
   void didChangeDependencies() {
@@ -56,14 +57,32 @@ class _FurnitureSpriteState extends State<FurnitureSprite> {
   }
 
   void _loadImage() {
+    final cached = SpritePainter.getImage(widget.item.imagePath);
+    if (cached != null) {
+      if (_image != cached) {
+        setState(() {
+          _image = cached;
+        });
+      }
+      return;
+    }
+
     final ImageStream newStream = AssetImage(
       widget.item.imagePath,
     ).resolve(createLocalImageConfiguration(context));
     if (newStream.key == _imageStream?.key) return;
 
-    _imageStream?.removeListener(ImageStreamListener(_updateImage));
+    if (_imageStream != null && _listener != null) {
+      _imageStream!.removeListener(_listener!);
+    }
     _imageStream = newStream;
-    _imageStream!.addListener(ImageStreamListener(_updateImage));
+    _listener = ImageStreamListener(
+      _updateImage,
+      onError: (exception, stackTrace) {
+        debugPrint('FurnitureSprite failed to load: ${widget.item.imagePath}, error: $exception');
+      },
+    );
+    _imageStream!.addListener(_listener!);
   }
 
   void _updateImage(ImageInfo info, bool _) async {
@@ -88,7 +107,9 @@ class _FurnitureSpriteState extends State<FurnitureSprite> {
 
   @override
   void dispose() {
-    _imageStream?.removeListener(ImageStreamListener(_updateImage));
+    if (_imageStream != null && _listener != null) {
+      _imageStream!.removeListener(_listener!);
+    }
     super.dispose();
   }
 

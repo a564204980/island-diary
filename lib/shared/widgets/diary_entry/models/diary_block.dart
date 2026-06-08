@@ -350,8 +350,9 @@ class DiaryTextEditingController extends TextEditingController {
     Map<String, String>? annotations,
     int blockIndex = 0,
     void Function(String key)? onAnnotationTap,
+    bool trimTrailing = false,
   }) {
-    final textContent = text;
+    final textContent = trimTrailing ? text.trimRight() : text;
     if (textContent.isEmpty) return TextSpan(style: style, text: textContent);
 
     final List<Map<String, dynamic>> blockAnnotations = [];
@@ -359,9 +360,20 @@ class DiaryTextEditingController extends TextEditingController {
       annotations.forEach((key, value) {
         final parts = key.split('_');
         if (parts.length == 3 && int.tryParse(parts[0]) == blockIndex) {
-          final start = int.tryParse(parts[1]);
-          final end = int.tryParse(parts[2]);
-          if (start != null && end != null) {
+          final startVal = int.tryParse(parts[1]);
+          final endVal = int.tryParse(parts[2]);
+          if (startVal != null && endVal != null) {
+            int start = startVal;
+            int end = endVal;
+            // 裁剪掉批注高亮范围末尾的换行符和空格，防止气泡图标换行
+            while (end > start && end <= textContent.length &&
+                (textContent[end - 1] == '\n' ||
+                 textContent[end - 1] == '\r' ||
+                 textContent[end - 1] == ' ' ||
+                 textContent[end - 1] == '\u200B')) {
+              end--;
+            }
+
             Map<String, dynamic>? data;
             try {
               data = jsonDecode(value);
@@ -388,12 +400,14 @@ class DiaryTextEditingController extends TextEditingController {
           fontSize: baseFontSize,
           fontFamily: baseFontFamily,
           height: 1.6,
+          leadingDistribution: TextLeadingDistribution.even,
         ) ??
         TextStyle(
           color: baseColor,
           fontSize: baseFontSize,
           fontFamily: baseFontFamily,
           height: 1.6,
+          leadingDistribution: TextLeadingDistribution.even,
         );
 
     final List<Map<String, dynamic>> highlights = [];
@@ -769,11 +783,14 @@ class DiaryTextEditingController extends TextEditingController {
       }
 
       if (activeAnnotation != null) {
-        final Color color = activeAnnotation['color'] as Color;
+        final Color color = (activeAnnotation['color'] as Color).withValues(alpha: 0.4);
         children.add(
           TextSpan(
             text: chunk,
-            style: combinedStyle.copyWith(backgroundColor: color),
+            style: combinedStyle.copyWith(
+              backgroundColor: color,
+              height: 1.15,
+            ),
           ),
         );
       } else {
@@ -789,7 +806,6 @@ class DiaryTextEditingController extends TextEditingController {
               alignment: PlaceholderAlignment.top,
               child: SelectionContainer.disabled(
                 child: Padding(
-                  // 负的 bottom padding 会让 WidgetSpan 向上浮起到文字行上方
                   padding: const EdgeInsets.only(left: 1),
                   child: SizedBox(
                     width: 20,
@@ -817,8 +833,10 @@ class DiaryTextEditingController extends TextEditingController {
       }
     }
 
-    // 在末尾增加一个微小的空节点，通常能解决 Flutter 中 WidgetSpan 作为行末元素时光标无法落位的问题
-    children.add(const TextSpan(text: ' ' , style: TextStyle(fontSize: 0.001)));
+    // 如果末尾是 WidgetSpan，增加一个微小的空节点，以解决 WidgetSpan (如气泡或表情) 作为行末元素时在只读模式下折行、或在编辑模式下光标无法落位的问题
+    if (children.isNotEmpty && children.last is WidgetSpan) {
+      children.add(const TextSpan(text: '\u200B' , style: TextStyle(fontSize: 0.001)));
+    }
     return TextSpan(style: rootStyle, children: children);
   }
 }
