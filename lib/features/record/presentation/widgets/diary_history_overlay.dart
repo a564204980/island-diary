@@ -5,8 +5,6 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_search_panel.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_calendar_panel.dart';
-import 'package:island_diary/features/record/presentation/widgets/diary_moments_card.dart';
-import 'package:island_diary/features/record/presentation/widgets/diary_moments_header.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_share_card_builder.dart';
 import 'package:island_diary/features/record/presentation/widgets/export_config_dialog.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
@@ -19,8 +17,8 @@ import 'package:island_diary/features/record/presentation/widgets/diary_featured
 import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 
 enum DiaryLayoutMode {
-  timeline, // 拟物纸张时间轴
-  moments, // 朋友圈风格记忆流
+  timeline, // 时间轴模式
+  masonry, // 小红书模式
   calendar, // 日历网格
 }
 
@@ -57,7 +55,14 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
     _headerDate = ValueNotifier<DateTime>(DateTime.now());
     _selectedDate = null;
     // 从持久化状态加载
-    _layoutMode = DiaryLayoutMode.values[UserState().diaryLayoutMode.value];
+    int savedIndex = UserState().diaryLayoutMode.value;
+    // 防止旧数据保存的 index (如 1 为 moments) 超出新的范围或者定位错乱，这里做一个安全转换映射
+    if (savedIndex == 1) {
+      savedIndex = 0; // moments 回落至 timeline
+    } else if (savedIndex > 1) {
+      savedIndex -= 1; // 后续 index 均向前平移一位
+    }
+    _layoutMode = DiaryLayoutMode.values[savedIndex.clamp(0, DiaryLayoutMode.values.length - 1)];
   }
 
   @override
@@ -96,7 +101,6 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isMoments = _layoutMode == DiaryLayoutMode.moments;
     final bool isCalendar = _layoutMode == DiaryLayoutMode.calendar;
     final bool isNight = UserState().isNight;
 
@@ -104,49 +108,15 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          ValueListenableBuilder<String?>(
-            valueListenable: UserState().momentsCoverPath,
-            builder: (context, coverPath, _) {
-              return Positioned.fill(
-                child: Container(
-                  color: isNight ? const Color(0xFF13131F) : const Color(0xFFF7F5F0),
-                  child: isMoments
-                      ? (isNight
-                            ? const SizedBox.shrink()
-                            : Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: coverPath != null
-                                        ? DiaryUtils.buildImage(
-                                            coverPath,
-                                            fit: BoxFit.cover,
-                                          )
-                                        : Image.asset(
-                                            'assets/images/note/note_bg1.png',
-                                            fit: BoxFit.cover,
-                                          ),
-                                  ),
-                                  Positioned.fill(
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(
-                                        sigmaX: 60,
-                                        sigmaY: 60,
-                                      ),
-                                      child: Container(
-                                        color: Colors.white.withValues(alpha: 0.6),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ))
-                      : (isNight
-                            ? null
-                            : Container(color: const Color(0xFFFDF9F0))),
-                ),
-              );
-            },
+          Positioned.fill(
+            child: Container(
+              color: isNight ? const Color(0xFF13131F) : const Color(0xFFF7F5F0),
+              child: isNight
+                  ? null
+                  : Container(color: const Color(0xFFFDF9F0)),
+            ),
           ),
-          if (!isMoments && !isCalendar)
+          if (!isCalendar)
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -170,21 +140,18 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
               ),
             ),
           ),
-
           Positioned.fill(
             child: SafeArea(
               bottom: false,
               child: Column(
                 children: [
-                  // 统一的 800px 宽度约束容器
                   Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 800),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 方案 B：在朋友圈模式下隐藏头部，否则显示瀑布流头部
-                          if (!isMoments && !isCalendar)
+                          if (!isCalendar)
                             ValueListenableBuilder<DateTime>(
                               valueListenable: _headerDate,
                               builder: (context, headerDate, _) {
@@ -202,7 +169,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                               },
                             )
                           else if (isCalendar)
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12.0),
                         ],
                       ),
                     ),
@@ -260,7 +227,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
 
                             return AnimatedSwitcher(
                               duration: const Duration(milliseconds: 300),
-                              child: (filtered.isEmpty && !isMoments)
+                              child: filtered.isEmpty
                                   ? Center(
                                       key: const ValueKey('empty'),
                                       child: Text(
@@ -277,95 +244,63 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                         ),
                                       ),
                                     )
-                                  : (isMoments
-                                      ? ListView.builder(
-                                          key: ValueKey('list_$_layoutMode'),
-                                          padding: const EdgeInsets.only(
-                                            top: 0,
-                                            bottom: 100,
-                                          ),
-                                          itemCount: filtered.length + 1,
-                                          itemBuilder: (context, index) {
-                                            if (index == 0) {
-                                              return DiaryMomentsHeader(
+                                  : NotificationListener<ScrollNotification>(
+                                      onNotification: (notification) {
+                                        if (filtered.isEmpty) return false;
+                                        
+                                        final double offset = _scrollController.offset;
+                                        final int crossAxisCount = MediaQuery.of(context).size.width > 800 ? 3 : 2;
+                                        
+                                        int index = 0;
+                                        if (offset < 260) {
+                                          index = 0;
+                                        } else {
+                                          double masonryOffset = offset - 260;
+                                          int row = (masonryOffset / 220).floor(); // 估算行高
+                                          index = 1 + row * crossAxisCount;
+                                        }
+                                        
+                                        if (index >= filtered.length) index = filtered.length - 1;
+                                        if (index < 0) index = 0;
+                                        
+                                        final targetDate = filtered[index].dateTime;
+                                        if (_headerDate.value.year != targetDate.year || 
+                                            _headerDate.value.month != targetDate.month || 
+                                            _headerDate.value.day != targetDate.day) {
+                                          _headerDate.value = targetDate;
+                                        }
+                                        return false;
+                                      },
+                                      child: CustomScrollView(
+                                        key: const ValueKey('masonry'),
+                                        controller: _scrollController,
+                                        slivers: [
+                                          if (filtered.isNotEmpty)
+                                            SliverToBoxAdapter(
+                                              child: DiaryFeaturedCard(
+                                                entry: filtered.first,
                                                 isNight: isNight,
-                                                onBack: () => _setLayoutMode(
-                                                  DiaryLayoutMode.timeline,
-                                                ),
-                                              );
-                                            }
-                                            return Center(
-                                              child: ConstrainedBox(
-                                                constraints: const BoxConstraints(
-                                                  maxWidth: contentMaxWidth,
-                                                ),
-                                                child: DiaryMomentsCard(
-                                                  entry: filtered[index - 1],
+                                              ),
+                                            ),
+                                          SliverPadding(
+                                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                                            sliver: SliverMasonryGrid.count(
+                                              crossAxisCount: MediaQuery.of(context).size.width > 800 ? 3 : 2,
+                                              crossAxisSpacing: 12,
+                                              mainAxisSpacing: 12,
+                                              childCount: filtered.length > 1 ? filtered.length - 1 : 0,
+                                              itemBuilder: (context, index) {
+                                                return DiaryMasonryCard(
+                                                  entry: filtered[index + 1],
                                                   isNight: isNight,
-                                                  userName:
-                                                      UserState().userName.value,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        )
-                                      : NotificationListener<ScrollNotification>(
-                                          onNotification: (notification) {
-                                            if (filtered.isEmpty) return false;
-                                            
-                                            final double offset = _scrollController.offset;
-                                            final int crossAxisCount = MediaQuery.of(context).size.width > 800 ? 3 : 2;
-                                            
-                                            int index = 0;
-                                            if (offset < 260) {
-                                              index = 0;
-                                            } else {
-                                              double masonryOffset = offset - 260;
-                                              int row = (masonryOffset / 220).floor(); // 估算行高
-                                              index = 1 + row * crossAxisCount;
-                                            }
-                                            
-                                            if (index >= filtered.length) index = filtered.length - 1;
-                                            if (index < 0) index = 0;
-                                            
-                                            final targetDate = filtered[index].dateTime;
-                                            if (_headerDate.value.year != targetDate.year || 
-                                                _headerDate.value.month != targetDate.month || 
-                                                _headerDate.value.day != targetDate.day) {
-                                              _headerDate.value = targetDate;
-                                            }
-                                            return false;
-                                          },
-                                          child: CustomScrollView(
-                                            key: const ValueKey('masonry'),
-                                            controller: _scrollController,
-                                            slivers: [
-                                              if (filtered.isNotEmpty)
-                                                SliverToBoxAdapter(
-                                                  child: DiaryFeaturedCard(
-                                                    entry: filtered.first,
-                                                    isNight: isNight,
-                                                  ),
-                                                ),
-                                              SliverPadding(
-                                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                                                sliver: SliverMasonryGrid.count(
-                                                  crossAxisCount: MediaQuery.of(context).size.width > 800 ? 3 : 2,
-                                                  crossAxisSpacing: 12,
-                                                  mainAxisSpacing: 12,
-                                                  childCount: filtered.length > 1 ? filtered.length - 1 : 0,
-                                                  itemBuilder: (context, index) {
-                                                    return DiaryMasonryCard(
-                                                      entry: filtered[index + 1],
-                                                      isNight: isNight,
-                                                      index: index + 1,
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                            ],
+                                                  index: index + 1,
+                                                );
+                                              },
+                                            ),
                                           ),
-                                        )),
+                                        ],
+                                      ),
+                                    ),
                             );
                           },
                         ),
@@ -489,35 +424,37 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    _buildToolBtn(Icons.search_rounded, () {
-                                      showModalBottomSheet(
-                                        context: context,
-                                        backgroundColor: Colors.transparent,
-                                        isScrollControlled: true,
-                                        builder: (context) => DiarySearchPanel(
-                                          isNight: isNight,
-                                          initialDate: _selectedDate,
-                                          onSearch: (q, m, d) {
-                                            setState(() {
-                                              _searchQuery = q;
-                                              _filterMoodIndex = m;
-                                              if (d != null) {
-                                                _selectedDate = d;
-                                                _headerDate.value = d;
-                                              }
-                                            });
-                                          },
-                                          onClear: () {
-                                            setState(() {
-                                              _searchQuery = "";
-                                              _filterMoodIndex = null;
-                                              _selectedDate = null;
-                                            });
-                                          },
-                                        ),
-                                      );
-                                    }, isNight: isNight),
-                                    const SizedBox(width: 40),
+                                    if (!isCalendar) ...[
+                                      _buildToolBtn(Icons.search_rounded, () {
+                                        showModalBottomSheet(
+                                          context: context,
+                                          backgroundColor: Colors.transparent,
+                                          isScrollControlled: true,
+                                          builder: (context) => DiarySearchPanel(
+                                            isNight: isNight,
+                                            initialDate: _selectedDate,
+                                            onSearch: (q, m, d) {
+                                              setState(() {
+                                                _searchQuery = q;
+                                                _filterMoodIndex = m;
+                                                if (d != null) {
+                                                  _selectedDate = d;
+                                                  _headerDate.value = d;
+                                                }
+                                              });
+                                            },
+                                            onClear: () {
+                                              setState(() {
+                                                _searchQuery = "";
+                                                _filterMoodIndex = null;
+                                                _selectedDate = null;
+                                              });
+                                            },
+                                          ),
+                                        );
+                                      }, isNight: isNight),
+                                      const SizedBox(width: 40),
+                                    ],
                                     GestureDetector(
                                       onTap: widget.onClose,
                                       child: Icon(

@@ -786,6 +786,20 @@ class _IsometricRoomPainter extends CustomPainter {
       canvas.restore();
     }
 
+    final cornerPaint = Paint()
+      ..color = outline
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeJoin = StrokeJoin.round;
+    const rBackTemp = 0.04;
+    final pInnerStartTemp = tBackIn + (tRightIn - tBackIn) * rBackTemp;
+    final pInnerEndTemp = tBackIn + (tLeftIn - tBackIn) * rBackTemp;
+    final tBackInCurveCenter =
+        pInnerEndTemp * 0.25 + tBackIn * 0.5 + pInnerStartTemp * 0.25;
+    canvas.drawLine(pBackIn, tBackInCurveCenter, cornerPaint);
+    canvas.drawLine(pBackIn, pLeftIn, cornerPaint);
+    canvas.drawLine(pBackIn, pRightIn, cornerPaint);
+
     // 4.2 核心步骤：渲染已摆放的家具与拖拽预览
     _drawAllFurniture(canvas, converter, converter.tw, converter.th);
 
@@ -930,11 +944,7 @@ class _IsometricRoomPainter extends CustomPainter {
     canvas.drawLine(pLeftOut, fLL, sp);
     canvas.drawLine(pRightOut, fRL, sp);
 
-    final tBackInCurveCenter =
-        pInnerEnd * 0.25 + tBackIn * 0.5 + pInnerStart * 0.25;
-    canvas.drawLine(pBackIn, tBackInCurveCenter, sp);
-    canvas.drawLine(pBackIn, pLeftIn, sp);
-    canvas.drawLine(pBackIn, pRightIn, sp);
+
 
     final pathLeftEndOut = Path()
       ..moveTo(pLeftOut.dx, pLeftOut.dy)

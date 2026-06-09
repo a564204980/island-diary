@@ -27,13 +27,13 @@ class DiaryMasonryHeader extends StatelessWidget {
     final bool isLantern = themeId == 'lantern_festival';
     final bool isCottonCandy = themeId == 'cotton_candy';
 
-    final textColor = isLantern
-        ? const Color(0xFFF4E3C0)
-        : (isCottonCandy
-            ? (isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF6F5E63))
-            : (isNight
-                ? Colors.white.withValues(alpha: 0.9)
-                : const Color(0xFF060606)));
+    final Color themeGoldColor = isNight
+        ? const Color(0xFFE1AF78)
+        : const Color(0xFFD4A373);
+
+    final Color capsuleTextColor = isNight
+        ? const Color(0xFFE1AF78).withValues(alpha: 0.9)
+        : const Color(0xFF5C4E43); // 暖深咖啡褐色，契合图1
 
     final subTextColor = isLantern
         ? const Color(0xFFEAD2A8)
@@ -49,53 +49,81 @@ class DiaryMasonryHeader extends StatelessWidget {
           children: [
             // 日期胶囊
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
                 color: isNight 
-                  ? (isCottonCandy 
-                      ? Colors.white.withValues(alpha: 0.28) 
-                      : Colors.white.withValues(alpha: 0.25)) 
-                  : Colors.black.withValues(alpha: 0.05),
+                  ? const Color(0xFF2C2E30) 
+                  : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isNight 
-                    ? (isCottonCandy 
-                        ? Colors.white.withValues(alpha: 0.22) 
-                        : Colors.white.withValues(alpha: 0.15)) 
-                    : Colors.transparent,
+                    ? Colors.white.withValues(alpha: 0.08) 
+                    : const Color(0xFFD4A373).withValues(alpha: 0.22),
                   width: 1,
                 ),
+                boxShadow: isNight 
+                  ? null 
+                  : [
+                      BoxShadow(
+                        color: const Color(0xFFD4A373).withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
               ),
-              child: Text.rich(
-                key: ValueKey("${currentDate.year}-${currentDate.month}-${currentDate.day}"),
-                TextSpan(
-                  children: [
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.calendar_today_rounded,
+                    size: 14,
+                    color: themeGoldColor,
+                  ),
+                  const SizedBox(width: 7),
+                  Text.rich(
+                    key: ValueKey("${currentDate.year}-${currentDate.month}-${currentDate.day}"),
                     TextSpan(
-                      text: "${currentDate.month}",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                      ),
+                      children: [
+                        TextSpan(
+                          text: "${currentDate.month}",
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w900,
+                            color: capsuleTextColor,
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                        ),
+                        TextSpan(
+                          text: "月",
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w900,
+                            color: capsuleTextColor,
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                        ),
+                        TextSpan(
+                          text: "${currentDate.day}",
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w900,
+                            color: capsuleTextColor,
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                        ),
+                        TextSpan(
+                          text: "日",
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w900,
+                            color: capsuleTextColor,
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                        ),
+                      ],
                     ),
-                    TextSpan(
-                      text: "月",
-                      style: TextStyle(fontSize: 12, color: textColor),
-                    ),
-                    TextSpan(
-                      text: "${currentDate.day}",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                      ),
-                    ),
-                    TextSpan(
-                      text: "日",
-                      style: TextStyle(fontSize: 12, color: textColor),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 12),

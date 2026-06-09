@@ -120,19 +120,19 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     return Stack(
           children: [
             // 贯穿全高的轴线 (处于底层) - 拆分为两段，并避开圆点区域
-            // 上半段：从顶部到圆点顶缘 (6px)
+            // 上半段：从顶部到新圆点顶缘 (3px)
             if (!widget.isFirst)
               Positioned(
                 left: 76,
                 top: 0,
-                height: 6,
+                height: 3,
                 child: _buildTimelineLine(isTop: true),
               ),
-            // 下半段：从圆点底缘 (6px padding + 10px 直径 = 16px) 向下延伸
+            // 下半段：从新圆点底缘 (3px padding + 16px 直径 = 19px) 向下延伸
             if (!widget.isLast)
               Positioned(
                 left: 76,
-                top: 16,
+                top: 19,
                 bottom: 0,
                 child: _buildTimelineLine(isTop: false),
               ),
@@ -175,7 +175,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                                   fontSize: 13,
                                   color: widget.isNight
                                       ? const Color(0xFFE1AF78).withValues(alpha: 0.8)
-                                      : Colors.black.withValues(alpha: 0.35),
+                                      : const Color(0xFF8B7763),
                                 ),
                               ),
                             ],
@@ -185,7 +185,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                                 fontSize: widget.showDate ? 14 : 15,
                                 color: widget.isNight
                                     ? Colors.white70
-                                    : Colors.black.withValues(alpha: 0.35),
+                                    : const Color(0xFF8B7763).withValues(alpha: 0.7),
                                 fontWeight: widget.showDate ? FontWeight.w500 : FontWeight.w700,
                               ),
                             ),
@@ -199,35 +199,40 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                       width: 24,
                       child: Column(
                         children: [
-                          const SizedBox(height: 6), // 对齐时刻
-                          // 实心装订点
+                          const SizedBox(height: 3), // 对齐时刻 (同心圆直径 16)
+                          // 同心圆装订点
                           Container(
-                            width: 10,
-                            height: 10,
+                            width: 16,
+                            height: 16,
+                            alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: widget.isNight
-                                  ? const Color(0xFFE1AF78).withValues(alpha: 0.6)
-                                  : const Color(0xFFC4B69E),
                               shape: BoxShape.circle,
-                              boxShadow: widget.isNight
-                                  ? null
-                                  : [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.1),
-                                        blurRadius: 2,
-                                        offset: const Offset(1, 1),
-                                      ),
-                                    ],
+                              border: Border.all(
+                                color: widget.isNight
+                                    ? const Color(0xFFE1AF78).withValues(alpha: 0.8)
+                                    : const Color(0xFFD4A373),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: widget.isNight
+                                    ? const Color(0xFFE1AF78).withValues(alpha: 0.8)
+                                    : const Color(0xFFD4A373),
+                                shape: BoxShape.circle,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 22), // 本来是 12，增加 10px 补偿位置并保持卡片不动
+                    const SizedBox(width: 10), // 缩减间距，让卡片更靠近时间轴
                     // 右侧内容卡片
                     Expanded(
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 24, right: 8),
+                        margin: const EdgeInsets.only(bottom: 24, right: 16),
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           color: widget.isNight
@@ -532,21 +537,12 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
 
   Widget _buildTimelineLine({required bool isTop}) {
     return Container(
-      width: 4,
+      width: 3,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            widget.isNight
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.05),
-            widget.isNight
-                ? Colors.white.withValues(alpha: 0.01)
-                : Colors.black.withValues(alpha: 0.01),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(2),
+        color: widget.isNight
+            ? const Color(0xFFE1AF78).withValues(alpha: 0.15)
+            : const Color(0xFFD4A373).withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(1.5),
       ),
     );
   }

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-class MomentsReplySheet extends StatefulWidget {
+class DiaryReplySheet extends StatefulWidget {
   final String title;
   final String hintText;
   final String confirmText;
   final Function(String) onConfirm;
   final bool isNight;
 
-  const MomentsReplySheet({
+  const DiaryReplySheet({
     super.key,
     this.title = '留下此刻的回响',
     this.hintText = '记录下这一刻的触动...',
@@ -18,10 +18,10 @@ class MomentsReplySheet extends StatefulWidget {
   });
 
   @override
-  State<MomentsReplySheet> createState() => _MomentsReplySheetState();
+  State<DiaryReplySheet> createState() => _DiaryReplySheetState();
 }
 
-class _MomentsReplySheetState extends State<MomentsReplySheet> {
+class _DiaryReplySheetState extends State<DiaryReplySheet> {
   final TextEditingController _controller = TextEditingController();
 
   @override
@@ -204,135 +204,6 @@ class _MomentsReplySheetState extends State<MomentsReplySheet> {
             duration: 400.ms,
             curve: Curves.easeOutQuart,
           ),
-    );
-  }
-}
-
-/// 通用的确认对话框（美化版）
-class MomentsConfirmDialog extends StatelessWidget {
-  final String title;
-  final String content;
-  final String confirmText;
-  final Color confirmColor;
-  final VoidCallback onConfirm;
-  final bool isNight;
-
-  const MomentsConfirmDialog({
-    super.key,
-    required this.title,
-    required this.content,
-    required this.onConfirm,
-    this.confirmText = '确认',
-    this.confirmColor = Colors.redAccent,
-    this.isNight = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bgColor = isNight ? const Color(0xFF1A1C1E) : const Color(0xFFFDF9F0);
-    final inkColor = isNight
-        ? Colors.white.withValues(alpha: 0.8)
-        : const Color(0xFF5D4037);
-
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child:
-            Container(
-                  width: MediaQuery.of(context).size.width * 0.8,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 30,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'LXGWWenKai',
-                          color: inkColor,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        content,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: inkColor.withValues(alpha: 0.6),
-                          fontFamily: 'LXGWWenKai',
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                              ),
-                              child: Text(
-                                '取消',
-                                style: TextStyle(
-                                  color: inkColor.withValues(alpha: 0.4),
-                                  fontFamily: 'LXGWWenKai',
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                onConfirm();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: confirmColor.withValues(
-                                  alpha: 0.1,
-                                ),
-                                foregroundColor: confirmColor,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                confirmText,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'LXGWWenKai',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                )
-                .animate()
-                .fadeIn(duration: 250.ms)
-                .scale(begin: const Offset(0.95, 0.95)),
-      ),
     );
   }
 }

@@ -88,7 +88,7 @@ class _K {
   static const ownedDecorations = 'owned_decoration_ids';
   static const unlockedMascots = 'unlocked_mascot_paths';
 
-  static const momentsCover = 'moments_cover_path';
+
   static const diaryLayoutMode = 'diary_layout_mode';
   static const moodTagHistory = 'mood_tag_history';
   static const statsOrderWeek = 'stats_order_week';

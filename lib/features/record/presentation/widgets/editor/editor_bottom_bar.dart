@@ -158,7 +158,7 @@ class EditorBottomBar extends StatelessWidget {
                       12,
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _buildNavItem("图片", Icons.image_outlined, false, onImagePick),
                         _buildNavItem("表情", Icons.face_rounded, isEmojiOpen, onEmojiToggle),
@@ -173,68 +173,14 @@ class EditorBottomBar extends StatelessWidget {
               ),
             ),
             
-            // 2. 乐高底板专属：圆形突起积木颗粒 (Studs) - 营造 3D 拼装凸出视觉
-            if (isLego && isFloating) ...[
-              // 左边大 Stud
-              Positioned(
-                left: 10,
-                top: 20,
-                child: _buildLegoStud(isNight, size: 14),
-              ),
-              // 左边小 Stud
-              Positioned(
-                left: 17,
-                bottom: 14,
-                child: _buildLegoStud(isNight, size: 10),
-              ),
-              // 右边大 Stud
-              Positioned(
-                right: 10,
-                top: 20,
-                child: _buildLegoStud(isNight, size: 14),
-              ),
-              // 右边小 Stud
-              Positioned(
-                right: 17,
-                bottom: 14,
-                child: _buildLegoStud(isNight, size: 10),
-              ),
-            ],
+
           ],
         ),
       ),
     );
   }
 
-  /// 渲染逼真的乐高拼装圆形突起 (Studs) - 带有独立的微距高光与阴影
-  Widget _buildLegoStud(bool isNight, {required double size}) {
-    final Color studColor = isNight ? const Color(0xFF2C2518) : const Color(0xFFFCF0D5);
-    final Color highlightColor = isNight ? const Color(0xFF433927) : const Color(0xFFFFFCEE);
-    final Color shadowColor = isNight ? const Color(0xFF1B160E) : const Color(0xFFDCC8A0);
 
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: studColor,
-        shape: BoxShape.circle,
-        boxShadow: [
-          // 凸起下方的颗粒投影
-          BoxShadow(
-            color: shadowColor.withValues(alpha: 0.95),
-            blurRadius: 1.8,
-            offset: const Offset(0.5, 1.2),
-          ),
-          // 凸起边缘微亮边模拟软反射
-          BoxShadow(
-            color: highlightColor.withValues(alpha: 0.8),
-            blurRadius: 0.8,
-            offset: const Offset(-0.3, -0.3),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildNavItem(String label, IconData icon, bool isActive, VoidCallback onTap) {
     final themeId = UserState().selectedIslandThemeId.value;
@@ -371,6 +317,25 @@ class EditorBottomBar extends StatelessWidget {
                     child: DiaryUtils.buildImage(img.file.path, fit: BoxFit.cover),
                   ),
                 ),
+                if (img.videoPath != null)
+                  Positioned(
+                    left: 3,
+                    bottom: 3,
+                    child: IgnorePointer(
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.motion_photos_on,
+                          color: Colors.white,
+                          size: 11,
+                        ),
+                      ),
+                    ),
+                  ),
                 Positioned(
                   top: -5,
                   right: -5,

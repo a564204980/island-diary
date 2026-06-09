@@ -111,7 +111,7 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
     );
   }
 
-  Widget _buildTimePatternBento(bool isNight, List<DiaryEntry> filtered) {
+  Widget _buildTimePatternBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
     if (filtered.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -187,7 +187,7 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
               size: 18,
               color: isCottonCandy
                   ? const Color(0xFFF7AAB6)
-                  : (isNight ? Colors.white54 : Colors.black38),
+                  : themeColor.withValues(alpha: isNight ? 0.6 : 0.4),
             ),
           ),
           const SizedBox(height: 12),
@@ -221,243 +221,80 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
               final Color baseColor = timeLabels[index]['color'] as Color;
               final int count = counts[index];
 
-              return GestureDetector(
-                onTap: () => _showTimePatternDetailSheet(
-                  context: context,
-                  isNight: isNight,
-                  label: timeLabels[index]['label'] as String,
-                  icon: timeLabels[index]['icon'] as IconData,
-                  color: baseColor,
-                  entries: groups[index],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AnimatedContainer(
-                          duration: const Duration(milliseconds: 600),
-                          width: 34,
-                          height: 26 + (heightFactor * 58),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [
-                                baseColor.withValues(alpha: 0.82),
-                                baseColor.withValues(alpha: 0.36),
-                              ],
-                            ),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.22),
-                              width: 0.8,
-                            ),
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: baseColor.withValues(alpha: 0.16),
-                                blurRadius: 14,
-                                offset: const Offset(0, 6),
-                              ),
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedContainer(
+                        duration: const Duration(milliseconds: 600),
+                        width: 34,
+                        height: 26 + (heightFactor * 58),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              baseColor.withValues(alpha: 0.82),
+                              baseColor.withValues(alpha: 0.36),
                             ],
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.only(
-                              top: 6,
-                              left: 6,
-                              right: 6,
-                              bottom: 6,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.22),
+                            width: 0.8,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: baseColor.withValues(alpha: 0.16),
+                              blurRadius: 14,
+                              offset: const Offset(0, 6),
                             ),
-                            child: Align(
-                              alignment: Alignment.topCenter,
-                              child: Icon(
-                                timeLabels[index]['icon'] as IconData,
-                                size: 17,
-                                color: Colors.white.withValues(alpha: 0.68),
-                              ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            top: 6,
+                            left: 6,
+                            right: 6,
+                            bottom: 6,
+                          ),
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: Icon(
+                              timeLabels[index]['icon'] as IconData,
+                              size: 17,
+                              color: Colors.white.withValues(alpha: 0.68),
                             ),
                           ),
-                        )
-                        .animate(onPlay: (c) => c.repeat(reverse: true))
-                        .shimmer(
-                          duration: (1600 + index * 180).ms,
-                          color: Colors.white.withValues(alpha: 0.16),
                         ),
-                    const SizedBox(height: 10),
-                    Text(
-                      timeLabels[index]['label'] as String,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.normal,
-                        color: isNight ? Colors.white54 : Colors.black54,
+                      )
+                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                      .shimmer(
+                        duration: (1600 + index * 180).ms,
+                        color: Colors.white.withValues(alpha: 0.16),
                       ),
+                  const SizedBox(height: 10),
+                  Text(
+                    timeLabels[index]['label'] as String,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.normal,
+                      color: isNight ? Colors.white54 : Colors.black54,
                     ),
-                    Text(
-                      '$count 次',
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: isNight ? Colors.white38 : Colors.black38,
-                      ),
+                  ),
+                  Text(
+                    '$count 次',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: isNight ? Colors.white38 : Colors.black38,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               );
             }),
           ),
         ],
       ),
     );
-  }
-
-  void _showTimePatternDetailSheet({
-    required BuildContext context,
-    required bool isNight,
-    required String label,
-    required IconData icon,
-    required Color color,
-    required List<DiaryEntry> entries,
-  }) {
-    final sortedEntries = List<DiaryEntry>.from(entries)
-      ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.7,
-          decoration: BoxDecoration(
-            color: isNight ? const Color(0xFF1E1E1E) : const Color(0xFFFDF7F0),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 42,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: color,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '$label 时段记录',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isNight ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Icon(icon, color: color, size: 18),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '这个时段共 ${sortedEntries.length} 条记录。',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isNight ? Colors.white54 : Colors.black45,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                  itemCount: sortedEntries.length,
-                  itemBuilder: (context, index) {
-                    final entry = sortedEntries[index];
-                    final mood = kMoods[entry.moodIndex % kMoods.length];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: isNight ? Colors.white10 : Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: color.withValues(alpha: isNight ? 0.14 : 0.12),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                DateFormat(
-                                  'MM/dd HH:mm',
-                                ).format(entry.dateTime),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isNight
-                                      ? Colors.white54
-                                      : Colors.black45,
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                mood.label,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: color,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _truncateMemoryText(
-                              entry.content.replaceAll('\n', ' '),
-                              80,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 13,
-                              height: 1.5,
-                              color: isNight ? Colors.white70 : Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  String _truncateMemoryText(String text, int maxLength) {
-    final normalized = text.trim();
-    if (normalized.length <= maxLength) return normalized;
-    return '${normalized.substring(0, maxLength)}...';
   }
 
   Widget _buildMonthlyMoodWeatherBento(

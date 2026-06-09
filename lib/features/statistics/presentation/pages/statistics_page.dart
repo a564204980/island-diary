@@ -421,7 +421,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
       case 'weekly_pattern':
         return _buildWeeklyPatternBento(isNight, filtered, themeColor);
       case 'time_pattern':
-        return _buildTimePatternBento(isNight, filtered); // 时间模式暂不强制换色，保持其中性
+        return _buildTimePatternBento(isNight, filtered, themeColor);
       case 'calendar':
         return _buildMoodCalendarBento(isNight, filtered); // 日历保持多色
       case 'highlights':

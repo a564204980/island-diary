@@ -187,11 +187,11 @@ class DiaryMasonryCard extends StatelessWidget {
             BoxShadow(
               color: isNight 
                 ? (isCottonCandy 
-                    ? themeColorConfig.bgColor.withValues(alpha: 0.4)
-                    : Colors.black.withValues(alpha: 0.3)) 
-                : Colors.black.withValues(alpha: 0.12),
-              blurRadius: 15,
-              offset: const Offset(0, 6),
+                    ? themeColorConfig.bgColor.withValues(alpha: 0.25)
+                    : Colors.black.withValues(alpha: 0.2)) 
+                : Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
         ),

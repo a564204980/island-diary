@@ -160,6 +160,7 @@ extension _BentoMoodFlow on _StatisticsPageState {
         // 优化标签展示区：双行横向滚动
         if (targetLabels.isNotEmpty)
           SingleChildScrollView(
+            key: const PageStorageKey('mood_flow_tags_scroll'),
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             child: Column(
@@ -222,6 +223,7 @@ extension _BentoMoodFlow on _StatisticsPageState {
                     final double displayMaxY = (maxY * 1.2).ceilToDouble();
 
                     return SingleChildScrollView(
+                      key: const PageStorageKey('mood_flow_chart_scroll'),
                       scrollDirection: Axis.horizontal,
                       physics: const BouncingScrollPhysics(),
                       child: SizedBox(

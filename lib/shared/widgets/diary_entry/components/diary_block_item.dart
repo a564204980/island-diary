@@ -191,6 +191,25 @@ class DiaryBlockItem extends StatelessWidget {
                         ),
                 ),
               ),
+              if (block.videoPath != null)
+                Positioned(
+                  left: 8,
+                  bottom: 16,
+                  child: IgnorePointer(
+                    child: Container(
+                      padding: const EdgeInsets.all(3.5),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.motion_photos_on,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
               Positioned(
                 top: 0,
                 right: -8,

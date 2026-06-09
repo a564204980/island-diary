@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/shared/widgets/slime_button.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
@@ -92,11 +91,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
           userState.refreshNavbarBgTrigger,
         ]),
         builder: (context, _) {
-          final backgroundPath = userState.selectedBackgroundDecoration.value;
-          final backgroundDec = backgroundPath != null
-              ? MascotDecoration.getByPath(backgroundPath)
-              : null;
-
           return Stack(
             alignment: Alignment.bottomCenter,
             clipBehavior: Clip.none,
@@ -216,9 +210,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
     required bool isCottonCandy,
     Widget? child,
   }) {
-    final themeId = UserState().selectedIslandThemeId.value;
-    final isLego = themeId == 'lego';
-
     return SizedBox(
       height: barHeight,
       width: double.infinity,
@@ -268,34 +259,23 @@ class _BottomNavBarState extends State<BottomNavBar> {
                               : LinearGradient(
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
-                                  colors: (widget.currentIndex == 1 && !isLego)
-                                      ? [
-                                          const Color(
-                                            0xFFF5E6CC,
-                                          ).withValues(alpha: 0.6),
-                                          const Color(
-                                            0xFFFFF8E1,
-                                          ).withValues(alpha: 0.4),
-                                        ]
-                                      : [
-                                          const Color(
-                                            0xFFB3E5FC,
-                                          ).withValues(alpha: 0.5),
-                                          const Color(
-                                            0xFFE1F5FE,
-                                          ).withValues(alpha: 0.3),
-                                        ],
+                                  colors: [
+                                    const Color(
+                                      0xFFB3E5FC,
+                                    ).withValues(alpha: 0.5),
+                                    const Color(
+                                      0xFFE1F5FE,
+                                    ).withValues(alpha: 0.3),
+                                  ],
                                 ))),
                   color: (widget.isNight && !isLanternFestival && !isCottonCandy)
-                      ? ((widget.currentIndex == 1 && !isLego)
-                          ? const Color(0xFF4A3C31).withValues(alpha: 0.3)
-                          : const Color(0xFF736675).withValues(alpha: 0.2))
+                      ? const Color(0xFF736675).withValues(alpha: 0.2)
                       : null,
                 ),
               ),
             ),
           ),
-          if (child != null) child,
+          ?child,
           _buildTopHighlight(
             isLanternFestival: isLanternFestival,
             isCottonCandy: isCottonCandy,
@@ -335,9 +315,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
     required bool isLanternFestival,
     required bool isCottonCandy,
   }) {
-    final themeId = UserState().selectedIslandThemeId.value;
-    final isLego = themeId == 'lego';
-
     return Positioned.fill(
       child: IgnorePointer(
         child: CustomPaint(
@@ -377,20 +354,16 @@ class _BottomNavBarState extends State<BottomNavBar> {
                           const Color(0xFFFFFFFF).withValues(alpha: 0.9),
                         ])
                   : ((isLanternFestival || widget.isNight)
-                      ? ((widget.currentIndex == 1 && !isLego)
-                          ? const [Color(0xFFEEBB3C), Color(0xFF3E2723)]
-                          : const [
-                              Color(0xFFEEBB3C),
-                              Color(0xFFD4A373),
-                              Color(0xFF5D2E2E),
-                            ])
+                      ? const [
+                          Color(0xFFEEBB3C),
+                          Color(0xFFD4A373),
+                          Color(0xFF5D2E2E),
+                        ]
                       : [
                           const Color(0xFFFFF9C4).withValues(alpha: 0.8),
-                          (widget.currentIndex == 1 && !isLego)
-                              ? const Color(0xFFFFCC80).withValues(alpha: 0.3)
-                              : const Color(
-                                  0xFFB3E5FC,
-                                ).withValues(alpha: 0.2),
+                          const Color(
+                            0xFFB3E5FC,
+                          ).withValues(alpha: 0.2),
                         ]),
             ),
           ),
@@ -498,7 +471,6 @@ class _NavBarParticlesBg extends StatefulWidget {
   final String decorationId;
 
   const _NavBarParticlesBg({
-    super.key,
     required this.imagePath,
     required this.decorationId,
   });

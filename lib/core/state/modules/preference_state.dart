@@ -2,7 +2,7 @@ part of '../user_state.dart';
 
 /// 6. 用户偏好与个性化模块
 mixin PreferenceMixin on ProfileMixin {
-  final ValueNotifier<String?> momentsCoverPath = ValueNotifier<String?>(null);
+
   final ValueNotifier<int> diaryLayoutMode = ValueNotifier<int>(0);
   final ValueNotifier<bool> isSlimeInBottomMenu = ValueNotifier<bool>(true);
   final ValueNotifier<List<String>> moodTagHistory = ValueNotifier<List<String>>([]);
@@ -27,7 +27,7 @@ mixin PreferenceMixin on ProfileMixin {
   final ValueNotifier<double> cloudSpeedMultiplier = ValueNotifier<double>(1.0);
 
   void loadPreference(SharedPreferences prefs) {
-    momentsCoverPath.value = prefs.getString(UserState().n(_K.momentsCover));
+
     diaryLayoutMode.value = prefs.getInt(UserState().n(_K.diaryLayoutMode)) ?? 0;
     moodTagHistory.value = prefs.getStringList(UserState().n(_K.moodTagHistory)) ?? [];
     statsOrderWeek.value = prefs.getStringList(UserState().n(_K.statsOrderWeek)) ?? [];
@@ -46,11 +46,7 @@ mixin PreferenceMixin on ProfileMixin {
     homeDisplayMode.value = prefs.getString(UserState().n(_K.homeDisplayMode)) ?? 'island';
   }
 
-  Future<void> setMomentsCoverPath(String? path) async {
-    momentsCoverPath.value = path;
-    final p = await SharedPreferences.getInstance();
-    path != null ? await p.setString(UserState().n(_K.momentsCover), path) : await p.remove(UserState().n(_K.momentsCover));
-  }
+
 
   Future<void> setDiaryLayoutMode(int mode) async {
     diaryLayoutMode.value = mode;

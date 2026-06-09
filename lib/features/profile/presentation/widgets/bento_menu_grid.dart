@@ -4,6 +4,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/pages/security_center_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/mascot_decoration_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/about_island_page.dart';
+import 'package:island_diary/features/profile/presentation/pages/cloud_sync_page.dart';
 import 'package:island_diary/features/profile/presentation/widgets/bento_box.dart';
 import 'package:island_diary/features/profile/presentation/widgets/life_line_switcher_sheet.dart';
 import 'package:island_diary/core/models/life_line_profile.dart';
@@ -55,6 +56,16 @@ class BentoMenuGrid extends StatelessWidget {
                       icon: Icons.auto_fix_high_rounded,
                       color: const Color(0xFFFFB74D),
                       targetPage: const MascotDecorationPage(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMenuActionBento(
+                      context,
+                      title: '备份与恢复',
+                      icon: Icons.settings_backup_restore_rounded,
+                      color: const Color(0xFF00ACC1),
+                      targetPage: const CloudSyncPage(),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -119,6 +130,16 @@ class BentoMenuGrid extends StatelessWidget {
                       icon: Icons.auto_fix_high_rounded,
                       color: const Color(0xFFFFB74D),
                       targetPage: const MascotDecorationPage(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMenuActionBento(
+                      context,
+                      title: '备份与恢复',
+                      icon: Icons.settings_backup_restore_rounded,
+                      color: const Color(0xFF00ACC1),
+                      targetPage: const CloudSyncPage(),
                     ),
                   ),
                 ],

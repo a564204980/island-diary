@@ -14,6 +14,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:http/http.dart' as http;
 import 'package:island_diary/core/constants/api_constants.dart';
 import '../components/diary_image_source_sheet.dart';
+import '../components/redbook_asset_picker.dart';
 
 mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
   void onImageButtonPressed() async {
@@ -61,12 +62,10 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     String? pickedVideoPath;
 
     if (source == ImageSource.gallery) {
-      final List<AssetEntity>? result = await AssetPicker.pickAssets(
+      final List<AssetEntity>? result = await RedBookAssetPicker.pick(
         context,
-        pickerConfig: const AssetPickerConfig(
-          maxAssets: 1,
-          requestType: RequestType.common,
-        ),
+        maxAssets: 1,
+        requestType: RequestType.common,
       );
       if (!mounted) return;
       if (result == null || result.isEmpty) {
@@ -101,6 +100,11 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
             debugPrint("Failed to save live photo video: $e");
             pickedVideoPath = videoFile.path; // 失败则退回临时路径
           }
+        }
+      } else if (io.Platform.isAndroid) {
+        final extractedPath = await _extractAndroidMotionPhotoVideo(file.path, entity.id);
+        if (extractedPath != null) {
+          pickedVideoPath = extractedPath;
         }
       }
     } else {
@@ -466,9 +470,10 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     if (source == null) return null;
 
     if (source == ImageSource.gallery) {
-      final List<AssetEntity>? result = await AssetPicker.pickAssets(
+      final List<AssetEntity>? result = await RedBookAssetPicker.pick(
         context,
-        pickerConfig: const AssetPickerConfig(maxAssets: 1, requestType: RequestType.image),
+        maxAssets: 1,
+        requestType: RequestType.image,
       );
       if (result == null || result.isEmpty) return null;
       final file = await result.first.originFile;
@@ -477,5 +482,45 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       final XFile? image = await ImagePicker().pickImage(source: ImageSource.camera);
       return image?.path;
     }
+  }
+
+  /// 提取安卓端 Motion Photo（动态照片/Moving Picture）的视频轨道并保存到临时文件
+  Future<String?> _extractAndroidMotionPhotoVideo(String imagePath, String assetId) async {
+    try {
+      final file = io.File(imagePath);
+      final bytes = await file.readAsBytes();
+      
+      // 搜索 MP4 的 'ftyp' 标志: [0x66, 0x74, 0x79, 0x70] (从后往前搜索避开 JPEG 头部/元数据的假匹配)
+      int ftypIndex = -1;
+      for (int i = bytes.length - 4; i >= 0; i--) {
+        if (bytes[i] == 0x66 &&
+            bytes[i + 1] == 0x74 &&
+            bytes[i + 2] == 0x79 &&
+            bytes[i + 3] == 0x70) {
+          ftypIndex = i;
+          break;
+        }
+      }
+      
+      if (ftypIndex > 4) {
+        // MP4 文件的起始位置在 'ftyp' 标志的前 4 个字节（即 ftyp box 的 size 长度）
+        final int videoStart = ftypIndex - 4;
+        final videoBytes = bytes.sublist(videoStart);
+        
+        final appDocDir = await getApplicationDocumentsDirectory();
+        final String fileName = "${assetId}_motion.mp4";
+        final String savedPath = p.join(appDocDir.path, 'live_photos', fileName);
+        
+        final savedFile = io.File(savedPath);
+        if (!await savedFile.parent.exists()) {
+          await savedFile.parent.create(recursive: true);
+        }
+        await savedFile.writeAsBytes(videoBytes);
+        return savedPath;
+      }
+    } catch (e) {
+      debugPrint("Failed to extract Android motion photo video: $e");
+    }
+    return null;
   }
 }

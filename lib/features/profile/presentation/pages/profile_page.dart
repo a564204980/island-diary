@@ -148,10 +148,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 800),
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 80),
                     physics: const BouncingScrollPhysics(),
                     children: [
-                      const SizedBox(height: 20),
                       ProfileHeader(isNight: isNight, isVip: isVip),
                       const SizedBox(height: 24),
                       PremiumBentoCard(isVip: isVip, isNight: isNight),

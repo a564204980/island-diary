@@ -175,8 +175,8 @@ class DiaryUtils {
     final String normalizedPath = _normalizeImagePath(path);
     
     Widget image;
-    // 限制解码分辨率，防止大图瞬间打满内存导致严重卡顿
-    final int? cacheW = width != null ? (width * 3).toInt() : 400;
+    final bool isGif = normalizedPath.toLowerCase().endsWith('.gif');
+    final int? cacheW = isGif ? null : (width != null ? (width * 3).toInt() : 400);
 
     if (normalizedPath.startsWith('http') || normalizedPath.startsWith('blob:') || normalizedPath.startsWith('data:')) {
       image = Image.network(
@@ -243,8 +243,35 @@ class DiaryUtils {
     }
 
     if (borderRadius != null) {
-      return ClipRRect(borderRadius: borderRadius, child: image);
+      image = ClipRRect(borderRadius: borderRadius, child: image);
     }
+
+    if (isGif) {
+      image = Stack(
+        children: [
+          image,
+          Positioned(
+            left: 6,
+            bottom: 6,
+            child: IgnorePointer(
+              child: Container(
+                padding: const EdgeInsets.all(2.5),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.motion_photos_on,
+                  color: Colors.white,
+                  size: 14,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return image;
   }
 

@@ -396,6 +396,7 @@ extension _BentoMoodTrend on _StatisticsPageState {
                             ),
                           ],
                           SingleChildScrollView(
+                            key: const PageStorageKey('mood_trend_chart_scroll'),
                             scrollDirection: Axis.horizontal,
                             physics: isMonth
                                 ? const BouncingScrollPhysics()
@@ -404,16 +405,16 @@ extension _BentoMoodTrend on _StatisticsPageState {
                               width: finalWidth,
                               child: Stack(
                                 children: [
-                                  if (false && UserState().selectedIslandThemeId.value == 'lego')
-                                    Positioned(
-                                      left: 0,
-                                      right: 0,
-                                      top: 0,
-                                      bottom: 40,
-                                      child: CustomPaint(
-                                        painter: _LegoBaseplatePainter(isNight: isNight),
-                                      ),
-                                    ),
+                                  // if (UserState().selectedIslandThemeId.value == 'lego')
+                                  //   Positioned(
+                                  //     left: 0,
+                                  //     right: 0,
+                                  //     top: 0,
+                                  //     bottom: 40,
+                                  //     child: CustomPaint(
+                                  //       painter: _LegoBaseplatePainter(isNight: isNight),
+                                  //     ),
+                                  //   ),
                                   LineChart(
                                 LineChartData(
                                   minX: -0.4,

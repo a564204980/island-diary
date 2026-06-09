@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
@@ -13,6 +15,7 @@ import 'package:island_diary/features/record/presentation/widgets/diary_masonry_
 import 'package:island_diary/features/record/presentation/widgets/diary_masonry_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_featured_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_history_card.dart';
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 
 class RecordPage extends StatefulWidget {
@@ -62,7 +65,7 @@ class _RecordPageState extends State<RecordPage> {
     if (themeId == 'cotton_candy') {
       return UserState().themeMode.value == 'dark' ||
           (UserState().themeMode.value == 'system' &&
-              (DateTime.now().hour < 10 || DateTime.now().hour >= 18));
+               (DateTime.now().hour < 10 || DateTime.now().hour >= 18));
     }
     if (themeId != 'default' && themeId != 'starry_night') {
       return false;
@@ -81,14 +84,14 @@ class _RecordPageState extends State<RecordPage> {
       builder: (context, values, _) {
         final int layoutIndex = values[1] as int;
 
-        final bool isMoments = layoutIndex == DiaryLayoutMode.moments.index;
         final bool isCalendar = layoutIndex == DiaryLayoutMode.calendar.index;
+        final bool isTimeline = layoutIndex == DiaryLayoutMode.timeline.index;
         final bool isNight = _isNight;
 
         return Scaffold(
           backgroundColor: isNight
               ? const Color(0xFF0D1B2A)
-              : const Color(0xFFF7F5F0),
+              : const Color(0xFFE6F3F5),
           body: Stack(
             children: [
               // 背景层 (适配不同模式)
@@ -126,8 +129,8 @@ class _RecordPageState extends State<RecordPage> {
                                   const Color(0xFF13131F),
                                 ]
                               : [
-                                  const Color(0xFFF7F2EC),
-                                  const Color(0xFFF5F1EB),
+                                  const Color(0xFFE6F3F5),
+                                  const Color(0xFFEDF8FA),
                                 ],
                         ),
                       ),
@@ -151,7 +154,7 @@ class _RecordPageState extends State<RecordPage> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (!isMoments && !isCalendar)
+                              if (!isCalendar)
                                 ValueListenableBuilder<DateTime>(
                                   valueListenable: _headerDate,
                                   builder: (context, headerDate, _) {
@@ -174,21 +177,25 @@ class _RecordPageState extends State<RecordPage> {
                                   },
                                 )
                               else if (isCalendar)
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 12.0),
                             ],
                           ),
                         ),
                       ),
 
                       Expanded(
-                        child: Center(
+                        child: Align(
+                          alignment: Alignment.topCenter,
                           child: Container(
                             constraints: const BoxConstraints(maxWidth: 800),
                             child: ValueListenableBuilder<List<DiaryEntry>>(
                               valueListenable: UserState().savedDiaries,
                               builder: (context, diaries, _) {
+                                Widget mainContent;
+
                                 if (isCalendar) {
-                                  return DiaryCalendarPanel(
+                                  mainContent = DiaryCalendarPanel(
+                                    key: const ValueKey('calendar'),
                                     isNight: isNight,
                                     onDateSelected: (date) {
                                       setState(() {
@@ -201,143 +208,197 @@ class _RecordPageState extends State<RecordPage> {
                                     },
                                     onShareMonth: _shareCurrentMonth,
                                   );
-                                }
+                                } else {
+                                  final filtered = diaries.where((d) {
+                                    final matchesDate =
+                                        _selectedDate == null ||
+                                        (d.dateTime.year == _selectedDate!.year &&
+                                            d.dateTime.month ==
+                                                _selectedDate!.month &&
+                                            d.dateTime.day == _selectedDate!.day);
+                                    final matchesSearch =
+                                        _searchQuery.isEmpty ||
+                                        d.content.contains(_searchQuery);
+                                    final matchesMood =
+                                        _filterMoodIndex == null ||
+                                        d.moodIndex == _filterMoodIndex;
+                                    return matchesDate &&
+                                        matchesSearch &&
+                                        matchesMood;
+                                  }).toList();
 
-                                final filtered = diaries.where((d) {
-                                  final matchesDate =
-                                      _selectedDate == null ||
-                                      (d.dateTime.year == _selectedDate!.year &&
-                                          d.dateTime.month ==
-                                              _selectedDate!.month &&
-                                          d.dateTime.day == _selectedDate!.day);
-                                  final matchesSearch =
-                                      _searchQuery.isEmpty ||
-                                      d.content.contains(_searchQuery);
-                                  final matchesMood =
-                                      _filterMoodIndex == null ||
-                                      d.moodIndex == _filterMoodIndex;
-                                  return matchesDate &&
-                                      matchesSearch &&
-                                      matchesMood;
-                                }).toList();
-
-                                if (filtered.isEmpty && !isMoments) {
-                                  return Center(
-                                    child: Text(
-                                      _searchQuery.isEmpty
-                                          ? "还没有心情记录呢..."
-                                          : "没找到相关记录哦~",
-                                      style: TextStyle(
-                                        color: isNight
-                                            ? Colors.white30
-                                            : Colors.black26,
-                                        fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'ArphicKaiti',
-                                      ),
-                                    ),
-                                  );
-                                }
-
-                                final bool showFeatured =
-                                    filtered.isNotEmpty &&
-                                    filtered.first.blocks.any(
-                                      (b) => b['type'] == 'image',
-                                    );
-
-                                return ShaderMask(
-                                  shaderCallback: (Rect bounds) {
-                                    return LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: const [
-                                        Colors.white,       // 顶部完全不透明，不加任何遮罩或渐变
-                                        Colors.white,       // 底部 110px 处仍不透明
-                                        Colors.transparent, // 最底端透明过渡淡出
-                                      ],
-                                      stops: [
-                                        0.0,
-                                        (bounds.height - 110.0) / bounds.height,
-                                        1.0,
-                                      ],
-                                    ).createShader(bounds);
-                                  },
-                                  blendMode: BlendMode.dstIn,
-                                  child: NotificationListener<ScrollNotification>(
-                                    onNotification: (notification) {
-                                      if (filtered.isEmpty) return false;
-                                      final double offset =
-                                          _scrollController.offset;
-                                      final int crossAxisCount =
-                                          MediaQuery.of(context).size.width > 800
-                                          ? 3
-                                          : 2;
-                                      int index = 0;
-                                      if (offset < 260) {
-                                        index = 0;
-                                      } else {
-                                        double masonryOffset = offset - 260;
-                                        int row = (masonryOffset / 220).floor();
-                                        index = 1 + row * crossAxisCount;
-                                      }
-                                      if (index >= filtered.length) {
-                                        index = filtered.length - 1;
-                                      }
-                                      if (index < 0) {
-                                        index = 0;
-                                      }
-                                      final targetDate = filtered[index].dateTime;
-                                      if (_headerDate.value.day !=
-                                          targetDate.day) {
-                                        _headerDate.value = targetDate;
-                                      }
-                                      return false;
-                                    },
-                                    child: CustomScrollView(
-                                      controller: _scrollController,
-                                      slivers: [
-                                        if (showFeatured)
-                                          SliverToBoxAdapter(
-                                            child: DiaryFeaturedCard(
-                                              entry: filtered.first,
-                                              isNight: isNight,
-                                            ),
-                                          ),
-                                        SliverPadding(
-                                          padding: const EdgeInsets.fromLTRB(
-                                            16,
-                                            0,
-                                            16,
-                                            120, // 增加底部 Padding，确保最后一张卡片可完全画过渐变淡出区域，清晰可见
-                                          ),
-                                          sliver: SliverMasonryGrid.count(
-                                            crossAxisCount:
-                                                MediaQuery.of(
-                                                      context,
-                                                    ).size.width >
-                                                    800
-                                                ? 3
-                                                : 2,
-                                            crossAxisSpacing: 12,
-                                            mainAxisSpacing: 12,
-                                            childCount: showFeatured
-                                                ? (filtered.length > 1
-                                                      ? filtered.length - 1
-                                                      : 0)
-                                                : filtered.length,
-                                            itemBuilder: (context, index) {
-                                              final actualIndex = showFeatured
-                                                  ? index + 1
-                                                  : index;
-                                              return DiaryMasonryCard(
-                                                entry: filtered[actualIndex],
-                                                isNight: isNight,
-                                                index: actualIndex,
-                                              );
-                                            },
-                                          ),
+                                  if (filtered.isEmpty) {
+                                    mainContent = Center(
+                                      key: const ValueKey('empty'),
+                                      child: Text(
+                                        _searchQuery.isEmpty
+                                            ? "还没有心情记录呢..."
+                                            : "没找到相关记录哦~",
+                                        style: TextStyle(
+                                          color: isNight
+                                              ? Colors.white30
+                                              : Colors.black26,
+                                          fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'ArphicKaiti',
                                         ),
-                                      ],
-                                    ),
-                                  ),
+                                      ),
+                                    );
+                                  } else {
+                                    final bool showFeatured =
+                                        filtered.isNotEmpty &&
+                                        filtered.first.blocks.any(
+                                          (b) => b['type'] == 'image',
+                                        );
+
+                                    Widget listContent;
+                                    if (isTimeline) {
+                                      listContent = ListView.builder(
+                                        key: const ValueKey('timeline_list'),
+                                        controller: _scrollController,
+                                        padding: const EdgeInsets.only(top: 16, bottom: 120),
+                                        itemCount: filtered.length,
+                                        itemBuilder: (context, index) {
+                                          return Center(
+                                            child: ConstrainedBox(
+                                              constraints: const BoxConstraints(maxWidth: 800),
+                                              child: DiaryHistoryCard(
+                                                entry: filtered[index],
+                                                index: index,
+                                                isNight: isNight,
+                                                showDate: index == 0 ||
+                                                    filtered[index].dateTime.day !=
+                                                        filtered[index - 1].dateTime.day ||
+                                                    filtered[index].dateTime.month !=
+                                                        filtered[index - 1].dateTime.month,
+                                                isFirst: index == 0,
+                                                isLast: index == filtered.length - 1,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    } else {
+                                      listContent = NotificationListener<ScrollNotification>(
+                                        key: const ValueKey('masonry_list'),
+                                        onNotification: (notification) {
+                                          if (filtered.isEmpty) return false;
+                                          final double offset =
+                                              _scrollController.offset;
+                                          final int crossAxisCount =
+                                              MediaQuery.of(context).size.width > 800
+                                              ? 3
+                                              : 2;
+                                          int index = 0;
+                                          if (offset < 260) {
+                                            index = 0;
+                                          } else {
+                                            double masonryOffset = offset - 260;
+                                            int row = (masonryOffset / 220).floor();
+                                            index = 1 + row * crossAxisCount;
+                                          }
+                                          if (index >= filtered.length) {
+                                            index = filtered.length - 1;
+                                          }
+                                          if (index < 0) {
+                                            index = 0;
+                                          }
+                                          final targetDate = filtered[index].dateTime;
+                                          if (_headerDate.value.day !=
+                                              targetDate.day) {
+                                            _headerDate.value = targetDate;
+                                          }
+                                          return false;
+                                        },
+                                        child: CustomScrollView(
+                                          controller: _scrollController,
+                                          slivers: [
+                                            if (showFeatured)
+                                              SliverToBoxAdapter(
+                                                child: DiaryFeaturedCard(
+                                                  entry: filtered.first,
+                                                  isNight: isNight,
+                                                ),
+                                              ),
+                                            SliverPadding(
+                                              padding: const EdgeInsets.fromLTRB(
+                                                16,
+                                                0,
+                                                16,
+                                                120, // 增加底部 Padding，确保最后一张卡片可完全画过渐变淡出区域，清晰可见
+                                              ),
+                                              sliver: SliverMasonryGrid.count(
+                                                crossAxisCount:
+                                                    MediaQuery.of(
+                                                          context,
+                                                        ).size.width >
+                                                        800
+                                                    ? 3
+                                                    : 2,
+                                                crossAxisSpacing: 12,
+                                                mainAxisSpacing: 12,
+                                                childCount: showFeatured
+                                                    ? (filtered.length > 1
+                                                          ? filtered.length - 1
+                                                          : 0)
+                                                    : filtered.length,
+                                                itemBuilder: (context, index) {
+                                                  final actualIndex = showFeatured
+                                                      ? index + 1
+                                                      : index;
+                                                  return DiaryMasonryCard(
+                                                    entry: filtered[actualIndex],
+                                                    isNight: isNight,
+                                                    index: actualIndex,
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+
+                                    mainContent = ShaderMask(
+                                      key: ValueKey('list_shader_${layoutIndex}'),
+                                      shaderCallback: (Rect bounds) {
+                                        return LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: const [
+                                            Colors.white,       // 顶部完全不透明，不加任何遮罩或渐变
+                                            Colors.white,       // 底部 110px 处仍不透明
+                                            Colors.transparent, // 最底端透明过渡淡出
+                                          ],
+                                          stops: [
+                                            0.0,
+                                            (bounds.height - 110.0) / bounds.height,
+                                            1.0,
+                                          ],
+                                        ).createShader(bounds);
+                                      },
+                                      blendMode: BlendMode.dstIn,
+                                      child: listContent,
+                                    );
+                                  }
+                                }
+
+                                return AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 400),
+                                  transitionBuilder: (Widget child, Animation<double> animation) {
+                                    final scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+                                      CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                                    );
+                                    final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+                                      CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                                    );
+                                    return FadeTransition(
+                                      opacity: fadeAnimation,
+                                      child: ScaleTransition(
+                                        scale: scaleAnimation,
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                                  child: mainContent,
                                 );
                               },
                             ),
@@ -349,21 +410,16 @@ class _RecordPageState extends State<RecordPage> {
                 ),
               ),
 
-              Positioned(
-                right: 20,
-                bottom: 200,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildFloatingToolBtn(
-                      icon: Icons.search_rounded,
-                      onTap: _showSearch,
-                      isNight: isNight,
-                      label: "搜索",
-                    ),
-                  ],
+              if (!isCalendar)
+                Positioned(
+                  right: 20,
+                  bottom: 200,
+                  child: _buildFloatingToolBtn(
+                    icon: CupertinoIcons.search,
+                    onTap: _showSearch,
+                    isNight: isNight,
+                  ),
                 ),
-              ),
 
               if (_isCapturing)
                 Positioned.fill(
@@ -411,43 +467,46 @@ class _RecordPageState extends State<RecordPage> {
     required IconData icon,
     required VoidCallback onTap,
     required bool isNight,
-    required String label,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: isNight ? const Color(0xFF2C2E30) : Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: isNight 
+                    ? const Color(0xFF1B232E).withValues(alpha: 0.72) 
+                    : Colors.white.withValues(alpha: 0.8),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isNight 
+                      ? Colors.white.withValues(alpha: 0.12) 
+                      : Colors.black.withValues(alpha: 0.06),
+                  width: 1.0,
                 ),
-              ],
-            ),
-            child: Icon(
-              icon,
-              size: 24,
-              color: isNight ? Colors.white70 : Colors.black87,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: isNight ? const Color(0xFFE1AF78) : const Color(0xFFD4A373),
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: isNight ? Colors.white54 : Colors.black45,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

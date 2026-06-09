@@ -1,6 +1,10 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
+import 'dart:io';
+import 'dart:convert';
+import 'package:archive/archive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -13,6 +17,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/models/mascot_persona.dart';
 import 'package:island_diary/features/record/presentation/pages/record_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/profile_page.dart';
+import 'package:island_diary/features/profile/presentation/pages/cloud_sync_page.dart';
 import 'package:island_diary/shared/widgets/barrage/mood_barrage_wall.dart';
 import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
@@ -32,6 +37,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentNavIndex = 0;
+  bool _hasPromptedBackupThisSession = false;
   late AnimationController _floatController;
   late Animation<double> _floatAnimation;
   late TransformationController _transformationController;
@@ -42,6 +48,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   bool _showGlobalDialogue = false;
   String _globalDialogueText = "";
   Timer? _thoughtTimer;
+  bool _isRestoring = false;
 
   // 弹幕相关
   List<Map<DateTime, List<DiaryEntry>>> _groupedEntries = [];
@@ -109,6 +116,28 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // 首次进入首页时检测启动事件
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
+        // 注册外部文件打开监听通道
+        const fileChannel = MethodChannel('com.example.island_diary/file_open');
+        fileChannel.setMethodCallHandler((call) async {
+          if (call.method == 'onFileReceived') {
+            final String? path = call.arguments as String?;
+            if (path != null) {
+              _handleReceivedFile(path);
+            }
+          }
+          return null;
+        });
+
+        // 检查是否有冷启动状态下待处理的外部文件
+        try {
+          final String? path = await fileChannel.invokeMethod<String>('getPendingFile');
+          if (path != null) {
+            _handleReceivedFile(path);
+          }
+        } catch (e) {
+          debugPrint("获取外部冷启动文件失败: $e");
+        }
+
         // 我们给 AI 一点时间处理 (2秒内如果 AI 没响，再出保底)
         UserState().checkAppStartEvents();
 
@@ -116,6 +145,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         if (mounted && !_showGlobalDialogue) {
           _showLocalFallbackDialogue();
         }
+        _checkBackupReminder();
       }
     });
   }
@@ -470,42 +500,60 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   },
                                 )
                               : (_currentNavIndex == 1
-                                    ? Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            "我的岛屿日记",
-                                            style: TextStyle(
-                                              color: isLantern
-                                                  ? const Color(0xFFF6DFA5)
-                                                  : (isCottonCandy
-                                                        ? (isNight ? Colors.white : const Color(0xFF4E3A46))
-                                                        : (isNight
-                                                              ? Colors.white
-                                                              : const Color(
-                                                                  0xFF060606,
-                                                                ))),
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Text(
-                                            "${UserState().userName.value} 的小岛·第 ${UserState().savedDiaries.value.length} 天",
-                                            style: TextStyle(
-                                              color: isLantern
-                                                  ? const Color(0xFFE6C78F)
-                                                  : (isCottonCandy
-                                                        ? (isNight ? Colors.white54 : const Color(0xFF8D7A84))
-                                                        : (isNight
-                                                              ? Colors.white54
-                                                              : Colors.black54)),
-                                              fontSize: 12,
-                                              fontFamily: 'LXGWWenKai',
-                                            ),
-                                          ),
-                                        ],
+                                    ? Builder(
+                                        builder: (context) {
+                                          final isLego = UserState().selectedIslandThemeId.value == 'lego';
+                                          final headerFont = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
+                                          return Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    "我的岛屿日记",
+                                                    style: TextStyle(
+                                                      color: isLantern
+                                                          ? const Color(0xFFF6DFA5)
+                                                          : (isCottonCandy
+                                                                ? (isNight ? Colors.white : const Color(0xFF4E3A46))
+                                                                : (isNight
+                                                                      ? Colors.white
+                                                                      : const Color(0xFF3B2E25))),
+                                                      fontSize: 22,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontFamily: headerFont,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Icon(
+                                                    Icons.star_rounded,
+                                                    color: const Color(0xFFFFCC99).withValues(alpha: 0.9),
+                                                    size: 18,
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                "${UserState().userName.value} 的小岛 · 第 ${UserState().savedDiaries.value.length} 天",
+                                                style: TextStyle(
+                                                  color: isLantern
+                                                      ? const Color(0xFFE6C78F)
+                                                      : (isCottonCandy
+                                                            ? (isNight ? Colors.white54 : const Color(0xFF8D7A84))
+                                                            : (isNight
+                                                                  ? Colors.white54
+                                                                  : const Color(0xFF8B7E74))),
+                                                  fontSize: 12,
+                                                  fontFamily: headerFont,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
                                       )
                                     : const SizedBox.shrink()),
 
@@ -550,43 +598,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 ),
                               ],
                               if (_currentNavIndex == 1) ...[
-                                ValueListenableBuilder<int>(
-                                  valueListenable: UserState().diaryLayoutMode,
-                                  builder: (context, modeIndex, _) {
-                                    final mode =
-                                        DiaryLayoutMode.values[modeIndex];
-                                    IconData icon;
-                                    if (mode == DiaryLayoutMode.calendar) {
-                                      icon = Icons.format_list_bulleted_rounded;
-                                    } else if (mode ==
-                                        DiaryLayoutMode.moments) {
-                                      icon = Icons.calendar_month_rounded;
-                                    } else {
-                                      icon = Icons
-                                          .camera_rounded; // 朋友圈图标 (Moments)
-                                    }
-
-                                    return _buildTopIconButton(
-                                      icon: icon,
-                                      isNight: isNight,
-                                      onTap: () {
-                                        // 循环切换: 时间轴 -> 朋友圈 -> 日历
-                                        DiaryLayoutMode nextMode;
-                                        if (mode == DiaryLayoutMode.timeline) {
-                                          nextMode = DiaryLayoutMode.moments;
-                                        } else if (mode ==
-                                            DiaryLayoutMode.moments) {
-                                          nextMode = DiaryLayoutMode.calendar;
-                                        } else {
-                                          nextMode = DiaryLayoutMode.timeline;
-                                        }
-                                        UserState().setDiaryLayoutMode(
-                                          nextMode.index,
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
+                                _buildLayoutQuickSwitcher(isNight),
                               ],
                             ],
                           ),
@@ -612,6 +624,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       setState(() {
                         _currentNavIndex = index;
                       });
+                      _checkBackupReminder();
                     }
                   },
                 ),
@@ -646,6 +659,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
+              if (_isRestoring)
+                _buildLoadingOverlay("正在还原备份数据，请稍候...", isNight, themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai'),
             ],
           ),
         );
@@ -1096,4 +1111,856 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           curve: Curves.easeInOut,
         );
   }
+
+  Widget _buildLayoutQuickSwitcher(bool isNight) {
+    final currentModeIndex = UserState().diaryLayoutMode.value;
+    final themeId = UserState().selectedIslandThemeId.value;
+
+    Color activeColor;
+    Color selectedIconColor;
+    Color unselectedIconColor;
+    Color containerColor;
+    Color borderColor;
+
+    if (themeId == 'lantern_festival') {
+      activeColor = const Color(0xFFD4A373);
+      selectedIconColor = Colors.white;
+      unselectedIconColor = Colors.white.withValues(alpha: 0.6);
+      containerColor = isNight
+          ? Colors.white.withValues(alpha: 0.15)
+          : Colors.black.withValues(alpha: 0.25);
+      borderColor = isNight
+          ? const Color(0xFFD4A373).withValues(alpha: 0.25)
+          : Colors.black.withValues(alpha: 0.05);
+    } else if (themeId == 'cotton_candy') {
+      activeColor = const Color(0xFFFF94B8);
+      selectedIconColor = Colors.white;
+      unselectedIconColor = isNight
+          ? Colors.white.withValues(alpha: 0.6)
+          : const Color(0xFF6F5E63).withValues(alpha: 0.6);
+      containerColor = isNight
+          ? const Color(0xFF8676FF).withValues(alpha: 0.25)
+          : const Color(0xFFFFCADB).withValues(alpha: 0.45);
+      borderColor = isNight
+          ? const Color(0xFFB19FFB).withValues(alpha: 0.3)
+          : const Color(0xFFFFD1E1).withValues(alpha: 0.4);
+    } else if (themeId == 'lego') {
+      activeColor = const Color(0xFFFFD54F);
+      selectedIconColor = const Color(0xFF3B2E25);
+      unselectedIconColor = isNight
+          ? Colors.white.withValues(alpha: 0.6)
+          : Colors.black.withValues(alpha: 0.5);
+      containerColor = isNight
+          ? Colors.white.withValues(alpha: 0.12)
+          : Colors.black.withValues(alpha: 0.15);
+      borderColor = isNight
+          ? Colors.white.withValues(alpha: 0.1)
+          : Colors.black.withValues(alpha: 0.08);
+    } else {
+      // 默认水蓝色主题
+      activeColor = isNight ? const Color(0xFF00ACC1) : const Color(0xFF83B7C5);
+      selectedIconColor = Colors.white;
+      unselectedIconColor = isNight
+          ? Colors.white.withValues(alpha: 0.6)
+          : const Color(0xFF83B7C5);
+      containerColor = isNight
+          ? const Color(0xFF1B2A4A).withValues(alpha: 0.4)
+          : const Color(0xFFEDF5F7).withValues(alpha: 0.7);
+      borderColor = isNight
+          ? const Color(0xFF80D8FF).withValues(alpha: 0.25)
+          : const Color(0xFF83B7C5).withValues(alpha: 0.65);
+    }
+
+    final List<DiaryLayoutMode> modes = [
+      DiaryLayoutMode.masonry,
+      DiaryLayoutMode.timeline,
+      DiaryLayoutMode.calendar,
+    ];
+
+    final selectedIndex = modes.indexOf(
+      DiaryLayoutMode.values[currentModeIndex.clamp(0, DiaryLayoutMode.values.length - 1)],
+    ).clamp(0, 2);
+
+    final List<IconData> icons = [
+      Icons.view_quilt_rounded,
+      Icons.format_list_bulleted_rounded,
+      Icons.calendar_month_rounded,
+    ];
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: 120,
+          height: 36,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: containerColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: borderColor,
+              width: 0.8,
+            ),
+          ),
+          child: Stack(
+            children: [
+              AnimatedAlign(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeInOut,
+                alignment: selectedIndex == 0
+                    ? Alignment.centerLeft
+                    : (selectedIndex == 1
+                        ? Alignment.center
+                        : Alignment.centerRight),
+                child: FractionallySizedBox(
+                  widthFactor: 0.33,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: activeColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: Row(
+                  children: List.generate(modes.length, (i) {
+                    final isSelected = i == selectedIndex;
+                    return Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          UserState().setDiaryLayoutMode(modes[i].index);
+                          setState(() {});
+                        },
+                        child: Center(
+                          child: Icon(
+                            icons[i],
+                            size: 18,
+                            color: isSelected
+                                ? selectedIconColor
+                                : unselectedIconColor,
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleReceivedFile(String path) async {
+    final file = File(path);
+    if (!await file.exists()) return;
+
+    final themeId = UserState().selectedIslandThemeId.value;
+    final fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        final isNight = UserState().isNight;
+        return AlertDialog(
+          backgroundColor: isNight ? const Color(0xFF2C281F) : const Color(0xFFFFFDF6),
+          title: Text('检测到外部日记备份包', style: TextStyle(fontFamily: fontFamily)),
+          content: Text('确认从此备份还原所有数据？此操作将覆盖您当前的全部日记，且不可撤销。', style: TextStyle(fontFamily: fontFamily)),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                if (file.existsSync()) {
+                  file.deleteSync();
+                }
+              },
+              child: Text('取消', style: TextStyle(fontFamily: fontFamily, color: isNight ? Colors.white38 : Colors.black38)),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                _performFileRestore(file);
+              },
+              child: const Text('确认还原', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _performFileRestore(File file) async {
+    if (!mounted) return;
+
+    setState(() => _isRestoring = true);
+
+    try {
+      final zipBytes = await file.readAsBytes();
+      final zipDecoder = ZipDecoder();
+      final archive = zipDecoder.decodeBytes(zipBytes);
+      final ArchiveFile? dataFile = archive.findFile("island_data.json");
+      if (dataFile == null) throw Exception("无效的备份文件");
+
+      final obfuscatedBytes = dataFile.content as List<int>;
+      final secret = utf8.encode("IslandVault_Secure_2026_!@#");
+      final rawBytes = Uint8List(obfuscatedBytes.length);
+      for (var i = 0; i < obfuscatedBytes.length; i++) {
+        rawBytes[i] = obfuscatedBytes[i] ^ secret[i % secret.length];
+      }
+
+      final jsonContent = utf8.decode(rawBytes);
+      final Map<String, dynamic> backupMap = jsonDecode(jsonContent);
+
+      if (backupMap['signature'] != "ISLAND_DIARY_CRYSTAL_VAULT_V1") {
+        throw Exception("文件签名不正确");
+      }
+
+      final data = backupMap['data'] as Map<String, dynamic>;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      for (var entry in data.entries) {
+        final key = entry.key;
+        final value = entry.value;
+        if (value is String) {
+          await prefs.setString(key, value);
+        } else if (value is int) {
+          await prefs.setInt(key, value);
+        } else if (value is bool) {
+          await prefs.setBool(key, value);
+        } else if (value is double) {
+          await prefs.setDouble(key, value);
+        } else if (value is List) {
+          await prefs.setStringList(key, List<String>.from(value));
+        }
+      }
+
+      await UserState().loadFromStorage();
+
+      // 提供 1.5 秒动画时间
+      await Future.delayed(const Duration(milliseconds: 1500));
+
+      if (mounted) {
+        setState(() => _isRestoring = false);
+        final themeId = UserState().selectedIslandThemeId.value;
+        final fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+        _showSuccessDialog(fontFamily);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isRestoring = false);
+      }
+    } finally {
+      if (file.existsSync()) {
+        try {
+          file.deleteSync();
+        } catch (_) {}
+      }
+    }
+  }
+
+  Future<void> _checkBackupReminder() async {
+    if (_hasPromptedBackupThisSession) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    int? intervalSeconds = prefs.getInt('backup_reminder_interval_seconds');
+    if (intervalSeconds == null) {
+      final oldDays = prefs.getInt('backup_reminder_interval_days');
+      if (oldDays != null) {
+        intervalSeconds = oldDays * 86400;
+        await prefs.setInt('backup_reminder_interval_seconds', intervalSeconds);
+      } else {
+        intervalSeconds = 7 * 86400; // 默认 7 天
+      }
+    }
+
+    if (intervalSeconds == 0) return; // 0 表示关闭提醒
+
+    final lastBackupMs = prefs.getInt('last_backup_time');
+    final now = DateTime.now();
+
+    if (lastBackupMs == null) {
+      // 首次使用，记录当前时间作为初始基准，避免直接弹窗打扰用户
+      await prefs.setInt('last_backup_time', now.millisecondsSinceEpoch);
+      return;
+    }
+
+    final lastBackupTime = DateTime.fromMillisecondsSinceEpoch(lastBackupMs);
+    final differenceSeconds = now.difference(lastBackupTime).inSeconds;
+
+    if (differenceSeconds >= intervalSeconds) {
+      if (!mounted) return;
+      _hasPromptedBackupThisSession = true;
+      _showBackupReminderDialog(differenceSeconds);
+    }
+  }
+
+  String _formatOverdueTime(int totalSeconds) {
+    final days = totalSeconds ~/ 86400;
+    final hours = (totalSeconds % 86400) ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    final seconds = totalSeconds % 60;
+
+    final parts = <String>[];
+    if (days > 0) parts.add('$days天');
+    if (hours > 0) parts.add('$hours小时');
+    if (minutes > 0) parts.add('$minutes分钟');
+    if (seconds > 0 || parts.isEmpty) parts.add('$seconds秒');
+
+    return parts.join('');
+  }
+
+  void _showBackupReminderDialog(int overdueSeconds) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+    final isNight = _isNight;
+    final overdueStr = _formatOverdueTime(overdueSeconds);
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.4),
+      builder: (context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.topCenter,
+              children: [
+                // 1. 主体卡片
+                Container(
+                  width: 320,
+                  decoration: BoxDecoration(
+                    color: isNight ? const Color(0xFF1E293B) : const Color(0xFFFFFDF9),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(
+                      color: isNight
+                          ? Colors.white.withValues(alpha: 0.15)
+                          : const Color(0xFFEADCC9),
+                      width: 2.0,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isNight ? 0.4 : 0.12),
+                        blurRadius: 36,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 16),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // 左侧虚线心形线条装饰
+                      Positioned(
+                        left: 12,
+                        top: 60,
+                        child: CustomPaint(
+                          size: const Size(30, 60),
+                          painter: _LeftCurvePainter(isNight: isNight),
+                        ),
+                      ),
+                      // 右侧植物分支与星光装饰
+                      Positioned(
+                        right: 12,
+                        top: 40,
+                        child: Icon(
+                          Icons.local_florist_rounded,
+                          color: isNight ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFD7CCC8).withValues(alpha: 0.5),
+                          size: 28,
+                        ),
+                      ),
+                      Positioned(
+                        right: 20,
+                        top: 80,
+                        child: Icon(
+                          Icons.star_rounded,
+                          color: isNight ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFFFE082).withValues(alpha: 0.5),
+                          size: 14,
+                        ),
+                      ),
+                      
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // 头部悬浮头像在主体卡片内部的占位高度，确保标题不与头像重叠
+                            const SizedBox(height: 54),
+                            
+                            // 标题
+                            Text(
+                              '别忘了备份今天的回忆',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF3E2723),
+                                fontFamily: fontFamily,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // 状态小药丸布局
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isNight
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : const Color(0xFFEDF2F7),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.access_time_rounded,
+                                    color: Color(0xFF00ACC1),
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isNight ? Colors.white70 : const Color(0xFF5D5450),
+                                        fontFamily: fontFamily,
+                                      ),
+                                      children: [
+                                        const TextSpan(text: '已 '),
+                                        TextSpan(
+                                          text: overdueStr,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF00ACC1),
+                                          ),
+                                        ),
+                                        const TextSpan(text: ' 未备份'),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            
+                            // 描述内容
+                            Column(
+                              children: [
+                                Text(
+                                  '你的日记和回忆还没有完成备份',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isNight ? Colors.white60 : const Color(0xFF8D827A),
+                                    fontFamily: fontFamily,
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '去给珍贵的数据加一份安心守护吧',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isNight ? Colors.white60 : const Color(0xFF8D827A),
+                                    fontFamily: fontFamily,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 28),
+                            
+                            // 按钮栏
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildReminderOutlineButton(
+                                    label: '稍后提醒',
+                                    isNight: isNight,
+                                    fontFamily: fontFamily,
+                                    onPressed: () => Navigator.pop(context),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildReminderGradientButton(
+                                    label: '立即备份',
+                                    isNight: isNight,
+                                    fontFamily: fontFamily,
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const CloudSyncPage(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // 2. 头部悬浮的 Mascot 头像（半个圆在主体卡片上方）
+                Positioned(
+                  top: -42, // 直径 84，向上偏移 42
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isNight ? const Color(0xFF0F172A) : Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isNight
+                            ? const Color(0xFF00ACC1).withValues(alpha: 0.4)
+                            : const Color(0xFFE0F7FA),
+                        width: 4.0,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF00ACC1).withValues(alpha: isNight ? 0.3 : 0.15),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      UserState().selectedMascotType.value,
+                      width: 60,
+                      height: 60,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildReminderOutlineButton({
+    required String label,
+    required bool isNight,
+    required String fontFamily,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(
+            color: isNight ? Colors.white24 : const Color(0xFFE2E8F0),
+            width: 1.5,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          backgroundColor: isNight ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF8FAFC),
+          elevation: 0,
+          padding: EdgeInsets.zero,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.access_alarm_rounded,
+              size: 18,
+              color: isNight ? Colors.white70 : const Color(0xFF64748B),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: isNight ? Colors.white70 : const Color(0xFF64748B),
+                fontFamily: fontFamily,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReminderGradientButton({
+    required String label,
+    required bool isNight,
+    required String fontFamily,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4DD0E1), Color(0xFF00ACC1)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00ACC1).withValues(alpha: 0.35),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 0,
+          padding: EdgeInsets.zero,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.cloud_upload_rounded,
+              size: 18,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontFamily: fontFamily,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessDialog(String fontFamily) {
+    final isNight = _isNight;
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (context) {
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (context.mounted) {
+            Navigator.pop(context);
+          }
+        });
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: isNight ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: isNight ? Colors.white.withValues(alpha: 0.1) : const Color(0xFF00ACC1).withValues(alpha: 0.2),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00ACC1).withValues(alpha: isNight ? 0.3 : 0.15),
+                      blurRadius: 30,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // 渐变流光勾号
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF00ACC1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ).animate().scale(curve: Curves.elasticOut, duration: 800.ms),
+                    const SizedBox(height: 20),
+                    Text(
+                      '记忆复苏成功！',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isNight ? Colors.white : const Color(0xFF1A1A1A),
+                        fontFamily: fontFamily,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '我们的岛屿已安全重建 ✨',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isNight ? Colors.white60 : Colors.black54,
+                        fontFamily: fontFamily,
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1.0, 1.0), curve: Curves.easeOutBack),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLoadingOverlay(String text, bool isNight, String fontFamily) {
+    return Positioned.fill(
+      child: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+          child: Container(
+            color: Colors.black.withValues(alpha: isNight ? 0.5 : 0.35),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 旋转的流光光圈与跳动的小伙伴容器
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // 旋转流光圈
+                      Container(
+                        width: 110,
+                        height: 110,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.transparent,
+                          ),
+                          gradient: const SweepGradient(
+                            colors: [
+                              Color(0xFF00ACC1),
+                              Color(0xFF818CF8),
+                              Color(0xFFCE93D8),
+                              Color(0xFF00ACC1),
+                            ],
+                          ),
+                        ),
+                      )
+                      .animate(onPlay: (controller) => controller.repeat())
+                      .rotate(duration: 2.seconds),
+                      
+                      // 内层遮罩，制造环形感
+                      Container(
+                        width: 102,
+                        height: 102,
+                        decoration: BoxDecoration(
+                          color: isNight ? const Color(0xFF161513) : const Color(0xFFFAF7F0),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      
+                      // 永久弹性跳动的小胖形象 (Mascot)
+                      Image.asset(
+                        UserState().selectedMascotType.value,
+                        width: 60,
+                        height: 60,
+                      )
+                      .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                      .moveY(begin: -8, end: 8, duration: 800.ms, curve: Curves.easeInOutCubic)
+                      .rotate(begin: -0.05, end: 0.05, duration: 800.ms, curve: Curves.easeInOutCubic),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  
+                  // 呼吸灯文字
+                  Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF374151),
+                      fontFamily: fontFamily,
+                      letterSpacing: 0.8,
+                    ),
+                  )
+                  .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                  .fadeIn(duration: 1.seconds, curve: Curves.easeInOut),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LeftCurvePainter extends CustomPainter {
+  final bool isNight;
+  _LeftCurvePainter({required this.isNight});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = isNight ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFD7CCC8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    // 绘制二次贝塞尔曲线点集，实现虚线效果
+    for (var i = 0; i <= 20; i++) {
+      final t = i / 20;
+      // 曲线起始点 (0, 0)，控制点 (22, 18)，终点 (10, 52)
+      final x = (1 - t) * (1 - t) * 0 + 2 * (1 - t) * t * 22 + t * t * 10;
+      final y = (1 - t) * (1 - t) * 0 + 2 * (1 - t) * t * 18 + t * t * 52;
+      
+      if (i % 2 == 0) {
+        canvas.drawCircle(Offset(x, y), 1.0, paint);
+      }
+    }
+    
+    // 在曲线终点绘制一个精美的小心形 (Color: Color(0xFF81D4FA))
+    final heartPaint = Paint()
+      ..color = const Color(0xFF81D4FA)
+      ..style = PaintingStyle.fill;
+      
+    final heartPath = Path();
+    const hx = 10.0;
+    const hy = 52.0;
+    
+    // 心形绘制路径以 hx, hy 为顶端交汇点
+    heartPath.moveTo(hx, hy);
+    heartPath.cubicTo(hx - 3, hy - 3, hx - 6, hy, hx, hy + 5);
+    heartPath.cubicTo(hx + 6, hy, hx + 3, hy - 3, hx, hy);
+    canvas.drawPath(heartPath, heartPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

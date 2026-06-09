@@ -59,13 +59,13 @@ class BackupService {
 
       final tempDir = await getTemporaryDirectory();
       // 使用 .island 专属后缀
-      final filePath = '${tempDir.path}/island_backup_${DateTime.now().millisecondsSinceEpoch}.island';
+      final filePath = '${tempDir.path}/岛屿日记备份_${DateTime.now().millisecondsSinceEpoch}.island.zip';
       final file = File(filePath);
       await file.writeAsBytes(zipBytes);
 
       await SharePlus.instance.share(
         ShareParams(
-          files: [XFile(file.path)],
+          files: [XFile(file.path, mimeType: 'application/zip')],
           subject: '岛屿日记加密备份',
           text: '这是我在岛屿日记中的加密记忆晶体。请通过 App 恢复功能打开。',
         )

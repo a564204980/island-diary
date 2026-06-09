@@ -39,7 +39,7 @@ class _SecurityGuardState extends State<SecurityGuard> with WidgetsBindingObserv
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     final userState = UserState();
-    _isLocked = userState.isAppLockEnabled.value;
+    _isLocked = userState.isAppLockEnabled.value && userState.appLockPin.value.isNotEmpty;
     _pinController.addListener(_onPinChanged);
     
     // 初始化并监听截屏防护
@@ -107,7 +107,7 @@ class _SecurityGuardState extends State<SecurityGuard> with WidgetsBindingObserv
       _lastInactiveTime = DateTime.now();
     }
 
-    if (state == AppLifecycleState.resumed && userState.isAppLockEnabled.value) {
+    if (state == AppLifecycleState.resumed && userState.isAppLockEnabled.value && userState.appLockPin.value.isNotEmpty) {
       final lockDuration = userState.autoLockDuration.value;
       bool shouldLock = false;
       
@@ -249,10 +249,9 @@ class _SecurityGuardState extends State<SecurityGuard> with WidgetsBindingObserv
         // 锁屏界面
         if (_isLocked)
           Positioned.fill(
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-              resizeToAvoidBottomInset: false,
-              body: GestureDetector(
+            child: Material(
+              color: Colors.transparent,
+              child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => _focusNode.requestFocus(),
                 child: BackdropFilter(

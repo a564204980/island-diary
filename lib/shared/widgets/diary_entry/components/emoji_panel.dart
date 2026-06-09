@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import '../utils/emoji_mapping.dart';
 import '../utils/diary_utils.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -59,9 +61,10 @@ class _EmojiPanelState extends State<EmojiPanel> {
   Future<void> _pickCustomEmoji() async {
     final List<AssetEntity>? result = await AssetPicker.pickAssets(
       context,
-      pickerConfig: const AssetPickerConfig(
+      pickerConfig: AssetPickerConfig(
         maxAssets: 1,
         requestType: RequestType.common,
+        filterOptions: FilterOptionGroup(containsLivePhotos: true),
       ),
     );
 
@@ -75,6 +78,11 @@ class _EmojiPanelState extends State<EmojiPanel> {
         final File? videoFile = await asset.fileWithSubtype;
         if (videoFile != null) {
           finalPath = '${file.path}|${videoFile.path}';
+        }
+      } else if (Platform.isAndroid) {
+        final extractedPath = await _extractAndroidMotionPhotoVideo(file.path, asset.id);
+        if (extractedPath != null) {
+          finalPath = '${file.path}|$extractedPath';
         }
       }
 
@@ -440,5 +448,45 @@ class _EmojiPanelState extends State<EmojiPanel> {
         ),
       ),
     );
+  }
+
+  /// 提取安卓端 Motion Photo（动态照片/Moving Picture）的视频轨道并保存到临时文件
+  Future<String?> _extractAndroidMotionPhotoVideo(String imagePath, String assetId) async {
+    try {
+      final file = File(imagePath);
+      final bytes = await file.readAsBytes();
+      
+      // 搜索 MP4 的 'ftyp' 标志: [0x66, 0x74, 0x79, 0x70] (从后往前搜索避开 JPEG 头部/元数据的假匹配)
+      int ftypIndex = -1;
+      for (int i = bytes.length - 4; i >= 0; i--) {
+        if (bytes[i] == 0x66 &&
+            bytes[i + 1] == 0x74 &&
+            bytes[i + 2] == 0x79 &&
+            bytes[i + 3] == 0x70) {
+          ftypIndex = i;
+          break;
+        }
+      }
+      
+      if (ftypIndex > 4) {
+        // MP4 文件的起始位置在 'ftyp' 标志的前 4 个字节（即 ftyp box 的 size 长度）
+        final int videoStart = ftypIndex - 4;
+        final videoBytes = bytes.sublist(videoStart);
+        
+        final appDocDir = await getApplicationDocumentsDirectory();
+        final String fileName = "${assetId}_motion.mp4";
+        final String savedPath = p.join(appDocDir.path, 'live_photos', fileName);
+        
+        final savedFile = File(savedPath);
+        if (!await savedFile.parent.exists()) {
+          await savedFile.parent.create(recursive: true);
+        }
+        await savedFile.writeAsBytes(videoBytes);
+        return savedPath;
+      }
+    } catch (e) {
+      debugPrint("Failed to extract Android motion photo video: $e");
+    }
+    return null;
   }
 }

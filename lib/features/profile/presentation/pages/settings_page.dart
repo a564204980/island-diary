@@ -38,56 +38,7 @@ class SettingsPage extends StatelessWidget {
                     
                     const SliverToBoxAdapter(child: SizedBox(height: 10)),
                     
-                    // 偏好与数据
-                    SliverToBoxAdapter(
-                      child: _buildSection(
-                        title: '偏好与数据',
-                        subtitle: '备份你的回忆，管理本地数据',
-                        isNight: isNight,
-                        children: [
-                          _SettingsTile(
-                            title: '加密导出',
-                            icon: Icons.ios_share_rounded,
-                            accentColor: const Color(0xFF10B981),
-                            isNight: isNight,
-                            onTap: () async {
-                              final success = await BackupService.exportData();
-                              if (!context.mounted) return;
-                              if (success) {
-                                _showToast(context, '回忆已成功打包并准备导出 📦');
-                              } else {
-                                _showToast(context, '导出失败，请检查文件系统读写权限');
-                              }
-                            },
-                          ),
-                          _buildDivider(isNight),
-                          _SettingsTile(
-                            title: '回忆导入',
-                            icon: Icons.system_update_alt_rounded,
-                            accentColor: const Color(0xFF0EA5E9),
-                            isNight: isNight,
-                            onTap: () => _handleImport(context, isNight),
-                          ),
-                          _buildDivider(isNight),
-                          _SettingsTile(
-                            title: '恢复购买',
-                            icon: Icons.shopping_cart_checkout_rounded,
-                            accentColor: const Color(0xFF3B82F6),
-                            isNight: isNight,
-                            onTap: () => _showActionDialog(
-                              context, 
-                              '恢复购买', 
-                              '正在连接 App Store，验证您的偏好设置与订阅记录...', 
-                              isNight, 
-                              isRestore: true
-                            ),
-                          ),
-                        ],
-                      ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
-                    ),
-                    
-                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                    
+
                     // 支持与反馈
                     SliverToBoxAdapter(
                       child: _buildSection(
@@ -256,7 +207,6 @@ class SettingsPage extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // 慢速运动背景光影 1
           Positioned(
             top: -120,
             right: -80,
@@ -268,18 +218,14 @@ class SettingsPage extends StatelessWidget {
                 gradient: RadialGradient(
                   colors: [
                     isNight
-                        ? const Color(0xFF6366F1).withValues(alpha: 0.18)
-                        : const Color(0xFFA5F3FC).withValues(alpha: 0.4),
+                        ? const Color(0xFF6366F1).withValues(alpha: 0.15)
+                        : const Color(0xFFA5F3FC).withValues(alpha: 0.3),
                     Colors.transparent
                   ],
                 ),
               ),
-            )
-                .animate(onPlay: (c) => c.repeat(reverse: true))
-                .move(begin: const Offset(0, 0), end: const Offset(-40, 50), duration: 6.seconds, curve: Curves.easeInOut),
+            ),
           ),
-          
-          // 慢速运动背景光影 2
           Positioned(
             bottom: 80,
             left: -100,
@@ -291,15 +237,13 @@ class SettingsPage extends StatelessWidget {
                 gradient: RadialGradient(
                   colors: [
                     isNight
-                        ? const Color(0xFFEC4899).withValues(alpha: 0.12)
-                        : const Color(0xFFFBCFE8).withValues(alpha: 0.35),
+                        ? const Color(0xFFEC4899).withValues(alpha: 0.1)
+                        : const Color(0xFFFBCFE8).withValues(alpha: 0.25),
                     Colors.transparent
                   ],
                 ),
               ),
-            )
-                .animate(onPlay: (c) => c.repeat(reverse: true))
-                .move(begin: const Offset(0, 0), end: const Offset(50, -30), duration: 7.seconds, curve: Curves.easeInOut),
+            ),
           ),
         ],
       ),
@@ -397,26 +341,23 @@ class SettingsPage extends StatelessWidget {
           ),
           Container(
             decoration: BoxDecoration(
-              color: isNight ? Colors.white.withValues(alpha: 0.04) : Colors.white.withValues(alpha: 0.65),
-              borderRadius: BorderRadius.circular(24),
+              color: isNight ? const Color(0xFF1E293B).withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.8),
+                color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.white,
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: isNight ? 0.15 : 0.03),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
+                  color: Colors.black.withValues(alpha: isNight ? 0.2 : 0.04),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                child: Column(children: children),
-              ),
+              borderRadius: BorderRadius.circular(20),
+              child: Column(children: children),
             ),
           ),
         ],

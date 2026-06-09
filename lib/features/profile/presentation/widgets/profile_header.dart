@@ -469,9 +469,10 @@ class ProfileHeader extends StatelessWidget {
                 Navigator.pop(context);
                 final List<AssetEntity>? result = await AssetPicker.pickAssets(
                   context,
-                  pickerConfig: const AssetPickerConfig(
+                  pickerConfig: AssetPickerConfig(
                     maxAssets: 1,
                     requestType: RequestType.image,
+                    filterOptions: FilterOptionGroup(containsLivePhotos: true),
                   ),
                 );
                 if (result != null && result.isNotEmpty) {

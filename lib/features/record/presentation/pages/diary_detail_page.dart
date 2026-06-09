@@ -12,7 +12,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 import '../widgets/diary/diary_timeline.dart';
 import '../widgets/diary/diary_replies.dart';
-import '../widgets/moments_reply_dialog.dart';
+import '../widgets/diary_reply_sheet.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 
 class DiaryDetailPage extends StatefulWidget {
@@ -364,7 +364,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => MomentsReplySheet(
+      builder: (context) => DiaryReplySheet(
         isNight: _effectiveIsNight,
         onConfirm: _handleReplySubmit,
       ),

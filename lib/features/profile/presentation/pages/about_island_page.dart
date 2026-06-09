@@ -1,6 +1,4 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 
@@ -21,16 +19,13 @@ class AboutIslandPage extends StatelessWidget {
         children: [
           Positioned.fill(child: AboutHeroBackground(isNight: isNight)),
 
-          // 模糊覆盖层
+          // 静态浅色/深色透明遮罩层
           Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isNight
-                      ? const Color(0xFF0D1B2A).withValues(alpha: 0.2)
-                      : Colors.white.withValues(alpha: 0.2),
-                ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isNight
+                    ? const Color(0xFF0D1B2A).withValues(alpha: 0.15)
+                    : Colors.white.withValues(alpha: 0.15),
               ),
             ),
           ),
@@ -75,31 +70,18 @@ class AboutIslandPage extends StatelessWidget {
                                 '打造独一无二的私人领地：\n'
                                 '• 在「小软的衣帽间」内，为您的守护灵挑选并更换绝版外观。\n'
                                 '• 想要更别致？点击预览左下角的「更换背景」即可切换小岛氛围。\n'
-                                '• 稀有装扮可以通过达成特定成就免费解锁。',
+                                '• 稀有装扮可以通过日常记录或后续更新解锁。',
                           ),
                           const SizedBox(height: 16),
                           _buildManualSection(
                             isNight: isNight,
                             index: 2,
-                            icon: Icons.emoji_events_rounded,
-                            title: '成就收集',
-                            color: const Color(0xFFFF7043),
-                            content:
-                                '见证您的每一次成长：\n'
-                                '• 在「成就墙」查看您的荣誉历程。\n'
-                                '• 点击未解锁成就，查看详细的达成要求。\n'
-                                '• 达成「白金」等级成就即可获得史诗级装扮奖励。',
-                          ),
-                          const SizedBox(height: 16),
-                          _buildManualSection(
-                            isNight: isNight,
-                            index: 3,
                             icon: Icons.security_rounded,
                             title: '安全守护',
                             color: const Color(0xFF64B5F6),
                             content:
                                 '保护您的心灵秘密：\n'
-                                '• 进入「安全中心」开启 FaceID/指纹应用锁。\n'
+                                '• 进入「安全中心」开启应用锁或手势密码保护隐私。\n'
                                 '• 全文加密存储，无需担心数据泄露。\n'
                                 '• 温馨提示：由于数据不上传云端，请务必开启系统级的备份功能。',
                           ),
@@ -320,94 +302,71 @@ class AboutIslandPage extends StatelessWidget {
   }
 }
 
-class AboutHeroBackground extends StatefulWidget {
+class AboutHeroBackground extends StatelessWidget {
   final bool isNight;
   const AboutHeroBackground({super.key, required this.isNight});
 
   @override
-  State<AboutHeroBackground> createState() => _AboutHeroBackgroundState();
-}
-
-class _AboutHeroBackgroundState extends State<AboutHeroBackground>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = _controller.value;
-        final baseColor = widget.isNight
-            ? const Color(0xFF0F0F1A)
-            : const Color(0xFFE6F3F5);
-        return Stack(
-          children: [
-            Container(color: baseColor),
-            _buildBlurOrb(
-              color: const Color(
-                0xFF7E57C2,
-              ).withValues(alpha: widget.isNight ? 0.4 : 0.15),
-              offset: Offset(
-                math.sin(t * 2 * math.pi) * 0.4 + 0.5,
-                math.cos(t * 1.5 * math.pi) * 0.3 + 0.4,
-              ),
-              size: 1.5,
+    final baseColor = isNight
+        ? const Color(0xFF0D1B2A)
+        : const Color(0xFFE6F3F5);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isNight
+              ? [
+                  baseColor,
+                  const Color(0xFF1B263B),
+                  const Color(0xFF0D1B2A),
+                ]
+              : [
+                  baseColor,
+                  const Color(0xFFD0E8EC),
+                  const Color(0xFFE6F3F5),
+                ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -100,
+            right: -100,
+            child: _buildStaticOrb(
+              color: isNight
+                  ? const Color(0xFF7E57C2).withValues(alpha: 0.15)
+                  : const Color(0xFFCE93D8).withValues(alpha: 0.22),
+              size: 350,
             ),
-            _buildBlurOrb(
-              color: const Color(
-                0xFFCE93D8,
-              ).withValues(alpha: widget.isNight ? 0.3 : 0.1),
-              offset: Offset(
-                math.cos(t * 1.8 * math.pi) * 0.5 + 0.5,
-                math.sin(t * 2.2 * math.pi) * 0.4 + 0.6,
-              ),
-              size: 1.8,
+          ),
+          Positioned(
+            bottom: -50,
+            left: -50,
+            child: _buildStaticOrb(
+              color: isNight
+                  ? const Color(0xFF42A5F5).withValues(alpha: 0.12)
+                  : const Color(0xFF80DEEA).withValues(alpha: 0.22),
+              size: 300,
             ),
-            _buildBlurOrb(
-              color: const Color(
-                0xFF42A5F5,
-              ).withValues(alpha: widget.isNight ? 0.2 : 0.1),
-              offset: Offset(
-                math.sin(t * 1.2 * math.pi) * 0.6 + 0.5,
-                math.cos(t * 2.5 * math.pi) * 0.5 + 0.5,
-              ),
-              size: 1.2,
-            ),
-          ],
-        );
-      },
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildBlurOrb({
+  Widget _buildStaticOrb({
     required Color color,
-    required Offset offset,
     required double size,
   }) {
-    return Align(
-      alignment: Alignment(offset.dx * 2 - 1, offset.dy * 2 - 1),
-      child: Container(
-        width: 400 * size,
-        height: 400 * size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color, Colors.transparent],
         ),
       ),
     );
