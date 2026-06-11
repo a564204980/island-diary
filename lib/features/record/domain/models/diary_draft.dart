@@ -15,6 +15,7 @@ class DiaryDraft {
   final String paperStyle;
   final bool isImageGrid;
   final bool isMixedLayout;
+  final String? bookId;
 
   DiaryDraft({
     required this.moodIndex,
@@ -31,5 +32,6 @@ class DiaryDraft {
     this.paperStyle = 'classic',
     this.isImageGrid = false,
     this.isMixedLayout = true,
+    this.bookId = 'default',
   });
 }

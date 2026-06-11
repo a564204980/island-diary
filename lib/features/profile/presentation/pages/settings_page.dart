@@ -390,28 +390,6 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  void _handleImport(BuildContext context, bool isNight) {
-    _showActionDialog(
-      context, 
-      '回忆导入', 
-      '警告：导入操作将使用备份文件覆盖当前岛屿上的所有回忆、成就与偏好。此操作不可撤销，请确保备份文件来源可靠。', 
-      isNight,
-      onConfirm: () async {
-        final result = await BackupService.importData();
-        if (!context.mounted) return;
-        if (result == 'SUCCESS') {
-          _showToast(context, '回忆已成功找回，岛屿状态已重建 ✨');
-        } else if (result == 'INVALID_SIGNATURE' || result == 'INVALID_FORMAT') {
-          _showToast(context, '文件校验未通过：非法的加密水晶 🔮');
-        } else if (result == 'PASSWORD_ERROR') {
-          _showToast(context, '解密失败：备份密码不正确 🔑');
-        } else if (result == 'FAILED') {
-          _showToast(context, '导入失败，请确保文件完整未损坏');
-        }
-      },
-    );
-  }
-
   void _showActionDialog(
     BuildContext context, 
     String title, 

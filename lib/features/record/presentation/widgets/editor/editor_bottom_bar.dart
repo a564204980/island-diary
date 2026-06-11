@@ -80,8 +80,8 @@ class EditorBottomBar extends StatelessWidget {
 
     // 动态色彩配置（支持深色/浅色模式）
     final Color barBgColor = isNight 
-        ? const Color(0xFF141426).withValues(alpha: 0.92) 
-        : const Color(0xFFFAF9F6).withValues(alpha: 0.95);
+        ? const Color(0xFF141426) 
+        : const Color(0xFFFAF9F6);
 
     final Color iconColor = isNight
         ? Colors.white70

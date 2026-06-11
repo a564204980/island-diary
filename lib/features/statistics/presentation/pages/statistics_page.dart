@@ -66,7 +66,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   bool _isScrolling = false;
   StatTimeRange _currentRange = StatTimeRange.month;
   late AnimationController _waveAnimController;
-  final Map<String, Future<String>> _moodTrendSummaryFutures = {};
+  final Map<String, String> _moodTrendSummaries = {};
   String? _selectedMoodWeatherStateId;
 
   // 新增：波浪图交互状态 (将在下方统一定义)
@@ -369,22 +369,22 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     switch (_currentRange) {
       case StatTimeRange.week:
         saved = state.statsOrderWeek.value;
-        defaults = ['mood_trend', 'mood_flow', 'intensity_radar', 'stats_row', 'volatility', 'wave', 'weekly_pattern', 'heatmap', 'time_pattern'];
+        defaults = ['mood_trend', 'mood_flow', 'intensity_radar', 'stats_row', 'max_streaks', 'mood_progress', 'volatility', 'wave', 'weekly_pattern', 'heatmap', 'time_pattern'];
         break;
       case StatTimeRange.month:
         saved = state.statsOrderMonth.value;
-        defaults = ['mood_trend', 'mood_weather', 'mood_palette', 'mood_flow', 'calendar', 'intensity_radar', 'stats_row', 'highlights', 'time_pattern'];
+        defaults = ['mood_trend', 'mood_weather', 'mood_palette', 'mood_flow', 'calendar', 'intensity_radar', 'stats_row', 'max_streaks', 'mood_progress', 'highlights', 'time_pattern'];
         break;
       case StatTimeRange.all:
         saved = state.statsOrderAll.value;
-        defaults = ['mood_trend', 'mood_flow', 'intensity_radar', 'seasonality', 'memories_today', 'heatmap', 'stats_row', 'time_pattern', 'weather'];
+        defaults = ['mood_trend', 'mood_flow', 'intensity_radar', 'seasonality', 'memories_today', 'heatmap', 'stats_row', 'max_streaks', 'mood_progress', 'time_pattern', 'weather'];
         break;
     }
     
     // 如果保存的列表为空或长度不匹配（可能有新功能加入），使用默认
     if (saved.isEmpty) return defaults;
     
-    // 确保保存的列表包含所有必需的模块（去重且补全）
+    // 确保保存 the 的列表包含所有必需的模块（去重且补全）
     final Set<String> currentModules = Set.from(saved);
     final List<String> finalOrder = saved.where((m) => defaults.contains(m)).toList();
     for (var d in defaults) {
@@ -402,18 +402,19 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
       case 'intensity_radar':
         return _buildRadarBento(isNight, filtered, themeColor);
       case 'stats_row':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildStatsBentoList(
-              isNight,
-              _currentRange == StatTimeRange.all ? _allDiaries : filtered,
-              themeColor,
-            ),
-            const SizedBox(height: 16),
-            _buildMoodProgressBarBento(isNight, filtered, themeColor),
-          ],
+        return _buildStatsBentoList(
+          isNight,
+          _currentRange == StatTimeRange.all ? _allDiaries : filtered,
+          themeColor,
         );
+      case 'max_streaks':
+        return _buildMaxStreaksBento(
+          isNight,
+          _allDiaries,
+          themeColor,
+        );
+      case 'mood_progress':
+        return _buildMoodProgressBarBento(isNight, filtered, themeColor);
       case 'volatility':
         return _buildVolatilityIndexBento(isNight, filtered, themeColor);
       case 'wave':

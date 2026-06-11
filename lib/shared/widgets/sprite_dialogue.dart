@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/typewriter_text.dart';
 
@@ -8,6 +9,8 @@ class SpriteDialogue extends StatefulWidget {
   final bool isNight;
   final bool useTypewriter;
   final VoidCallback? onNext; // 打字完成后的下一步回调
+  final bool autoDismiss;
+  final Duration autoDismissDelay;
 
   const SpriteDialogue({
     super.key,
@@ -15,6 +18,8 @@ class SpriteDialogue extends StatefulWidget {
     this.isNight = false,
     this.useTypewriter = true,
     this.onNext,
+    this.autoDismiss = false,
+    this.autoDismissDelay = const Duration(seconds: 1),
   });
 
   @override
@@ -23,6 +28,29 @@ class SpriteDialogue extends StatefulWidget {
 
 class SpriteDialogueState extends State<SpriteDialogue> {
   final GlobalKey<TypewriterTextState> _typewriterKey = GlobalKey();
+  final List<Timer> _dismissTimers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.useTypewriter && widget.autoDismiss) {
+      final timer = Timer(widget.autoDismissDelay, () {
+        if (mounted) {
+          widget.onNext?.call();
+        }
+      });
+      _dismissTimers.add(timer);
+    }
+  }
+
+  @override
+  void dispose() {
+    for (var t in _dismissTimers) {
+      t.cancel();
+    }
+    _dismissTimers.clear();
+    super.dispose();
+  }
 
   void handleTap() {
     if (widget.useTypewriter) {
@@ -54,6 +82,16 @@ class SpriteDialogueState extends State<SpriteDialogue> {
               ? TypewriterText(
                   key: _typewriterKey,
                   text: widget.text,
+                  onFinished: () {
+                    if (widget.autoDismiss) {
+                      final timer = Timer(widget.autoDismissDelay, () {
+                        if (mounted) {
+                          widget.onNext?.call();
+                        }
+                      });
+                      _dismissTimers.add(timer);
+                    }
+                  },
                   style: TextStyle(
                     color: textColor,
                     fontSize: 14,

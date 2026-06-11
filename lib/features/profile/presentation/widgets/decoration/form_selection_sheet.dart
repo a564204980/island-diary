@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/widgets/decoration/form_grid_item.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 
 class MascotFormSelectionSheet extends StatelessWidget {
   final bool isNight;
@@ -46,12 +47,21 @@ class MascotFormSelectionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.55,
+    return DiaryBottomSheet(
+       paperStyle: 'default',
+       showDragHandle: true,
+       isDiary: false,
+       padding: EdgeInsets.only(
+         left: 0,
+         right: 0,
+         top: 12,
+         bottom: 12 + MediaQuery.of(context).padding.bottom,
+       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
             child: Row(
               children: [
                 const Icon(
@@ -80,72 +90,72 @@ class MascotFormSelectionSheet extends StatelessWidget {
               ],
             ),
           ),
-          Expanded(
-            child: ListenableBuilder(
-              listenable: Listenable.merge([
-                userState.selectedMascotType,
-                userState.vipLevel,
-              ]),
-              builder: (context, _) {
-                final currentType = userState.selectedMascotType.value;
-                final isVip = userState.isVip.value;
+          ListenableBuilder(
+            listenable: Listenable.merge([
+              userState.selectedMascotType,
+              userState.vipLevel,
+            ]),
+            builder: (context, _) {
+              final currentType = userState.selectedMascotType.value;
+              final isVip = userState.isVip.value;
 
-                final targetPaths = [
-                  'assets/images/emoji/marshmallow.png',
-                  'assets/images/emoji/marshmallow2.png',
-                  'assets/images/emoji/marshmallow3.png',
-                  'assets/images/emoji/marshmallow4.png',
-                ];
-                final filteredForms = mascotForms
-                    .where((f) => targetPaths.contains(f['path']))
-                    .toList();
+              final targetPaths = [
+                'assets/images/emoji/marshmallow.png',
+                'assets/images/emoji/marshmallow2.png',
+                'assets/images/emoji/marshmallow3.png',
+                'assets/images/emoji/marshmallow4.png',
+              ];
+              final filteredForms = mascotForms
+                  .where((f) => targetPaths.contains(f['path']))
+                  .toList();
 
-                filteredForms.sort((a, b) {
-                  final aPath = a['path']!;
-                  final bPath = b['path']!;
-                  bool aLocked =
-                      (aPath == 'assets/images/emoji/marshmallow4.png')
-                      ? !isVip
-                      : false;
-                  bool bLocked =
-                      (bPath == 'assets/images/emoji/marshmallow4.png')
-                      ? !isVip
-                      : false;
-                  if (aLocked != bLocked) return aLocked ? 1 : -1;
-                  return 0;
-                });
+              filteredForms.sort((a, b) {
+                final aPath = a['path']!;
+                final bPath = b['path']!;
+                bool aLocked =
+                    (aPath == 'assets/images/emoji/marshmallow4.png')
+                    ? !isVip
+                    : false;
+                bool bLocked =
+                    (bPath == 'assets/images/emoji/marshmallow4.png')
+                    ? !isVip
+                    : false;
+                if (aLocked != bLocked) return aLocked ? 1 : -1;
+                return 0;
+              });
 
-                return GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 1.1,
-                  ),
-                  itemCount: filteredForms.length,
-                  itemBuilder: (context, index) {
-                    final form = filteredForms[index];
-                    final path = form['path']!;
-                    bool isLocked = false;
-                    String? lockHint;
-                    if (path == 'assets/images/emoji/marshmallow4.png') {
-                      isLocked = !isVip;
-                      lockHint = isLocked ? '星光计划专属' : null;
-                    }
-                    return FormGridItem(
-                      form: form,
-                      isSelected: currentType == path,
-                      isNight: isNight,
-                      isLocked: isLocked,
-                      lockHint: lockHint,
-                      index: index,
-                      shouldAnimate: true,
-                    );
-                  },
-                );
-              },
-            ),
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 1.1,
+                ),
+                itemCount: filteredForms.length,
+                itemBuilder: (context, index) {
+                  final form = filteredForms[index];
+                  final path = form['path']!;
+                  bool isLocked = false;
+                  String? lockHint;
+                  if (path == 'assets/images/emoji/marshmallow4.png') {
+                    isLocked = !isVip;
+                    lockHint = isLocked ? '星光计划专属' : null;
+                  }
+                  return FormGridItem(
+                    form: form,
+                    isSelected: currentType == path,
+                    isNight: isNight,
+                    isLocked: isLocked,
+                    lockHint: lockHint,
+                    index: index,
+                    shouldAnimate: true,
+                  );
+                },
+              );
+            },
           ),
         ],
       ),

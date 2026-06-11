@@ -27,122 +27,43 @@ extension _BentoEmotionMetrics on _StatisticsPageState {
       }
     }
 
+    final streakColor = isNight ? const Color(0xFFA78BFA) : const Color(0xFF6D28D9);
+    final wordColor = isNight ? const Color(0xFF75C7B7) : const Color(0xFF2E7E6E);
+
     return Row(
       children: [
         Expanded(
-          child: _buildSmallBentoCore(
-            isNight,
-            isCottonCandy,
-            '连记',
-            '$streak',
-            '天',
-            CupertinoIcons.flame_fill,
-            '连续记录',
-            themeColor,
+          child: _buildMetricCard(
+            isNight: isNight,
+            isCottonCandy: isCottonCandy,
+            topText: '当前',
+            middleText: '连记',
+            bottomText: '连续记录',
+            value: '$streak',
+            unit: '天',
+            numColor: streakColor,
+            themeColor: themeColor,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildSmallBentoCore(
-            isNight,
-            isCottonCandy,
-            '字数',
-            '${totalWords > 999 ? '${(totalWords / 1000).toStringAsFixed(1)}k' : totalWords}',
-            '字',
-            CupertinoIcons.doc_text_fill,
-            '累计写下',
-            themeColor,
+          child: _buildMetricCard(
+            isNight: isNight,
+            isCottonCandy: isCottonCandy,
+            topText: '累计',
+            middleText: '字数',
+            bottomText: '累计写下',
+            value: '${totalWords > 999 ? '${(totalWords / 1000).toStringAsFixed(1)}k' : totalWords}',
+            unit: '字',
+            numColor: wordColor,
+            themeColor: themeColor,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSmallBentoCore(
-    bool isNight,
-    bool isCottonCandy,
-    String title,
-    String value,
-    String unit,
-    IconData icon,
-    String hint,
-    Color themeColor,
-  ) {
-    return _buildGlassCard(
-      isNight: isNight,
-      backgroundColor: isCottonCandy ? const Color(0xFFFFF4EF) : null,
-      padding: const EdgeInsets.all(10),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 72),
-        child: SizedBox(
-          width: double.infinity,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: _bentoTitleStyle(isNight).copyWith(
-                      fontFamily: 'LXGWWenKai',
-                    ),
-                  ),
-                  Icon(
-                    icon,
-                    size: 13,
-                    color: isNight
-                        ? Colors.white38
-                        : (isCottonCandy ? const Color(0xFFF2B9BF) : themeColor.withValues(alpha: 0.28)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: isCottonCandy ? 19 : 21,
-                      fontWeight: FontWeight.w900,
-                      color: isNight
-                          ? Colors.white
-                          : (isCottonCandy ? const Color(0xFF7A5C4E) : const Color(0xFF5A3E28)),
-                      fontFamily: 'LXGWWenKai',
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    unit,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isNight ? Colors.white54 : const Color(0xFF8E7768),
-                      fontFamily: 'LXGWWenKai',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 3),
-              Text(
-                hint,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isNight
-                      ? Colors.white54
-                      : (isCottonCandy ? const Color(0xFF9E8474) : const Color(0xFF6D5A4B)),
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildMoodProgressBarBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
     final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
@@ -313,6 +234,193 @@ extension _BentoEmotionMetrics on _StatisticsPageState {
           ),
         ],
       )
+    );
+  }
+
+  Widget _buildMaxStreaksBento(bool isNight, List<DiaryEntry> allEntries, Color themeColor) {
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+    
+    int maxDaily = 0;
+    int maxWeekly = 0;
+    
+    if (allEntries.isNotEmpty) {
+      // 1. 计算最长每日连记
+      final sortedDates = allEntries
+          .map((e) => DateTime(e.dateTime.year, e.dateTime.month, e.dateTime.day))
+          .toSet()
+          .toList()
+        ..sort((a, b) => a.compareTo(b));
+      
+      int currentDaily = 0;
+      DateTime? prevDate;
+      for (var date in sortedDates) {
+        if (prevDate == null) {
+          currentDaily = 1;
+        } else {
+          final diff = date.difference(prevDate).inDays;
+          if (diff == 1) {
+            currentDaily++;
+          } else if (diff > 1) {
+            if (currentDaily > maxDaily) {
+              maxDaily = currentDaily;
+            }
+            currentDaily = 1;
+          }
+        }
+        prevDate = date;
+      }
+      if (currentDaily > maxDaily) {
+        maxDaily = currentDaily;
+      }
+      
+      // 2. 计算最长每周连记
+      DateTime getStartOfWeek(DateTime date) {
+        return DateTime(date.year, date.month, date.day).subtract(Duration(days: date.weekday - 1));
+      }
+      
+      final sortedWeeks = allEntries
+          .map((e) => getStartOfWeek(e.dateTime))
+          .toSet()
+          .toList()
+        ..sort((a, b) => a.compareTo(b));
+      
+      int currentWeekly = 0;
+      DateTime? prevWeek;
+      for (var week in sortedWeeks) {
+        if (prevWeek == null) {
+          currentWeekly = 1;
+        } else {
+          final diff = week.difference(prevWeek).inDays;
+          final weeksDiff = (diff / 7).round();
+          if (weeksDiff == 1) {
+            currentWeekly++;
+          } else if (weeksDiff > 1) {
+            if (currentWeekly > maxWeekly) {
+              maxWeekly = currentWeekly;
+            }
+            currentWeekly = 1;
+          }
+        }
+        prevWeek = week;
+      }
+      if (currentWeekly > maxWeekly) {
+        maxWeekly = currentWeekly;
+      }
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildMetricCard(
+            isNight: isNight,
+            isCottonCandy: isCottonCandy,
+            topText: '最长',
+            middleText: '每日',
+            bottomText: '连续记录',
+            value: '$maxDaily',
+            unit: '天',
+            numColor: const Color(0xFFD36B5F),
+            themeColor: themeColor,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildMetricCard(
+            isNight: isNight,
+            isCottonCandy: isCottonCandy,
+            topText: '最长',
+            middleText: '每周',
+            bottomText: '连续记录',
+            value: '$maxWeekly',
+            unit: '周',
+            numColor: const Color(0xFF5A7EC8),
+            themeColor: themeColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricCard({
+    required bool isNight,
+    required bool isCottonCandy,
+    required String topText,
+    required String middleText,
+    required String bottomText,
+    required String value,
+    required String unit,
+    required Color numColor,
+    required Color themeColor,
+  }) {
+    return _buildGlassCard(
+      isNight: isNight,
+      backgroundColor: isCottonCandy ? const Color(0xFFFFF4EF) : null,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 80),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  topText,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isNight ? Colors.white38 : Colors.black38,
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  middleText,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isNight ? Colors.white : const Color(0xFF333333),
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  bottomText,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isNight ? Colors.white38 : Colors.black38,
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    color: numColor,
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  unit,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: numColor,
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

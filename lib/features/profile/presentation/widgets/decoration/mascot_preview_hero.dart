@@ -556,6 +556,8 @@ class MascotPreviewHero extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
       builder: (context) =>
           MascotFormSelectionSheet(isNight: isNight, userState: userState),
     );

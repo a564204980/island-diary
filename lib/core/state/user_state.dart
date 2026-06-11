@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +14,7 @@ import 'package:island_diary/core/models/mascot_event.dart';
 import 'package:island_diary/core/models/mascot_persona.dart';
 import 'package:island_diary/core/models/life_line_profile.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
+import 'package:island_diary/features/record/domain/models/diary_book.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';
 import 'package:island_diary/features/record/domain/models/placed_furniture.dart';
 
@@ -50,6 +50,7 @@ class _K {
   static const lastBirthdayGiftYear = 'last_birthday_gift_year';
 
   static const savedDiaries = 'saved_diaries_v1';
+  static const savedBooks = 'saved_books_v1';
   static const draftContent = 'diary_draft_content';
   static const draftMood = 'diary_draft_mood';
   static const draftIntensity = 'diary_draft_intensity';
@@ -64,6 +65,7 @@ class _K {
   static const draftPaperStyle = 'diary_draft_paper_style';
   static const draftIsImageGrid = 'diary_draft_is_image_grid';
   static const draftIsMixedLayout = 'diary_draft_is_mixed_layout';
+  static const draftBookId = 'diary_draft_book_id';
 
   static const wallColorLeft = 'wall_color_left';
   static const wallColorRight = 'wall_color_right';

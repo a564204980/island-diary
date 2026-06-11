@@ -21,6 +21,8 @@ class DiaryEntry {
   final bool isMixedLayout; // 是否开启图文混排
   final bool isLiked; // 是否已点赞（朋友圈模式交互）
   final Map<String, String> annotations; // 批注数据 (Key: 块索引_段落索引, Value: 批注内容)
+  final String? bookId; // 所属日记本ID
+  final String? title; // 日记目录小标题
 
   DiaryEntry({
     String? id,
@@ -41,6 +43,8 @@ class DiaryEntry {
     this.isMixedLayout = false,
     this.isLiked = false,
     Map<String, String>? annotations,
+    this.bookId = 'default',
+    this.title,
   }) : id = id ?? const Uuid().v4(),
        replies = replies ?? [],
        annotations = annotations ?? {};
@@ -65,6 +69,8 @@ class DiaryEntry {
       'isMixedLayout': isMixedLayout,
       'isLiked': isLiked,
       'annotations': annotations,
+      'bookId': bookId,
+      'title': title,
     };
   }
 
@@ -94,6 +100,8 @@ class DiaryEntry {
       annotations: map['annotations'] != null
           ? Map<String, String>.from(map['annotations'])
           : {},
+      bookId: map['bookId'] ?? 'default',
+      title: map['title'],
     );
   }
 
@@ -116,6 +124,8 @@ class DiaryEntry {
     bool? isMixedLayout,
     bool? isLiked,
     Map<String, String>? annotations,
+    String? bookId,
+    String? title,
   }) {
     return DiaryEntry(
       id: id ?? this.id,
@@ -136,6 +146,8 @@ class DiaryEntry {
       isMixedLayout: isMixedLayout ?? this.isMixedLayout,
       isLiked: isLiked ?? this.isLiked,
       annotations: annotations ?? this.annotations,
+      bookId: bookId ?? this.bookId,
+      title: title ?? this.title,
     );
   }
 

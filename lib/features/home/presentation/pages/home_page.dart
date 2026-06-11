@@ -645,6 +645,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           SpriteDialogue(
                                 text: _globalDialogueText,
                                 useTypewriter: true,
+                                autoDismiss: true,
                                 onNext: () {
                                   setState(() => _showGlobalDialogue = false);
                                 },

@@ -227,7 +227,56 @@ class AIService {
     }
   }
 
+  /// 提炼日记正文为 4-10 字的诗意目录标题
+  Future<String?> summarizeDiaryTitle(String apiKey, String content) async {
+    if (apiKey.isEmpty || apiKey == 'YOUR_API_KEY') return null;
+
+    try {
+      final response = await _dio.post(
+        '/v1/chat/completions',
+        data: {
+          'model': 'deepseek-chat',
+          'messages': [
+            {
+              'role': 'system',
+              'content': '你是一个精美的日记手帐目录提炼助手。\n请根据日记内容，提炼一个 4-10 字的诗意目录标题。\n要求：\n1. 绝对不要带有任何标点符号、前缀、说明文字或双引号。\n2. 纯汉字或带空格，字数控制在 4 到 10 字之间。\n3. 风格温婉、充满文学美感或画面感。'
+            },
+            {
+              'role': 'user',
+              'content': content,
+            },
+          ],
+          'temperature': 0.7,
+          'max_tokens': 30,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': 'application/json',
+          },
+          connectTimeout: const Duration(seconds: 4),
+          receiveTimeout: const Duration(seconds: 4),
+          sendTimeout: const Duration(seconds: 4),
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final title = response.data['choices'][0]['message']['content'].toString().trim();
+        return title
+            .replaceAll(RegExp(r'^[「“#]|[」”#]$'), '')
+            .replaceAll('"', '')
+            .replaceAll("'", "")
+            .trim();
+      }
+      return null;
+    } catch (e) {
+      debugPrint("SUMMARIZE_DIARY_TITLE_ERROR: $e");
+      return null;
+    }
+  }
+
   String _getRandomFallback(MascotPersona persona) {
     return persona.fallbackQuotes[Random().nextInt(persona.fallbackQuotes.length)];
   }
 }
+

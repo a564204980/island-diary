@@ -6,6 +6,7 @@ import 'package:island_diary/features/profile/presentation/pages/mascot_decorati
 import 'package:island_diary/features/profile/presentation/pages/about_island_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/cloud_sync_page.dart';
 import 'package:island_diary/features/profile/presentation/widgets/bento_box.dart';
+import 'package:island_diary/features/profile/presentation/pages/diary_books_page.dart';
 import 'package:island_diary/features/profile/presentation/widgets/life_line_switcher_sheet.dart';
 import 'package:island_diary/core/models/life_line_profile.dart';
 
@@ -37,10 +38,12 @@ class BentoMenuGrid extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _buildQuickActionBento(
-                      title: '\u56de\u5fc6\u5bfc\u51fa',
-                      icon: Icons.ios_share,
+                    child: _buildMenuActionBento(
+                      context,
+                      title: '岁月成书',
+                      icon: Icons.auto_stories_rounded,
                       color: const Color(0xFF64B5F6),
+                      targetPage: const DiaryBooksPage(),
                     ),
                   ),
                 ],
@@ -106,10 +109,12 @@ class BentoMenuGrid extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Expanded(
-                          child: _buildQuickActionBento(
-                            title: '\u56de\u5fc6\u5bfc\u51fa',
-                            icon: Icons.ios_share,
+                          child: _buildMenuActionBento(
+                            context,
+                            title: '岁月成书',
+                            icon: Icons.auto_stories_rounded,
                             color: const Color(0xFF64B5F6),
+                            targetPage: const DiaryBooksPage(),
                           ),
                         ),
                       ],
@@ -201,6 +206,7 @@ class BentoMenuGrid extends StatelessWidget {
       child: _buildQuickActionBento(title: title, icon: icon, color: color),
     );
   }
+
 
   Widget _buildQuickActionBento({
     required String title,

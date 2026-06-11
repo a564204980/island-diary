@@ -132,12 +132,18 @@ class DiaryMasonryCard extends StatelessWidget {
   final DiaryEntry entry;
   final bool isNight;
   final int index;
+  final bool isSelectMode;
+  final bool isSelected;
+  final VoidCallback? onTap;
 
   const DiaryMasonryCard({
     super.key,
     required this.entry,
     this.isNight = false,
     required this.index,
+    this.isSelectMode = false,
+    this.isSelected = false,
+    this.onTap,
   });
 
   @override
@@ -159,17 +165,19 @@ class DiaryMasonryCard extends StatelessWidget {
         : (isNight ? const Color(0xFF212831) : themeColorConfig.bgColor.withValues(alpha: 0.60));
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DiaryDetailPage(
-              entry: entry,
-              isNight: isNight,
-            ),
-          ),
-        );
-      },
+      onTap: isSelectMode
+          ? onTap
+          : () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DiaryDetailPage(
+                    entry: entry,
+                    isNight: isNight,
+                  ),
+                ),
+              );
+            },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -196,9 +204,33 @@ class DiaryMasonryCard extends StatelessWidget {
           ],
         ),
         clipBehavior: Clip.antiAlias,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: _buildCardContent(context, style, images),
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: _buildCardContent(context, style, images),
+            ),
+            if (isSelectMode)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFFD4A373)
+                        : Colors.black.withValues(alpha: 0.3),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.check_rounded,
+                    size: 14,
+                    color: isSelected ? Colors.white : Colors.transparent,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

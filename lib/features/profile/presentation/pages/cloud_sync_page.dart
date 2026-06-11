@@ -286,32 +286,30 @@ class _CloudSyncPageState extends State<CloudSyncPage> {
       final zipEncoder = ZipEncoder();
       final zipBytes = zipEncoder.encode(archive, level: 9);
 
-      if (zipBytes != null) {
-        final docDir = await getApplicationDocumentsDirectory();
-        final snapshotDir = Directory('${docDir.path}/local_snapshots');
-        if (!await snapshotDir.exists()) {
-          await snapshotDir.create(recursive: true);
-        }
+      final docDir = await getApplicationDocumentsDirectory();
+      final snapshotDir = Directory('${docDir.path}/local_snapshots');
+      if (!await snapshotDir.exists()) {
+        await snapshotDir.create(recursive: true);
+      }
 
-        // 快照上限控制，最多保存 5 个快照，超出则删除最久的一个
-        final existingFiles = snapshotDir.listSync().whereType<File>().toList()
-          ..sort((a, b) => a.path.compareTo(b.path));
-        if (existingFiles.length >= 5) {
-          await existingFiles.first.delete();
-        }
+      // 快照上限控制，最多保存 5 个快照，超出则删除最久的一个
+      final existingFiles = snapshotDir.listSync().whereType<File>().toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
+      if (existingFiles.length >= 5) {
+        await existingFiles.first.delete();
+      }
 
-        final file = File('${snapshotDir.path}/island_snapshot_${DateTime.now().millisecondsSinceEpoch}.island');
-        await file.writeAsBytes(zipBytes);
+      final file = File('${snapshotDir.path}/island_snapshot_${DateTime.now().millisecondsSinceEpoch}.island');
+      await file.writeAsBytes(zipBytes);
 
-        // 记录备份时间戳
-        await prefs.setInt('last_backup_time', DateTime.now().millisecondsSinceEpoch);
-        _loadLastBackupTime();
+      // 记录备份时间戳
+      await prefs.setInt('last_backup_time', DateTime.now().millisecondsSinceEpoch);
+      _loadLastBackupTime();
 
-        await _loadLocalSnapshots();
+      await _loadLocalSnapshots();
 
-        if (mounted) {
-          _showTip('本地快照创建完成');
-        }
+      if (mounted) {
+        _showTip('本地快照创建完成');
       }
     } catch (e) {
       debugPrint("创建本地快照失败: $e");

@@ -246,7 +246,15 @@ extension _BentoMoodTrend on _StatisticsPageState {
 
     final bool isMonth = _currentRange == StatTimeRange.month;
 
-    final summaryFuture = _getMoodTrendSummaryFuture(aggregatedPoints);
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final key = '${today}_${_moodTrendRangeKey()}';
+    
+    if (!_moodTrendSummaries.containsKey(key)) {
+      _moodTrendSummaries[key] = _buildLocalMoodTrendSummary(aggregatedPoints);
+      _loadMoodTrendSummary(aggregatedPoints, key);
+    }
+    
+    final summary = _moodTrendSummaries[key] ?? _buildLocalMoodTrendSummary(aggregatedPoints);
 
     return _buildGlassCard(
       isNight: isNight,
@@ -270,30 +278,22 @@ extension _BentoMoodTrend on _StatisticsPageState {
                   : themeColor.withValues(alpha: isNight ? 0.6 : 0.4),
             ),
           ),
-          FutureBuilder<String>(
-            future: summaryFuture,
-            initialData: _buildLocalMoodTrendSummary(aggregatedPoints),
-            builder: (context, snapshot) {
-              final summary = (snapshot.data ?? '').trim();
-              if (summary.isEmpty) return const SizedBox.shrink();
-
-              return Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  summary,
-                  textAlign: TextAlign.start,
-                  style: TextStyle(
-                    color: isNight ? Colors.white60 : const Color(0xFF8A7462),
-                    fontSize: 12,
-                    height: 1.35,
-                    letterSpacing: 0,
-                    fontFamily: 'LXGWWenKai',
-                    fontWeight: FontWeight.w500,
-                  ),
+          if (summary.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                summary,
+                textAlign: TextAlign.start,
+                style: TextStyle(
+                  color: isNight ? Colors.white60 : const Color(0xFF8A7462),
+                  fontSize: 12,
+                  height: 1.35,
+                  letterSpacing: 0,
+                  fontFamily: 'LXGWWenKai',
+                  fontWeight: FontWeight.w500,
                 ),
-              );
-            },
-          ),
+              ),
+            ),
           const SizedBox(height: 20),
           SizedBox(
             height: 190,
@@ -671,17 +671,9 @@ extension _BentoMoodTrend on _StatisticsPageState {
     );
   }
 
-  Future<String> _getMoodTrendSummaryFuture(List<Map<String, dynamic>> points) {
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final key = '${today}_${_moodTrendRangeKey()}';
-    return _moodTrendSummaryFutures.putIfAbsent(
-      key,
-      () => _loadMoodTrendSummary(points),
-    );
-  }
-
   Future<String> _loadMoodTrendSummary(
     List<Map<String, dynamic>> points,
+    String key,
   ) async {
     final prefs = await SharedPreferences.getInstance();
     final state = UserState();
@@ -692,25 +684,31 @@ extension _BentoMoodTrend on _StatisticsPageState {
     final cachedDate = prefs.getString(dateKey);
     final cachedText = prefs.getString(textKey);
 
+    String summary;
     if (cachedDate == today &&
         cachedText != null &&
         cachedText.trim().isNotEmpty) {
-      return cachedText.trim();
+      summary = cachedText.trim();
+    } else {
+      final fallback = _buildLocalMoodTrendSummary(points);
+      final aiSummary = await AIService().summarizeMoodTrend(
+        state.deepseekApiKey.value,
+        rangeLabel: _moodTrendRangeLabel(),
+        trendData: _formatMoodTrendData(points),
+        fallbackSummary: fallback,
+      );
+
+      summary = _normalizeMoodTrendSummary(aiSummary ?? fallback);
+      if (state.deepseekApiKey.value.isNotEmpty &&
+          state.deepseekApiKey.value != 'YOUR_API_KEY') {
+        await prefs.setString(textKey, summary);
+        await prefs.setString(dateKey, today);
+      }
     }
 
-    final fallback = _buildLocalMoodTrendSummary(points);
-    final aiSummary = await AIService().summarizeMoodTrend(
-      state.deepseekApiKey.value,
-      rangeLabel: _moodTrendRangeLabel(),
-      trendData: _formatMoodTrendData(points),
-      fallbackSummary: fallback,
-    );
-
-    final summary = _normalizeMoodTrendSummary(aiSummary ?? fallback);
-    if (state.deepseekApiKey.value.isNotEmpty &&
-        state.deepseekApiKey.value != 'YOUR_API_KEY') {
-      await prefs.setString(textKey, summary);
-      await prefs.setString(dateKey, today);
+    _moodTrendSummaries[key] = summary;
+    if (mounted) {
+      setState(() {});
     }
     return summary;
   }

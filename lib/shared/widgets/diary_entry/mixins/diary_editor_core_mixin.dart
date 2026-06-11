@@ -43,6 +43,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   String currentPaperStyle = 'classic';
   bool isMixedLayout = true; // 是否开启图文混排
   bool isImageGrid = false; // 是否开启图片九宫格
+  String currentBookId = 'default'; // 当前选择的日记本ID
 
   String get fixedQuote => _fixedQuote ?? '';
 
@@ -73,6 +74,9 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     isMixedLayout = entry?.isMixedLayout ??
                     UserState().diaryDraft.value?.isMixedLayout ??
                     (!isImageGrid && UserState().isVip.value); // 非会员默认关闭
+    currentBookId = entry?.bookId ??
+                    UserState().diaryDraft.value?.bookId ??
+                    'default';
     
     // 强制互斥检查
     if (isImageGrid) isMixedLayout = false;
@@ -94,6 +98,9 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   }
 
   void updateMoodQuote() {
+    if (_fixedQuote != null && _fixedQuote!.isNotEmpty) {
+      return;
+    }
     if (currentMoodIndex == null || currentMoodIndex! < 0) {
       _fixedQuote = '从心出发，记录此刻的点滴...';
       return;
@@ -121,6 +128,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     currentPaperStyle = entry.paperStyle;
     isImageGrid = entry.isImageGrid;
     isMixedLayout = entry.isMixedLayout;
+    currentBookId = entry.bookId ?? 'default';
   }
 
   void addFocusListener(TextBlock block) {
@@ -172,6 +180,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       isImageGrid = UserState().diaryDraft.value?.isImageGrid ?? false;
       isMixedLayout = UserState().diaryDraft.value?.isMixedLayout ?? 
                       (!isImageGrid && UserState().isVip.value);
+      currentBookId = UserState().diaryDraft.value?.bookId ?? 'default';
 
       if (draftModified) {
         onBlocksChanged();
@@ -205,6 +214,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       paperStyle: currentPaperStyle,
       isImageGrid: isImageGrid,
       isMixedLayout: isMixedLayout,
+      bookId: currentBookId,
     );
   }
 
@@ -294,6 +304,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           isImageGrid: isImageGrid,
           isMixedLayout: isMixedLayout,
           annotations: widget.entry!.annotations,
+          bookId: currentBookId,
         );
         await UserState().updateDiary(updatedEntry);
         debugPrint("DIARY_EDITOR: 更新保存成功。");
@@ -315,6 +326,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           paperStyle: currentPaperStyle,
           isImageGrid: isImageGrid,
           isMixedLayout: isMixedLayout,
+          bookId: currentBookId,
         );
         achievements = await UserState().saveDiary();
         debugPrint("DIARY_EDITOR: 新日记保存成功，获得成就数量: ${achievements.length}");

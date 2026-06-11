@@ -6,13 +6,13 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_search_panel.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_calendar_panel.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_share_card_builder.dart';
-import 'package:island_diary/features/record/presentation/widgets/export_config_dialog.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_masonry_header.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_masonry_card.dart';
+import 'package:island_diary/features/record/domain/models/diary_book.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_featured_card.dart';
 import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 
@@ -34,6 +34,8 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
   DateTime? _selectedDate;
   String _searchQuery = "";
   int? _filterMoodIndex;
+  bool _isSelectMode = false;
+  final Set<String> _selectedIds = {};
 
   late DiaryLayoutMode _layoutMode;
 
@@ -43,14 +45,12 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
   String _shareTitle = "";
   bool _isMonthShare = false;
   bool _isBookShare = false;
-  late final ValueNotifier<Offset?> _dragPosition;
   late final ScrollController _scrollController;
   late final ValueNotifier<DateTime> _headerDate;
 
   @override
   void initState() {
     super.initState();
-    _dragPosition = ValueNotifier<Offset?>(null);
     _scrollController = ScrollController();
     _headerDate = ValueNotifier<DateTime>(DateTime.now());
     _selectedDate = null;
@@ -67,7 +67,6 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
 
   @override
   void dispose() {
-    _dragPosition.dispose();
     _scrollController.dispose();
     _headerDate.dispose();
     super.dispose();
@@ -275,7 +274,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                         key: const ValueKey('masonry'),
                                         controller: _scrollController,
                                         slivers: [
-                                          if (filtered.isNotEmpty)
+                                          if (filtered.isNotEmpty && !_isSelectMode)
                                             SliverToBoxAdapter(
                                               child: DiaryFeaturedCard(
                                                 entry: filtered.first,
@@ -288,12 +287,30 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                               crossAxisCount: MediaQuery.of(context).size.width > 800 ? 3 : 2,
                                               crossAxisSpacing: 12,
                                               mainAxisSpacing: 12,
-                                              childCount: filtered.length > 1 ? filtered.length - 1 : 0,
+                                              childCount: _isSelectMode
+                                                  ? filtered.length
+                                                  : (filtered.length > 1 ? filtered.length - 1 : 0),
                                               itemBuilder: (context, index) {
+                                                final entry = _isSelectMode
+                                                    ? filtered[index]
+                                                    : filtered[index + 1];
+                                                final id = entry.id;
+                                                final bool isSelected = _selectedIds.contains(id);
                                                 return DiaryMasonryCard(
-                                                  entry: filtered[index + 1],
+                                                  entry: entry,
                                                   isNight: isNight,
-                                                  index: index + 1,
+                                                  index: _isSelectMode ? index : index + 1,
+                                                  isSelectMode: _isSelectMode,
+                                                  isSelected: isSelected,
+                                                  onTap: () {
+                                                    setState(() {
+                                                      if (isSelected) {
+                                                        _selectedIds.remove(id);
+                                                      } else {
+                                                        _selectedIds.add(id);
+                                                      }
+                                                    });
+                                                  },
                                                 );
                                               },
                                             ),
@@ -312,75 +329,6 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
             ),
           ),
 
-          if (!isCalendar)
-            ValueListenableBuilder<Offset?>(
-              valueListenable: _dragPosition,
-              builder: (context, dragOffset, _) {
-                final size = MediaQuery.of(context).size;
-                final bool isWide = size.width > 800;
-                final double effectiveWidth = isWide ? 800 : size.width;
-                final double leftOffset = isWide ? (size.width - 800) / 2 : 0;
-
-                final defaultPos = Offset(
-                  leftOffset + effectiveWidth - 66,
-                  size.height / 2 - 23,
-                );
-                final currentPos = dragOffset ?? defaultPos;
-                return Positioned(
-                  left: currentPos.dx,
-                  top: currentPos.dy,
-                  child: RepaintBoundary(
-                    child: GestureDetector(
-                      onPanUpdate: (details) => _dragPosition.value =
-                          (_dragPosition.value ?? defaultPos) + details.delta,
-                      onTap: _exportAllAsBook,
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: isNight
-                              ? const Color(0xFF212831)
-                              : Colors.white.withValues(alpha: 0.9),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isNight
-                                ? const Color(0xFFE1AF78).withValues(alpha: 0.25)
-                                : const Color(0xFFD4A373).withValues(alpha: 0.2),
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: isNight ? 0.35 : 0.15),
-                              blurRadius: 15,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.auto_stories_rounded,
-                              size: 20,
-                              color: Color(0xFFE1AF78),
-                            ),
-                            const Text(
-                              "导出",
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFFE1AF78),
-                                fontFamily: 'ArphicKaiti',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
 
           Positioned(
             left: 0,
@@ -397,94 +345,160 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // 1. 居中的主工具栏
-                          Container(
-                                height: 54,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isNight
-                                      ? const Color(0xFF2C2E30)
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.circular(27),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.12,
-                                      ),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
+                      child: _isSelectMode
+                          ? Container(
+                              height: 54,
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              decoration: BoxDecoration(
+                                color: isNight ? const Color(0xFF2C2E30) : Colors.white,
+                                borderRadius: BorderRadius.circular(27),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.12),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '已选择 ${_selectedIds.length} 篇记录',
+                                    style: TextStyle(
+                                      color: isNight ? Colors.white70 : Colors.black87,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      fontFamily: 'LXGWWenKai',
                                     ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (!isCalendar) ...[
-                                      _buildToolBtn(Icons.search_rounded, () {
-                                        showModalBottomSheet(
-                                          context: context,
-                                          backgroundColor: Colors.transparent,
-                                          isScrollControlled: true,
-                                          builder: (context) => DiarySearchPanel(
-                                            isNight: isNight,
-                                            initialDate: _selectedDate,
-                                            onSearch: (q, m, d) {
-                                              setState(() {
-                                                _searchQuery = q;
-                                                _filterMoodIndex = m;
-                                                if (d != null) {
-                                                  _selectedDate = d;
-                                                  _headerDate.value = d;
-                                                }
-                                              });
-                                            },
-                                            onClear: () {
-                                              setState(() {
-                                                _searchQuery = "";
-                                                _filterMoodIndex = null;
-                                                _selectedDate = null;
-                                              });
-                                            },
-                                          ),
-                                        );
-                                      }, isNight: isNight),
-                                      const SizedBox(width: 40),
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      TextButton.icon(
+                                        icon: const Icon(Icons.drive_file_move_rounded, size: 18, color: Color(0xFFD4A373)),
+                                        label: const Text('归档至...', style: TextStyle(color: Color(0xFFD4A373), fontWeight: FontWeight.bold, fontSize: 13)),
+                                        onPressed: _selectedIds.isEmpty
+                                            ? null
+                                            : () => _showBatchMoveDialog(context),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: Icon(Icons.close_rounded, size: 20, color: isNight ? Colors.white54 : Colors.black45),
+                                        onPressed: () {
+                                          setState(() {
+                                            _isSelectMode = false;
+                                            _selectedIds.clear();
+                                          });
+                                        },
+                                      ),
                                     ],
-                                    GestureDetector(
-                                      onTap: widget.onClose,
-                                      child: Icon(
-                                        Icons.close_rounded,
-                                        size: 28,
-                                        color: isNight
-                                            ? Colors.white70
-                                            : Colors.black87,
+                                  ),
+                                ],
+                              ),
+                            ).animate().slideY(begin: 0.2, end: 0)
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // 1. 居中的主工具栏
+                                Container(
+                                      height: 54,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
                                       ),
-                                    ),
-                                    const SizedBox(width: 40),
-                                    _buildToolBtn(
-                                      _getLayoutIcon(),
-                                      _cycleLayoutMode,
-                                      isNight: isNight,
-                                      isActive:
-                                          _layoutMode !=
-                                          DiaryLayoutMode.timeline,
-                                    ),
-                                  ],
-                                ),
-                              )
-                              .animate()
-                              .fadeIn(delay: 200.ms)
-                              .scale(begin: const Offset(0.9, 0.9)),
-                          const SizedBox(width: 16),
-                          // 2. 靠在一起的添加按钮
-                          _buildAddButton(isNight),
-                        ],
-                      ),
+                                      decoration: BoxDecoration(
+                                        color: isNight
+                                            ? const Color(0xFF2C2E30)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(27),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.12,
+                                            ),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (!isCalendar) ...[
+                                            _buildToolBtn(
+                                              _isSelectMode
+                                                  ? Icons.close_rounded
+                                                  : Icons.checklist_rounded,
+                                              () {
+                                                setState(() {
+                                                  _isSelectMode = !_isSelectMode;
+                                                  _selectedIds.clear();
+                                                });
+                                              },
+                                              isNight: isNight,
+                                              isActive: _isSelectMode,
+                                            ),
+                                            const SizedBox(width: 40),
+                                            _buildToolBtn(Icons.search_rounded, () {
+                                              showModalBottomSheet(
+                                                context: context,
+                                                backgroundColor: Colors.transparent,
+                                                isScrollControlled: true,
+                                                builder: (context) => DiarySearchPanel(
+                                                  isNight: isNight,
+                                                  initialDate: _selectedDate,
+                                                  onSearch: (q, m, d) {
+                                                    setState(() {
+                                                      _searchQuery = q;
+                                                      _filterMoodIndex = m;
+                                                      if (d != null) {
+                                                        _selectedDate = d;
+                                                        _headerDate.value = d;
+                                                      }
+                                                    });
+                                                  },
+                                                  onClear: () {
+                                                    setState(() {
+                                                      _searchQuery = "";
+                                                      _filterMoodIndex = null;
+                                                      _selectedDate = null;
+                                                    });
+                                                  },
+                                                ),
+                                              );
+                                            }, isNight: isNight),
+                                            const SizedBox(width: 40),
+                                          ],
+                                          GestureDetector(
+                                            onTap: widget.onClose,
+                                            child: Icon(
+                                              Icons.close_rounded,
+                                              size: 28,
+                                              color: isNight
+                                                  ? Colors.white70
+                                                  : Colors.black87,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 40),
+                                          _buildToolBtn(
+                                            _getLayoutIcon(),
+                                            _cycleLayoutMode,
+                                            isNight: isNight,
+                                            isActive:
+                                                _layoutMode !=
+                                                DiaryLayoutMode.timeline,
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 200.ms)
+                                    .scale(begin: const Offset(0.9, 0.9)),
+                                const SizedBox(width: 16),
+                                // 2. 靠在一起的添加按钮
+                                _buildAddButton(isNight),
+                              ],
+                            ),
                     ),
                   ),
                 );
@@ -531,6 +545,62 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
     );
   }
 
+  void _showBatchMoveDialog(BuildContext context) {
+    final bool isNight = UserState().isNight;
+    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego'
+        ? 'SweiFistLeg'
+        : 'LXGWWenKai';
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+          decoration: BoxDecoration(
+            color: isNight ? const Color(0xFF1E1E2C) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '归档至指定的岁月之书',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: fontFamily),
+              ),
+              const SizedBox(height: 16),
+              ValueListenableBuilder<List<DiaryBook>>(
+                valueListenable: UserState().savedBooks,
+                builder: (context, books, _) {
+                  return Column(
+                    children: books.map((book) {
+                      return ListTile(
+                        leading: const Icon(Icons.book_rounded, color: Color(0xFFD4A373)),
+                        title: Text(book.name, style: TextStyle(fontFamily: fontFamily)),
+                        onTap: () async {
+                          await UserState().moveDiariesToBook(_selectedIds.toList(), book.id);
+                          if (!context.mounted) return;
+                          setState(() {
+                            _isSelectMode = false;
+                            _selectedIds.clear();
+                          });
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('已将日记成功归档至《${book.name}》', style: TextStyle(fontFamily: fontFamily))),
+                          );
+                        },
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
 
   Future<void> _shareCurrentMonth([DateTime? date]) async {
     final now = date ?? _selectedDate ?? DateTime.now();
@@ -554,23 +624,6 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
     );
   }
 
-  void _exportAllAsBook() {
-    final all = UserState().savedDiaries.value;
-    if (all.isEmpty) {
-      return;
-    }
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'ExportConfig',
-      barrierColor: Colors.black.withValues(alpha: 0.4),
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, anim1, anim2) =>
-          ExportConfigDialog(allDiaries: all),
-      transitionBuilder: (context, animation, second, child) =>
-          FadeTransition(opacity: animation, child: child),
-    );
-  }
 
   Future<void> _executeCaptureAndShare(String fileName) async {
     await Future.delayed(const Duration(milliseconds: 300));
