@@ -6,15 +6,15 @@ import 'package:island_diary/features/home/presentation/pages/home_page.dart';
 import 'package:island_diary/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:island_diary/shared/widgets/security/security_guard.dart';
 
-void main() async {
+void main() {
   // 确保 Flutter 底层绑定初始化完毕
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 启动时读取本地存储
-  await UserState().loadFromStorage();
-  final hasSavedName = UserState().userName.value.isNotEmpty;
+  // 完全不 await 任何内容，立即启动所有加载并 runApp
+  // isMinimalDataLoaded 信号会在 userName 等基础数据就绪后触发 UI 切换
+  UserState().loadFromStorage();
 
-  runApp(IslandDiaryApp(startWithHome: hasSavedName));
+  runApp(const IslandDiaryApp());
 }
 
 class AppScrollBehavior extends MaterialScrollBehavior {
@@ -27,8 +27,7 @@ class AppScrollBehavior extends MaterialScrollBehavior {
 }
 
 class IslandDiaryApp extends StatelessWidget {
-  final bool startWithHome;
-  const IslandDiaryApp({super.key, required this.startWithHome});
+  const IslandDiaryApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -95,9 +94,30 @@ class IslandDiaryApp extends StatelessWidget {
           supportedLocales: const [Locale('zh', 'CN')],
           locale: const Locale('zh', 'CN'),
           builder: (context, child) => SecurityGuard(child: child!),
-          home: startWithHome ? const HomePage() : const OnboardingPage(),
+          home: ValueListenableBuilder<bool>(
+            valueListenable: userState.isMinimalDataLoaded,
+            builder: (context, isReady, _) {
+              if (isReady) {
+                // 最小数据已就绪（userName 已加载），立即进入目标页面
+                return userState.userName.value.isNotEmpty
+                    ? const HomePage()
+                    : const OnboardingPage();
+              }
+              // SharedPreferences 首次读取期间（约 100~300ms），展示品牌占位屏
+              return const Scaffold(
+                backgroundColor: Color(0xFFD2E2F9),
+                body: Center(
+                  child: Image(
+                    image: AssetImage('assets/launch_screen_title_padded.png'),
+                    width: 200,
+                  ),
+                ),
+              );
+            },
+          ),
         );
       },
     );
   }
 }
+

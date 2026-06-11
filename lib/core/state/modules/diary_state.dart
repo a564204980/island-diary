@@ -1,6 +1,11 @@
 part of '../user_state.dart';
 
-/// 2. 日记记录与存储模块
+/// 顶层函数：供 compute() 在后台 Isolate 中解析日记 JSON，避免阻塞主线程
+List<DiaryEntry> _parseDiaryEntries(String jsonStr) {
+  final decoded = jsonDecode(jsonStr) as List;
+  return decoded.map((e) => DiaryEntry.fromMap(Map<String, dynamic>.from(e))).toList();
+}
+
 mixin DiaryMixin on ProfileMixin {
   final ValueNotifier<DiaryDraft?> diaryDraft = ValueNotifier<DiaryDraft?>(null);
   final ValueNotifier<List<DiaryEntry>> savedDiaries = ValueNotifier<List<DiaryEntry>>([]);
@@ -31,12 +36,8 @@ mixin DiaryMixin on ProfileMixin {
     final s = prefs.getString(UserState().n(_K.savedDiaries));
     if (s != null) {
       try {
-        final decoded = jsonDecode(s) as List;
-        final allEntries = decoded.map((e) => DiaryEntry.fromMap(Map<String, dynamic>.from(e))).toList();
-        // 自动添加索引（如果不存在）
-        for (int i = 0; i < allEntries.length; i++) {
-          allEntries[i] = allEntries[i].copyWith(id: allEntries[i].id); 
-        }
+        // 使用 compute 将大量 JSON 解析移入后台 Isolate，避免阻塞主线程
+        final allEntries = await compute(_parseDiaryEntries, s);
         savedDiaries.value = allEntries;
       } catch (e) {
         debugPrint('Error decoding saved diaries: $e');

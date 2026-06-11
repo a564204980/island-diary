@@ -53,6 +53,9 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        try {
+            Thread.sleep(1000)
+        } catch (e: Exception) {}
         handleIntent(intent)
     }
 

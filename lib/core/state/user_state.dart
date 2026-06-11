@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -123,16 +124,27 @@ class UserState
   UserState._internal();
   final ValueNotifier<int> refreshNavbarBgTrigger = ValueNotifier<int>(0);
 
+  /// 是否已加载最小必需数据（userName/安全设置），可以开始路由
+  final ValueNotifier<bool> isMinimalDataLoaded = ValueNotifier<bool>(false);
+
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
 
-    loadLifeLines(prefs); // 首先加载人生线，以确定命名空间
+    // 同步执行必须先做的命名空间与基础配置加载（极快，仅读取已缓存的 prefs 对象）
+    loadLifeLines(prefs);
     loadProfile(prefs);
-    await loadDiaries(prefs);
-    await loadDecoration(prefs);
     loadSecurity(prefs);
-    await loadAchievements(prefs);
     loadPreference(prefs);
+
+    // 通知 UI：路由所需的最小数据已就绪，可以立即渲染主页
+    isMinimalDataLoaded.value = true;
+
+    // 并行执行耗时的数据加载，加载完成后 UI 通过 ValueNotifier 自动刷新
+    await Future.wait([
+      loadDiaries(prefs),
+      loadDecoration(prefs),
+      loadAchievements(prefs),
+    ]);
   }
 
   Future<void> factoryReset() async {

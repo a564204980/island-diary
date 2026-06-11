@@ -54,9 +54,9 @@ class DiaryFeaturedCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isNight ? 0.4 : 0.15),
-              blurRadius: 25,
-              offset: const Offset(0, 12),
+              color: Colors.black.withValues(alpha: isNight ? 0.30 : 0.10),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),

@@ -45,22 +45,23 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     initializeEditor(entry: widget.entry, initialDate: widget.initialDate);
   }
 
+  // didChangeDependencies 监听键盘高度变化，仅在高度真正增大时才 setState
+  // 这样 build() 不订阅 viewInsets，键盘动画期间父级完全不重建
   @override
-  Widget build(BuildContext context) {
-    final double viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
-    
-    // 实时捕捉并记忆最大键盘高度
-    if (viewInsetsBottom > 100 && viewInsetsBottom > keyboardHeight) {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final double inset = MediaQuery.viewInsetsOf(context).bottom;
+    if (inset > 100 && inset > keyboardHeight) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && viewInsetsBottom != keyboardHeight) {
-          setState(() => keyboardHeight = viewInsetsBottom);
+        if (mounted && inset > keyboardHeight) {
+          setState(() => keyboardHeight = inset);
         }
       });
     }
+  }
 
-    final double currentBottomHeight = isEmojiOpen
-        ? math.max(viewInsetsBottom, keyboardHeight)
-        : viewInsetsBottom;
+  @override
+  Widget build(BuildContext context) {
 
     return ValueListenableBuilder<String>(
       valueListenable: UserState().themeMode,
@@ -79,146 +80,148 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         return PopScope(
           canPop: true,
           child: Scaffold(
-            resizeToAvoidBottomInset: false,
+            resizeToAvoidBottomInset: true,
             backgroundColor: bgColor,
-            body: Stack(
+            body: Column(
               children: [
-                // 1. 信纸底色层
-                Positioned.fill(
-                  child: Container(
-                    color: bgColor,
-                    child: (UserState().selectedIslandThemeId.value == 'cotton_candy' && currentPaperStyle == 'classic')
-                        ? Image.asset(
-                            isNight
-                                ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
-                                : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png',
-                            fit: BoxFit.cover,
-                          )
-                        : null,
+                Expanded(
+                  child: Stack(
+                    children: [
+                      // 1. 信纸底色层
+                      Positioned.fill(
+                        child: Container(
+                          color: bgColor,
+                          child: (UserState().selectedIslandThemeId.value == 'cotton_candy' && currentPaperStyle == 'classic')
+                              ? Image.asset(
+                                  isNight
+                                      ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
+                                      : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png',
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                      ),
+                      
+                      // 2. 主编辑区 (文字与图片块)
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          FocusScope.of(context).unfocus();
+                          if (isEmojiOpen) toggleEmoji();
+                        },
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 800),
+                            child: CustomScrollView(
+                              controller: scrollController,
+                              physics: const BouncingScrollPhysics(),
+                              slivers: [
+                                // 顶部留白，为固定页头腾出位置
+                                const SliverToBoxAdapter(
+                                  child: SafeArea(
+                                    bottom: false,
+                                    child: SizedBox(height: 60), // 对应 Header 的高度
+                                  ),
+                                ),
+                                // 编辑主体：内容块列表
+                                EditorContentList(
+                                  blocks: blocks,
+                                  blockKeys: blockKeys,
+                                  isMixedLayout: isMixedLayout,
+                                  isEmojiOpen: isEmojiOpen || isColorPickerOpen || isImagePickerOpen,
+                                  isNight: isNight,
+                                  paperStyle: currentPaperStyle,
+                                  accentColor: accentColor,
+                                  bottomPadding: (!isMixedLayout) ? 12 : math.max(160, keyboardHeight + 100),
+                                  currentMoodIndex: currentMoodIndex,
+                                  currentTag: currentTag,
+                                  onClearMood: () {
+                                    setState(() {
+                                      currentMoodIndex = null;
+                                      currentTag = null;
+                                      updateMoodQuote();
+                                    });
+                                    onBlocksChanged();
+                                  },
+                                  onRemoveImage: removeImage,
+                                  onDeleteAtStart: handleBackspaceAtStart,
+                                  onShowPreview: showImagePreview,
+                                  onMoodSelected: (index) {
+                                    setState(() {
+                                      currentMoodIndex = index;
+                                      updateMoodQuote();
+                                    });
+                                    onBlocksChanged();
+                                  },
+                                  onCustomTap: _showCustomMoodPicker,
+                                ),
+                                // 底部留白
+                                SliverToBoxAdapter(
+                                  child: SizedBox(
+                                    height: (isImageGrid && !isMixedLayout) ? 48 : math.max(120, keyboardHeight + 50),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // 2.5 固定页头层
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: SafeArea(
+                          bottom: false,
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 800),
+                              child: EditorHeader(
+                                paperStyle: currentPaperStyle,
+                                isNight: isNight,
+                                dateTime: entryDateTime ?? DateTime.now(),
+                                onBack: () => Navigator.of(context).pop(),
+                                onSave: onSave,
+                                onDateTap: onDateClick,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 
-                // 2. 主编辑区 (文字与图片块)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    FocusScope.of(context).unfocus();
-                    if (isEmojiOpen) toggleEmoji();
-                  },
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 800),
-                      child: CustomScrollView(
-                        controller: scrollController,
-                        physics: const BouncingScrollPhysics(),
-                        slivers: [
-                          // 顶部留白，为固定页头腾出位置
-                          const SliverToBoxAdapter(
-                            child: SafeArea(
-                              bottom: false,
-                              child: SizedBox(height: 60), // 对应 Header 的高度
-                            ),
-                          ),
-                          // 编辑主体：内容块列表
-                          EditorContentList(
-                            blocks: blocks,
-                            blockKeys: blockKeys,
-                            isMixedLayout: isMixedLayout,
-                            isEmojiOpen: isEmojiOpen || isColorPickerOpen || isImagePickerOpen,
-                            isNight: isNight,
-                            paperStyle: currentPaperStyle,
-                            accentColor: accentColor,
-                            bottomPadding: (!isMixedLayout) ? 12 : math.max(160, currentBottomHeight + 100),
-                            currentMoodIndex: currentMoodIndex,
-                            currentTag: currentTag,
-                            onClearMood: () {
-                              setState(() {
-                                currentMoodIndex = null;
-                                currentTag = null;
-                                updateMoodQuote();
-                              });
-                              onBlocksChanged();
-                            },
-                            onRemoveImage: removeImage,
-                            onDeleteAtStart: handleBackspaceAtStart,
-                            onShowPreview: showImagePreview,
-                            onMoodSelected: (index) {
-                              setState(() {
-                                currentMoodIndex = index;
-                                updateMoodQuote();
-                              });
-                              onBlocksChanged();
-                            },
-                            onCustomTap: _showCustomMoodPicker,
-                          ),
-                          // 底部留白
-                          SliverToBoxAdapter(
-                            child: SizedBox(
-                              height: (isImageGrid && !isMixedLayout) ? 48 : math.max(120, currentBottomHeight + 50),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 2.5 固定页头层
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: SafeArea(
-                    bottom: false,
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 800),
-                        child: EditorHeader(
-                          paperStyle: currentPaperStyle,
-                          isNight: isNight,
-                          dateTime: entryDateTime ?? DateTime.now(),
-                          onBack: () => Navigator.of(context).pop(),
-                          onSave: onSave,
-                          onDateTap: onDateClick,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 4. 底部悬浮工具栏
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: EditorBottomBar(
-                    isEmojiOpen: isEmojiOpen,
-                    isNight: isNight,
-                    paperStyle: currentPaperStyle,
-                    accentColor: accentColor,
-                    currentBottomHeight: currentBottomHeight,
-                    viewInsetsBottom: viewInsetsBottom,
-                    blocks: blocks,
-                    isMixedLayout: isMixedLayout,
-                    onEmojiToggle: toggleEmoji,
-                    onImagePick: onImageButtonPressed,
-                    onColorClick: showUnifiedColorPicker,
-                    onBgColorClick: showPaperPicker,
-                    onLocationClick: onLocationClick,
-                    onFontSizeClick: showTextStylePicker,
-                    onFontClick: showTextStylePicker,
-                    onDateClick: onDateClick,
-                    onTimeClick: onTimeClick,
-                    onWeatherClick: onWeatherClick,
-                    onMoreClick: onMoreClick,
-                    onClose: () => Navigator.of(context).pop(),
-                    onSave: onSave,
-                    onEmojiSelected: onEmojiSelected,
-                    onEmojiBackspace: handleEmojiBackspace,
-                    onEmojiSend: handleEmojiSend,
-                    onCustomEmojiSelected: handleCustomEmojiSelected,
-                    onRemoveImage: removeImage,
-                  ),
+                // 4. 底部工具栏
+                EditorBottomBar(
+                  isEmojiOpen: isEmojiOpen,
+                  isNight: isNight,
+                  paperStyle: currentPaperStyle,
+                  accentColor: accentColor,
+                  currentBottomHeight: keyboardHeight,
+                  blocks: blocks,
+                  isMixedLayout: isMixedLayout,
+                  onEmojiToggle: toggleEmoji,
+                  onImagePick: onImageButtonPressed,
+                  onColorClick: showUnifiedColorPicker,
+                  onBgColorClick: showPaperPicker,
+                  onLocationClick: onLocationClick,
+                  onFontSizeClick: showTextStylePicker,
+                  onFontClick: showTextStylePicker,
+                  onDateClick: onDateClick,
+                  onTimeClick: onTimeClick,
+                  onWeatherClick: onWeatherClick,
+                  onMoreClick: onMoreClick,
+                  onClose: () => Navigator.of(context).pop(),
+                  onSave: onSave,
+                  onTagClick: onTagClick,
+                  onMusicPick: onMusicButtonPressed,
+                  onEmojiSelected: onEmojiSelected,
+                  onEmojiBackspace: handleEmojiBackspace,
+                  onEmojiSend: handleEmojiSend,
+                  onCustomEmojiSelected: handleCustomEmojiSelected,
+                  onRemoveImage: removeImage,
                 ),
               ],
             ),
@@ -471,6 +474,26 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 极轻量键盘跟随组件。
+/// 这是页面中**唯一**读取 viewInsets 的 widget，因此键盘动画的每一帧
+/// 只有此 widget 重建（仅更新一个 Positioned 的 bottom 值），
+/// 其 child（EditorBottomBar）作为外部传入，不会随之重建，彻底消除卡顿。
+class _KeyboardFollower extends StatelessWidget {
+  final Widget child;
+  const _KeyboardFollower({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final double keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
+    return Positioned(
+      bottom: keyboardHeight,
+      left: 0,
+      right: 0,
+      child: child,
     );
   }
 }

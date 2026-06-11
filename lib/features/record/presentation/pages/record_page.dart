@@ -381,25 +381,7 @@ class _RecordPageState extends State<RecordPage> {
                                   }
                                 }
 
-                                return AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 400),
-                                  transitionBuilder: (Widget child, Animation<double> animation) {
-                                    final scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
-                                      CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-                                    );
-                                    final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-                                      CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-                                    );
-                                    return FadeTransition(
-                                      opacity: fadeAnimation,
-                                      child: ScaleTransition(
-                                        scale: scaleAnimation,
-                                        child: child,
-                                      ),
-                                    );
-                                  },
-                                  child: mainContent,
-                                );
+                                return mainContent;
                               },
                             ),
                           ),

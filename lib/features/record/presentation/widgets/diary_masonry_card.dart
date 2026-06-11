@@ -187,11 +187,11 @@ class DiaryMasonryCard extends StatelessWidget {
             BoxShadow(
               color: isNight 
                 ? (isCottonCandy 
-                    ? themeColorConfig.bgColor.withValues(alpha: 0.25)
-                    : Colors.black.withValues(alpha: 0.2)) 
-                : Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
+                    ? themeColorConfig.bgColor.withValues(alpha: 0.4)
+                    : Colors.black.withValues(alpha: 0.35)) 
+                : Colors.black.withValues(alpha: 0.08),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -253,7 +253,7 @@ class DiaryMasonryCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: _buildTagsRow(isWhiteText: true),
@@ -293,7 +293,7 @@ class DiaryMasonryCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: _buildTagsRow(),
@@ -398,7 +398,7 @@ class DiaryMasonryCard extends StatelessWidget {
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: _buildTagsRow(),

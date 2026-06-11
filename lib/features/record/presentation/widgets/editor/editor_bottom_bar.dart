@@ -1,8 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
-import 'package:island_diary/core/state/user_state.dart';
 
 class EditorBottomBar extends StatelessWidget {
   final bool isEmojiOpen;
@@ -10,7 +8,6 @@ class EditorBottomBar extends StatelessWidget {
   final String paperStyle;
   final Color accentColor;
   final double currentBottomHeight;
-  final double viewInsetsBottom;
   final List<DiaryBlock> blocks;
   final bool isMixedLayout;
 
@@ -30,6 +27,9 @@ class EditorBottomBar extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onSave;
 
+  final VoidCallback? onTagClick;
+  final VoidCallback? onMusicPick;
+
   // 表情面板回调
   final Function(String) onEmojiSelected;
   final VoidCallback onEmojiBackspace;
@@ -46,7 +46,6 @@ class EditorBottomBar extends StatelessWidget {
     required this.paperStyle,
     required this.accentColor,
     required this.currentBottomHeight,
-    required this.viewInsetsBottom,
     required this.blocks,
     required this.isMixedLayout,
     required this.onEmojiToggle,
@@ -62,6 +61,8 @@ class EditorBottomBar extends StatelessWidget {
     required this.onMoreClick,
     required this.onClose,
     required this.onSave,
+    this.onTagClick,
+    this.onMusicPick,
     required this.onEmojiSelected,
     required this.onEmojiBackspace,
     required this.onEmojiSend,
@@ -71,212 +72,197 @@ class EditorBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.of(context).size.width;
+    // 注意：不在此处读取 paddingOf / viewInsets，避免订阅后每帧重建
+    // safeAreaBottom 改由底部独立 Builder 读取（见下方）
+    final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool isWide = screenWidth > 800;
     final double toolbarMaxWidth = isWide ? 800.0 : double.infinity;
 
-    final bool isFloating = !isEmojiOpen;
-    final bool showPreviewBar = !isMixedLayout && blocks.whereType<ImageBlock>().isNotEmpty;
+    // 动态色彩配置（支持深色/浅色模式）
+    final Color barBgColor = isNight 
+        ? const Color(0xFF141426).withValues(alpha: 0.92) 
+        : const Color(0xFFFAF9F6).withValues(alpha: 0.95);
 
-    final themeId = UserState().selectedIslandThemeId.value;
-    final bool isLego = themeId == 'lego';
+    final Color iconColor = isNight
+        ? Colors.white70
+        : Colors.black87;
 
-    // 动态色彩与立体装饰配置
-    final Color barBgColor = isLego
-        ? (isNight ? const Color(0xFF2C2518) : const Color(0xFFFCF0D5))
-        : (isNight 
-            ? const Color(0xFF1E1E1E).withValues(alpha: 0.98) 
-            : const Color(0xFFFAF8F5).withValues(alpha: 0.98));
-
-    final List<BoxShadow> barShadows = isLego
-        ? [
-            // 1. 紧致的 3D 积木厚度实色层（零羽化）
-            BoxShadow(
-              color: isNight
-                  ? const Color(0xFF1B160E)
-                  : const Color(0xFFEADAB9),
-              blurRadius: 0,
-              offset: const Offset(0, 4.0),
-            ),
-            // 2. 底部极为克制的微羽化软影
-            BoxShadow(
-              color: isNight
-                  ? Colors.black.withValues(alpha: 0.4)
-                  : const Color(0xFFDCC8A0).withValues(alpha: 0.4),
-              blurRadius: 3.0,
-              offset: const Offset(0, 5.0),
-            ),
-          ]
-        : [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isFloating ? 0.12 : 0.05),
-              blurRadius: isFloating ? 25 : 10,
-              offset: Offset(0, isFloating ? 8 : -2),
-            ),
-          ];
-
-    final Border? barBorder = null;
-
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutCubic,
-        padding: EdgeInsets.fromLTRB(
-          isFloating ? 20 : 0,
-          0,
-          isFloating ? 20 : 0,
-          isFloating ? (6 + MediaQuery.of(context).padding.bottom) : 0,
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
+    return Container(
+      margin: EdgeInsets.zero,
+      width: toolbarMaxWidth,
+      decoration: BoxDecoration(
+        color: barBgColor,
+        borderRadius: BorderRadius.zero,
+      ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // 1. 立体积木大底板
+            // 图片上传预览条 (仅在非混排模式下显示图片列表)
+            if (!isMixedLayout)
+              _buildImageUploadPreviewBar(),
+              
+            // 工具栏主内容
             Container(
-              width: toolbarMaxWidth,
-              decoration: BoxDecoration(
-                color: barBgColor,
-                borderRadius: isFloating 
-                    ? BorderRadius.circular(32)
-                    : const BorderRadius.vertical(top: Radius.circular(24)),
-                border: barBorder,
-                boxShadow: barShadows,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
                 children: [
-                  // 1.1 图片上传预览条 (仅在非混排模式下显示图片列表)
-                  if (!isMixedLayout)
-                    _buildImageUploadPreviewBar(),
-                    
-                  // 1.2 标签式工具栏 (为两侧积木突起 Studs 拓宽左右 Padding)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      isLego ? 26 : 4,
-                      showPreviewBar ? 0 : 18,
-                      isLego ? 26 : 4,
-                      12,
+                  // 左侧工具图标组，水平滑动以防小屏溢出
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const ClampingScrollPhysics(),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(width: 4),
+                          // 1. A 按钮 (文字样式)
+                          _buildTextButton(iconColor),
+                          const SizedBox(width: 4),
+                          // 2. 标签按钮
+                          _buildToolbarIcon(Icons.local_offer_outlined, () {
+                            if (onTagClick != null) {
+                              onTagClick!();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('标签功能开发中...')),
+                              );
+                            }
+                          }, iconColor),
+                          const SizedBox(width: 4),
+                          // 3. 图片
+                          _buildToolbarIcon(Icons.image_outlined, onImagePick, iconColor),
+                          const SizedBox(width: 4),
+                          // 4. 视频
+                          _buildToolbarIcon(Icons.play_circle_outline_rounded, () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('视频功能开发中...')),
+                            );
+                          }, iconColor),
+                          const SizedBox(width: 4),
+                          // 5. 音频
+                          _buildToolbarIcon(Icons.music_note_outlined, () {
+                            if (onMusicPick != null) {
+                              onMusicPick!();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('音频录制/上传功能开发中...')),
+                              );
+                            }
+                          }, iconColor),
+                          const SizedBox(width: 4),
+                          // 6. 文件夹 (背景模板)
+                          _buildToolbarIcon(Icons.folder_open_outlined, onBgColorClick, iconColor),
+                          const SizedBox(width: 4),
+                          // 7. 麦克风 (语音输入)
+                          _buildToolbarIcon(Icons.mic_none_outlined, () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('语音输入功能开发中...')),
+                            );
+                          }, iconColor),
+                          const SizedBox(width: 4),
+                          // 8. 太阳 (天气)
+                          _buildToolbarIcon(Icons.wb_sunny_outlined, onWeatherClick, iconColor),
+                          const SizedBox(width: 4),
+                          // 9. 笑脸 (表情)
+                          _buildToolbarIcon(
+                            isEmojiOpen ? Icons.keyboard_alt_outlined : Icons.sentiment_satisfied_alt_outlined,
+                            onEmojiToggle,
+                            iconColor,
+                          ),
+                          const SizedBox(width: 4),
+                          // 10. 定位 (位置)
+                          _buildToolbarIcon(Icons.location_on_outlined, onLocationClick, iconColor),
+                          const SizedBox(width: 8),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildNavItem("图片", Icons.image_outlined, false, onImagePick),
-                        _buildNavItem("表情", Icons.face_rounded, isEmojiOpen, onEmojiToggle),
-                        _buildNavItem("文字", Icons.title_rounded, false, onFontSizeClick),
-                        _buildNavItem("涂鸦", Icons.brush_outlined, false, onColorClick),
-                        _buildNavItem("背景", Icons.wallpaper_rounded, false, onBgColorClick),
-                        _buildNavItem("更多", Icons.more_horiz_rounded, false, onMoreClick),
-                      ],
+                  ),
+                  
+                  // 右侧保存确认按钮
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onTap: onSave,
+                      child: Container(
+                        width: 46,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF0E5),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.check_rounded,
+                            color: Color(0xFFFA6400),
+                            size: 20,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            
-
+            // 用独立 Builder 读取 paddingOf，仅此 SizedBox 重建，不影响整个工具栏
+            Builder(
+              builder: (ctx) {
+                final double safeArea = MediaQuery.paddingOf(ctx).bottom;
+                return SizedBox(height: safeArea);
+              },
+            ),
           ],
+        ),
+    );
+  }
+
+  Widget _buildTextButton(Color iconColor) {
+    return InkWell(
+      onTap: onFontSizeClick,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: iconColor.withValues(alpha: 0.8), width: 1.5),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          child: Text(
+            'A',
+            style: TextStyle(
+              color: iconColor.withValues(alpha: 0.8),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'sans-serif',
+            ),
+          ),
         ),
       ),
     );
   }
 
-
-
-  Widget _buildNavItem(String label, IconData icon, bool isActive, VoidCallback onTap) {
-    final themeId = UserState().selectedIslandThemeId.value;
-    final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
-
-    final Color color = isNight ? Colors.white70 : Colors.black54;
-    final Color activeColor = isNight ? const Color(0xFFE0C097) : const Color(0xFF7A7A6A);
-
-    final Color itemColor = isCottonCandyDark
-        ? (isActive
-            ? const Color(0xFFC3AFFD)
-            : const Color(0xFFC3AFFD).withValues(alpha: 0.7))
-        : (isActive ? activeColor : color.withValues(alpha: 0.6));
-
-    Widget iconWidget;
-    if (themeId == 'lego') {
-      final Map<String, String> legoIcons = {
-        "图片": "assets/images/theme/legao/pages/tupian.png",
-        "表情": "assets/images/theme/legao/pages/biaoqing.png",
-        "文字": "assets/images/theme/legao/pages/wenzi.png",
-        "涂鸦": "assets/images/theme/legao/pages/tuya.png",
-        "背景": "assets/images/theme/legao/pages/beijing.png",
-        "更多": "assets/images/theme/legao/pages/gengduo.png",
-      };
-      final iconPath = legoIcons[label];
-      if (iconPath != null) {
-        iconWidget = Opacity(
-          opacity: isActive ? 1.0 : 0.65,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // 1. 底层：通过高斯模糊与暗色叠加制作的超写实异形软阴影
-              Positioned(
-                top: 2.2, // 向下偏移以形成写实的浮空立体感
-                left: 0.5,
-                right: -0.5,
-                bottom: -2.2,
-                child: ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 1.6, sigmaY: 1.6), // 恰到好处的模糊半径
-                  child: Image.asset(
-                    iconPath,
-                    width: 26,
-                    height: 26,
-                    fit: BoxFit.contain,
-                    color: Colors.black.withValues(alpha: 0.16), // 极其柔和的阴影纯色
-                    colorBlendMode: BlendMode.srcIn,
-                  ),
-                ),
-              ),
-              // 2. 顶层：精美的乐高积木原图
-              Image.asset(
-                iconPath,
-                width: 26,
-                height: 26,
-                fit: BoxFit.contain,
-              ),
-            ],
-          ),
-        );
-      } else {
-        iconWidget = Icon(icon, size: 26, color: itemColor);
-      }
-    } else {
-      iconWidget = Icon(icon, size: 26, color: itemColor);
-    }
-
-    return GestureDetector(
+  Widget _buildToolbarIconButton({
+    required Widget child,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          iconWidget,
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: itemColor,
-              fontFamily: 'LXGWWenKai',
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          if (isActive)
-            Container(
-              margin: const EdgeInsets.only(top: 4),
-              width: 12,
-              height: 2,
-              decoration: BoxDecoration(
-                color: itemColor,
-                borderRadius: BorderRadius.circular(1),
-              ),
-            )
-          else
-            const SizedBox(height: 6),
-        ],
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildToolbarIcon(IconData icon, VoidCallback onTap, Color iconColor) {
+    return _buildToolbarIconButton(
+      onTap: onTap,
+      child: Icon(
+        icon,
+        size: 22,
+        color: iconColor.withValues(alpha: 0.8),
       ),
     );
   }

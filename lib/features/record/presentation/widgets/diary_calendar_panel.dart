@@ -625,19 +625,22 @@ class _CalendarDayCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool hasEntry = entries != null && entries!.isNotEmpty;
-    String? thumbPath;
+    
+    // 收集当天所有日记里的所有图片
+    final List<String> allImages = [];
     int? moodIdx;
-
+    
     if (hasEntry) {
-      final latest = entries!.last;
-      for (var block in latest.blocks) {
-        if (block['type'] == 'image') {
-          thumbPath = block['path'];
-          break;
+      for (var entry in entries!) {
+        for (var block in entry.blocks) {
+          if (block['type'] == 'image' && block['path'] != null) {
+            allImages.add(block['path'] as String);
+          }
         }
       }
-      if (thumbPath == null) {
-        moodIdx = latest.moodIndex;
+      // 如果没有图片，则取最后一条日记的心情图标
+      if (allImages.isEmpty) {
+        moodIdx = entries!.last.moodIndex;
       }
     }
 
@@ -646,7 +649,7 @@ class _CalendarDayCell extends StatelessWidget {
     final bool isImportantFest = lunarData.isImportantFest;
 
     final TextStyle dayStyle = TextStyle(
-      fontSize: 17,
+      fontSize: 16,
       fontWeight: FontWeight.w900,
       fontFamily: 'LXGWWenKai',
       color: hasEntry
@@ -723,14 +726,13 @@ class _CalendarDayCell extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            if (thumbPath != null)
+            // 图片背景或拼图组件
+            if (allImages.isNotEmpty)
               Positioned.fill(
-                child: DiaryUtils.buildImage(
-                  thumbPath,
-                ),
+                child: _buildGridImages(allImages),
               ),
 
-            if (thumbPath == null && moodIdx != null)
+            if (allImages.isEmpty && moodIdx != null)
               Center(
                 child: Padding(
                   padding: const EdgeInsets.all(4.0),
@@ -743,8 +745,7 @@ class _CalendarDayCell extends StatelessWidget {
                 ),
               ),
 
-
-
+            // 日期数字
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -774,5 +775,116 @@ class _CalendarDayCell extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // 构建拼图宫格逻辑
+  Widget _buildGridImages(List<String> images) {
+    // 用 SizedBox.expand 确保图片在 Expanded 内始终铺满
+    Widget tile(String path) => SizedBox.expand(
+      child: ClipRect(
+        child: DiaryUtils.buildImage(path, fit: BoxFit.cover),
+      ),
+    );
+
+    final int count = images.length;
+    if (count == 1) {
+      return tile(images[0]);
+    } else if (count == 2) {
+      // 2张图：左右平分
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: tile(images[0])),
+          const SizedBox(width: 1),
+          Expanded(child: tile(images[1])),
+        ],
+      );
+    } else if (count == 3) {
+      // 3张图：左侧单张，右侧上下两张
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: tile(images[0])),
+          const SizedBox(width: 1),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: tile(images[1])),
+                const SizedBox(height: 1),
+                Expanded(child: tile(images[2])),
+              ],
+            ),
+          ),
+        ],
+      );
+    } else {
+      // 4张及以上：2x2 田字格拼图，右下角覆盖 +N
+      final int remaining = count - 4;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: tile(images[0])),
+                const SizedBox(width: 1),
+                Expanded(child: tile(images[1])),
+              ],
+            ),
+          ),
+          const SizedBox(height: 1),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: tile(images[2])),
+                const SizedBox(width: 1),
+                Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      tile(images[3]),
+                      if (remaining > 0)
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: RadialGradient(
+                              center: Alignment.center,
+                              radius: 0.9,
+                              colors: [
+                                Colors.black.withValues(alpha: 0.72),
+                                Colors.black.withValues(alpha: 0.45),
+                              ],
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              "+$remaining",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                                shadows: [
+                                  Shadow(
+                                    blurRadius: 6,
+                                    color: Colors.black,
+                                    offset: Offset(0, 1.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
   }
 }
