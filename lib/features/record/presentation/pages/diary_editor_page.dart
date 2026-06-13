@@ -1,8 +1,10 @@
-import 'dart:math' as math;
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
+import 'package:island_diary/features/record/domain/models/diary_draft.dart';
 import 'package:island_diary/features/record/domain/models/diary_book.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_core_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_media_mixin.dart';
@@ -22,13 +24,17 @@ class DiaryEditorPage extends StatefulWidget {
   final String? tag;
   final DiaryEntry? entry;
   final DateTime? initialDate;
+  final String? bookId; // 新增：默认归属的书籍ID
+  final DiaryDraft? draft; // 新增：草稿恢复
   const DiaryEditorPage({
     super.key,
     this.moodIndex,
-    required this.intensity,
+    this.intensity = 5.0,
     this.tag,
     this.entry,
     this.initialDate,
+    this.bookId,
+    this.draft,
   });
   @override
   State<DiaryEditorPage> createState() => _DiaryEditorPageState();
@@ -58,6 +64,12 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
           setState(() => keyboardHeight = inset);
         }
       });
+    } else if (inset < 10 && keyboardHeight > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() => keyboardHeight = 0);
+        }
+      });
     }
   }
 
@@ -79,32 +91,55 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   : const Color(0xFFFAF8F5));
 
         return PopScope(
-          canPop: true,
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _handleBack(context);
+          },
           child: Scaffold(
             resizeToAvoidBottomInset: false,
             backgroundColor: bgColor,
             body: Stack(
               children: [
-                // 1. 信纸底色层
+                // 1. 信纸底色层与手绘边框装饰
                 Positioned.fill(
                   child: Container(
                     color: bgColor,
-                    child:
-                        (UserState().selectedIslandThemeId.value ==
-                                'cotton_candy' &&
-                            currentPaperStyle == 'classic')
-                        ? Image.asset(
-                            isNight
-                                ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
-                                : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png',
-                            fit: BoxFit.cover,
-                          )
-                        : null,
+                    child: Stack(
+                      children: [
+                        if (currentPaperStyle.startsWith('note') || (currentPaperStyle == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'))
+                          Positioned.fill(
+                            child: Image.asset(
+                              currentPaperStyle == 'classic'
+                                  ? (isNight
+                                      ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
+                                      : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png')
+                                  : DiaryUtils.getPaperBackgroundPath(currentPaperStyle, isNight),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: PaperBackgroundPainter(
+                              style: currentPaperStyle,
+                              isNight: isNight && 
+                                  !currentPaperStyle.startsWith('note') && 
+                                  !(currentPaperStyle == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'),
+                              accentColor: accentColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
                 // 2. 主编辑区 (文字与图片块)
-                Positioned.fill(
+                Positioned(
+                  top: MediaQuery.paddingOf(context).top + 56,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
@@ -118,18 +153,16 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                           controller: scrollController,
                           physics: const BouncingScrollPhysics(),
                           slivers: [
-                            // 顶部留白，为固定页头腾出位置
+                            // 顶部留白，给内容留出适当呼吸感
                             const SliverToBoxAdapter(
-                              child: SafeArea(
-                                bottom: false,
-                                child: SizedBox(height: 60), // 对应 Header 的高度
-                              ),
+                              child: SizedBox(height: 12),
                             ),
                             // 编辑主体：内容块列表
                             EditorContentList(
                               blocks: blocks,
                               blockKeys: blockKeys,
                               isMixedLayout: isMixedLayout,
+                              isImageGrid: isImageGrid,
                               isEmojiOpen:
                                   isEmojiOpen ||
                                   isColorPickerOpen ||
@@ -137,15 +170,25 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               isNight: isNight,
                               paperStyle: currentPaperStyle,
                               accentColor: accentColor,
-                              bottomPadding: (!isMixedLayout)
-                                  ? 12
-                                  : math.max(160, keyboardHeight + 100),
+                              bottomPadding: 16,
                               currentMoodIndex: currentMoodIndex,
                               currentTag: currentTag,
+                              weather: weather,
+                              temp: temp,
+                              onWeatherTap: onWeatherClick,
+                              dateTime: entryDateTime ?? DateTime.now(),
+                              onDateTap: onDateClick,
+                              onClearWeather: () {
+                                setState(() {
+                                  weather = null;
+                                  temp = null;
+                                });
+                                onBlocksChanged();
+                              },
                               onClearMood: () {
                                 setState(() {
                                   currentMoodIndex = null;
-                                  currentTag = null;
+                                  currentTags = currentTags.where((t) => !t.startsWith('mood:')).toList();
                                   updateMoodQuote();
                                 });
                                 onBlocksChanged();
@@ -161,13 +204,32 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                 onBlocksChanged();
                               },
                               onCustomTap: _showCustomMoodPicker,
+                              onRemoveTag: (tagToRemove) {
+                                setState(() {
+                                  currentTags = currentTags.where((t) => t != tagToRemove).toList();
+                                });
+                                onBlocksChanged();
+                              },
+                              annotations: currentAnnotations,
+                              onAddAnnotation: ({key, required blockIndex, required start, required end, required selectedText}) {
+                                _showAnnotationSheet(
+                                  key: key,
+                                  blockIndex: blockIndex,
+                                  start: start,
+                                  end: end,
+                                  selectedText: selectedText,
+                                );
+                              },
+                              onDeleteAnnotation: (key) {
+                                setState(() {
+                                  currentAnnotations.remove(key);
+                                });
+                              },
                             ),
                             // 底部留白
                             SliverToBoxAdapter(
                               child: SizedBox(
-                                height: (isImageGrid && !isMixedLayout)
-                                    ? 48
-                                    : math.max(120, keyboardHeight + 50),
+                                height: keyboardHeight + 100,
                               ),
                             ),
                           ],
@@ -177,13 +239,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   ),
                 ),
 
-                // 2.5 固定页头层
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    color: bgColor,
+                 // 2.5 固定页头层
+                 Positioned(
+                   top: 0,
+                   left: 0,
+                   right: 0,
+                   child: Container(
+                     color: Colors.transparent,
                     child: SafeArea(
                       bottom: false,
                       child: Center(
@@ -192,10 +254,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                           child: EditorHeader(
                             paperStyle: currentPaperStyle,
                             isNight: isNight,
-                            dateTime: entryDateTime ?? DateTime.now(),
-                            onBack: () => Navigator.of(context).pop(),
+                            isDraft: widget.entry == null,
+                            onBack: () => _handleBack(context),
                             onSave: onSave,
-                            onDateTap: onDateClick,
                           ),
                         ),
                       ),
@@ -213,7 +274,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         builder: (context, books, _) {
                           final currentBook = books.firstWhere(
                             (b) => b.id == currentBookId,
-                            orElse: () => DiaryBook(id: 'default', name: '岛屿随笔'),
+                            orElse: () => DiaryBook(id: 'default', name: '未分类'),
                           );
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 8.0),
@@ -302,6 +363,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         onSave: onSave,
                         onTagClick: onTagClick,
                         onMusicPick: onMusicButtonPressed,
+                        currentTags: currentTags.where((t) => !t.startsWith('mood:')).toList(),
+                        onRemoveTag: (tag) {
+                          setState(() {
+                            currentTags = currentTags.where((t) => t != tag).toList();
+                          });
+                          onBlocksChanged();
+                        },
                         onEmojiSelected: onEmojiSelected,
                         onEmojiBackspace: handleEmojiBackspace,
                         onEmojiSend: handleEmojiSend,
@@ -328,23 +396,37 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-          decoration: BoxDecoration(
-            color: isNight ? const Color(0xFF1E1E2C) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        return DiaryBottomSheet(
+          paperStyle: currentPaperStyle,
+          showDragHandle: true,
+          isDiary: false,
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 12,
+            bottom: 20 + MediaQuery.of(context).padding.bottom,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '选择归属的岁月之书',
+                '选择归属的书籍',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: isNight ? Colors.white : Colors.black87,
+                  fontFamily: fontFamily,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '这篇日记会收纳到选中的书籍中',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  color: isNight ? Colors.white38 : Colors.black38,
                   fontFamily: fontFamily,
                 ),
               ),
@@ -353,31 +435,107 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                 valueListenable: UserState().savedBooks,
                 builder: (context, books, _) {
                   return Column(
-                    children: books.map<Widget>((book) {
-                      final bool isSelected = book.id == currentBookId;
-                      return ListTile(
-                        leading: Icon(
-                          Icons.book_rounded,
-                          color: isSelected ? const Color(0xFFD4A373) : (isNight ? Colors.white30 : Colors.black26),
-                        ),
-                        title: Text(
-                          book.name,
-                          style: TextStyle(
-                            color: isSelected ? const Color(0xFFD4A373) : (isNight ? Colors.white70 : Colors.black87),
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            fontFamily: fontFamily,
+                    children: [
+                      if (books.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.library_books_outlined,
+                                size: 36,
+                                color: isNight ? Colors.white24 : Colors.black26,
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                '暂无日记本',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontFamily: fontFamily,
+                                  color: isNight ? Colors.white38 : Colors.black45,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '可到「岁月成书」页面创建自己的日记本',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontFamily: fontFamily,
+                                  color: isNight ? Colors.white24 : Colors.black26,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        ...books.map<Widget>((book) {
+                        final bool isSelected = book.id == currentBookId;
+                      // 选中浅橙底，未选中极其轻微的透明度背景
+                      final Color itemBgColor = isSelected
+                          ? (isNight ? const Color(0xFF2C241E) : const Color(0xFFFFF5EA))
+                          : (isNight ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.015));
+                      // 未选中图标使用灰蓝色，选中则为主题橙色
+                      final Color iconColor = isSelected
+                          ? const Color(0xFFD4A373)
+                          : (isNight ? const Color(0xFF5E7588) : const Color(0xFF8BA3B5));
+                      
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: itemBgColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? (isNight ? const Color(0xFF4A3419) : const Color(0xFFFFE2C2))
+                                : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04)),
+                            width: 1,
                           ),
                         ),
-                        trailing: isSelected ? const Icon(Icons.check_rounded, color: Color(0xFFD4A373)) : null,
-                        onTap: () {
-                          setState(() {
-                            currentBookId = book.id;
-                          });
-                          onBlocksChanged();
-                          Navigator.pop(context);
-                        },
+                        child: ListTile(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                          leading: Icon(
+                            Icons.book_rounded,
+                            color: iconColor,
+                            size: 20,
+                          ),
+                          title: Text(
+                            book.name,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? (isNight ? const Color(0xFFFFCC99) : const Color(0xFF8E5A30))
+                                  : (isNight ? Colors.white70 : Colors.black87),
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontFamily: fontFamily,
+                              fontSize: 14,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFFEAD2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check_rounded,
+                                    size: 14,
+                                    color: Color(0xFFD4A373),
+                                  ),
+                                )
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              currentBookId = book.id;
+                            });
+                            onBlocksChanged();
+                            Navigator.pop(context);
+                          },
+                        ),
                       );
-                    }).toList(),
+                        }).toList(),
+                    ],
                   );
                 },
               ),
@@ -389,29 +547,32 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
   }
 
   Future<void> _showCustomMoodPicker() async {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      showDragHandle: false,
-      builder: (context) => CustomMoodPickerPopup(
-        paperStyle: currentPaperStyle,
-        isNight: UserState().isNight,
-        onSave: (result) {
-          if (mounted) {
-            setState(() {
-              currentMoodIndex = result['index'];
-              currentIntensity = result['intensity'];
-              if (result['tag'] != null) {
-                currentTag = result['tag'];
-              }
-              updateMoodQuote();
-            });
-            onBlocksChanged();
-          }
-        },
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CustomMoodPickerPage(
+          paperStyle: currentPaperStyle,
+          isNight: UserState().isNight,
+        ),
       ),
     );
+    
+    if (result != null && mounted) {
+      setState(() {
+        currentMoodIndex = result['index'];
+        currentIntensity = result['intensity'];
+        if (result['tag'] != null) {
+          final generalTags = currentTags.where((t) => !t.startsWith('mood:') && !t.startsWith('mood_icon:')).toList();
+          if (result['customMoodIcon'] != null) {
+            currentTags = ['mood:${result['tag']}', 'mood_icon:${result['customMoodIcon']}', ...generalTags];
+          } else {
+            currentTags = ['mood:${result['tag']}', ...generalTags];
+          }
+        }
+        updateMoodQuote();
+      });
+      onBlocksChanged();
+    }
   }
 
   void onMoreClick() {
@@ -455,43 +616,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   ),
                 ),
                 const SizedBox(height: 24),
-                // 图文混排开启?
-                _buildMoreMenuItem(
-                  icon: Icons.layers_rounded,
-                  title: "开启图文混排",
-                  subtitle: "允许图片随文字光标位置插入",
-                  trailing: Switch(
-                    value: isMixedLayout,
-                    activeThumbColor: accentColor,
-                    onChanged: (value) {
-                      if (value && !UserState().isVip.value) {
-                        Navigator.pop(context);
-                        showDialog(
-                          context: context,
-                          builder: (context) => const IslandVipGuardDialog(
-                            title: '解锁高级编辑模式',
-                            description:
-                                '“图文混排”功能属于“星光计划”会员专享。开启后，您的图片将不再受布局限制。',
-                          ),
-                        );
-                        return;
-                      }
-                      setModalState(() {
-                        isMixedLayout = value;
-                        if (value) isImageGrid = false; // 互斥逻辑
-                      });
-                      setState(() {
-                        isMixedLayout = value;
-                        if (value) isImageGrid = false;
-                      });
-                      onBlocksChanged(); // 即便是在关闭也触发同步?
-                    },
-                  ),
-                  accentColor: accentColor,
-                  textColor: textColor,
-                ),
-                const SizedBox(height: 12),
-                // 占位功能 2
+                // 智能排版 (开发中)
                 _buildMoreMenuItem(
                   icon: Icons.auto_awesome_motion_rounded,
                   title: "智能排版 (开发中)",
@@ -506,61 +631,30 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   onTap: () {},
                 ),
                 const SizedBox(height: 12),
-                // 图片九宫格开启?
                 _buildMoreMenuItem(
-                  icon: Icons.grid_view_rounded,
-                  title: "开启图片九宫格",
-                  subtitle: "图片不再混排，统一于末尾网格展示",
-                  trailing: Switch(
-                    value: isImageGrid,
-                    activeThumbColor: accentColor,
-                    onChanged: (value) {
-                      if (value && !UserState().isVip.value) {
-                        Navigator.pop(context);
-                        showDialog(
-                          context: context,
-                          builder: (context) => const IslandVipGuardDialog(
-                            title: '解锁九宫格布局',
-                            description:
-                                '“图片九宫格”功能属于“星光计划”会员专享。开启后，您的图片将以精致的网格形式呈现。',
-                          ),
-                        );
-                        return;
-                      }
-                      setModalState(() {
-                        isImageGrid = value;
-                        if (value) {
-                          isMixedLayout = false; // 互斥逻辑
-                          // 清理逻辑：开启九宫格时，移除文末由于自动插入产生的冗余空格?
-                          if (blocks.length > 1 &&
-                              blocks.last is TextBlock &&
-                              (blocks.last as TextBlock)
-                                  .controller
-                                  .text
-                                  .isEmpty) {
-                            blocks.removeLast();
-                          }
-                        }
-                      });
-                      setState(() {
-                        isImageGrid = value;
-                        if (value) {
-                          isMixedLayout = false;
-                          if (blocks.length > 1 &&
-                              blocks.last is TextBlock &&
-                              (blocks.last as TextBlock)
-                                  .controller
-                                  .text
-                                  .isEmpty) {
-                            blocks.removeLast();
-                          }
-                        }
-                      });
-                      onBlocksChanged();
-                    },
+                  icon: Icons.mood_rounded,
+                  title: "管理自定义心情",
+                  subtitle: "自定义表情、灵感标签与最近记录",
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: textColor.withValues(alpha: 0.3),
                   ),
                   accentColor: accentColor,
                   textColor: textColor,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CustomMoodPickerPage(
+                          paperStyle: currentPaperStyle,
+                          isNight: UserState().isNight,
+                          isFromEditor: false,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 20),
               ],
@@ -634,6 +728,395 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
             ),
             trailing,
           ],
+        ),
+      ),
+    );
+  }
+
+  static const List<Map<String, String>> _annotationColors = [
+    {'name': '经典黄', 'value': '#F7E5B4'},
+    {'name': '柔和粉', 'value': '#F7DAD3'},
+    {'name': '天空灰', 'value': '#DFE5E6'},
+  ];
+
+  void _showAnnotationSheet({
+    String? key,
+    int? blockIndex,
+    int? start,
+    int? end,
+    String? selectedText,
+  }) {
+    final bool isEdit = key != null;
+    final String actualKey = key ?? "${blockIndex}_${start}_${end}";
+    
+    Map<String, dynamic>? annData;
+    if (isEdit) {
+      final jsonStr = currentAnnotations[actualKey] ?? '';
+      try {
+        annData = jsonDecode(jsonStr);
+      } catch (_) {}
+    }
+    
+    final String initialText = annData?['comment'] ?? (isEdit ? currentAnnotations[actualKey] ?? '' : '');
+    final String initialColor = annData?['colorHex'] ?? '#F7E5B4';
+    final String actualSelectedText = annData?['selectedText'] ?? selectedText ?? '';
+    
+    final textController = TextEditingController(text: initialText);
+    String selectedColorHex = initialColor;
+ 
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
+      builder: (context) {
+        final isNight = UserState().isNight;
+        final inkColor = DiaryUtils.getInkColor(currentPaperStyle, isNight);
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return DiaryBottomSheet(
+              paperStyle: currentPaperStyle,
+              showDragHandle: true,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.edit_note_rounded,
+                          color: inkColor.withValues(alpha: 0.8),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isEdit ? "修改批注" : "添加批注",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: inkColor,
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (actualSelectedText.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isNight ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF9F6EE),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border(
+                            left: BorderSide(
+                              color: Color(int.parse(selectedColorHex.replaceFirst('#', '0xFF'))),
+                              width: 4.5,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          "“$actualSelectedText”",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: inkColor.withValues(alpha: 0.65),
+                            fontStyle: FontStyle.italic,
+                            fontFamily: 'LXGWWenKai',
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: isNight ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.015),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TextField(
+                        controller: textController,
+                        maxLines: 3,
+                        minLines: 1,
+                        style: TextStyle(color: inkColor, fontSize: 15, fontFamily: 'LXGWWenKai'),
+                        decoration: InputDecoration(
+                          hintText: "写下关于这段文字的所思所想...",
+                          hintStyle: TextStyle(color: inkColor.withValues(alpha: 0.35)),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        autofocus: true,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Text(
+                          "批注底色",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: inkColor.withValues(alpha: 0.7),
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: _annotationColors.map((colorMap) {
+                        final hex = colorMap['value']!;
+                        final isSelected = selectedColorHex == hex;
+                        final color = Color(int.parse(hex.replaceFirst('#', '0xFF')));
+
+                        return GestureDetector(
+                          onTap: () {
+                            setSheetState(() {
+                              selectedColorHex = hex;
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 16.0),
+                            child: Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? (isNight ? Colors.white : const Color(0xFF333333))
+                                      : (isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.08)),
+                                  width: isSelected ? 3.0 : 1.0,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: color.withValues(alpha: isSelected ? 0.4 : 0.1),
+                                    blurRadius: isSelected ? 8 : 4,
+                                    spreadRadius: isSelected ? 1 : 0,
+                                  ),
+                                ],
+                              ),
+                              child: isSelected
+                                  ? const Icon(
+                                      Icons.check_rounded,
+                                      size: 18,
+                                      color: Color(0xFF333333),
+                                    )
+                                  : null,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 28),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            "取消",
+                            style: TextStyle(
+                              color: inkColor.withValues(alpha: 0.6),
+                              fontSize: 15,
+                              fontFamily: 'LXGWWenKai',
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () {
+                            final text = textController.text.trim();
+                            if (text.isNotEmpty) {
+                              final newAnnotations = Map<String, String>.from(currentAnnotations);
+                              if (!isEdit && blockIndex != null && start != null && end != null) {
+                                newAnnotations.removeWhere((k, v) {
+                                  final parts = k.split('_');
+                                  if (parts.length == 3 && int.tryParse(parts[0]) == blockIndex) {
+                                    final annStart = int.tryParse(parts[1]);
+                                    final annEnd = int.tryParse(parts[2]);
+                                    if (annStart != null && annEnd != null) {
+                                      return start < annEnd && end > annStart;
+                                    }
+                                  }
+                                  return false;
+                                });
+                              }
+                              final data = {
+                                'selectedText': actualSelectedText,
+                                'comment': text,
+                                'colorHex': selectedColorHex,
+                              };
+                              setState(() {
+                                currentAnnotations[actualKey] = jsonEncode(data);
+                              });
+                            }
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(int.parse(selectedColorHex.replaceFirst('#', '0xFF'))),
+                            foregroundColor: const Color(0xFF333333),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            "确认",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'LXGWWenKai',
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _handleBack(BuildContext context) async {
+    final content = blocks.whereType<TextBlock>().map((b) => b.controller.text).join('\n');
+    final bool hasContent = content.trim().isNotEmpty || 
+        blocks.whereType<ImageBlock>().isNotEmpty || 
+        blocks.whereType<AudioBlock>().isNotEmpty ||
+        currentMoodIndex != null ||
+        currentTag != null ||
+        weather != null;
+
+    final bool shouldPrompt = widget.entry == null ? hasContent : isModified;
+
+    if (!shouldPrompt) {
+      Navigator.of(context).pop(false);
+      return;
+    }
+
+    final isNight = UserState().isNight;
+    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          decoration: BoxDecoration(
+            color: isNight
+                ? const Color(0xFF2C2C2E)
+                : const Color(0xFFFCFBF8),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.05),
+              width: 0.5,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 32, bottom: 20, left: 24, right: 24),
+                child: Text(
+                  "是否将本次记录保存为草稿？",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isNight
+                        ? Colors.white.withValues(alpha: 0.9)
+                        : const Color(0xFF2C2C2C),
+                    fontFamily: fontFamily,
+                  ),
+                ),
+              ),
+              Container(
+                height: 0.5,
+                color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        if (widget.entry == null) {
+                          UserState().deleteDraftEntry(currentDraftId);
+                        }
+                        Navigator.pop(ctx);
+                        Navigator.of(context).pop(false);
+                      },
+                      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          "丢弃",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: fontFamily,
+                            fontSize: 15,
+                            color: isNight ? Colors.white54 : const Color(0xFF8E8E93),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 0.5,
+                    height: 50,
+                    color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () async {
+                        await saveCurrentAsDraft();
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                        }
+                        if (context.mounted) {
+                          Navigator.of(context).pop(false);
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          "保存草稿",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: fontFamily,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFD4A373),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -48,6 +48,20 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       showDragHandle: false,
       builder: (context) => DiaryImageSourceSheet(
         paperStyle: currentPaperStyle,
+        isMixedLayout: isMixedLayout,
+        isImageGrid: isImageGrid,
+        onMixedLayoutChanged: (val) {
+          setState(() {
+            isMixedLayout = val;
+          });
+          onBlocksChanged();
+        },
+        onImageGridChanged: (val) {
+          setState(() {
+            isImageGrid = val;
+          });
+          onBlocksChanged();
+        },
       ),
     );
 
@@ -58,13 +72,13 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       return;
     }
 
-    String? pickedPath;
-    String? pickedVideoPath;
-
     if (source == ImageSource.gallery) {
+      // 动态计算剩余可选额度：非 VIP 最多 3 张，已选 imageCount 张；VIP 则宽限至 9 张
+      final int remainingLimit = isVip ? 9 : (3 - imageCount).clamp(1, 3);
+
       final List<AssetEntity>? result = await RedBookAssetPicker.pick(
         context,
-        maxAssets: 1,
+        maxAssets: remainingLimit,
         requestType: RequestType.common,
       );
       if (!mounted) return;
@@ -72,59 +86,98 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
         setState(() => isImagePickerOpen = false);
         return;
       }
-      final entity = result.first;
-      final file = await entity.originFile;
-      if (!mounted) return;
-      if (file == null) {
+
+      TextBlock? currentActiveBlock = activeBlock;
+      TextSelection? currentSelection = savedSelection;
+
+      for (final entity in result) {
+        final file = await entity.originFile;
+        if (!mounted) continue;
+        if (file == null) continue;
+
+        String currentPickedPath = file.path;
+        String? currentPickedVideoPath;
+
+        if (entity.isLivePhoto) {
+          final videoFile = await entity.fileWithSubtype;
+          if (videoFile != null) {
+            // 持久化保存视频：从临时目录拷贝到 App 文档目录，防止被清理
+            try {
+              final appDocDir = await getApplicationDocumentsDirectory();
+              final String fileName = "${entity.id}_${p.basename(videoFile.path)}";
+              final String savedPath = p.join(appDocDir.path, 'live_photos', fileName);
+              
+              final savedFile = io.File(savedPath);
+              if (!await savedFile.parent.exists()) {
+                await savedFile.parent.create(recursive: true);
+              }
+              
+              await io.File(videoFile.path).copy(savedPath);
+              currentPickedVideoPath = savedPath;
+            } catch (e) {
+              debugPrint("Failed to save live photo video: $e");
+              currentPickedVideoPath = videoFile.path; // 失败则退回临时路径
+            }
+          }
+        } else if (io.Platform.isAndroid) {
+          final extractedPath = await _extractAndroidMotionPhotoVideo(file.path, entity.id);
+          if (extractedPath != null) {
+            currentPickedVideoPath = extractedPath;
+          }
+        }
+
+        // 顺序插入图片块并推进焦点文本块
+        final nextBlock = _insertSingleImageBlock(
+          pickedPath: currentPickedPath,
+          pickedVideoPath: currentPickedVideoPath,
+          isVip: isVip,
+          activeBlock: currentActiveBlock,
+          savedSelection: currentSelection,
+        );
+
+        if (nextBlock != null) {
+          currentActiveBlock = nextBlock;
+          currentSelection = const TextSelection.collapsed(offset: 0);
+        }
+      }
+
+      setState(() => isImagePickerOpen = false);
+      return;
+    } else {
+      // 相机拍摄单张处理
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.camera);
+      if (!mounted) {
         setState(() => isImagePickerOpen = false);
         return;
       }
-      pickedPath = file.path;
-      if (entity.isLivePhoto) {
-        final videoFile = await entity.fileWithSubtype;
-        if (videoFile != null) {
-          // 持久化保存视频：从临时目录拷贝到 App 文档目录，防止被清理
-          try {
-            final appDocDir = await getApplicationDocumentsDirectory();
-            final String fileName = "${entity.id}_${p.basename(videoFile.path)}";
-            final String savedPath = p.join(appDocDir.path, 'live_photos', fileName);
-            
-            final savedFile = io.File(savedPath);
-            if (!await savedFile.parent.exists()) {
-              await savedFile.parent.create(recursive: true);
-            }
-            
-            await io.File(videoFile.path).copy(savedPath);
-            pickedVideoPath = savedPath;
-          } catch (e) {
-            debugPrint("Failed to save live photo video: $e");
-            pickedVideoPath = videoFile.path; // 失败则退回临时路径
-          }
-        }
-      } else if (io.Platform.isAndroid) {
-        final extractedPath = await _extractAndroidMotionPhotoVideo(file.path, entity.id);
-        if (extractedPath != null) {
-          pickedVideoPath = extractedPath;
-        }
-      }
-    } else {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.camera);
-      if (!mounted) return;
       if (image == null) {
         setState(() => isImagePickerOpen = false);
         return;
       }
-      pickedPath = image.path;
+
+      setState(() => isImagePickerOpen = false);
+      _insertSingleImageBlock(
+        pickedPath: image.path,
+        isVip: isVip,
+        activeBlock: activeBlock,
+        savedSelection: savedSelection,
+      );
     }
+  }
 
-    if (!mounted) return;
-    setState(() => isImagePickerOpen = false);
-
+  /// 内部辅助方法：往编辑器中插入单个图片 Block 并自动处理文本框拆分或置底
+  TextBlock? _insertSingleImageBlock({
+    required String pickedPath,
+    String? pickedVideoPath,
+    required bool isVip,
+    TextBlock? activeBlock,
+    TextSelection? savedSelection,
+  }) {
     final int insertIndex;
     TextBlock? newBottomBlock;
 
-    if (isImageGrid) {
+    if (isImageGrid && !isMixedLayout) {
       final imageBlock = ImageBlock(XFile(pickedPath), videoPath: pickedVideoPath);
       setState(() {
         blocks.add(imageBlock);
@@ -132,7 +185,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       });
       onBlocksChanged();
       _uploadImageInBackground(imageBlock, pickedPath);
-      return;
+      return null;
     }
 
     // 布局校验：当用户不是 VIP 或 主动关闭了图文混排开关时，强制置底
@@ -150,17 +203,41 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       }
     } else if (activeBlock != null) {
       final controller = activeBlock.controller;
-      final selection = savedSelection ?? controller.selection;
-      final text = controller.text;
-      final int splitOffset = selection.isValid
-          ? selection.extentOffset.clamp(0, text.length)
-          : text.length;
-      final beforeText = text.substring(0, splitOffset);
-      final afterText = text.substring(splitOffset);
-      final originalIndex = blocks.indexOf(activeBlock);
-      controller.text = beforeText;
-      insertIndex = originalIndex + 1;
-      newBottomBlock = TextBlock(afterText, baseColor: currentTextColor);
+      if (controller.text.isEmpty) {
+        insertIndex = blocks.indexOf(activeBlock);
+        newBottomBlock = activeBlock;
+        needsNewBottomBlock = false;
+      } else {
+        final selection = savedSelection ?? controller.selection;
+        final text = controller.text;
+        final int splitOffset = selection.isValid
+            ? selection.extentOffset.clamp(0, text.length)
+            : text.length;
+        final originalIndex = blocks.indexOf(activeBlock);
+        
+        // 如果光标在最前面，且前一个 block 是图片块，则直接插在图片后面，不进行拆分
+        if (splitOffset == 0 && originalIndex > 0 && blocks[originalIndex - 1] is ImageBlock) {
+          insertIndex = originalIndex;
+          newBottomBlock = activeBlock;
+          needsNewBottomBlock = false;
+        } else {
+          var beforeText = text.substring(0, splitOffset);
+          var afterText = text.substring(splitOffset);
+          
+          // 去除多余换行符，防止图片上方出现空白行
+          while (beforeText.endsWith('\n')) {
+            beforeText = beforeText.substring(0, beforeText.length - 1);
+          }
+          // 去除多余换行符，防止图片下方出现空白行
+          while (afterText.startsWith('\n')) {
+            afterText = afterText.substring(1);
+          }
+          
+          controller.text = beforeText;
+          insertIndex = originalIndex + 1;
+          newBottomBlock = TextBlock(afterText, baseColor: currentTextColor);
+        }
+      }
     } else {
       insertIndex = blocks.length;
       newBottomBlock = TextBlock('', baseColor: currentTextColor);
@@ -168,9 +245,12 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
 
     final imageBlock = ImageBlock(XFile(pickedPath), videoPath: pickedVideoPath);
 
-    if (!mounted) return;
+    // 升级为空日记的判断（没有任何图片，且所有文本框文字皆为空）
+    final bool isPureEmptyDiary = blocks.whereType<ImageBlock>().isEmpty &&
+        blocks.whereType<TextBlock>().every((b) => b.controller.text.trim().isEmpty);
+
     setState(() {
-      if (blocks.length == 1 && blocks.first is TextBlock && (blocks.first as TextBlock).controller.text.isEmpty) {
+      if (isPureEmptyDiary) {
         // 直接将第一张图片置顶在最前面，彻底抹去上方无用的空文字框和长Placeholder占位空间
         blocks.clear();
         blocks.add(imageBlock);
@@ -206,6 +286,8 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
         scrollToActiveBlock();
       }
     });
+
+    return newBottomBlock;
   }
 
   /// 后台上传逻辑
@@ -366,7 +448,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     final int insertIndex;
     TextBlock? newBottomBlock;
 
-    if (isImageGrid) {
+    if (isImageGrid && !isMixedLayout) {
       final parts = imagePath.split('|');
       final actualImagePath = parts[0];
       final String? videoPath = parts.length > 1 ? parts[1] : null;
@@ -400,12 +482,30 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       final int splitOffset = selection.isValid
           ? selection.extentOffset.clamp(0, text.length)
           : text.length;
-      final beforeText = text.substring(0, splitOffset);
-      final afterText = text.substring(splitOffset);
       final originalIndex = blocks.indexOf(activeBlock);
-      controller.text = beforeText;
-      insertIndex = originalIndex + 1;
-      newBottomBlock = TextBlock(afterText, baseColor: currentTextColor);
+      
+      // 如果光标在最前面，且前一个 block 是图片块，则直接插在图片后面，不进行拆分
+      if (splitOffset == 0 && originalIndex > 0 && blocks[originalIndex - 1] is ImageBlock) {
+        insertIndex = originalIndex;
+        newBottomBlock = activeBlock;
+        needsNewBottomBlock = false;
+      } else {
+        var beforeText = text.substring(0, splitOffset);
+        var afterText = text.substring(splitOffset);
+        
+        // 去除多余换行符，防止图片上方出现空白行
+        while (beforeText.endsWith('\n')) {
+          beforeText = beforeText.substring(0, beforeText.length - 1);
+        }
+        // 去除多余换行符，防止图片下方出现空白行
+        while (afterText.startsWith('\n')) {
+          afterText = afterText.substring(1);
+        }
+        
+        controller.text = beforeText;
+        insertIndex = originalIndex + 1;
+        newBottomBlock = TextBlock(afterText, baseColor: currentTextColor);
+      }
     } else {
       insertIndex = blocks.length;
       newBottomBlock = TextBlock('', baseColor: currentTextColor);

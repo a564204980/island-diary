@@ -33,6 +33,7 @@ class PaperPickerSheet extends StatefulWidget {
 
 class _PaperPickerSheetState extends State<PaperPickerSheet> {
   late ScrollController _scrollController;
+  late String _localStyle;
   static const double itemTotalWidth =
       96.0; // 80 (width) + 8*2 (horizontal margin)
   static const double listPadding = 16.0;
@@ -51,10 +52,11 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
   @override
   void initState() {
     super.initState();
+    _localStyle = widget.currentStyle;
     final stylesMap = _getEffectiveStyles();
     // 找出当前选中的索引
     final int selectedIndex = stylesMap.keys.toList().indexOf(
-      widget.currentStyle,
+      _localStyle,
     );
 
     // 计算初始滚动位置：尽可能让选中项居中
@@ -102,14 +104,19 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
     final bool isLego = themeId == 'lego';
     final String fontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
 
-    final Color textColor = DiaryUtils.getInkColor(
-      widget.currentStyle,
-      isNight,
-    ).withValues(alpha: 0.9);
+    final Color inkColor;
+    if (isNight) {
+      inkColor = Colors.white;
+    } else {
+      inkColor = themeId == 'cotton_candy' ? const Color(0xFF7C3AED) : const Color(0xFF1F2937);
+    }
+
+    final Color textColor = inkColor.withValues(alpha: 0.9);
 
     return DiaryBottomSheet(
-      paperStyle: widget.currentStyle,
+      paperStyle: 'classic',
       showDragHandle: true,
+      isDiary: false,
       padding: const EdgeInsets.only(top: 8, bottom: 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -129,12 +136,25 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                       fontFamily: fontFamily,
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.close,
-                      color: textColor.withValues(alpha: 0.5),
+                  TextButton(
+                    onPressed: () {
+                      widget.onStyleSelected('classic');
+                      Navigator.pop(context);
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      "去掉背景",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: textColor.withValues(alpha: 0.6),
+                        fontFamily: fontFamily,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -155,107 +175,135 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                   final stylesMap = _getEffectiveStyles();
                   final key = stylesMap.keys.elementAt(index);
                   final label = stylesMap.values.elementAt(index);
-                  final isSelected = widget.currentStyle == key;
+                  final isSelected = (_localStyle == key) && (key != 'classic');
 
                   return GestureDetector(
-                    onTap: () => widget.onStyleSelected(key),
+                    onTap: () {
+                      if (_localStyle == key) return;
+                      setState(() {
+                        _localStyle = key;
+                      });
+                      widget.onStyleSelected(key);
+                    },
                     child: AnimatedScale(
-                      scale: isSelected ? 1.05 : 1.0,
-                      duration: const Duration(milliseconds: 200),
+                      scale: isSelected ? 1.08 : 1.0,
+                      duration: const Duration(milliseconds: 250),
                       curve: Curves.easeOutBack,
                       child: Container(
                         width: 80,
                         margin: const EdgeInsets.symmetric(horizontal: 8),
                         child: Column(
                           children: [
-                            Container(
-                                width: 70,
-                                height: 80,
+                            AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeInOut,
+                                padding: const EdgeInsets.all(3.0), // 优雅的间距
                                 decoration: BoxDecoration(
-                                  color: isNight
-                                      ? Colors.black26
-                                      : (UserState().selectedIslandThemeId.value == 'lego' && key == 'classic'
-                                          ? const Color(0xFFFDF3E3)
-                                          : (UserState().selectedIslandThemeId.value == 'cotton_candy' && key == 'classic'
-                                              ? const Color(0xFFFBF3E9)
-                                              : Colors.white)),
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(19),
                                   border: Border.all(
                                     color: isSelected
                                         ? widget.accentColor.withValues(alpha: 0.8)
-                                        : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-                                    width: isSelected ? 2.5 : 1.0,
+                                        : Colors.transparent,
+                                    width: 1.5, // 细雅外圈
                                   ),
-                                  boxShadow: [
-                                    if (isSelected)
-                                      BoxShadow(
-                                        color: widget.accentColor.withValues(alpha: 0.35),
-                                        blurRadius: 15,
-                                        spreadRadius: 2,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    if (!isSelected)
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.05),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                  ],
                                 ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: Stack(
-                                    children: [
-                                      if (key.startsWith('note') || (key == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'))
-                                        Positioned.fill(
-                                          child: Image.asset(
-                                            key == 'classic'
-                                                ? (isNight
-                                                    ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
-                                                    : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png')
-                                                : DiaryUtils.getPaperBackgroundPath(
-                                                    key,
-                                                    isNight,
+                                child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 250),
+                                    curve: Curves.easeInOut,
+                                    width: 64,
+                                    height: 74,
+                                    decoration: BoxDecoration(
+                                      color: isNight
+                                          ? Colors.black26
+                                          : (UserState().selectedIslandThemeId.value == 'lego' && key == 'classic'
+                                              ? const Color(0xFFFDF3E3)
+                                              : (UserState().selectedIslandThemeId.value == 'cotton_candy' && key == 'classic'
+                                                  ? const Color(0xFFFBF3E9)
+                                                  : Colors.white)),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                                        width: 1.0,
+                                      ),
+                                      boxShadow: [
+                                        if (isSelected)
+                                          BoxShadow(
+                                            color: widget.accentColor.withValues(alpha: 0.3),
+                                            blurRadius: 10,
+                                            spreadRadius: 0.5,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                        if (!isSelected)
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.05),
+                                            blurRadius: 5,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(13),
+                                      child: Stack(
+                                        children: [
+                                          if (key.startsWith('note') || (key == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'))
+                                            Positioned.fill(
+                                              child: Image.asset(
+                                                key == 'classic'
+                                                    ? (isNight
+                                                        ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
+                                                        : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png')
+                                                    : DiaryUtils.getPaperBackgroundPath(
+                                                        key,
+                                                        isNight,
+                                                      ),
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          Positioned.fill(
+                                            child: CustomPaint(
+                                              painter: PaperBackgroundPainter(
+                                                style: key,
+                                                isNight: isNight,
+                                                accentColor: widget.accentColor,
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            bottom: 4,
+                                            right: 4,
+                                            child: AnimatedScale(
+                                              scale: isSelected ? 1.0 : 0.05,
+                                              duration: const Duration(milliseconds: 250),
+                                              curve: Curves.easeOutBack,
+                                              child: AnimatedOpacity(
+                                                opacity: isSelected ? 1.0 : 0.0,
+                                                duration: const Duration(milliseconds: 200),
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(2.5),
+                                                  decoration: BoxDecoration(
+                                                    color: widget.accentColor,
+                                                    shape: BoxShape.circle,
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black.withValues(alpha: 0.15),
+                                                        blurRadius: 3,
+                                                        offset: const Offset(0, 1),
+                                                      ),
+                                                    ],
                                                   ),
-                                            fit: BoxFit.cover,
-                                          ),
-                                        ),
-                                      Positioned.fill(
-                                        child: CustomPaint(
-                                          painter: PaperBackgroundPainter(
-                                            style: key,
-                                            isNight: isNight,
-                                            accentColor: widget.accentColor,
-                                          ),
-                                        ),
-                                      ),
-                                      if (isSelected)
-                                        Positioned(
-                                          bottom: 6,
-                                          right: 6,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(3),
-                                            decoration: BoxDecoration(
-                                              color: widget.accentColor,
-                                              shape: BoxShape.circle,
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black.withValues(alpha: 0.2),
-                                                  blurRadius: 4,
-                                                  offset: const Offset(0, 1),
+                                                  child: const Icon(
+                                                    Icons.check_rounded,
+                                                    size: 10,
+                                                    color: Colors.white,
+                                                  ),
                                                 ),
-                                              ],
-                                            ),
-                                            child: const Icon(
-                                              Icons.check,
-                                              size: 10,
-                                              color: Colors.white,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                    ],
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                ),
                               ),
                             const SizedBox(height: 8),
                             Text(

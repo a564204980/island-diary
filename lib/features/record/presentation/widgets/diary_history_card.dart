@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 // Analysis Flush: 强制刷新库摘要以解决 Bad state 错误
 import 'package:flutter_animate/flutter_animate.dart';
@@ -6,6 +7,7 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_image_collage.dart';
 import '../pages/diary_detail_page.dart';
 
 /// 每一份日记卡片
@@ -90,7 +92,6 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
               spans.add(span);
             }
           }
-          block.dispose();
         }
       }
     }
@@ -233,7 +234,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                     Expanded(
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 24, right: 16),
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
                           color: widget.isNight
                               ? const Color(0xFF212831)
@@ -247,10 +248,11 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 
-                                widget.isNight ? 0.35 : 0.12,
+                                widget.isNight ? 0.18 : 0.055,
                               ),
-                              blurRadius: 10,
-                              offset: const Offset(0, 8),
+                              blurRadius: 12,
+                              spreadRadius: -2,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
@@ -497,21 +499,17 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           }
 
           // 九宫格模式
-          if (images.length == 1) {
-            // 单张：比例较大的展示
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: DiaryUtils.buildImage(
-                images[0]['path'],
-                width: gridWidth * 0.7,
-                height: gridWidth * 0.5,
-                fit: BoxFit.cover,
-              ),
+          if (images.length <= 5) {
+            final paths = images.map((img) => img['path'] as String).toList();
+            return DiaryImageCollage(
+              imagePaths: paths,
+              spacing: 6.0,
+              borderRadius: 8.0,
             );
           }
 
           final double spacing = 6;
-          final int crossAxisCount = 3; // 无论多少图（除单图外），列表都用 3 列更加整齐
+          final int crossAxisCount = 3;
           final double itemSize =
               (gridWidth - (spacing * (crossAxisCount - 1))) / crossAxisCount;
 
@@ -553,17 +551,23 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     bool isNight = false,
     String? tag,
   }) {
-    final hasCustomMood = tag != null && tag.trim().isNotEmpty;
+    final parsed = ParsedTags.parse(tag, moodIndex);
     final moodIdx = moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
     final Color badgeColor = mood.glowColor ?? const Color(0xFFC4B69E);
+    final String moodLabel = parsed.customMood ?? mood.label;
+    final String iconPath = parsed.customMood != null
+        ? 'assets/images/icons/custom.png'
+        : (mood.iconPath ?? 'assets/icons/happy.png');
+
+    final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        // 1. 心情标签 (纯心情文字)
+        // 1. 心情标签 (表情图片 + 心情文字)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
@@ -573,8 +577,30 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              hasCustomIcon
+                  ? Image.file(
+                      File(parsed.customMoodIconPath!),
+                      width: 14,
+                      height: 14,
+                      errorBuilder: (c, e, s) => Icon(
+                        Icons.mood,
+                        size: 14,
+                        color: badgeColor.withValues(alpha: isNight ? 0.8 : 1.0),
+                      ),
+                    )
+                  : Image.asset(
+                      iconPath,
+                      width: 14,
+                      height: 14,
+                      errorBuilder: (c, e, s) => Icon(
+                        Icons.mood,
+                        size: 14,
+                        color: badgeColor.withValues(alpha: isNight ? 0.8 : 1.0),
+                      ),
+                    ),
+              const SizedBox(width: 4),
               Text(
-                hasCustomMood ? tag.trim() : mood.label,
+                moodLabel,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -649,53 +675,51 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           ),
 
         // 5. 话题标签 (如果有)
-        // 如果已经作为自定义心情展示在了第一个位置，则此处不再重复展示
-        if (!hasCustomMood && tag != null && tag.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isNight
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : const Color(0xFF8B7763).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
+        ...parsed.tags.map((singleTag) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
                 color: isNight
-                    ? Colors.white12
-                    : const Color(0xFF8B7763).withValues(alpha: 0.15),
-                width: 0.5,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '#',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isNight
-                        ? Colors.white38
-                        : const Color(0xFF8B7763).withValues(alpha: 0.5),
-                    fontWeight: FontWeight.bold,
-                  ),
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : const Color(0xFF8B7763).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isNight
+                      ? Colors.white12
+                      : const Color(0xFF8B7763).withValues(alpha: 0.15),
+                  width: 0.5,
                 ),
-                const SizedBox(width: 2),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 160),
-                  child: Text(
-                    tag,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '#',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isNight ? Colors.white70 : const Color(0xFF8B7763),
-                      fontFamily: 'LXGWWenKai',
+                      color: isNight
+                          ? Colors.white38
+                          : const Color(0xFF8B7763).withValues(alpha: 0.5),
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
+                  const SizedBox(width: 2),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    child: Text(
+                      singleTag,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: isNight ? Colors.white70 : const Color(0xFF8B7763),
+                        fontFamily: 'LXGWWenKai',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )),
       ],
     );
   }

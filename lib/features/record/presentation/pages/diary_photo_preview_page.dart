@@ -305,7 +305,7 @@ class _DiaryPhotoPreviewPageState extends State<DiaryPhotoPreviewPage> {
           // 左侧：返回 & 标题
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 24),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 20),
           ),
           const SizedBox(width: 4),
           Expanded(

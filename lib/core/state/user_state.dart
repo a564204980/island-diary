@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 
 // Models
 import 'package:island_diary/core/models/daily_task.dart';
@@ -51,6 +52,7 @@ class _K {
 
   static const savedDiaries = 'saved_diaries_v1';
   static const savedBooks = 'saved_books_v1';
+  static const savedDrafts = 'saved_drafts_v1';
   static const draftContent = 'diary_draft_content';
   static const draftMood = 'diary_draft_mood';
   static const draftIntensity = 'diary_draft_intensity';
@@ -146,6 +148,7 @@ class UserState
       loadDiaries(prefs),
       loadDecoration(prefs),
       loadAchievements(prefs),
+      DiaryUtils.initDocumentsDirPath(),
     ]);
   }
 
@@ -174,6 +177,7 @@ class UserState
     hasFinishedOnboarding.dispose();
     hasSeenRecordGuidance.dispose();
     diaryDraft.dispose();
+    savedDrafts.dispose();
     isSlimeInBottomMenu.dispose();
     selectedMascotDecoration.dispose();
     selectedGlassesDecoration.dispose();

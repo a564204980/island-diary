@@ -1,9 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-/// 简约药丸风格弹窗：采用居中玻璃拟态与缩放弹性设计
+/// 精致居中提示弹窗：图标 + 文字竖向排列，毛玻璃卡片风格
 class IslandAlert extends StatelessWidget {
   final String message;
   final String icon;
@@ -14,8 +13,7 @@ class IslandAlert extends StatelessWidget {
     this.icon = '✨',
   });
 
-  /// 静态展示方法：居中缩放的药丸提示
-  /// [withAnimation] 为 false 时无弹出动画（适合已有弹窗层级中使用）
+  /// 静态展示方法
   static Future<void> show(
     BuildContext context, {
     required String message,
@@ -25,16 +23,15 @@ class IslandAlert extends StatelessWidget {
     Alignment alignment = Alignment.center,
   }) {
     HapticFeedback.lightImpact();
-    
-    // 使用 showGeneralDialog 实现居中缩放弹窗
+
     bool isPopped = false;
     final dialog = showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'IslandAlert',
-      barrierColor: Colors.black.withValues(alpha: 0.15),
+      barrierColor: Colors.black.withValues(alpha: 0.18),
       transitionDuration: withAnimation
-          ? const Duration(milliseconds: 400)
+          ? const Duration(milliseconds: 360)
           : Duration.zero,
       pageBuilder: (context, anim1, anim2) {
         return Align(
@@ -44,9 +41,8 @@ class IslandAlert extends StatelessWidget {
       },
       transitionBuilder: (context, anim1, anim2, child) {
         if (!withAnimation) return child;
-        final curve = Curves.easeOutBack;
         return ScaleTransition(
-          scale: CurvedAnimation(parent: anim1, curve: curve),
+          scale: CurvedAnimation(parent: anim1, curve: Curves.easeOutBack),
           child: FadeTransition(opacity: anim1, child: child),
         );
       },
@@ -54,11 +50,9 @@ class IslandAlert extends StatelessWidget {
 
     dialog.then((_) => isPopped = true);
 
-    // 默认 3 秒后自动关闭
     Future.delayed(duration, () {
       if (!context.mounted) return;
       final navigator = Navigator.of(context);
-      // 增加对 navigator 锁定状态的健壮性检查，防止在并发路由操作时崩溃
       if (!isPopped && navigator.canPop()) {
         navigator.pop();
       }
@@ -69,57 +63,58 @@ class IslandAlert extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+    final textColor = isDark ? const Color(0xFFE5E5EA) : const Color(0xFF5D4037);
+
     return Material(
       color: Colors.transparent,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 40),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(40),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(40),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  width: 1.5,
+        margin: const EdgeInsets.symmetric(horizontal: 60),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: borderColor,
+            width: 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+              blurRadius: 40,
+              spreadRadius: -5,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              icon,
+              style: const TextStyle(fontSize: 32),
+            )
+                .animate()
+                .scale(
+                  delay: 80.ms,
+                  duration: 450.ms,
+                  curve: Curves.easeOutBack,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 30,
-                    spreadRadius: -10,
-                    offset: const Offset(0, 15),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    icon,
-                    style: const TextStyle(fontSize: 20),
-                  ).animate().scale(delay: 200.ms, duration: 400.ms),
-                  const SizedBox(width: 14),
-                  Flexible(
-                    child: Text(
-                      message,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF5D4037),
-                        fontWeight: FontWeight.w600,
-                        height: 1.2,
-                        fontFamily: 'LXGWWenKai',
-                      ),
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor,
+                fontWeight: FontWeight.w500,
+                height: 1.55,
+                fontFamily: 'LXGWWenKai',
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

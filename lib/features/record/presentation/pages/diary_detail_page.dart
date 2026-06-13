@@ -1,19 +1,26 @@
 // Analysis Flush: 强制刷新库摘要以解决 Bad state 错误
+import 'dart:io';
 import 'dart:convert';
+import 'dart:ui';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 // import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_text_context_menu.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
+import 'package:island_diary/shared/widgets/diary_entry/models/image_group_block.dart';
 import '../widgets/diary/diary_timeline.dart';
 import '../widgets/diary/diary_replies.dart';
 import '../widgets/diary_reply_sheet.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_image_collage.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
+
 
 class DiaryDetailPage extends StatefulWidget {
   final DiaryEntry entry;
@@ -38,71 +45,104 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.6),
-      builder: (context) => Center(
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 40),
-          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: widget.isNight
-                ? const Color(0xFF2D2A26)
-                : const Color(0xFFFDF7E9),
-            borderRadius: BorderRadius.circular(24),
+                ? const Color(0xFF2C2C2E)
+                : const Color(0xFFFCFBF8),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: widget.isNight
-                  ? const Color(0xFFD4A373).withValues(alpha: 0.2)
-                  : const Color(0xFFE8D5B5),
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.05),
+              width: 0.5,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 40,
+                offset: const Offset(0, 20),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("🏝️", style: TextStyle(fontSize: 32)),
-              const SizedBox(height: 16),
-              Text(
-                "确定要抹去这段回忆吗？",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: widget.isNight
-                      ? Colors.white70
-                      : const Color(0xFF5D4037),
-                  fontFamily: 'LXGWWenKai',
+              Padding(
+                padding: const EdgeInsets.only(top: 32, bottom: 16, left: 24, right: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "确定要抹去这段回忆吗？",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: widget.isNight
+                            ? Colors.white.withValues(alpha: 0.9)
+                            : const Color(0xFF2C2C2C),
+                        fontFamily: 'LXGWWenKai',
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
+              Container(
+                height: 0.5,
+                color: widget.isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+              ),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      "保留下",
-                      style: TextStyle(
-                        color: widget.isNight ? Colors.white30 : Colors.black26,
-                        fontFamily: 'LXGWWenKai',
-                        fontSize: 16,
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => Navigator.pop(context),
+                      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          "保留",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'LXGWWenKai',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: widget.isNight ? Colors.white54 : const Color(0xFF8E8E93),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      UserState().deleteDiary(_currentEntry.id);
-                      Navigator.pop(context); // 关闭弹窗
-                      Navigator.pop(context); // 返回列表
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4A373),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      "确定抹去",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'LXGWWenKai',
+                  Container(
+                    width: 0.5,
+                    height: 50,
+                    color: widget.isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        UserState().deleteDiary(_currentEntry.id);
+                        Navigator.pop(context);
+                        Navigator.pop(context);
+                      },
+                      borderRadius: const BorderRadius.only(bottomRight: Radius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          "抹去",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'LXGWWenKai',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFD35D5D), // 高级砖红
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -110,7 +150,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               ),
             ],
           ),
-        ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+        ).animate().scale(duration: 300.ms, curve: Curves.easeOutQuart).fadeIn(duration: 200.ms),
       ),
     );
   }
@@ -234,12 +274,11 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 800),
                   child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(
                       24,
                       16,
                       24,
-                      120,
+                      80,
                     ), // 调整顶部边距配合 SafeArea
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,7 +286,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                         _buildHeader(),
                         const SizedBox(height: 8),
                         ..._buildBlocksView(),
-                        const SizedBox(height: 48),
+                        if (_currentEntry.replies.isNotEmpty)
+                          const SizedBox(height: 48),
                         DiaryTimeline(
                           replies: _currentEntry.replies,
                           isNight: _effectiveIsNight,
@@ -287,74 +327,84 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     // 图标主色使用墨水色，非活跃状态略带透明
     final iconColor = inkColor.withValues(alpha: 0.9);
     // 悬浮条背景跟随信纸基色，但在 note 系列背景下保持较高的不透明度以防背景干扰
+    // 为了高级质感，我们采用更低的不透明度并结合毛玻璃效果
     final barBgColor = _currentEntry.paperStyle.startsWith('note')
-        ? (isNight ? const Color(0xFF2C2E30) : Colors.white)
-        : paperBaseColor.withValues(alpha: 0.98);
+        ? (isNight ? const Color(0x992C2E30) : const Color(0xB3FFFFFF))
+        : paperBaseColor.withValues(alpha: 0.85);
 
     return Positioned(
       left: 0,
       right: 0,
       bottom: 30,
       child: Center(
-        child: Container(
-          height: 54,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            color: barBgColor,
-            borderRadius: BorderRadius.circular(27),
-            border: Border.all(
-              color: isNight
-                  ? const Color(0xFFD4A373).withValues(alpha: 0.15)
-                  : inkColor.withValues(alpha: 0.1),
-              width: 0.5,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              decoration: BoxDecoration(
+                color: barBgColor,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: isNight
+                      ? const Color(0xFFD4A373).withValues(alpha: 0.15)
+                      : inkColor.withValues(alpha: 0.08),
+                  width: 0.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildActionButton(
+                    icon: Icons.arrow_back_ios_new_rounded,
+                    color: iconColor,
+                    onTap: () => Navigator.pop(context),
+                    label: "返回",
+                    width: 36,
+                    iconSize: 22,
+                  ),
+                  const SizedBox(width: 24),
+                  _buildActionButton(
+                    icon: Icons.chat_bubble_outline_rounded,
+                    color: iconColor,
+                    onTap: _showReplySheet,
+                    label: "回应",
+                    iconSize: 22,
+                    width: 36,
+                  ),
+                  const SizedBox(width: 24),
+                  _buildActionButton(
+                    icon: Icons.edit_note_rounded,
+                    color: iconColor,
+                    onTap: _handleEdit,
+                    label: "编辑",
+                    iconSize: 26,
+                    width: 36,
+                  ),
+                  const SizedBox(width: 24),
+                  _buildActionButton(
+                    icon: Icons.delete_outline_rounded,
+                    // 删除图标也使用统一的墨水色（或非常柔和的莫兰迪红），体现克制的高级感
+                    color: isNight ? const Color(0xFFC47B7B) : inkColor.withValues(alpha: 0.8),
+                    onTap: _handleDelete,
+                    label: "删除",
+                    iconSize: 22,
+                    width: 36,
+                  ),
+                ],
+              ),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildActionButton(
-                icon: Icons.arrow_back_ios_new_rounded,
-                color: iconColor,
-                onTap: () => Navigator.pop(context),
-                label: "返回",
-                width: 40,
-              ),
-              const SizedBox(width: 30),
-              _buildActionButton(
-                icon: Icons.chat_bubble_outline_rounded,
-                color: iconColor,
-                onTap: _showReplySheet,
-                label: "回应",
-                iconSize: 24,
-                width: 40,
-              ),
-              const SizedBox(width: 30),
-              _buildActionButton(
-                icon: Icons.edit_note_rounded,
-                color: iconColor,
-                onTap: _handleEdit,
-                label: "编辑",
-                iconSize: 28,
-                width: 40,
-              ),
-              const SizedBox(width: 30),
-              _buildActionButton(
-                icon: Icons.delete_outline_rounded,
-                color: Colors.redAccent.withValues(alpha: 0.75),
-                onTap: _handleDelete,
-                label: "删除",
-                width: 40,
-              ),
-            ],
-          ),
-        ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.9, 0.9)),
+        ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.95, 0.95)),
       ),
     );
   }
@@ -424,40 +474,58 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 第一行：大时间 + 日期
+        // 第一行：大日期排版
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-              timeStr,
+              dt.day.toString(),
               style: TextStyle(
-                fontSize: 60,
-                fontWeight: FontWeight.bold,
-                color: DiaryUtils.getInkColor(
-                  _currentEntry.paperStyle,
-                  widget.isNight,
-                ),
-                fontFamily: 'LXGWWenKai',
-                letterSpacing: -1,
-              ),
-            ),
-            Text(
-              dateStr,
-              style: TextStyle(
-                fontSize: 20,
+                fontSize: 68,
                 fontWeight: FontWeight.w500,
                 color: DiaryUtils.getInkColor(
                   _currentEntry.paperStyle,
                   widget.isNight,
-                ).withValues(alpha: 0.7),
-                fontFamily: 'LXGWWenKai',
+                ),
+                fontFamily: 'Georgia', // 具有优雅衬线感的字体
+                height: 1.0,
               ),
+            ),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "${dt.year}年${dt.month}月",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: DiaryUtils.getInkColor(
+                      _currentEntry.paperStyle,
+                      widget.isNight,
+                    ).withValues(alpha: 0.6),
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "${["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"][dt.weekday - 1]}  ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: DiaryUtils.getInkColor(
+                      _currentEntry.paperStyle,
+                      widget.isNight,
+                    ).withValues(alpha: 0.8),
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         // 浮动信息：心情标签 + 地点 + 天气
         // 标签行
         Wrap(
@@ -465,50 +533,88 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           runSpacing: 8,
           children: [
             // 心情标签
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: !_effectiveIsNight
-                    ? const Color(0xAAFFFDF9)
-                    : accentColor.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(
-                  !_effectiveIsNight ? 15 : 10,
-                ),
-                border: Border.all(
+            (() {
+              final parsed = ParsedTags.parse(_currentEntry.tag, _currentEntry.moodIndex);
+              final String moodLabel = parsed.customMood ?? mood.label;
+              final String iconPath = parsed.customMood != null
+                  ? 'assets/images/icons/custom.png'
+                  : (mood.iconPath ?? 'assets/icons/happy.png');
+              final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xFFE5DEC9)
-                      : accentColor.withValues(alpha: 0.45),
-                  width: !_effectiveIsNight ? 0.6 : 0.8,
+                      ? const Color(0xAAFFFDF9)
+                      : Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: !_effectiveIsNight
+                        ? const Color(0xFFE5DEC9)
+                        : Colors.white.withValues(alpha: 0.1),
+                    width: !_effectiveIsNight ? 0.6 : 0.8,
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Hero(
-                    tag: 'mood_${_currentEntry.id}',
-                    child: Image.asset(
-                      (_currentEntry.tag != null &&
-                              _currentEntry.tag!.isNotEmpty)
-                          ? 'assets/images/icons/custom.png'
-                          : (mood.iconPath ?? 'assets/icons/happy.png'),
-                      width: 16,
-                      height: 16,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Hero(
+                      tag: 'mood_${_currentEntry.id}',
+                      child: hasCustomIcon
+                          ? Image.file(
+                              File(parsed.customMoodIconPath!),
+                              width: 16,
+                              height: 16,
+                            )
+                          : Image.asset(
+                              iconPath,
+                              width: 16,
+                              height: 16,
+                            ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    mood.label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: !_effectiveIsNight
-                          ? const Color(0xFF7A7060)
-                          : accentColor,
+                    const SizedBox(width: 6),
+                    Text(
+                      moodLabel,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: !_effectiveIsNight
+                            ? const Color(0xFF5E6C6D)
+                            : Colors.white.withValues(alpha: 0.9),
+                      ),
                     ),
+                  ],
+                ),
+              );
+            })(),
+            // 日记多标签
+            ...ParsedTags.parse(_currentEntry.tag, _currentEntry.moodIndex).tags.map((tag) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: !_effectiveIsNight
+                      ? const Color(0xAAFFFDF9)
+                      : Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: !_effectiveIsNight
+                        ? const Color(0xFFE5DEC9)
+                        : Colors.white.withValues(alpha: 0.1),
+                    width: !_effectiveIsNight ? 0.6 : 0.8,
                   ),
-                ],
-              ),
-            ),
+                ),
+                child: Text(
+                  '# $tag',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: !_effectiveIsNight
+                        ? const Color(0xFF5E6C6D)
+                        : Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+              );
+            }).toList(),
             // 天气标签
             if (_currentEntry.weather != null)
               Container(
@@ -519,14 +625,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
                       ? const Color(0xAAFFFDF9)
-                      : accentColor.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(
-                    !_effectiveIsNight ? 15 : 10,
-                  ),
+                      : Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
                         ? const Color(0xFFE5DEC9)
-                        : accentColor.withValues(alpha: 0.45),
+                        : Colors.white.withValues(alpha: 0.1),
                     width: !_effectiveIsNight ? 0.6 : 0.8,
                   ),
                 ),
@@ -537,8 +641,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       _getWeatherIcon(_currentEntry.weather),
                       size: 14,
                       color: !_effectiveIsNight
-                          ? const Color(0xFF7A7060)
-                          : accentColor,
+                          ? const Color(0xFF5E6C6D)
+                          : Colors.white.withValues(alpha: 0.7),
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -547,8 +651,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: !_effectiveIsNight
-                            ? const Color(0xFF7A7060)
-                            : accentColor,
+                            ? const Color(0xFF5E6C6D)
+                            : Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
@@ -564,14 +668,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
                       ? const Color(0xAAFFFDF9)
-                      : accentColor.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(
-                    !_effectiveIsNight ? 15 : 10,
-                  ),
+                      : Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
                         ? const Color(0xFFE5DEC9)
-                        : accentColor.withValues(alpha: 0.45),
+                        : Colors.white.withValues(alpha: 0.1),
                     width: !_effectiveIsNight ? 0.6 : 0.8,
                   ),
                 ),
@@ -582,8 +684,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       Icons.location_on_outlined,
                       size: 14,
                       color: !_effectiveIsNight
-                          ? const Color(0xFF7A7060)
-                          : accentColor,
+                          ? const Color(0xFF5E6C6D)
+                          : Colors.white.withValues(alpha: 0.7),
                     ),
                     const SizedBox(width: 4),
                     ConstrainedBox(
@@ -598,8 +700,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: !_effectiveIsNight
-                              ? const Color(0xFF7A7060)
-                              : accentColor,
+                              ? const Color(0xFF5E6C6D)
+                              : Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
                     ),
@@ -616,14 +718,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
                       ? const Color(0xAAFFFDF9)
-                      : accentColor.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(
-                    !_effectiveIsNight ? 15 : 10,
-                  ),
+                      : Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
                         ? const Color(0xFFE5DEC9)
-                        : accentColor.withValues(alpha: 0.45),
+                        : Colors.white.withValues(alpha: 0.1),
                     width: !_effectiveIsNight ? 0.6 : 0.8,
                   ),
                 ),
@@ -634,8 +734,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       Icons.calendar_today_outlined,
                       size: 14,
                       color: !_effectiveIsNight
-                          ? const Color(0xFF7A7060)
-                          : accentColor,
+                          ? const Color(0xFF5E6C6D)
+                          : Colors.white.withValues(alpha: 0.7),
                     ),
                     const SizedBox(width: 5),
                     Text(
@@ -644,8 +744,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: !_effectiveIsNight
-                            ? const Color(0xFF7A7060)
-                            : accentColor,
+                            ? const Color(0xFF5E6C6D)
+                            : Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
@@ -661,14 +761,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
                       ? const Color(0xAAFFFDF9)
-                      : accentColor.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(
-                    !_effectiveIsNight ? 15 : 10,
-                  ),
+                      : Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
                         ? const Color(0xFFE5DEC9)
-                        : accentColor.withValues(alpha: 0.45),
+                        : Colors.white.withValues(alpha: 0.1),
                     width: !_effectiveIsNight ? 0.6 : 0.8,
                   ),
                 ),
@@ -679,8 +777,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       Icons.access_time_outlined,
                       size: 14,
                       color: !_effectiveIsNight
-                          ? const Color(0xFF7A7060)
-                          : accentColor,
+                          ? const Color(0xFF5E6C6D)
+                          : Colors.white.withValues(alpha: 0.7),
                     ),
                     const SizedBox(width: 5),
                     Text(
@@ -689,8 +787,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: !_effectiveIsNight
-                            ? const Color(0xFF7A7060)
-                            : accentColor,
+                            ? const Color(0xFF5E6C6D)
+                            : Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
@@ -703,102 +801,157 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
   }
 
   List<Widget> _buildBlocksView() {
+    final filteredContent = DiaryUtils.getFilteredContent(_currentEntry.content);
+    final hasText = filteredContent.trim().isNotEmpty;
+
     if (_currentEntry.blocks.isEmpty) {
       return [
-        _buildRichTextView(),
-        const SizedBox(height: 12),
+        if (hasText) ...[
+          _buildRichTextView(),
+          const SizedBox(height: 12),
+        ],
         _buildImagesView(),
       ];
     }
 
     final List<Widget> list = [];
     final textStyle = TextStyle(
-      fontSize: 18,
+      fontSize: 20,
       height: 1.8,
       color: DiaryUtils.getInkColor(_currentEntry.paperStyle, widget.isNight),
       fontFamily: 'LXGWWenKai',
     );
 
-    if (_currentEntry.isImageGrid) {
+    if (_currentEntry.isImageGrid && !_currentEntry.isMixedLayout) {
       return [
-        _buildRichTextView(),
-        const SizedBox(height: 12),
+        if (hasText) ...[
+          _buildRichTextView(),
+          const SizedBox(height: 12),
+        ],
         _buildImagesView(),
       ];
     }
 
+    final List<DiaryBlock> originalBlocks = _currentEntry.blocks.map((b) => DiaryBlock.fromMap(Map<String, dynamic>.from(b as Map))).toList();
+    final processedBlocks = ImageGroupBlock.preprocess(
+      originalBlocks,
+      isMixedLayout: _currentEntry.isMixedLayout,
+      isImageGrid: _currentEntry.isImageGrid,
+    );
+
     bool isFirst = true;
     int textBlockIndex = 0;
-    for (var b in _currentEntry.blocks) {
-      final type = b['type'];
-      if (type == 'text') {
+    for (var block in processedBlocks) {
+      if (block is TextBlock) {
         final currentBlockIndex = textBlockIndex;
         textBlockIndex++;
-        final block = DiaryBlock.fromMap(Map<String, dynamic>.from(b as Map));
-        if (block is TextBlock) {
-          final tc = block.controller;
-          if (tc is DiaryTextEditingController) {
-            tc.baseColor = textStyle.color ?? Colors.black;
-            tc.baseFontFamily = textStyle.fontFamily ?? 'LXGWWenKai';
-            tc.baseFontSize = textStyle.fontSize ?? 18;
-
-            final span = tc.buildTextSpan(
-              context: context,
-              style: textStyle,
-              withComposing: false,
-              hideMarkdownSymbols: true,
-              annotations: _currentEntry.annotations,
-              blockIndex: currentBlockIndex,
-              onAnnotationTap: (key) => _showAnnotationSheet(key: key),
-            );
-
-            list.add(
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: _buildSelectableRichText(span, currentBlockIndex, textStyle),
-              ),
-            );
-            isFirst = false;
+        final tc = block.controller;
+        if (tc is DiaryTextEditingController) {
+          // 如果文本为空，且日记包含其他内容，则跳过此空文本块渲染，防止出现空白行
+          final hasOtherContent = processedBlocks.any((item) => item is! TextBlock || (item is TextBlock && item.controller.text.trim().isNotEmpty));
+          if (tc.text.trim().isEmpty && hasOtherContent) {
+            continue;
           }
-          block.dispose();
-        }
-      } else if (type == 'image') {
-        final path = b['path'];
-        if (path != null && path.toString().isNotEmpty) {
-          final bool isWide = MediaQuery.of(context).size.width > 800;
+
+          tc.baseColor = textStyle.color ?? Colors.black;
+          tc.baseFontFamily = textStyle.fontFamily ?? 'LXGWWenKai';
+          tc.baseFontSize = textStyle.fontSize ?? 20;
+
+          final span = tc.buildTextSpan(
+            context: context,
+            style: textStyle,
+            withComposing: false,
+            hideMarkdownSymbols: true,
+            annotations: _currentEntry.annotations,
+            blockIndex: currentBlockIndex,
+            onAnnotationTap: (key) => _showAnnotationSheet(key: key),
+          );
 
           list.add(
-            Center(
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: isWide
-                      ? 520
-                      : MediaQuery.of(context).size.width * 0.85,
-                ),
-                margin: EdgeInsets.only(top: isFirst ? 8 : 12, bottom: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: _buildSelectableRichText(span, currentBlockIndex, textStyle),
+            ),
+          );
+          isFirst = false;
+        }
+      } else if (block is ImageBlock) {
+        final path = block.file.path;
+        final bool isWide = MediaQuery.of(context).size.width > 800;
+
+        list.add(
+          Center(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: isWide
+                    ? 520
+                    : MediaQuery.of(context).size.width * 0.85,
+              ),
+              margin: EdgeInsets.only(top: isFirst ? 8 : 12, bottom: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: GestureDetector(
+                onTap: () => _showImagePreviewDialog(path, block.id),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: DiaryUtils.buildImage(path, fit: BoxFit.contain),
                 ),
               ),
             ),
-          );
-          isFirst = false;
-        }
+          ),
+        );
+        isFirst = false;
+      } else if (block is ImageGroupBlock) {
+        final List<String> paths = block.images.map((img) => img.file.path).toList();
+        final bool isWide = MediaQuery.of(context).size.width > 800;
+
+        list.add(
+          Center(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: isWide
+                    ? 520
+                    : MediaQuery.of(context).size.width * 0.85,
+              ),
+              margin: EdgeInsets.only(top: isFirst ? 8 : 12, bottom: 12),
+              child: DiaryImageCollage(
+                imagePaths: paths,
+                onTapImage: (idx) {
+                  _showImagePreviewDialog(block.images[idx].file.path, block.images[idx].id);
+                },
+              ),
+            ),
+          ),
+        );
+        isFirst = false;
       }
     }
 
     return list;
+  }
+
+  void _showImagePreviewDialog(String path, String id) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Hero(
+            tag: id,
+            child: DiaryUtils.buildImage(path, fit: BoxFit.contain),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildRichTextView() {
@@ -807,7 +960,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     );
 
     final textStyle = TextStyle(
-      fontSize: 18,
+      fontSize: 20,
       height: 1.8,
       color: DiaryUtils.getInkColor(_currentEntry.paperStyle, widget.isNight),
       fontFamily: 'LXGWWenKai',
@@ -816,7 +969,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     final controller = DiaryTextEditingController(text: filteredContent);
     controller.baseColor = textStyle.color ?? Colors.black;
     controller.baseFontFamily = textStyle.fontFamily ?? 'LXGWWenKai';
-    controller.baseFontSize = textStyle.fontSize ?? 18;
+    controller.baseFontSize = textStyle.fontSize ?? 20;
 
     final span = controller.buildTextSpan(
       context: context,
@@ -838,120 +991,28 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       span,
       style: textStyle,
       contextMenuBuilder: (context, editableTextState) {
-        final selection = editableTextState.textEditingValue.selection;
-        if (selection.isCollapsed) return const SizedBox.shrink();
-
-        final text = editableTextState.textEditingValue.text;
-        final selectedText = selection.start >= 0 && selection.end <= text.length
-            ? text.substring(selection.start, selection.end)
-            : '';
-
-        // 如果选择的文本仅包含 Object Replacement Character (\uFFFC，代表 WidgetSpan，如小气泡或图片)
-        // 则直接隐藏选区工具栏，不弹出 tooltip
-        if (selectedText.isEmpty || selectedText.trim().runes.every((r) => r == 0xFFFC)) {
-          return const SizedBox.shrink();
-        }
-
-        // 检查选区是否与已有批注有重叠
-        Map<String, dynamic>? overlappingAnn;
-        for (var entry in _currentEntry.annotations.entries) {
-          final parts = entry.key.split('_');
-          if (parts.length == 3 && int.tryParse(parts[0]) == blockIndex) {
-            final annStart = int.tryParse(parts[1]);
-            final annEnd = int.tryParse(parts[2]);
-            if (annStart != null && annEnd != null) {
-              if (selection.start < annEnd && selection.end > annStart) {
-                overlappingAnn = {
-                  'key': entry.key,
-                  'start': annStart,
-                  'end': annEnd,
-                };
-                break;
-              }
-            }
-          }
-        }
-
-        // 如果存在重叠的批注，且当前选区未完全覆盖它，则自动扩展选区至整个批注范围
-        if (overlappingAnn != null) {
-          final int annStart = overlappingAnn['start'];
-          final int annEnd = overlappingAnn['end'];
-          if (selection.start != annStart || selection.end != annEnd) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              editableTextState.updateEditingValue(
-                editableTextState.textEditingValue.copyWith(
-                  selection: TextSelection(baseOffset: annStart, extentOffset: annEnd),
-                ),
-              );
+        return DiaryTextContextMenu(
+          editableTextState: editableTextState,
+          blockIndex: blockIndex,
+          annotations: _currentEntry.annotations,
+          onAddAnnotation: ({key, required blockIndex, required start, required end, required selectedText}) {
+            _showAnnotationSheet(
+              key: key,
+              blockIndex: blockIndex,
+              start: start,
+              end: end,
+              selectedText: selectedText,
+            );
+          },
+          onDeleteAnnotation: (key) {
+            final newAnnotations = Map<String, String>.from(_currentEntry.annotations);
+            newAnnotations.remove(key);
+            final updated = _currentEntry.copyWith(annotations: newAnnotations);
+            UserState().updateDiary(updated);
+            setState(() {
+              _currentEntry = updated;
             });
-            return const SizedBox.shrink();
-          }
-        }
-
-        return CustomSingleChildLayout(
-          delegate: TextSelectionToolbarLayoutDelegate(
-            anchorAbove: editableTextState.contextMenuAnchors.primaryAnchor,
-            anchorBelow: editableTextState.contextMenuAnchors.secondaryAnchor ?? editableTextState.contextMenuAnchors.primaryAnchor,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildToolbarButton("复制", () {
-                      editableTextState.copySelection(SelectionChangedCause.toolbar);
-                      editableTextState.hideToolbar();
-                    }, false),
-                    const SizedBox(width: 4),
-                    _buildToolbarButton("批注", () {
-                      editableTextState.hideToolbar();
-                      final selectedText = editableTextState.textEditingValue.text.substring(
-                        selection.start,
-                        selection.end,
-                      );
-                      _showAnnotationSheet(
-                        blockIndex: blockIndex,
-                        start: selection.start,
-                        end: selection.end,
-                        selectedText: selectedText,
-                      );
-                    }, false),
-                    if (overlappingAnn != null) ...[
-                      const SizedBox(width: 4),
-                      _buildToolbarButton("删除", () {
-                        final newAnnotations = Map<String, String>.from(_currentEntry.annotations);
-                        newAnnotations.remove(overlappingAnn!['key']);
-                        final updated = _currentEntry.copyWith(annotations: newAnnotations);
-                        UserState().updateDiary(updated);
-                        setState(() {
-                          _currentEntry = updated;
-                        });
-                        editableTextState.hideToolbar();
-                      }, false),
-                    ],
-                  ],
-                ),
-              ),
-              CustomPaint(
-                size: const Size(12, 6),
-                painter: _ToolbarArrowPainter(),
-              ),
-            ],
-          ),
+          },
         );
       },
     );
@@ -1276,6 +1337,15 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     if (images.isEmpty) return const SizedBox.shrink();
 
     if (_currentEntry.isImageGrid) {
+      if (images.length <= 5) {
+        final paths = images.map((img) => img['path'] as String).toList();
+        return DiaryImageCollage(
+          imagePaths: paths,
+          spacing: 8.0,
+          borderRadius: 12.0,
+        ).animate().fadeIn(delay: 500.ms, duration: 800.ms);
+      }
+
       return LayoutBuilder(
         builder: (context, constraints) {
           final double spacing = 8;

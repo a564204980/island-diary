@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../models/diary_block.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
+import 'package:island_diary/features/record/domain/models/diary_draft.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import '../utils/diary_utils.dart';
 import '../../../../core/state/user_state.dart';
@@ -12,6 +13,9 @@ import '../../mood_picker/config/mood_config.dart';
 import '../../island_alert.dart';
 
 mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
+  late String currentDraftId;
+  bool isModified = false;
+  bool _isInitializing = false;
   final List<DiaryBlock> blocks = [];
   final ScrollController scrollController = ScrollController();
   final Map<String, GlobalKey> blockKeys = {};
@@ -40,6 +44,16 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   int? currentMoodIndex;
   late double currentIntensity;
   String? currentTag;
+  Map<String, String> currentAnnotations = {};
+
+  List<String> get currentTags {
+    if (currentTag == null || currentTag!.isEmpty) return [];
+    return currentTag!.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
+  }
+
+  set currentTags(List<String> tags) {
+    currentTag = tags.isEmpty ? null : tags.join(',');
+  }
   String currentPaperStyle = 'classic';
   bool isMixedLayout = true; // 是否开启图文混排
   bool isImageGrid = false; // 是否开启图片九宫格
@@ -48,6 +62,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   String get fixedQuote => _fixedQuote ?? '';
 
   void initializeEditor({DiaryEntry? entry, DateTime? initialDate}) {
+    _isInitializing = true;
     entryDateTime = entry?.dateTime ?? initialDate;
     if (blocks.isEmpty) {
       currentTextColor = UserState().isNight
@@ -55,32 +70,32 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           : const Color(0xFF5D4037);
     }
 
+    currentDraftId = widget.draft?.id ?? 'draft_${DateTime.now().microsecondsSinceEpoch}';
+
     if (entry != null) {
       _loadFromEntry(entry);
     } else {
-      loadDraft();
+      loadDraft(widget.draft);
     }
 
     // 初始化心情与信纸相关状态
-    currentMoodIndex = entry?.moodIndex ?? widget.moodIndex;
-    currentIntensity = entry?.intensity ?? widget.intensity;
-    currentTag = entry?.tag ?? widget.tag;
+    currentMoodIndex = entry?.moodIndex ?? widget.draft?.moodIndex ?? widget.moodIndex;
+    currentIntensity = entry?.intensity ?? widget.draft?.intensity ?? widget.intensity;
+    currentTag = entry?.tag ?? widget.draft?.tag ?? widget.tag;
     currentPaperStyle = entry?.paperStyle ?? 
-                      UserState().diaryDraft.value?.paperStyle ?? 
+                      widget.draft?.paperStyle ?? 
                       UserState().preferredPaperStyle.value;
     isImageGrid = entry?.isImageGrid ??
-                  UserState().diaryDraft.value?.isImageGrid ??
+                  widget.draft?.isImageGrid ??
                   false;
     isMixedLayout = entry?.isMixedLayout ??
-                    UserState().diaryDraft.value?.isMixedLayout ??
+                    widget.draft?.isMixedLayout ??
                     (!isImageGrid && UserState().isVip.value); // 非会员默认关闭
     currentBookId = entry?.bookId ??
-                    UserState().diaryDraft.value?.bookId ??
+                    widget.bookId ??
+                    widget.draft?.bookId ??
                     'default';
     
-    // 强制互斥检查
-    if (isImageGrid) isMixedLayout = false;
-
     syncBlockColors();
 
     updateMoodQuote();
@@ -95,6 +110,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
         currentTextColor = tc.baseColor;
       }
     }
+    _isInitializing = false;
+    isModified = false;
   }
 
   void updateMoodQuote() {
@@ -110,6 +127,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   }
 
   void _loadFromEntry(DiaryEntry entry) {
+    currentAnnotations = Map<String, String>.from(entry.annotations);
     blocks.clear();
     blockKeys.clear();
     for (var item in entry.blocks) {
@@ -119,6 +137,12 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       }
       blocks.add(block);
       blockKeys[block.id] = GlobalKey();
+    }
+    if (blocks.whereType<TextBlock>().isEmpty) {
+      final textBlock = TextBlock('', baseColor: currentTextColor);
+      addFocusListener(textBlock);
+      blocks.add(textBlock);
+      blockKeys[textBlock.id] = GlobalKey();
     }
     weather = entry.weather;
     temp = entry.temp;
@@ -141,10 +165,18 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
         }
       }
     });
+    block.controller.addListener(() {
+      if (!_isInitializing && !isModified) {
+        setState(() {
+          isModified = true;
+        });
+      }
+    });
   }
 
-  void loadDraft() {
-    final draft = UserState().diaryDraft.value?.blocks;
+  void loadDraft(DiaryDraft? customDraft) {
+    currentAnnotations = {};
+    final draft = customDraft?.blocks;
     final Set<String> existingIds = {};
     bool draftModified = false;
 
@@ -171,16 +203,23 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
         blocks.add(block);
         blockKeys[block.id] = GlobalKey();
       }
-      weather = UserState().diaryDraft.value?.weather;
-      temp = UserState().diaryDraft.value?.temp;
-      location = UserState().diaryDraft.value?.location;
-      customDate = UserState().diaryDraft.value?.customDate;
-      customTime = UserState().diaryDraft.value?.customTime;
-      currentPaperStyle = UserState().diaryDraft.value?.paperStyle ?? 'classic';
-      isImageGrid = UserState().diaryDraft.value?.isImageGrid ?? false;
-      isMixedLayout = UserState().diaryDraft.value?.isMixedLayout ?? 
+      if (blocks.whereType<TextBlock>().isEmpty) {
+        final textBlock = TextBlock('', baseColor: currentTextColor);
+        addFocusListener(textBlock);
+        blocks.add(textBlock);
+        blockKeys[textBlock.id] = GlobalKey();
+        draftModified = true;
+      }
+      weather = customDraft?.weather;
+      temp = customDraft?.temp;
+      location = customDraft?.location;
+      customDate = customDraft?.customDate;
+      customTime = customDraft?.customTime;
+      currentPaperStyle = customDraft?.paperStyle ?? 'classic';
+      isImageGrid = customDraft?.isImageGrid ?? false;
+      isMixedLayout = customDraft?.isMixedLayout ?? 
                       (!isImageGrid && UserState().isVip.value);
-      currentBookId = UserState().diaryDraft.value?.bookId ?? 'default';
+      currentBookId = customDraft?.bookId ?? 'default';
 
       if (draftModified) {
         onBlocksChanged();
@@ -193,14 +232,15 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     }
   }
 
-  Future<void> onBlocksChanged() async {
+  Future<void> saveCurrentAsDraft() async {
     final content = blocks
         .whereType<TextBlock>()
         .map((b) => b.controller.text)
         .join('\n');
 
-    await UserState().saveDraft(
-      moodIndex: currentMoodIndex ?? 4,
+    final draft = DiaryDraft(
+      id: currentDraftId,
+      moodIndex: currentMoodIndex,
       intensity: currentIntensity,
       content: content,
       tag: currentTag,
@@ -216,6 +256,33 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       isMixedLayout: isMixedLayout,
       bookId: currentBookId,
     );
+
+    await UserState().saveDraftEntry(draft);
+  }
+
+  Future<void> onBlocksChanged() async {
+    isModified = true;
+    // 如果是编辑已有日记模式，不保存为全局新建草稿，避免污染新建草稿
+    if (widget.entry != null) {
+      return;
+    }
+
+    final content = blocks
+        .whereType<TextBlock>()
+        .map((b) => b.controller.text)
+        .join('\n');
+
+    final hasContent = content.trim().isNotEmpty || 
+        blocks.whereType<ImageBlock>().isNotEmpty || 
+        blocks.whereType<AudioBlock>().isNotEmpty ||
+        currentMoodIndex != null ||
+        currentTag != null;
+        
+    if (!hasContent) {
+      return;
+    }
+
+    await saveCurrentAsDraft();
   }
 
   TextBlock? get activeTextBlock {
@@ -303,10 +370,11 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           paperStyle: currentPaperStyle,
           isImageGrid: isImageGrid,
           isMixedLayout: isMixedLayout,
-          annotations: widget.entry!.annotations,
+          annotations: currentAnnotations,
           bookId: currentBookId,
         );
         await UserState().updateDiary(updatedEntry);
+        await UserState().deleteDraftEntry(currentDraftId);
         debugPrint("DIARY_EDITOR: 更新保存成功。");
       } else {
         debugPrint("DIARY_EDITOR: 正在创建新日记 (新建模式)...");
@@ -328,7 +396,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           isMixedLayout: isMixedLayout,
           bookId: currentBookId,
         );
-        achievements = await UserState().saveDiary();
+        achievements = await UserState().saveDiary(annotations: currentAnnotations);
+        await UserState().deleteDraftEntry(currentDraftId);
         debugPrint("DIARY_EDITOR: 新日记保存成功，获得成就数量: ${achievements.length}");
       }
 

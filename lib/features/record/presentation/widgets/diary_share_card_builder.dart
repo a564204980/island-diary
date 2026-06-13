@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
@@ -91,6 +92,12 @@ class DiaryShareCardBuilder extends StatelessWidget {
     return Column(
       children: entries.map((entry) {
         final mood = kMoods[entry.moodIndex.clamp(0, kMoods.length - 1)];
+        final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+        final String iconPath = parsed.customMood != null
+            ? 'assets/images/icons/custom.png'
+            : (mood.iconPath ?? 'assets/icons/happy.png');
+        final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+
         return Container(
           margin: const EdgeInsets.only(bottom: 20),
           padding: const EdgeInsets.all(16),
@@ -104,7 +111,9 @@ class DiaryShareCardBuilder extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Image.asset(mood.iconPath ?? '', width: 18, height: 18),
+                  hasCustomIcon
+                      ? Image.file(File(parsed.customMoodIconPath!), width: 18, height: 18)
+                      : Image.asset(iconPath, width: 18, height: 18),
                   const SizedBox(width: 8),
                   Text(
                     "${entry.dateTime.hour.toString().padLeft(2, '0')}:${entry.dateTime.minute.toString().padLeft(2, '0')}",
@@ -115,11 +124,16 @@ class DiaryShareCardBuilder extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  if (entry.tag != null && entry.tag!.isNotEmpty)
-                    _buildTag(
-                      entry.tag!,
-                      mood.glowColor ?? const Color(0xFFD4A373),
-                    ),
+                  ...(() {
+                    final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+                    final List<String> tagsToRender = [];
+                    if (parsed.customMood != null) tagsToRender.add(parsed.customMood!);
+                    tagsToRender.addAll(parsed.tags);
+                    return tagsToRender.map((tag) => Padding(
+                      padding: const EdgeInsets.only(left: 6.0),
+                      child: _buildTag(tag, mood.glowColor ?? const Color(0xFFD4A373)),
+                    ));
+                  })(),
                 ],
               ),
               const SizedBox(height: 12),
@@ -427,6 +441,12 @@ class DiaryShareCardBuilder extends StatelessWidget {
 
   Widget _buildBookEntryItem(DiaryEntry entry) {
     final mood = kMoods[entry.moodIndex.clamp(0, kMoods.length - 1)];
+    final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+    final String iconPath = parsed.customMood != null
+        ? 'assets/images/icons/custom.png'
+        : (mood.iconPath ?? 'assets/icons/happy.png');
+    final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+    
     final dateStr =
         "${entry.dateTime.year}/${entry.dateTime.month}/${entry.dateTime.day}";
     final timeStr =
@@ -475,10 +495,12 @@ class DiaryShareCardBuilder extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Image.asset(mood.iconPath ?? '', width: 14, height: 14),
+                      hasCustomIcon
+                          ? Image.file(File(parsed.customMoodIconPath!), width: 14, height: 14)
+                          : Image.asset(iconPath, width: 14, height: 14),
                       const SizedBox(width: 6),
                       Text(
-                        mood.label,
+                        parsed.customMood ?? mood.label,
                         style: TextStyle(
                           fontSize: 11,
                           color: (mood.glowColor ?? const Color(0xFFD4A373))
@@ -487,13 +509,16 @@ class DiaryShareCardBuilder extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (entry.tag != null && entry.tag!.isNotEmpty) ...[
-                        const SizedBox(width: 8),
-                        _buildTag(
-                          entry.tag!,
-                          mood.glowColor ?? const Color(0xFFD4A373),
-                        ),
-                      ],
+                      ...(() {
+                        final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+                        final List<String> tagsToRender = [];
+                        if (parsed.customMood != null) tagsToRender.add(parsed.customMood!);
+                        tagsToRender.addAll(parsed.tags);
+                        return tagsToRender.map((tag) => Padding(
+                          padding: const EdgeInsets.only(left: 6.0),
+                          child: _buildTag(tag, mood.glowColor ?? const Color(0xFFD4A373)),
+                        ));
+                      })(),
                     ],
                   ),
                   const SizedBox(height: 8),

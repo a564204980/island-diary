@@ -8,6 +8,16 @@ import 'package:path_provider/path_provider.dart';
 import 'package:island_diary/core/state/user_state.dart';
 
 class DiaryUtils {
+  static String? _documentsDirPath;
+
+  static String get documentsDirPath => _documentsDirPath ?? '';
+
+  static Future<String> initDocumentsDirPath() async {
+    if (_documentsDirPath != null) return _documentsDirPath!;
+    final dir = await getApplicationDocumentsDirectory();
+    _documentsDirPath = dir.path;
+    return _documentsDirPath!;
+  }
   /// 预设文本颜色
   static const List<Color> presetTextColors = [
     Color(0xFF5D4037),
@@ -487,8 +497,8 @@ class DiaryUtils {
       return const Color(0xFF757575);
     }
 
-    // 白天模式：使用比墨水色略浅的深灰色
-    return const Color(0xFF4A5A58);
+    // 白天模式：使用默认主题色
+    return const Color(0xFFA68565);
   }
 
   /// 获取与信纸风格高度协调的弹窗背景色
@@ -604,5 +614,135 @@ class DiaryUtils {
     if (moodIndex == 0 || moodIndex == 3 || moodIndex == 7) return false;
     
     return false;
+  }
+
+  static void showInfoDialog(
+    BuildContext context, {
+    required String title,
+    required String content,
+    String buttonLabel = '确定',
+    bool isNight = false,
+  }) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
+      builder: (context) {
+        final String fontFamily = UserState().selectedIslandThemeId.value == 'lego'
+            ? 'SweiFistLeg'
+            : 'LXGWWenKai';
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 56),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isNight ? const Color(0xFF1E242B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isNight ? Colors.white : Colors.black87,
+                          fontFamily: fontFamily,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        content,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isNight ? Colors.white60 : Colors.black54,
+                          height: 1.4,
+                          fontFamily: fontFamily,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(
+                  height: 1,
+                  thickness: 0.5,
+                  color: isNight ? Colors.white10 : Colors.black12,
+                ),
+                InkWell(
+                  onTap: () => Navigator.pop(context),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                  child: Container(
+                    height: 46,
+                    alignment: Alignment.center,
+                    child: Text(
+                      buttonLabel,
+                      style: TextStyle(
+                        color: const Color(0xFFD4A373),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        fontFamily: fontFamily,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ParsedTags {
+  final String? customMood;
+  final String? customMoodIconPath;
+  final List<String> tags;
+  ParsedTags({this.customMood, this.customMoodIconPath, required this.tags});
+
+  factory ParsedTags.parse(String? rawTag, int? moodIndex) {
+    if (rawTag == null || rawTag.isEmpty) {
+      return ParsedTags(tags: []);
+    }
+    final List<String> parts = rawTag.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
+    String? customMood;
+    String? customMoodIconPath;
+    final List<String> tags = [];
+
+    for (var part in parts) {
+      if (part.startsWith('mood:')) {
+        customMood = part.substring(5);
+      } else if (part.startsWith('mood_icon:')) {
+        final relPath = part.substring(10);
+        if (DiaryUtils.documentsDirPath.isNotEmpty) {
+          customMoodIconPath = '${DiaryUtils.documentsDirPath}/$relPath';
+        }
+      } else {
+        tags.add(part);
+      }
+    }
+
+    // 针对旧数据的向前兼容：如果没有带有 mood: 前缀的心情，但存在 tag
+    if (customMood == null && parts.isNotEmpty) {
+      final bool isStandardMood = moodIndex != null && moodIndex < 11;
+      if (moodIndex != null && !isStandardMood) {
+        customMood = parts.first;
+        tags.clear();
+        tags.addAll(parts.skip(1));
+      }
+    }
+
+    return ParsedTags(customMood: customMood, customMoodIconPath: customMoodIconPath, tags: tags);
   }
 }

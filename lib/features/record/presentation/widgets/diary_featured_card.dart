@@ -158,16 +158,15 @@ class DiaryFeaturedCard extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             _buildTag(
-                              mood.label,
+                              ParsedTags.parse(entry.tag, entry.moodIndex).customMood ?? mood.label,
                               isOverlay: true,
                             ),
-                            if (entry.tag != null && entry.tag!.isNotEmpty) ...[
-                              const SizedBox(width: 8),
-                              _buildTag(
-                                entry.tag!,
-                                isOverlay: true,
-                              ),
-                            ],
+                            ...ParsedTags.parse(entry.tag, entry.moodIndex).tags.map((tag) {
+                              return Padding(
+                                padding: const EdgeInsets.only(left: 8.0),
+                                child: _buildTag(tag, isOverlay: true),
+                              );
+                            }).toList(),
                           ],
                         ),
   

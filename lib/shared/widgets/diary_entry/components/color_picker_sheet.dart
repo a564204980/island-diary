@@ -12,6 +12,7 @@ class DiaryColorPickerSheet extends StatefulWidget {
   final String paperStyle;
   final void Function(Color color, bool isBackground) onApplyColor;
   final void Function(bool isBackground) onClear;
+  final bool initialIsBackground;
 
   const DiaryColorPickerSheet({
     super.key,
@@ -20,6 +21,7 @@ class DiaryColorPickerSheet extends StatefulWidget {
     required this.paperStyle,
     required this.onApplyColor,
     required this.onClear,
+    this.initialIsBackground = false,
   });
 
   @override
@@ -29,13 +31,14 @@ class DiaryColorPickerSheet extends StatefulWidget {
 class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
   late bool showCustom;
   late Color pickerColor;
-  bool isBackground = false; // 当前是否为背景色模式
+  late bool isBackground; // 当前是否为背景色模式
 
   @override
   void initState() {
     super.initState();
     showCustom = false;
-    pickerColor = widget.currentTextColor;
+    isBackground = widget.initialIsBackground;
+    pickerColor = isBackground ? widget.currentBgColor : widget.currentTextColor;
   }
 
   @override

@@ -708,7 +708,7 @@ extension _BentoMoodTrend on _StatisticsPageState {
 
     _moodTrendSummaries[key] = summary;
     if (mounted) {
-      setState(() {});
+      updateState(() {});
     }
     return summary;
   }
@@ -910,43 +910,4 @@ String _getChineseWeekDay(int weekday) {
   return list[weekday - 1];
 }
 
-class _LegoBaseplatePainter extends CustomPainter {
-  final bool isNight;
-  _LegoBaseplatePainter({required this.isNight});
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    const double step = 14.0;
-    const double radius = 3.5;
-
-    final Color studColor = isNight
-        ? Colors.white.withValues(alpha: 0.007)
-        : const Color(0xFFE5ECF6).withValues(alpha: 0.15); // 极其柔和淡淡的浅灰蓝
-
-    final Color shadowColor = isNight
-        ? Colors.black.withValues(alpha: 0.03)
-        : const Color(0x04000000);
-
-    final Color highlightColor = isNight
-        ? Colors.white.withValues(alpha: 0.015)
-        : Colors.white.withValues(alpha: 0.2);
-
-    final Paint paintMain = Paint()..color = studColor..style = PaintingStyle.fill;
-    final Paint paintShadow = Paint()..color = shadowColor..style = PaintingStyle.fill;
-    final Paint paintHighlight = Paint()..color = highlightColor..style = PaintingStyle.fill;
-
-    for (double x = step / 2; x < size.width; x += step) {
-      for (double y = step / 2; y < size.height; y += step) {
-        // 1. 绘制阴影（右下微偏）
-        canvas.drawCircle(Offset(x + 0.6, y + 0.6), radius, paintShadow);
-        // 2. 绘制高光（左上微偏）
-        canvas.drawCircle(Offset(x - 0.6, y - 0.6), radius, paintHighlight);
-        // 3. 绘制主体圆粒
-        canvas.drawCircle(Offset(x, y), radius, paintMain);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

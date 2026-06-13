@@ -13,15 +13,28 @@ List<DiaryBook> _parseDiaryBooks(String jsonStr) {
 
 mixin DiaryMixin on ProfileMixin {
   final ValueNotifier<DiaryDraft?> diaryDraft = ValueNotifier<DiaryDraft?>(null);
+  final ValueNotifier<List<DiaryDraft>> savedDrafts = ValueNotifier<List<DiaryDraft>>([]);
   final ValueNotifier<List<DiaryEntry>> savedDiaries = ValueNotifier<List<DiaryEntry>>([]);
   final ValueNotifier<List<DiaryBook>> savedBooks = ValueNotifier<List<DiaryBook>>([]);
   final ValueNotifier<bool> isDiarySheetOpen = ValueNotifier<bool>(false);
 
   Future<void> loadDiaries(SharedPreferences prefs) async {
+    // 1. 加载多草稿列表
+    final draftsJson = prefs.getString(UserState().n(_K.savedDrafts));
+    if (draftsJson != null) {
+      try {
+        final List decoded = jsonDecode(draftsJson) as List;
+        savedDrafts.value = decoded.map((e) => DiaryDraft.fromMap(Map<String, dynamic>.from(e))).toList();
+      } catch (e) {
+        debugPrint('Error decoding saved drafts: $e');
+      }
+    }
+
+    // 2. 兼容并合并老单草稿
     final draftContent = prefs.getString(UserState().n(_K.draftContent));
     if (draftContent != null) {
       final blocksJson = prefs.getString(UserState().n(_K.draftBlocks));
-      diaryDraft.value = DiaryDraft(
+      final oldDraft = DiaryDraft(
         content: draftContent,
         moodIndex: prefs.getInt(UserState().n(_K.draftMood)),
         intensity: prefs.getDouble(UserState().n(_K.draftIntensity)) ?? 5.0,
@@ -38,6 +51,10 @@ mixin DiaryMixin on ProfileMixin {
         isMixedLayout: prefs.getBool(UserState().n(_K.draftIsMixedLayout)) ?? (isVip.value && !(prefs.getBool(UserState().n(_K.draftIsImageGrid)) ?? false)),
         bookId: prefs.getString(UserState().n(_K.draftBookId)) ?? 'default',
       );
+      
+      savedDrafts.value = [oldDraft, ...savedDrafts.value];
+      await _saveDraftsToStorage();
+      await clearDraft();
     }
     
     final b = prefs.getString(UserState().n(_K.savedBooks));
@@ -49,17 +66,7 @@ mixin DiaryMixin on ProfileMixin {
         debugPrint('Error decoding saved books: $e');
       }
     }
-    if (savedBooks.value.isEmpty) {
-      final defaultBook = DiaryBook(
-        id: 'default',
-        name: '岛屿随笔',
-        description: '默认日记本，记录岛屿的点滴日常',
-        coverColorValue: 0xFF64B5F6,
-        coverStyle: 0,
-      );
-      savedBooks.value = [defaultBook];
-      await _saveBooksToStorage();
-    }
+
     
     final s = prefs.getString(UserState().n(_K.savedDiaries));
     if (s != null) {
@@ -112,7 +119,39 @@ mixin DiaryMixin on ProfileMixin {
     }
   }
 
-  Future<List<dynamic>> saveDiary() async {
+  Future<void> saveDraftEntry(DiaryDraft draft) async {
+    final list = List<DiaryDraft>.from(savedDrafts.value);
+    final idx = list.indexWhere((d) => d.id == draft.id);
+    if (idx != -1) {
+      list[idx] = draft.copyWith(updatedAt: DateTime.now());
+    } else {
+      list.add(draft.copyWith(updatedAt: DateTime.now()));
+    }
+    list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    savedDrafts.value = list;
+    await _saveDraftsToStorage();
+  }
+
+  Future<void> deleteDraftEntry(String draftId) async {
+    savedDrafts.value = savedDrafts.value.where((d) => d.id != draftId).toList();
+    await _saveDraftsToStorage();
+  }
+
+  Future<void> clearAllDrafts() async {
+    savedDrafts.value = [];
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(UserState().n(_K.savedDrafts));
+  }
+
+  Future<void> _saveDraftsToStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      UserState().n(_K.savedDrafts),
+      jsonEncode(savedDrafts.value.map((e) => e.toMap()).toList()),
+    );
+  }
+
+  Future<List<dynamic>> saveDiary({Map<String, String>? annotations}) async {
     final draft = diaryDraft.value;
     if (draft == null) {
       return [];
@@ -133,6 +172,7 @@ mixin DiaryMixin on ProfileMixin {
       isImageGrid: draft.isImageGrid,
       isMixedLayout: draft.isMixedLayout,
       bookId: draft.bookId,
+      annotations: annotations ?? const {},
     );
     savedDiaries.value = [newEntry, ...savedDiaries.value];
     await _saveDiariesToStorage();
@@ -246,7 +286,6 @@ mixin DiaryMixin on ProfileMixin {
   }
 
   Future<void> deleteBook(String bookId) async {
-    if (bookId == 'default') return;
     savedBooks.value = savedBooks.value.where((b) => b.id != bookId).toList();
     await _saveBooksToStorage();
 

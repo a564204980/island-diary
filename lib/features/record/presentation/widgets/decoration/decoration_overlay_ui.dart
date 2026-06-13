@@ -71,7 +71,7 @@ class DecorationOverlayUI extends StatelessWidget {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF8B5E3C)),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF8B5E3C), size: 20),
                     onPressed: onBack,
                   ),
                   const SizedBox(width: 8),

@@ -18,7 +18,7 @@ class DiaryBottomSheet extends StatelessWidget {
     this.height,
     this.padding,
     this.showDragHandle = true,
-    this.isDiary = true,
+    this.isDiary = false,
   });
 
   @override

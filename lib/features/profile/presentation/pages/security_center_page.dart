@@ -61,7 +61,7 @@ class _SecurityCenterPageState extends State<SecurityCenterPage> {
             elevation: 0,
             centerTitle: true,
             leading: IconButton(
-              icon: Icon(Icons.arrow_back_ios_new, size: 18, color: isNight ? Colors.white70 : Colors.black54),
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: isNight ? Colors.white70 : Colors.black87),
               onPressed: () => Navigator.pop(context),
             ),
           ),

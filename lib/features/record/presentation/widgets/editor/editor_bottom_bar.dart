@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 
@@ -29,6 +31,8 @@ class EditorBottomBar extends StatelessWidget {
 
   final VoidCallback? onTagClick;
   final VoidCallback? onMusicPick;
+  final List<String> currentTags;
+  final Function(String)? onRemoveTag;
 
   // 表情面板回调
   final Function(String) onEmojiSelected;
@@ -63,6 +67,8 @@ class EditorBottomBar extends StatelessWidget {
     required this.onSave,
     this.onTagClick,
     this.onMusicPick,
+    this.currentTags = const [],
+    this.onRemoveTag,
     required this.onEmojiSelected,
     required this.onEmojiBackspace,
     required this.onEmojiSend,
@@ -78,16 +84,24 @@ class EditorBottomBar extends StatelessWidget {
     final bool isWide = screenWidth > 800;
     final double toolbarMaxWidth = isWide ? 800.0 : double.infinity;
 
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool hasPaper = paperStyle.startsWith('note') || 
+        (paperStyle == 'classic' && themeId == 'cotton_candy');
+
     // 动态色彩配置（支持深色/浅色模式）
-    final Color barBgColor = isNight 
+    final Color baseColor = isNight 
         ? const Color(0xFF141426) 
         : const Color(0xFFFAF9F6);
+
+    final Color barBgColor = hasPaper 
+        ? baseColor.withValues(alpha: 0.9) 
+        : baseColor;
 
     final Color iconColor = isNight
         ? Colors.white70
         : Colors.black87;
 
-    return Container(
+    Widget bottomBarContent = Container(
       margin: EdgeInsets.zero,
       width: toolbarMaxWidth,
       decoration: BoxDecoration(
@@ -97,6 +111,9 @@ class EditorBottomBar extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // 标签 chip 行（仅有标签时显示）
+            if (currentTags.isNotEmpty) _buildTagBar(),
+
             // 图片上传预览条 (仅在非混排模式下显示图片列表)
             if (!isMixedLayout)
               _buildImageUploadPreviewBar(),
@@ -119,50 +136,30 @@ class EditorBottomBar extends StatelessWidget {
                           // 1. A 按钮 (文字样式)
                           _buildTextButton(iconColor),
                           const SizedBox(width: 4),
-                          // 2. 标签按钮
-                          _buildToolbarIcon(Icons.local_offer_outlined, () {
-                            if (onTagClick != null) {
-                              onTagClick!();
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('标签功能开发中...')),
-                              );
-                            }
-                          }, iconColor),
+                          // 2. 标签按钮（带角标）
+                          _buildTagIconWithBadge(context, iconColor),
                           const SizedBox(width: 4),
                           // 3. 图片
                           _buildToolbarIcon(Icons.image_outlined, onImagePick, iconColor),
                           const SizedBox(width: 4),
-                          // 4. 视频
-                          _buildToolbarIcon(Icons.play_circle_outline_rounded, () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('视频功能开发中...')),
-                            );
-                          }, iconColor),
+                          // 4. 地点定位
+                          _buildToolbarIcon(Icons.location_on_outlined, onLocationClick, iconColor),
                           const SizedBox(width: 4),
-                          // 5. 音频
-                          _buildToolbarIcon(Icons.music_note_outlined, () {
-                            if (onMusicPick != null) {
-                              onMusicPick!();
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('音频录制/上传功能开发中...')),
-                              );
-                            }
-                          }, iconColor),
+                          // 5. 调色盘 (背景模板)
+                          _buildToolbarIcon(Icons.palette_outlined, onBgColorClick, iconColor),
                           const SizedBox(width: 4),
-                          // 6. 文件夹 (背景模板)
-                          _buildToolbarIcon(Icons.folder_open_outlined, onBgColorClick, iconColor),
-                          const SizedBox(width: 4),
-                          // 7. 麦克风 (语音输入)
+                          // 6. 麦克风 (语音输入)
                           _buildToolbarIcon(Icons.mic_none_outlined, () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('语音输入功能开发中...')),
                             );
                           }, iconColor),
                           const SizedBox(width: 4),
-                          // 8. 太阳 (天气)
+                          // 7. 太阳 (天气)
                           _buildToolbarIcon(Icons.wb_sunny_outlined, onWeatherClick, iconColor),
+                          const SizedBox(width: 4),
+                          // 8. 设置
+                          _buildToolbarIcon(Icons.settings_outlined, onMoreClick, iconColor),
                           const SizedBox(width: 4),
                           // 9. 笑脸 (表情)
                           _buildToolbarIcon(
@@ -170,9 +167,6 @@ class EditorBottomBar extends StatelessWidget {
                             onEmojiToggle,
                             iconColor,
                           ),
-                          const SizedBox(width: 4),
-                          // 10. 定位 (位置)
-                          _buildToolbarIcon(Icons.location_on_outlined, onLocationClick, iconColor),
                           const SizedBox(width: 8),
                         ],
                       ),
@@ -213,6 +207,78 @@ class EditorBottomBar extends StatelessWidget {
             ),
           ],
         ),
+    );
+
+    if (hasPaper) {
+      return ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: bottomBarContent,
+        ),
+      );
+    }
+    return bottomBarContent;
+  }
+
+  Widget _buildTagIconWithBadge(BuildContext context, Color iconColor) {
+    final count = currentTags.length;
+    return InkWell(
+      onTap: () {
+        if (onTagClick != null) {
+          onTagClick!();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('标签功能开发中...')),
+          );
+        }
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(
+              Icons.local_offer_outlined,
+              size: 22,
+              color: count > 0
+                  ? const Color(0xFFFA6400)
+                  : iconColor.withValues(alpha: 0.8),
+            ),
+            if (count > 0)
+              Positioned(
+                top: -4,
+                right: -6,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  constraints: const BoxConstraints(minWidth: 15, minHeight: 15),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFA6400),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$count',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      height: 1.1,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTagBar() {
+    return AnimatedTagList(
+      tags: currentTags,
+      isNight: isNight,
+      onRemoveTag: onRemoveTag,
     );
   }
 
@@ -274,70 +340,316 @@ class EditorBottomBar extends StatelessWidget {
     return Container(
       height: 60,
       margin: const EdgeInsets.only(left: 14, right: 12, top: 8, bottom: 0),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: imageBlocks.length,
-        itemBuilder: (context, index) {
-          final img = imageBlocks[index];
-          return Padding(
-            padding: const EdgeInsets.only(right: 10, top: 4),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: accentColor.withValues(alpha: 0.2)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: DiaryUtils.buildImage(img.file.path, fit: BoxFit.cover),
-                  ),
-                ),
-                if (img.videoPath != null)
-                  Positioned(
-                    left: 3,
-                    bottom: 3,
-                    child: IgnorePointer(
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.45),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.motion_photos_on,
-                          color: Colors.white,
-                          size: 11,
-                        ),
-                      ),
+      child: AnimatedImagePreviewList(
+        blocks: blocks,
+        accentColor: accentColor,
+        onRemoveImage: onRemoveImage,
+      ),
+    );
+  }
+}
+
+class AnimatedImagePreviewList extends StatefulWidget {
+  final List<DiaryBlock> blocks;
+  final Color accentColor;
+  final Function(int) onRemoveImage;
+
+  const AnimatedImagePreviewList({
+    super.key,
+    required this.blocks,
+    required this.accentColor,
+    required this.onRemoveImage,
+  });
+
+  @override
+  State<AnimatedImagePreviewList> createState() => _AnimatedImagePreviewListState();
+}
+
+class _AnimatedImagePreviewListState extends State<AnimatedImagePreviewList> {
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
+  late List<ImageBlock> _localImages;
+
+  @override
+  void initState() {
+    super.initState();
+    _localImages = widget.blocks.whereType<ImageBlock>().toList();
+  }
+
+  @override
+  void didUpdateWidget(AnimatedImagePreviewList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newImages = widget.blocks.whereType<ImageBlock>().toList();
+
+    // 1. 处理移除的元素
+    for (int i = _localImages.length - 1; i >= 0; i--) {
+      final img = _localImages[i];
+      if (!newImages.any((n) => n.id == img.id)) {
+        _localImages.removeAt(i);
+        _listKey.currentState?.removeItem(
+          i,
+          (context, animation) => _buildItem(img, animation),
+          duration: const Duration(milliseconds: 250),
+        );
+      }
+    }
+
+    // 2. 处理新增的元素
+    for (int i = 0; i < newImages.length; i++) {
+      final img = newImages[i];
+      if (!_localImages.any((l) => l.id == img.id)) {
+        _localImages.insert(i, img);
+        _listKey.currentState?.insertItem(
+          i,
+          duration: const Duration(milliseconds: 250),
+        );
+      }
+    }
+  }
+
+  Widget _buildItem(ImageBlock img, Animation<double> animation) {
+    return SizeTransition(
+      sizeFactor: animation,
+      axis: Axis.horizontal,
+      axisAlignment: -1.0,
+      child: FadeTransition(
+        opacity: animation,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 10, top: 4),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: widget.accentColor.withValues(alpha: 0.2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: DiaryUtils.buildImage(img.file.path, fit: BoxFit.cover),
+                ),
+              ),
+              if (img.videoPath != null)
                 Positioned(
-                  top: -5,
-                  right: -5,
-                  child: GestureDetector(
-                    onTap: () => onRemoveImage(blocks.indexOf(img)),
+                  left: 3,
+                  bottom: 3,
+                  child: IgnorePointer(
                     child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
-                      child: const Icon(Icons.close_rounded, color: Colors.white, size: 10),
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.motion_photos_on,
+                        color: Colors.white,
+                        size: 11,
+                      ),
                     ),
                   ),
                 ),
-              ],
+              Positioned(
+                top: -5,
+                right: -5,
+                child: GestureDetector(
+                  onTap: () {
+                    final indexInBlocks = widget.blocks.indexOf(img);
+                    if (indexInBlocks != -1) {
+                      widget.onRemoveImage(indexInBlocks);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
+                    child: const Icon(Icons.close_rounded, color: Colors.white, size: 10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedList(
+      key: _listKey,
+      scrollDirection: Axis.horizontal,
+      initialItemCount: _localImages.length,
+      itemBuilder: (context, index, animation) {
+        if (index < _localImages.length) {
+          return _buildItem(_localImages[index], animation);
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+}
+
+class AnimatedTagList extends StatefulWidget {
+  final List<String> tags;
+  final Function(String)? onRemoveTag;
+  final bool isNight;
+
+  const AnimatedTagList({
+    super.key,
+    required this.tags,
+    this.onRemoveTag,
+    required this.isNight,
+  });
+
+  @override
+  State<AnimatedTagList> createState() => _AnimatedTagListState();
+}
+
+class _AnimatedTagListState extends State<AnimatedTagList> {
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
+  late List<String> _localTags;
+
+  @override
+  void initState() {
+    super.initState();
+    _localTags = List.from(widget.tags);
+  }
+
+  @override
+  void didUpdateWidget(AnimatedTagList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newTags = widget.tags;
+
+    // 1. 处理移除的元素
+    for (int i = _localTags.length - 1; i >= 0; i--) {
+      final t = _localTags[i];
+      if (!newTags.contains(t)) {
+        _localTags.removeAt(i);
+        _listKey.currentState?.removeItem(
+          i,
+          (context, animation) => _buildItem(t, animation),
+          duration: const Duration(milliseconds: 250),
+        );
+      }
+    }
+
+    // 2. 处理新增的元素
+    for (int i = 0; i < newTags.length; i++) {
+      final t = newTags[i];
+      if (!_localTags.contains(t)) {
+        _localTags.insert(i, t);
+        _listKey.currentState?.insertItem(
+          i,
+          duration: const Duration(milliseconds: 250),
+        );
+      }
+    }
+  }
+
+  Widget _buildItem(String tag, Animation<double> animation) {
+    return SizeTransition(
+      sizeFactor: animation,
+      axis: Axis.horizontal,
+      axisAlignment: -1.0,
+      child: FadeTransition(
+        opacity: animation,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 6),
+          child: Center(
+            child: _TagChip(
+              tag: tag,
+              isNight: widget.isNight,
+              onRemove: () => widget.onRemoveTag?.call(tag),
             ),
-          );
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 外层保留相同高度和边距，确保布局稳定性
+    return Container(
+      height: 26,
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 2),
+      child: AnimatedList(
+        key: _listKey,
+        scrollDirection: Axis.horizontal,
+        initialItemCount: _localTags.length,
+        itemBuilder: (context, index, animation) {
+          if (index < _localTags.length) {
+            return _buildItem(_localTags[index], animation);
+          }
+          return const SizedBox.shrink();
         },
+      ),
+    );
+  }
+}
+
+class _TagChip extends StatelessWidget {
+  final String tag;
+  final bool isNight;
+  final VoidCallback onRemove;
+
+  const _TagChip({
+    required this.tag,
+    required this.isNight,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: isNight
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.black.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isNight
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.08),
+          width: 0.6,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            '#$tag',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.2,
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.65)
+                  : Colors.black.withValues(alpha: 0.5),
+              fontFamily: 'LXGWWenKai',
+            ),
+          ),
+          const SizedBox(width: 3),
+          GestureDetector(
+            onTap: onRemove,
+            child: Icon(
+              Icons.close_rounded,
+              size: 11,
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.3)
+                  : Colors.black.withValues(alpha: 0.25),
+            ),
+          ),
+        ],
       ),
     );
   }

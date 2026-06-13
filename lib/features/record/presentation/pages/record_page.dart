@@ -251,30 +251,50 @@ class _RecordPageState extends State<RecordPage> {
 
                                     Widget listContent;
                                     if (isTimeline) {
-                                      listContent = ListView.builder(
-                                        key: const ValueKey('timeline_list'),
-                                        controller: _scrollController,
-                                        padding: const EdgeInsets.only(top: 16, bottom: 120),
-                                        itemCount: filtered.length,
-                                        itemBuilder: (context, index) {
-                                          return Center(
-                                            child: ConstrainedBox(
-                                              constraints: const BoxConstraints(maxWidth: 800),
-                                              child: DiaryHistoryCard(
-                                                entry: filtered[index],
-                                                index: index,
-                                                isNight: isNight,
-                                                showDate: index == 0 ||
-                                                    filtered[index].dateTime.day !=
-                                                        filtered[index - 1].dateTime.day ||
-                                                    filtered[index].dateTime.month !=
-                                                        filtered[index - 1].dateTime.month,
-                                                isFirst: index == 0,
-                                                isLast: index == filtered.length - 1,
-                                              ),
-                                            ),
-                                          );
+                                      listContent = NotificationListener<ScrollNotification>(
+                                        onNotification: (notification) {
+                                          if (filtered.isEmpty) return false;
+                                          final double offset = _scrollController.offset;
+                                          int index = (offset / 230).floor();
+                                          if (index >= filtered.length) {
+                                            index = filtered.length - 1;
+                                          }
+                                          if (index < 0) {
+                                            index = 0;
+                                          }
+                                          final targetDate = filtered[index].dateTime;
+                                          if (_headerDate.value.year != targetDate.year ||
+                                              _headerDate.value.month != targetDate.month ||
+                                              _headerDate.value.day != targetDate.day) {
+                                            _headerDate.value = targetDate;
+                                          }
+                                          return false;
                                         },
+                                        child: ListView.builder(
+                                          key: const ValueKey('timeline_list'),
+                                          controller: _scrollController,
+                                          padding: const EdgeInsets.only(top: 16, bottom: 120),
+                                          itemCount: filtered.length,
+                                          itemBuilder: (context, index) {
+                                            return Center(
+                                              child: ConstrainedBox(
+                                                constraints: const BoxConstraints(maxWidth: 800),
+                                                child: DiaryHistoryCard(
+                                                  entry: filtered[index],
+                                                  index: index,
+                                                  isNight: isNight,
+                                                  showDate: index == 0 ||
+                                                      filtered[index].dateTime.day !=
+                                                          filtered[index - 1].dateTime.day ||
+                                                      filtered[index].dateTime.month !=
+                                                          filtered[index - 1].dateTime.month,
+                                                  isFirst: index == 0,
+                                                  isLast: index == filtered.length - 1,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
                                       );
                                     } else {
                                       listContent = NotificationListener<ScrollNotification>(

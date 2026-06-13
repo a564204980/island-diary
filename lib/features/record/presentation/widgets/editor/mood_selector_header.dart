@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -11,6 +12,11 @@ class MoodSelectorHeader extends StatefulWidget {
   final String paperStyle;
   final bool isNight;
   final VoidCallback? onCustomTap;
+  final Function(String)? onRemoveTag;
+  final String? weather;
+  final String? temp;
+  final VoidCallback? onWeatherTap;
+  final VoidCallback? onClearWeather;
 
   const MoodSelectorHeader({
     super.key,
@@ -21,6 +27,11 @@ class MoodSelectorHeader extends StatefulWidget {
     required this.paperStyle,
     required this.isNight,
     this.onCustomTap,
+    this.onRemoveTag,
+    this.weather,
+    this.temp,
+    this.onWeatherTap,
+    this.onClearWeather,
   });
 
   static const List<Map<String, String>> moods = [
@@ -76,22 +87,21 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final pillWidget = Padding(
       key: const ValueKey('mood_selector_pill_widget'),
       padding: EdgeInsets.only(
-        top: 8,
+        top: 6,
         bottom: isSelected ? 8 : 24,
       ),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: AnimatedContainer(
+      child: AnimatedContainer(
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOutCubic,
-          clipBehavior: Clip.antiAlias,
           margin: isLego ? const EdgeInsets.only(bottom: 6) : null,
           decoration: BoxDecoration(
             color: isCottonCandyDark
                 ? null
                 : (isDark
                     ? Colors.white.withValues(alpha: 0.05)
-                    : const Color(0xFFFEF9F0)),
+                    : (paperStyle.startsWith('note') || (paperStyle == 'classic' && themeId == 'cotton_candy')
+                        ? const Color(0xFFFEF9F0).withValues(alpha: 0.45)
+                        : const Color(0xFFFEF9F0))),
             gradient: isCottonCandyDark
                 ? LinearGradient(
                     begin: Alignment.topLeft,
@@ -195,17 +205,11 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    String quote = '';
-    if (isSelected) {
-      String label = _lastValidTag ?? '开心';
-      if (_lastValidMoodIndex != null && _lastValidMoodIndex! < moods.length && _lastValidTag == null) {
-        label = moods[_lastValidMoodIndex!]['label']!;
-      }
-      quote = DiaryUtils.getMoodQuote(label);
-    }
+
+
+    final weatherWidget = _buildWeatherPill(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,26 +222,178 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
           )
         else
           const SizedBox.shrink(),
-        if (isSelected)
-          Padding(
-            padding: const EdgeInsets.only(left: 4, top: 4),
-            child: Text(
-              quote,
-              style: TextStyle(
-                fontSize: 16,
-                fontStyle: FontStyle.italic,
-                color: inkColor.withValues(alpha: 0.6),
-                fontFamily: 'LXGWWenKai',
-              ),
-            ),
-          )
-        else
-          const SizedBox.shrink(),
         const SizedBox.shrink(),
-        pillWidget,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Flexible(child: pillWidget),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchOutCurve: Curves.easeInCubic,
+              switchInCurve: Curves.easeOutCubic,
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SizeTransition(
+                    sizeFactor: animation,
+                    axis: Axis.horizontal,
+                    axisAlignment: -1.0,
+                    child: child,
+                  ),
+                );
+              },
+              child: (isSelected && widget.weather != null && widget.weather!.isNotEmpty)
+                  ? Row(
+                      key: const ValueKey('weather_pill_visible'),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(width: 12),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6), // 与 pillWidget 的 top: 6 padding 保持对齐
+                          child: weatherWidget,
+                        ),
+                      ],
+                    )
+                  : const SizedBox(
+                      key: ValueKey('weather_pill_hidden'),
+                    ),
+            ),
+          ],
+        ),
       ],
     );
   }
+
+  IconData _getWeatherIcon(String? weather) {
+    if (weather == null) return Icons.wb_sunny_outlined;
+    if (weather.contains("晴")) return Icons.wb_sunny_outlined;
+    if (weather.contains("多云")) return Icons.wb_cloudy_outlined;
+    if (weather.contains("阴")) return Icons.cloud_outlined;
+    if (weather.contains("雨")) return Icons.umbrella_outlined;
+    if (weather.contains("雪")) return Icons.ac_unit_outlined;
+    if (weather.contains("风")) return Icons.air_outlined;
+    if (weather.contains("雾")) return Icons.grain_outlined;
+    if (weather.contains("雷")) return Icons.thunderstorm_outlined;
+    if (weather.contains("冰雹")) return Icons.severe_cold_outlined;
+    if (weather.contains("炎热") || weather.contains("热")) {
+      return Icons.thermostat_outlined;
+    }
+    if (weather.contains("严寒") || weather.contains("冷")) {
+      return Icons.ac_unit_outlined;
+    }
+    return Icons.wb_sunny_outlined;
+  }
+
+  Widget _buildWeatherPill(BuildContext context) {
+    final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
+    final bool isLego = themeId == 'lego';
+    final bool isDark = isNight;
+
+    final bool hasWeather = widget.weather != null && widget.weather!.isNotEmpty;
+
+    return GestureDetector(
+      onTap: widget.onWeatherTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutCubic,
+        margin: isLego ? const EdgeInsets.only(bottom: 6) : null,
+        decoration: BoxDecoration(
+          color: isCottonCandyDark
+              ? null
+              : (isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : (paperStyle.startsWith('note') || (paperStyle == 'classic' && themeId == 'cotton_candy')
+                      ? const Color(0xFFFEF9F0).withValues(alpha: 0.45)
+                      : const Color(0xFFFEF9F0))),
+          gradient: isCottonCandyDark
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFFC0A6FF).withValues(alpha: 0.18),
+                    const Color(0xFFC0A6FF).withValues(alpha: 0.03),
+                  ],
+                )
+              : null,
+          borderRadius: BorderRadius.circular(24),
+          border: isLego
+              ? null
+              : Border.all(
+                  color: isCottonCandyDark
+                      ? const Color(0xFFC0A6FF).withValues(alpha: 0.8)
+                      : inkColor.withValues(alpha: isDark ? 0.1 : 0.08),
+                  width: isCottonCandyDark ? 1.5 : 1,
+                ),
+          boxShadow: isLego
+              ? [
+                  BoxShadow(
+                    color: isDark ? const Color(0xFF1B160E) : const Color(0xFFEADAB9),
+                    blurRadius: 0,
+                    offset: const Offset(0, 4.0),
+                  ),
+                  BoxShadow(
+                    color: isDark ? Colors.black.withValues(alpha: 0.4) : const Color(0xFFDCC8A0).withValues(alpha: 0.4),
+                    blurRadius: 4.0,
+                    offset: const Offset(0, 5.0),
+                  ),
+                ]
+              : null,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              hasWeather ? _getWeatherIcon(widget.weather) : Icons.wb_sunny_outlined,
+              size: 18,
+              color: hasWeather
+                  ? (isDark ? Colors.white70 : inkColor.withValues(alpha: 0.5))
+                  : inkColor.withValues(alpha: 0.4),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              hasWeather ? "${widget.weather} ${widget.temp ?? ''}" : "+ 天气",
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: hasWeather
+                    ? (isDark ? Colors.white.withValues(alpha: 0.9) : inkColor.withValues(alpha: 0.8))
+                    : inkColor.withValues(alpha: 0.4),
+                fontFamily: 'LXGWWenKai',
+              ),
+            ),
+            if (hasWeather) ...[
+              const SizedBox(width: 4),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  widget.onClearWeather?.call();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : inkColor.withValues(alpha: 0.05),
+                  ),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 12,
+                    color: isDark ? Colors.white70 : inkColor.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+
 
   Widget _buildExpandedContent(BuildContext context) {
     final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
@@ -538,10 +694,11 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
     
     String iconPath = 'assets/icons/happy.png';
-    String label = _lastValidTag ?? '开心';
+    final parsed = ParsedTags.parse(_lastValidTag, _lastValidMoodIndex);
+    String label = parsed.customMood ?? '开心';
     Color moodColor = const Color(0xFFFFB74D);
 
-    if (_lastValidTag != null && _lastValidMoodIndex != null) {
+    if (parsed.customMood != null && _lastValidMoodIndex != null) {
       if (_lastValidMoodIndex! >= 0 && _lastValidMoodIndex! <= 23) {
         iconPath = 'assets/icons/custom${_lastValidMoodIndex! + 1}.png';
       }
@@ -554,28 +711,37 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final themeId = UserState().selectedIslandThemeId.value;
     final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
 
+    final bool hasCustomIconFile = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.asset(
-            iconPath,
-            width: 20,
-            height: 20,
-            errorBuilder: (c, e, s) => Icon(Icons.mood, size: 20, color: moodColor),
-          ),
-          const SizedBox(width: 8),
+          hasCustomIconFile
+              ? Image.file(
+                  File(parsed.customMoodIconPath!),
+                  width: 20,
+                  height: 20,
+                  errorBuilder: (c, e, s) => Icon(Icons.mood, size: 20, color: moodColor),
+                )
+              : Image.asset(
+                  iconPath,
+                  width: 20,
+                  height: 20,
+                  errorBuilder: (c, e, s) => Icon(Icons.mood, size: 20, color: moodColor),
+                ),
+          const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: moodColor,
+              color: isNight ? Colors.white.withValues(alpha: 0.9) : inkColor.withValues(alpha: 0.8),
               fontFamily: 'LXGWWenKai',
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Text(
             "更换",
             style: TextStyle(

@@ -258,24 +258,14 @@ class SettingsPage extends StatelessWidget {
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isNight ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.03),
-                border: Border.all(
-                  color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04),
-                  width: 1,
-                ),
-              ),
+              width: 40,
+              height: 40,
+              color: Colors.transparent,
               alignment: Alignment.center,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 6.0), // 稍微偏左对齐ios返回箭头
-                child: Icon(
-                  Icons.arrow_back_ios, 
-                  size: 16, 
-                  color: isNight ? Colors.white70 : const Color(0xFF1F2937)
-                ),
+              child: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 20,
+                color: isNight ? Colors.white70 : Colors.black87,
               ),
             ),
           ),

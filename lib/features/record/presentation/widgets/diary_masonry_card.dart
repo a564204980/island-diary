@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
@@ -275,9 +276,9 @@ class DiaryMasonryCard extends StatelessWidget {
           child: Icon(Icons.bookmark_rounded, color: const Color(0xFFD4A373).withValues(alpha: 0.9), size: 28),
         ),
         Positioned(
-          left: 16,
-          right: 16,
-          bottom: 16,
+          left: 12,
+          right: 12,
+          bottom: 12,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -317,7 +318,7 @@ class DiaryMasonryCard extends StatelessWidget {
           child: _buildImageCarousel(images),
         ),
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -421,13 +422,13 @@ class DiaryMasonryCard extends StatelessWidget {
               ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildExcerpt(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -551,20 +552,33 @@ class DiaryMasonryCard extends StatelessWidget {
     List<Widget> tagWidgets = [];
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
-    tagWidgets.add(_buildTagPill(mood.label, isWhiteText: isWhiteText));
 
-    if (entry.tag != null && entry.tag!.isNotEmpty) {
+    final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+    final String moodLabel = parsed.customMood ?? mood.label;
+    final String iconPath = parsed.customMood != null
+        ? 'assets/images/icons/custom.png'
+        : (mood.iconPath ?? 'assets/icons/happy.png');
+
+    tagWidgets.add(_buildTagPill(
+      moodLabel,
+      isWhiteText: isWhiteText,
+      iconPath: iconPath,
+      customMoodIconPath: parsed.customMoodIconPath,
+    ));
+
+    for (var tag in parsed.tags) {
       tagWidgets.add(const SizedBox(width: 6));
-      tagWidgets.add(_buildTagPill(entry.tag!, isWhiteText: isWhiteText));
+      tagWidgets.add(_buildTagPill(tag, isWhiteText: isWhiteText));
     }
 
     return Wrap(
       spacing: 0,
+      runSpacing: 4,
       children: tagWidgets,
     );
   }
 
-  Widget _buildTagPill(String text, {required bool isWhiteText, IconData? icon, String? iconPath}) {
+  Widget _buildTagPill(String text, {required bool isWhiteText, IconData? icon, String? iconPath, String? customMoodIconPath}) {
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
     final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
@@ -601,11 +615,18 @@ class DiaryMasonryCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (iconPath != null) ...[
+          if (customMoodIconPath != null && customMoodIconPath.isNotEmpty) ...[
+            Image.file(
+              File(customMoodIconPath),
+              width: 12,
+              height: 12,
+            ),
+            const SizedBox(width: 4),
+          ] else if (iconPath != null) ...[
             Image.asset(
               iconPath,
-              width: 16,
-              height: 16,
+              width: 12,
+              height: 12,
             ),
             const SizedBox(width: 4),
           ] else if (icon != null) ...[

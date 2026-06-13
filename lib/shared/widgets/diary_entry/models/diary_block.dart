@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -123,13 +125,15 @@ class RewardBlock extends DiaryBlock {
   };
 }
 
-/// 文本属性记录（用于局部变色）
+/// 文本属性记录（用于局部变色与样式）
 class TextAttribute {
   final int start;
   final int end;
   final Color? color;
   final Color? backgroundColor;
   final double? fontSize;
+  final bool? underline;
+  final String? underlineStyle; // 新增下划线样式: solid, double, dashed, dotted, wavy, marker
 
   TextAttribute({
     required this.start,
@@ -137,6 +141,8 @@ class TextAttribute {
     this.color,
     this.backgroundColor,
     this.fontSize,
+    this.underline,
+    this.underlineStyle,
   });
 
   Map<String, dynamic> toMap() => {
@@ -145,6 +151,8 @@ class TextAttribute {
     if (color != null) 'color': color!.toARGB32(),
     if (backgroundColor != null) 'backgroundColor': backgroundColor!.toARGB32(),
     if (fontSize != null) 'fontSize': fontSize,
+    if (underline != null) 'underline': underline,
+    if (underlineStyle != null) 'underlineStyle': underlineStyle,
   };
 
   factory TextAttribute.fromMap(Map<String, dynamic> map) => TextAttribute(
@@ -155,14 +163,309 @@ class TextAttribute {
         ? Color(map['backgroundColor'])
         : null,
     fontSize: map['fontSize']?.toDouble(),
+    underline: map['underline'],
+    underlineStyle: map['underlineStyle']?.toString(),
   );
 }
 
 class DiaryTextEditingController extends TextEditingController {
+  static final Map<String, ui.Shader> _shaderCache = {};
+
+  static TextStyle getUnderlineStyle({
+    required String style,
+    required Color color,
+    required Color baseColor,
+    double? fontSize,
+  }) {
+    if (style == 'marker') {
+      return TextStyle(
+        color: baseColor,
+        fontSize: fontSize,
+        height: 1.8,
+        backgroundColor: color.withValues(alpha: 0.3),
+      );
+    }
+
+    TextDecorationStyle decStyle;
+    double thickness = 1.2;
+    if (style == 'thick') {
+      decStyle = TextDecorationStyle.solid;
+      thickness = 3.0;
+    } else if (style == 'double') {
+      decStyle = TextDecorationStyle.double;
+      thickness = 1.5;
+    } else if (style == 'dashed') {
+      decStyle = TextDecorationStyle.dashed;
+      thickness = 1.2;
+    } else if (style == 'dotted') {
+      decStyle = TextDecorationStyle.dotted;
+      thickness = 2.0;
+    } else if (style == 'wavy') {
+      decStyle = TextDecorationStyle.wavy;
+      thickness = 1.2;
+    } else if (style == 'handdrawn') {
+      decStyle = TextDecorationStyle.wavy;
+      thickness = 2.0;
+    } else if (style == 'gradient') {
+      decStyle = TextDecorationStyle.solid;
+      thickness = 2.0;
+    } else {
+      decStyle = TextDecorationStyle.solid;
+      thickness = 1.2;
+    }
+
+    return TextStyle(
+      color: baseColor,
+      fontSize: fontSize,
+      height: 1.8,
+      decoration: TextDecoration.underline,
+      decorationStyle: decStyle,
+      decorationColor: color,
+      decorationThickness: thickness,
+    );
+  }
+
+  static ui.Shader getUnderlineShader(String style, Color color, double rectHeight) {
+    final key = "${style}_${color.toARGB32()}_${rectHeight.toStringAsFixed(1)}";
+    if (_shaderCache.containsKey(key)) {
+      return _shaderCache[key]!;
+    }
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke;
+
+    final double fontSize = rectHeight / 1.8;
+    final double y = fontSize * 1.6;
+
+    if (style == 'wavy') {
+      paint.strokeWidth = 1.8;
+      paint.strokeCap = StrokeCap.round;
+      final path = Path();
+      path.moveTo(0, y);
+      path.quadraticBezierTo(3, y - 2.2, 6, y);
+      path.quadraticBezierTo(9, y + 2.2, 12, y);
+      canvas.drawPath(path, paint);
+
+      final picture = recorder.endRecording();
+      final width = 12;
+      final height = rectHeight.clamp(1.0, 1000.0).toInt();
+      final img = picture.toImageSync(width, height);
+      final shader = ImageShader(
+        img,
+        TileMode.repeated,
+        TileMode.repeated,
+        Float64List.fromList([
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]),
+      );
+      _shaderCache[key] = shader;
+      return shader;
+    } else if (style == 'dashed') {
+      paint.strokeWidth = 1.8;
+      paint.strokeCap = StrokeCap.round;
+      canvas.drawLine(Offset(1, y), Offset(6, y), paint);
+      final picture = recorder.endRecording();
+      final width = 10;
+      final height = rectHeight.clamp(1.0, 1000.0).toInt();
+      final img = picture.toImageSync(width, height);
+      final shader = ImageShader(
+        img,
+        TileMode.repeated,
+        TileMode.repeated,
+        Float64List.fromList([
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]),
+      );
+      _shaderCache[key] = shader;
+      return shader;
+    } else if (style == 'dotted') {
+      paint.strokeWidth = 2.4;
+      paint.strokeCap = StrokeCap.round;
+      canvas.drawLine(Offset(2, y), Offset(2.1, y), paint);
+      final picture = recorder.endRecording();
+      final width = 8;
+      final height = rectHeight.clamp(1.0, 1000.0).toInt();
+      final img = picture.toImageSync(width, height);
+      final shader = ImageShader(
+        img,
+        TileMode.repeated,
+        TileMode.repeated,
+        Float64List.fromList([
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]),
+      );
+      _shaderCache[key] = shader;
+      return shader;
+    } else if (style == 'double') {
+      paint.strokeWidth = 1.0;
+      canvas.drawLine(Offset(0, y - 1.5), Offset(10, y - 1.5), paint);
+      canvas.drawLine(Offset(0, y + 1.5), Offset(10, y + 1.5), paint);
+      final picture = recorder.endRecording();
+      final width = 10;
+      final height = rectHeight.clamp(1.0, 1000.0).toInt();
+      final img = picture.toImageSync(width, height);
+      final shader = ImageShader(
+        img,
+        TileMode.repeated,
+        TileMode.repeated,
+        Float64List.fromList([
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]),
+      );
+      _shaderCache[key] = shader;
+      return shader;
+    } else if (style == 'handdrawn') {
+      paint.strokeWidth = 2.0;
+      paint.strokeCap = StrokeCap.round;
+      final path = Path();
+      path.moveTo(0, y + 0.4);
+      path.quadraticBezierTo(3, y - 0.8, 6, y + 0.6);
+      path.quadraticBezierTo(9, y - 0.6, 12, y + 0.3);
+      canvas.drawPath(path, paint);
+
+      final picture = recorder.endRecording();
+      final width = 12;
+      final height = rectHeight.clamp(1.0, 1000.0).toInt();
+      final img = picture.toImageSync(width, height);
+      final shader = ImageShader(
+        img,
+        TileMode.repeated,
+        TileMode.repeated,
+        Float64List.fromList([
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]),
+      );
+      _shaderCache[key] = shader;
+      return shader;
+    } else if (style == 'thick') {
+      final shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.transparent,
+          Colors.transparent,
+          color,
+          color,
+          Colors.transparent,
+          Colors.transparent,
+        ],
+        stops: const [
+          0.0,
+          0.83,
+          0.85,
+          0.93,
+          0.95,
+          1.0,
+        ],
+        tileMode: TileMode.repeated,
+      ).createShader(Rect.fromLTWH(0, 0, 1, rectHeight));
+      _shaderCache[key] = shader;
+      return shader;
+    } else if (style == 'marker') {
+      final shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.transparent,
+          Colors.transparent,
+          color.withValues(alpha: 0.35),
+          color.withValues(alpha: 0.35),
+          Colors.transparent,
+          Colors.transparent,
+        ],
+        stops: const [
+          0.0,
+          0.28,
+          0.30,
+          0.58,
+          0.60,
+          1.0,
+        ],
+        tileMode: TileMode.repeated,
+      ).createShader(Rect.fromLTWH(0, 0, 1, rectHeight));
+      _shaderCache[key] = shader;
+      return shader;
+    } else if (style == 'gradient') {
+      final gradientShader = LinearGradient(
+        colors: [
+          color,
+          const Color(0xFFFFB74D),
+          const Color(0xFF81C784),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, 80, rectHeight));
+      
+      paint.shader = gradientShader;
+      paint.strokeWidth = 2.0;
+      canvas.drawLine(Offset(0, y), Offset(80, y), paint);
+      final picture = recorder.endRecording();
+      final width = 80;
+      final height = rectHeight.clamp(1.0, 1000.0).toInt();
+      final img = picture.toImageSync(width, height);
+      final shader = ImageShader(
+        img,
+        TileMode.repeated,
+        TileMode.repeated,
+        Float64List.fromList([
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]),
+      );
+      _shaderCache[key] = shader;
+      return shader;
+    }
+
+    // Default 'solid' style
+    final shader = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        Colors.transparent,
+        Colors.transparent,
+        color,
+        color,
+        Colors.transparent,
+        Colors.transparent,
+      ],
+      stops: const [
+        0.0,
+        0.87,
+        0.89,
+        0.91,
+        0.93,
+        1.0,
+      ],
+      tileMode: TileMode.repeated,
+    ).createShader(Rect.fromLTWH(0, 0, 1, rectHeight));
+    _shaderCache[key] = shader;
+    return shader;
+  }
+
   Color baseColor;
   double baseFontSize;
   String baseFontFamily;
   late List<TextAttribute> attributes;
+  Map<String, String>? annotations;
+  void Function(String key)? onAnnotationTap;
 
   DiaryTextEditingController({
     super.text,
@@ -170,6 +473,8 @@ class DiaryTextEditingController extends TextEditingController {
     double? baseFontSize,
     String? baseFontFamily,
     List<TextAttribute>? attributes,
+    this.annotations,
+    this.onAnnotationTap,
   }) : baseColor =
            baseColor ??
            (UserState().isNight
@@ -280,9 +585,12 @@ class DiaryTextEditingController extends TextEditingController {
     Color? color,
     Color? bgColor,
     double? fontSize,
+    bool? underline,
+    String? underlineStyle,
     bool clearColor = false,
     bool clearBgColor = false,
     bool clearFontSize = false,
+    bool clearUnderline = false,
   }) {
     if (selection.isCollapsed) return;
 
@@ -335,6 +643,36 @@ class DiaryTextEditingController extends TextEditingController {
       }
     }
 
+    // 处理下划线逻辑
+    if (clearUnderline || underline != null || underlineStyle != null) {
+      attributes.removeWhere(
+        (attr) =>
+            (attr.underline != null || attr.underlineStyle != null) &&
+            ((attr.start >= start && attr.start < end) ||
+                (attr.end > start && attr.end <= end) ||
+                (attr.start <= start && attr.end >= end)),
+      );
+      if (underlineStyle != null) {
+        attributes.add(
+          TextAttribute(
+            start: start,
+            end: end,
+            underline: true,
+            underlineStyle: underlineStyle,
+          ),
+        );
+      } else if (underline == true) {
+        attributes.add(
+          TextAttribute(
+            start: start,
+            end: end,
+            underline: true,
+            underlineStyle: 'solid',
+          ),
+        );
+      }
+    }
+
     // 2. 排序以优化渲染性能
     attributes.sort((a, b) => a.start.compareTo(b.start));
 
@@ -356,8 +694,11 @@ class DiaryTextEditingController extends TextEditingController {
     if (textContent.isEmpty) return TextSpan(style: style, text: textContent);
 
     final List<Map<String, dynamic>> blockAnnotations = [];
-    if (annotations != null) {
-      annotations.forEach((key, value) {
+    final effectiveAnnotations = annotations ?? this.annotations;
+    final effectiveOnAnnotationTap = onAnnotationTap ?? this.onAnnotationTap;
+
+    if (effectiveAnnotations != null) {
+      effectiveAnnotations.forEach((key, value) {
         final parts = key.split('_');
         if (parts.length == 3 && int.tryParse(parts[0]) == blockIndex) {
           final startVal = int.tryParse(parts[1]);
@@ -399,15 +740,13 @@ class DiaryTextEditingController extends TextEditingController {
           color: baseColor,
           fontSize: baseFontSize,
           fontFamily: baseFontFamily,
-          height: 1.6,
-          leadingDistribution: TextLeadingDistribution.even,
+          height: 1.8,
         ) ??
         TextStyle(
           color: baseColor,
           fontSize: baseFontSize,
           fontFamily: baseFontFamily,
-          height: 1.6,
-          leadingDistribution: TextLeadingDistribution.even,
+          height: 1.8,
         );
 
     final List<Map<String, dynamic>> highlights = [];
@@ -678,15 +1017,31 @@ class DiaryTextEditingController extends TextEditingController {
       final end = attr.end.clamp(0, textContent.length);
       if (start >= end) continue;
 
+      final bool hasUnderline = attr.underline == true || attr.underlineStyle != null;
       highlights.add({
         'start': start,
         'end': end,
-        'style': TextStyle(
-          color: attr.color,
-          backgroundColor: attr.backgroundColor,
-          fontSize: attr.fontSize,
-          height: 1.6,
-        ),
+        'style': hasUnderline
+            ? () {
+                final double fs = attr.fontSize ?? baseFontSize;
+                const double lh = 1.8;
+                final double rectHeight = fs * lh;
+                final lineColor = attr.color ?? (isNight ? const Color(0xFFE0C097) : const Color(0xFFA68565));
+                final String style = attr.underlineStyle ?? 'solid';
+                return TextStyle(
+                  color: attr.color ?? baseColor,
+                  fontSize: attr.fontSize,
+                  height: 1.8,
+                  background: Paint()
+                    ..shader = DiaryTextEditingController.getUnderlineShader(style, lineColor, rectHeight),
+                );
+              }()
+            : TextStyle(
+                color: attr.color,
+                backgroundColor: attr.backgroundColor,
+                fontSize: attr.fontSize,
+                height: 1.8,
+              ),
         'priority': 1,
       });
     }
@@ -813,8 +1168,8 @@ class DiaryTextEditingController extends TextEditingController {
                     child: Listener(
                       behavior: HitTestBehavior.opaque,
                       onPointerDown: (_) {
-                        if (onAnnotationTap != null) {
-                          onAnnotationTap(annKey);
+                        if (effectiveOnAnnotationTap != null) {
+                          effectiveOnAnnotationTap(annKey);
                         }
                       },
                       child: CustomPaint(

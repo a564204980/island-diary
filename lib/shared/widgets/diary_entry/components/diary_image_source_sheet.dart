@@ -4,86 +4,342 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'diary_bottom_sheet.dart';
 import '../utils/diary_utils.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/shared/widgets/island_vip_guard_dialog.dart';
 
-class DiaryImageSourceSheet extends StatelessWidget {
+class DiaryImageSourceSheet extends StatefulWidget {
   final String paperStyle;
+  final bool? isMixedLayout;
+  final bool? isImageGrid;
+  final Function(bool)? onMixedLayoutChanged;
+  final Function(bool)? onImageGridChanged;
 
   const DiaryImageSourceSheet({
     super.key,
     this.paperStyle = 'standard',
+    this.isMixedLayout,
+    this.isImageGrid,
+    this.onMixedLayoutChanged,
+    this.onImageGridChanged,
   });
+
+  @override
+  State<DiaryImageSourceSheet> createState() => _DiaryImageSourceSheetState();
+}
+
+class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
+  late bool _localMixedLayout;
+  late bool _localImageGrid;
+
+  @override
+  void initState() {
+    super.initState();
+    _localMixedLayout = widget.isMixedLayout ?? false;
+    _localImageGrid = widget.isImageGrid ?? false;
+  }
 
   @override
   Widget build(BuildContext context) {
     final bool isNight = UserState().isNight;
-    final Color accentColor = DiaryUtils.getAccentColor(paperStyle, isNight);
-    final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isLego = themeId == 'lego';
+    final String fontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
+
+    final Color accentColor = DiaryUtils.getAccentColor(widget.paperStyle, isNight);
+    final Color inkColor = DiaryUtils.getInkColor(widget.paperStyle, isNight);
+
+    final showLayoutSettings = widget.onMixedLayoutChanged != null && widget.onImageGridChanged != null;
 
     return DiaryBottomSheet(
-      paperStyle: paperStyle,
+      paperStyle: widget.paperStyle,
+      isDiary: true,
       showDragHandle: true,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildOption(
-              context,
-              icon: Icons.photo_library_rounded,
-              title: '从相册选择',
-              source: ImageSource.gallery,
-              accentColor: accentColor,
-              inkColor: inkColor,
-            ),
+            // Header
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Divider(height: 1, color: accentColor.withValues(alpha: 0.05)),
-            ),
-            _buildOption(
-              context,
-              icon: Icons.camera_alt_rounded,
-              title: '拍照',
-              source: ImageSource.camera,
-              accentColor: accentColor,
-              inkColor: inkColor,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '选择照片来源',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: fontFamily,
+                      color: inkColor.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: inkColor.withValues(alpha: 0.5),
+                      size: 20,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
+
+            // Sources Row (Album & Camera side-by-side)
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSourceButton(
+                    context,
+                    icon: Icons.photo_library_rounded,
+                    label: '从相册选择',
+                    source: ImageSource.gallery,
+                    accentColor: accentColor,
+                    inkColor: inkColor,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildSourceButton(
+                    context,
+                    icon: Icons.camera_alt_rounded,
+                    label: '拍照',
+                    source: ImageSource.camera,
+                    accentColor: accentColor,
+                    inkColor: inkColor,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+              ],
+            ),
+
+            if (showLayoutSettings) ...[
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '图片位置',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: fontFamily,
+                      color: inkColor.withValues(alpha: 0.75),
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.all(2.5),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildSegmentButton(
+                          label: '图文混排',
+                          isSelected: _localMixedLayout,
+                          onTap: () {
+                            if (!UserState().isVip.value) {
+                              _showVipDialog('解锁高级编辑模式', '“图文混排”功能属于“星光计划”会员专享。开启后，您的图片将不再受布局限制。');
+                              return;
+                            }
+                            setState(() {
+                              _localMixedLayout = true;
+                            });
+                            widget.onMixedLayoutChanged?.call(true);
+                          },
+                          accentColor: accentColor,
+                          inkColor: inkColor,
+                          fontFamily: fontFamily,
+                          isNight: isNight,
+                        ),
+                        _buildSegmentButton(
+                          label: '统一置底',
+                          isSelected: !_localMixedLayout,
+                          onTap: () {
+                            setState(() {
+                              _localMixedLayout = false;
+                            });
+                            widget.onMixedLayoutChanged?.call(false);
+                          },
+                          accentColor: accentColor,
+                          inkColor: inkColor,
+                          fontFamily: fontFamily,
+                          isNight: isNight,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '拼图排版',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: fontFamily,
+                      color: inkColor.withValues(alpha: 0.75),
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.all(2.5),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildSegmentButton(
+                          label: '智能拼图',
+                          isSelected: _localImageGrid,
+                          onTap: () {
+                            if (!UserState().isVip.value) {
+                              _showVipDialog('解锁智能拼图排版', '“图片智能排版”功能属于“星光计划”会员专享。开启后，您的图片将以精致的海报拼图或网格形式呈现。');
+                              return;
+                            }
+                            setState(() {
+                              _localImageGrid = true;
+                            });
+                            widget.onImageGridChanged?.call(true);
+                          },
+                          accentColor: accentColor,
+                          inkColor: inkColor,
+                          fontFamily: fontFamily,
+                          isNight: isNight,
+                        ),
+                        _buildSegmentButton(
+                          label: '单图直排',
+                          isSelected: !_localImageGrid,
+                          onTap: () {
+                            setState(() {
+                              _localImageGrid = false;
+                            });
+                            widget.onImageGridChanged?.call(false);
+                          },
+                          accentColor: accentColor,
+                          inkColor: inkColor,
+                          fontFamily: fontFamily,
+                          isNight: isNight,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 8),
           ],
         ),
       ),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic);
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.15, end: 0, curve: Curves.easeOutCubic);
   }
 
-  Widget _buildOption(
+  void _showVipDialog(String title, String description) {
+    showDialog(
+      context: context,
+      builder: (context) => IslandVipGuardDialog(
+        title: title,
+        description: description,
+      ),
+    );
+  }
+
+  Widget _buildSourceButton(
     BuildContext context, {
     required IconData icon,
-    required String title,
+    required String label,
     required ImageSource source,
     required Color accentColor,
     required Color inkColor,
+    required String fontFamily,
   }) {
-    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
-    return Material(
-      color: Colors.transparent,
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: accentColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: accentColor, size: 24),
+    return Container(
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.1),
+          width: 1.2,
         ),
-        title: Text(
-          title,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => Navigator.pop(context, source),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  color: accentColor,
+                  size: 28,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: fontFamily,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.bold,
+                    color: inkColor.withValues(alpha: 0.85),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSegmentButton({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required Color accentColor,
+    required Color inkColor,
+    required String fontFamily,
+    required bool isNight,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isNight ? accentColor.withValues(alpha: 0.25) : accentColor.withValues(alpha: 0.12))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
           style: TextStyle(
             fontFamily: fontFamily,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: inkColor.withValues(alpha: 0.8),
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected
+                ? accentColor
+                : inkColor.withValues(alpha: 0.5),
           ),
+          child: Text(label),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        onTap: () => Navigator.pop(context, source),
       ),
     );
   }

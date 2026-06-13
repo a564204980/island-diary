@@ -107,9 +107,8 @@ class IslandDiaryApp extends StatelessWidget {
               return const Scaffold(
                 backgroundColor: Color(0xFFD2E2F9),
                 body: Center(
-                  child: Image(
-                    image: AssetImage('assets/launch_screen_title_padded.png'),
-                    width: 200,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4A373)),
                   ),
                 ),
               );

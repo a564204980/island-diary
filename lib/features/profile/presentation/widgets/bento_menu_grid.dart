@@ -9,6 +9,8 @@ import 'package:island_diary/features/profile/presentation/widgets/bento_box.dar
 import 'package:island_diary/features/profile/presentation/pages/diary_books_page.dart';
 import 'package:island_diary/features/profile/presentation/widgets/life_line_switcher_sheet.dart';
 import 'package:island_diary/core/models/life_line_profile.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_drafts_page.dart';
+import 'package:island_diary/features/record/domain/models/diary_draft.dart';
 
 class BentoMenuGrid extends StatelessWidget {
   final bool isNight;
@@ -70,6 +72,10 @@ class BentoMenuGrid extends StatelessWidget {
                       color: const Color(0xFF00ACC1),
                       targetPage: const CloudSyncPage(),
                     ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildDraftsBentoAction(context),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -152,6 +158,8 @@ class BentoMenuGrid extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _buildLifeLineBento(context),
+            const SizedBox(height: 12),
+            _buildDraftsBentoAction(context),
             const SizedBox(height: 12),
             _buildMenuActionBento(
               context,
@@ -310,6 +318,74 @@ class BentoMenuGrid extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDraftsBentoAction(BuildContext context) {
+    return ValueListenableBuilder<List<DiaryDraft>>(
+      valueListenable: UserState().savedDrafts,
+      builder: (context, drafts, _) {
+        final count = drafts.length;
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                opaque: true,
+                barrierColor: isNight ? Colors.black : const Color(0xFFFDFCF7),
+                pageBuilder: (context, animation, secondaryAnimation) => const DiaryDraftsPage(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+              ),
+            );
+          },
+          child: BentoBox(
+            isNight: isNight,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEC407A).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.edit_note_rounded, size: 18, color: Color(0xFFEC407A)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    "草稿箱",
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: isNight ? Colors.white70 : Colors.black87,
+                      fontFamily: _getFontFamily(),
+                    ),
+                  ),
+                ),
+                if (count > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD35D5D),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      "$count",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

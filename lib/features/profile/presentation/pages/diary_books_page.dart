@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:intl/intl.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_book.dart';
 import 'package:island_diary/features/profile/presentation/pages/diary_book_detail_page.dart';
+import 'package:island_diary/features/profile/presentation/pages/diary_book_edit_page.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
@@ -75,24 +77,65 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
             valueListenable: UserState().savedDiaries,
             builder: (context, diaries, _) {
               if (books.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.library_books_rounded,
+                        size: 60,
+                        color: isNight
+                            ? Colors.white.withValues(alpha: 0.12)
+                            : Colors.black.withValues(alpha: 0.1),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '还没有日记本',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: fontFamily,
+                          color: isNight ? Colors.white38 : Colors.black38,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '点击右上角的「+」按钮\n创建属于自己的第一本日记',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.6,
+                          fontFamily: fontFamily,
+                          color: isNight ? Colors.white24 : Colors.black26,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               }
 
               return GridView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 22,
-                  mainAxisSpacing: 28,
-                  childAspectRatio: 0.48,
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 18,
+                  mainAxisSpacing: 18,
+                  childAspectRatio: 0.70, // 修改比例以匹配图2中更修长的真实书本比例
                 ),
                 itemCount: books.length,
                 itemBuilder: (context, index) {
                   final book = books[index];
                   // 计算属于该日记本的日记数量
                   final int count = diaries.where((d) => d.bookId == book.id).length;
+                  
+                  // 获取属于该日记本的所有日记，按时间排序找到最早的记录时间
+                  final bookDiaries = diaries.where((d) => d.bookId == book.id).toList();
+                  bookDiaries.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+                  final String dateStr = bookDiaries.isNotEmpty
+                      ? DateFormat('yyyy/MM/dd').format(bookDiaries.first.dateTime)
+                      : '2024/11/26'; // 无记录时使用默认或图示示例日期
 
-                  return _buildBookCard(context, book, count, isNight, fontFamily);
+                  return _buildBookCard(context, book, count, dateStr, isNight, fontFamily);
                 },
               );
             },
@@ -106,10 +149,12 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
     BuildContext context,
     DiaryBook book,
     int count,
+    String dateStr,
     bool isNight,
     String fontFamily,
   ) {
     final bookColor = Color(book.coverColorValue);
+    final bool hasCustomCover = book.customCoverPath != null && File(book.customCoverPath!).existsSync();
 
     return GestureDetector(
       onTap: () {
@@ -120,237 +165,215 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
           ),
         );
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      onLongPress: () {
+        _showBookOptionsSheet(context, book);
+      },
+      child: Stack(
         children: [
-          Expanded(
-            child: Stack(
-              children: [
-                // 3D 阴影底层
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.only(
-                        topRight: Radius.circular(8),
-                        bottomRight: Radius.circular(8),
-                        topLeft: Radius.circular(4),
-                        bottomLeft: Radius.circular(4),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isNight
-                              ? Colors.black.withValues(alpha: 0.5)
-                              : Colors.black.withValues(alpha: 0.12),
-                          blurRadius: 10,
-                          offset: const Offset(4, 6),
-                        ),
-                      ],
-                    ),
-                  ),
+          // 1. 纸张厚度（底层白边）
+          Positioned(
+            left: 6,
+            top: 2,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                color: isNight ? const Color(0xFFC0C0C0) : const Color(0xFFF4F1EA), // 纸张色
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(8),
+                  bottomRight: Radius.circular(8),
                 ),
-                // 精美的封面主体
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: (book.customCoverPath == null || !File(book.customCoverPath!).existsSync())
-                          ? LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                bookColor,
-                                bookColor.withValues(alpha: 0.75),
-                              ],
-                            )
-                          : null,
-                      image: (book.customCoverPath != null && File(book.customCoverPath!).existsSync())
-                          ? DecorationImage(
-                              image: FileImage(File(book.customCoverPath!)),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                      borderRadius: const BorderRadius.only(
-                        topRight: Radius.circular(8),
-                        bottomRight: Radius.circular(8),
-                        topLeft: Radius.circular(4),
-                        bottomLeft: Radius.circular(4),
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        // 书脊装饰线条
-                        Positioned(
-                          left: 0,
-                          top: 0,
-                          bottom: 0,
-                          width: 8,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.12),
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(4),
-                                bottomLeft: Radius.circular(4),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // 细条阴影线模拟折页
-                        Positioned(
-                          left: 8,
-                          top: 0,
-                          bottom: 0,
-                          width: 2,
-                          child: Container(
-                            color: Colors.white.withValues(alpha: 0.08),
-                          ),
-                        ),
-                        // 铁圈活页装订效果
-                        Positioned(
-                          left: -10,
-                          top: 10,
-                          bottom: 10,
-                          width: 14,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: List.generate(6, (i) {
-                              return Container(
-                                width: 12,
-                                height: 5,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(2.5),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.25),
-                                      blurRadius: 1.5,
-                                      offset: const Offset(0, 1),
-                                    ),
-                                  ],
-                                  gradient: const LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Color(0xFFEEEEEE),
-                                      Color(0xFFB0B0B0),
-                                      Color(0xFF666666),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }),
-                          ),
-                        ),
-                        // 书脊内部更深的色条，营造3D深度感
-                        Positioned(
-                          left: 0,
-                          top: 0,
-                          bottom: 0,
-                          width: 4,
-                          child: Container(
-                            color: Colors.black.withValues(alpha: 0.05),
-                          ),
-                        ),
-                        // 书名与徽标
-                        Positioned.fill(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.menu_book_rounded,
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  size: 16,
-                                ),
-                                const Spacer(),
-                                Text(
-                                  book.name,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black26,
-                                        blurRadius: 4,
-                                        offset: Offset(0, 1.5),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                if (book.description.isNotEmpty)
-                                  Text(
-                                    book.description,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.6),
-                                      fontSize: 8.5,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                border: Border.all(color: isNight ? Colors.black38 : Colors.black12, width: 0.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isNight ? 0.3 : 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(2, 4),
                   ),
-                ),
-              ],
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(width: 0.5, color: Colors.black12, margin: const EdgeInsets.only(right: 3)),
+                  Container(width: 0.5, color: Colors.black12, margin: const EdgeInsets.only(right: 3)),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 10),
-          // 底部信息与管理按钮
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          
+          // 2. 书脊与硬皮封面
+          Positioned(
+            left: 0,
+            top: 0,
+            right: 6,
+            bottom: 4, // 露出底部纸张
+            child: Container(
+              decoration: BoxDecoration(
+                color: hasCustomCover ? Colors.transparent : bookColor.withValues(alpha: 0.85),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(4),
+                  bottomLeft: Radius.circular(4),
+                  topRight: Radius.circular(7),
+                  bottomRight: Radius.circular(7),
+                ),
+                image: hasCustomCover
+                    ? DecorationImage(
+                        image: FileImage(File(book.customCoverPath!)),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 4,
+                    offset: const Offset(1, 1),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(4),
+                  bottomLeft: Radius.circular(4),
+                  topRight: Radius.circular(7),
+                  bottomRight: Radius.circular(7),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Text(
-                      book.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.bold,
-                        color: isNight ? Colors.white70 : Colors.black87,
-                        fontFamily: fontFamily,
+                    // 莫兰迪滤镜
+                    if (!hasCustomCover)
+                      Container(
+                        color: isNight ? Colors.black.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.15),
+                      ),
+                    
+                    // 保留底部深色遮罩保证文字清晰可见
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.1),
+                              Colors.black.withValues(alpha: 0.65),
+                            ],
+                            stops: const [0.4, 0.7, 1.0],
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 1),
-                    Text(
-                      '$count 篇记录',
-                      style: TextStyle(
-                        fontSize: 9.5,
-                        color: isNight ? Colors.white38 : Colors.black45,
+
+                    // 书脊阴影过渡
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 16,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.4),
+                              Colors.black.withValues(alpha: 0.05),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // 书脊边缘高光
+                    Positioned(
+                      left: 1,
+                      top: 0,
+                      bottom: 0,
+                      width: 1,
+                      child: Container(color: Colors.white.withValues(alpha: 0.3)),
+                    ),
+                    // 书皮内部翻折沟槽
+                    Positioned(
+                      left: 14,
+                      top: 0,
+                      bottom: 0,
+                      width: 2,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.black.withValues(alpha: 0.0),
+                              Colors.black.withValues(alpha: 0.15),
+                              Colors.black.withValues(alpha: 0.0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // 底部左下角元数据与标题
+                    Positioned(
+                      left: 20, // 稍微避开左侧书脊
+                      bottom: 14,
+                      right: 14,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '始记于 $dateStr',
+                            style: const TextStyle(
+                              fontSize: 10.5,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            book.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontFamily: fontFamily,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // 右上角“更多”操作按钮
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () => _showBookOptionsSheet(context, book),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.more_horiz_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              if (book.id != 'default')
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.more_horiz_rounded,
-                      size: 18,
-                      color: isNight ? Colors.white38 : Colors.black45,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () => _showBookOptionsSheet(context, book),
-                  ),
-                )
-              else
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                ),
-            ],
+            ),
           ),
         ],
       ).animate().fadeIn(duration: 350.ms).scale(begin: const Offset(0.95, 0.95)),
@@ -358,227 +381,29 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
   }
 
   void _showCreateBookDialog(BuildContext context, {DiaryBook? editingBook}) {
-    final nameCtrl = TextEditingController(text: editingBook?.name ?? '');
-    final descCtrl = TextEditingController(text: editingBook?.description ?? '');
-    int selectedColorValue = editingBook?.coverColorValue ?? _presetColors[UserState().savedBooks.value.length % _presetColors.length];
-    final String bookId = editingBook?.id ?? const Uuid().v4();
-    String? tempCoverPath = editingBook?.customCoverPath;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      showDragHandle: false,
-      builder: (context) {
-        final bool isNight = UserState().isNight;
-        final String fontFamily = UserState().selectedIslandThemeId.value == 'lego'
-            ? 'SweiFistLeg'
-            : 'LXGWWenKai';
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return AnimatedPadding(
-              padding: MediaQuery.of(context).viewInsets,
-              duration: const Duration(milliseconds: 100),
-              child: DiaryBottomSheet(
-                paperStyle: 'default',
-                showDragHandle: true,
-                isDiary: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      editingBook == null ? '新建日记本' : '编辑日记本',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: fontFamily,
-                        color: isNight ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: nameCtrl,
-                      maxLength: 12,
-                      decoration: InputDecoration(
-                        hintText: '起个温暖的书名吧...',
-                        counterText: '',
-                        filled: true,
-                        fillColor: isNight
-                            ? Colors.white.withValues(alpha: 0.05)
-                            : const Color(0xFFF7F5F0),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      style: TextStyle(
-                        fontFamily: fontFamily,
-                        color: isNight ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: descCtrl,
-                      maxLength: 30,
-                      decoration: InputDecoration(
-                        hintText: '简介/寄语（选填）',
-                        counterText: '',
-                        filled: true,
-                        fillColor: isNight
-                            ? Colors.white.withValues(alpha: 0.05)
-                            : const Color(0xFFF7F5F0),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      style: TextStyle(
-                        fontFamily: fontFamily,
-                        color: isNight ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '书籍封面图',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, fontFamily: fontFamily),
-                    ),
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () {
-                        _showCoverPickerHelper(context, bookId, (path) {
-                          setModalState(() {
-                            tempCoverPath = path;
-                          });
-                        });
-                      },
-                      child: Container(
-                        height: 90,
-                        decoration: BoxDecoration(
-                          color: isNight
-                              ? Colors.white.withValues(alpha: 0.03)
-                              : Colors.black.withValues(alpha: 0.02),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isNight
-                                ? Colors.white.withValues(alpha: 0.06)
-                                : Colors.black.withValues(alpha: 0.05),
-                          ),
-                        ),
-                        child: tempCoverPath == null
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.add_photo_alternate_rounded, color: Color(0xFFD4A373), size: 22),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '上传封面图 (选填)',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontFamily: fontFamily,
-                                      color: isNight ? Colors.white54 : Colors.black54,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Row(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: Image.file(
-                                        File(tempCoverPath!),
-                                        width: 54,
-                                        height: 74,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      '已选择封面图',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontFamily: fontFamily,
-                                        fontWeight: FontWeight.w600,
-                                        color: isNight ? Colors.white70 : Colors.black87,
-                                      ),
-                                    ),
-                                  ),
-                                  TextButton.icon(
-                                    onPressed: () {
-                                      setModalState(() {
-                                        tempCoverPath = null;
-                                      });
-                                    },
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
-                                    label: Text(
-                                      '删除',
-                                      style: TextStyle(fontSize: 12, fontFamily: fontFamily, color: Colors.redAccent),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD4A373),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () async {
-                        final name = nameCtrl.text.trim();
-                        if (name.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('书名不能为空名哦')),
-                          );
-                          return;
-                        }
-                        if (editingBook == null) {
-                          final newBook = DiaryBook(
-                            id: bookId,
-                            name: name,
-                            description: descCtrl.text.trim(),
-                            coverColorValue: selectedColorValue,
-                            customCoverPath: tempCoverPath,
-                          );
-                          await UserState().createBook(newBook);
-                        } else {
-                          final updated = editingBook.copyWith(
-                            name: name,
-                            description: descCtrl.text.trim(),
-                            coverColorValue: selectedColorValue,
-                            customCoverPath: tempCoverPath,
-                          );
-                          await UserState().updateBook(updated);
-                        }
-                        Navigator.pop(context);
-                      },
-                      child: Text(
-                        editingBook == null ? '创建' : '保存',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: fontFamily,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 300),
+        reverseTransitionDuration: const Duration(milliseconds: 220),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            DiaryBookEditPage(editingBook: editingBook),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final scaleAnimation = Tween<double>(begin: 0.96, end: 1.0).animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+          );
+          final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          );
+          return FadeTransition(
+            opacity: fadeAnimation,
+            child: ScaleTransition(
+              scale: scaleAnimation,
+              child: child,
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -596,104 +421,117 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) {
         return Center(
-          child: Material(
-            color: Colors.transparent,
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
             child: Container(
-              width: MediaQuery.of(context).size.width * 0.85,
-              padding: const EdgeInsets.all(24),
-              margin: const EdgeInsets.symmetric(horizontal: 32),
               decoration: BoxDecoration(
-                color: isNight ? const Color(0xFF1E1E2C) : Colors.white,
-                borderRadius: BorderRadius.circular(28),
+                color: isNight
+                    ? const Color(0xFF2C2C2E)
+                    : const Color(0xFFFCFBF8),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: isNight
                       ? Colors.white.withValues(alpha: 0.08)
                       : Colors.black.withValues(alpha: 0.05),
+                  width: 0.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 40,
+                    offset: const Offset(0, 20),
                   ),
                 ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    '确认删除日记本',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: fontFamily,
-                      color: isNight ? Colors.white : const Color(0xFF1F2937),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 32, bottom: 16, left: 24, right: 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "确认删除日记本",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            color: isNight
+                                ? Colors.white.withValues(alpha: 0.9)
+                                : const Color(0xFF2C2C2C),
+                            fontFamily: fontFamily,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          "确定要删除《${book.name}》吗？\n删除日记本不会删除其中的日记。",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.5,
+                            fontWeight: FontWeight.w400,
+                            color: isNight
+                                ? Colors.white.withValues(alpha: 0.6)
+                                : const Color(0xFF8E8E93),
+                            fontFamily: fontFamily,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '确定要删除《${book.name}》吗？删除日记本不会删除其中的日记。',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
-                      fontFamily: fontFamily,
-                      color: isNight ? Colors.white70 : const Color(0xFF4B5563),
-                    ),
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 0.5,
+                    color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                   ),
-                  const SizedBox(height: 24),
                   Row(
                     children: [
                       Expanded(
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              side: BorderSide(
-                                color: isNight
-                                    ? Colors.white.withValues(alpha: 0.1)
-                                    : Colors.black.withValues(alpha: 0.1),
+                        child: InkWell(
+                          onTap: () => Navigator.pop(context),
+                          borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16)),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Text(
+                              "保留",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: fontFamily,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: isNight ? Colors.white54 : const Color(0xFF8E8E93),
                               ),
-                            ),
-                          ),
-                          child: Text(
-                            '取消',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: fontFamily,
-                              color: isNight ? Colors.white70 : const Color(0xFF4B5563),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      Container(
+                        width: 0.5,
+                        height: 50,
+                        color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                      ),
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: () async {
+                        child: InkWell(
+                          onTap: () async {
                             final navigator = Navigator.of(context);
                             await UserState().deleteBook(book.id);
                             navigator.pop();
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: Text(
-                            '确认删除',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: fontFamily,
+                          borderRadius: const BorderRadius.only(bottomRight: Radius.circular(16)),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Text(
+                              "确认删除",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: fontFamily,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFD35D5D),
+                              ),
                             ),
                           ),
                         ),
@@ -735,41 +573,29 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isDestructive
-                      ? Colors.redAccent.withValues(alpha: 0.1)
-                      : iconColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  size: 18,
-                  color: isDestructive ? Colors.redAccent : iconColor,
-                ),
+              Icon(
+                icon,
+                size: 20,
+                color: isDestructive 
+                    ? const Color(0xFFC47B7B) 
+                    : (isNight ? Colors.white54 : const Color(0xFF8E8E93)),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                     fontFamily: fontFamily,
                     color: isDestructive
-                        ? Colors.redAccent
-                        : (isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF1F2937)),
+                        ? const Color(0xFFC47B7B)
+                        : (isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF2C2C2C)),
                   ),
                 ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 16,
-                color: isNight ? Colors.white30 : Colors.black38,
               ),
             ],
           ),
@@ -920,23 +746,22 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                '设置自定义封面',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: fontFamily,
-                  color: isNight ? Colors.white70 : const Color(0xFF1F2937),
-                ),
+              Column(
+                children: [
+                  Text(
+                    '设置自定义封面',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: fontFamily,
+                      color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF2C2C2C),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              _buildMenuOption(
-                icon: Icons.photo_library_rounded,
-                title: '从相册选择',
-                iconColor: const Color(0xFFD4A373),
-                isNight: isNight,
-                fontFamily: fontFamily,
+              const SizedBox(height: 16),
+              InkWell(
                 onTap: () async {
                   Navigator.pop(context);
                   final List<AssetEntity>? result = await AssetPicker.pickAssets(
@@ -957,9 +782,23 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
                     }
                   }
                 },
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Text(
+                    '从相册挑选',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: fontFamily,
+                      color: isNight ? Colors.white.withValues(alpha: 0.85) : const Color(0xFF2C2C2C),
+                    ),
+                  ),
+                ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Divider(
                   height: 1,
                   thickness: 0.5,
@@ -968,12 +807,7 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
                       : Colors.black.withValues(alpha: 0.05),
                 ),
               ),
-              _buildMenuOption(
-                icon: Icons.camera_alt_rounded,
-                title: '拍照',
-                iconColor: const Color(0xFFD4A373),
-                isNight: isNight,
-                fontFamily: fontFamily,
+              InkWell(
                 onTap: () async {
                   Navigator.pop(context);
                   final ImagePicker picker = ImagePicker();
@@ -985,7 +819,22 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
                     }
                   }
                 },
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Text(
+                    '拍摄新照片',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: fontFamily,
+                      color: isNight ? Colors.white.withValues(alpha: 0.85) : const Color(0xFF2C2C2C),
+                    ),
+                  ),
+                ),
               ),
+              const SizedBox(height: 8),
             ],
           ),
         );

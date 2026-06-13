@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 class RedBookAssetPicker extends StatefulWidget {
   final int maxAssets;
@@ -217,7 +218,7 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
     return "${twoDigits(minutes)}:${twoDigits(seconds)}";
   }
 
-  Widget _buildTopBar() {
+  Widget _buildTopBar(String fontFamily) {
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -246,10 +247,11 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
               children: [
                 Text(
                   _selectedAlbum?.name ?? '相册',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    fontFamily: fontFamily,
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -263,7 +265,7 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
               ],
             ),
           ),
-          // 右侧草稿箱 / 确定按钮
+          // 右侧确定按钮
           GestureDetector(
             onTap: () {
               if (_selectedAssets.isNotEmpty) {
@@ -289,6 +291,7 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
                   color: _selectedAssets.isNotEmpty ? Colors.white : Colors.white60,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
+                  fontFamily: fontFamily,
                 ),
               ),
             ),
@@ -298,7 +301,7 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildTabBar(String fontFamily) {
     return Container(
       color: const Color(0xFF121212),
       padding: const EdgeInsets.only(bottom: 8),
@@ -312,19 +315,19 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
         ),
         labelColor: Colors.white,
         unselectedLabelColor: Colors.white38,
-        labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-        unselectedLabelStyle: const TextStyle(fontSize: 15),
+        labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, fontFamily: fontFamily),
+        unselectedLabelStyle: TextStyle(fontSize: 15, fontFamily: fontFamily),
         dividerColor: Colors.transparent,
       ),
     );
   }
 
-  Widget _buildMediaGrid() {
+  Widget _buildMediaGrid(String fontFamily) {
     if (_filteredAssets.isEmpty && !_isLoading) {
-      return const Center(
+      return Center(
         child: Text(
           '无媒体资源',
-          style: TextStyle(color: Colors.white38, fontSize: 16),
+          style: TextStyle(color: Colors.white38, fontSize: 16, fontFamily: fontFamily),
         ),
       );
     }
@@ -371,11 +374,12 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
                       const SizedBox(width: 2),
                       Text(
                         _formatDuration(asset.videoDuration),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                          fontFamily: fontFamily,
+                          shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
                         ),
                       ),
                     ],
@@ -414,10 +418,11 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
                     child: isSelected
                         ? Text(
                             widget.maxAssets == 1 ? "✓" : "$selectIndex",
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
+                              fontFamily: fontFamily,
                             ),
                           )
                         : null,
@@ -431,7 +436,7 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
     );
   }
 
-  Widget _buildAlbumDropdown() {
+  Widget _buildAlbumDropdown(String fontFamily) {
     return Positioned(
       top: 56,
       left: 0,
@@ -495,11 +500,12 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
                           color: isSelected ? const Color(0xFFFF2442) : Colors.white,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 16,
+                          fontFamily: fontFamily,
                         ),
                       ),
                       subtitle: Text(
                         '$count 张',
-                        style: const TextStyle(color: Colors.white38, fontSize: 13),
+                        style: TextStyle(color: Colors.white38, fontSize: 13, fontFamily: fontFamily),
                       ),
                       trailing: isSelected
                           ? const Icon(Icons.check_rounded, color: Color(0xFFFF2442))
@@ -525,6 +531,9 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
 
   @override
   Widget build(BuildContext context) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final String fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       body: SafeArea(
@@ -532,12 +541,12 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
           children: [
             Column(
               children: [
-                _buildTopBar(),
-                _buildTabBar(),
+                _buildTopBar(fontFamily),
+                _buildTabBar(fontFamily),
                 Expanded(
                   child: Stack(
                     children: [
-                      _buildMediaGrid(),
+                      _buildMediaGrid(fontFamily),
                       if (_isLoading && _allAssets.isEmpty)
                         const Center(
                           child: CircularProgressIndicator(
@@ -549,7 +558,7 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
                 ),
               ],
             ),
-            if (_isAlbumDropdownOpen) _buildAlbumDropdown(),
+            if (_isAlbumDropdownOpen) _buildAlbumDropdown(fontFamily),
           ],
         ),
       ),

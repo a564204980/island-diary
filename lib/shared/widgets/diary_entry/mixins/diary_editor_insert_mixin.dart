@@ -9,6 +9,7 @@ import '../components/paper_picker_sheet.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import '../components/diary_tag_picker_sheet.dart';
 import './diary_editor_core_mixin.dart';
 
 mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
@@ -38,11 +39,13 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       }
     } catch (_) { }
 
+    LocationPermission permission;
     try {
-      LocationPermission permission = await Geolocator.checkPermission().timeout(
-        const Duration(seconds: 3),
-        onTimeout: () => LocationPermission.always,
-      );
+      permission = await Geolocator.checkPermission();
+    } catch (_) {
+      permission = LocationPermission.denied;
+    }
+    try {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
@@ -240,7 +243,29 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
   }
 
   void onTagClick() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('标签功能开发中...')));
+    FocusScope.of(context).unfocus();
+    setState(() => isColorPickerOpen = true);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      showDragHandle: false, // 禁用系统默认的外部悬浮拖拽条，确保仅显示自定义组件内高保真把手
+      builder: (context) => DiaryTagPickerSheet(
+        paperStyle: currentPaperStyle,
+        initialTags: currentTags,
+        onConfirm: (tags) {
+          setState(() {
+            currentTags = tags;
+          });
+          onBlocksChanged();
+        },
+      ),
+    ).then((_) {
+      if (mounted) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        setState(() => isColorPickerOpen = false);
+      }
+    });
   }
 
   void onWeatherClick() {
@@ -249,15 +274,23 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      showDragHandle: false, // 禁用系统默认的外部悬浮拖拽条，确保仅显示自定义组件内高保真把手
       builder: (context) => DiaryWeatherPickerSheet(
         paperStyle: currentPaperStyle,
+        initialWeather: weather,
+        initialTemp: temp,
         onConfirm: (w, t) {
           setState(() {
-            weather = w;
-            temp = "$t°C";
+            if (w.isEmpty) {
+              weather = null;
+              temp = null;
+            } else {
+              weather = w;
+              temp = "$t°C";
+            }
           });
           onBlocksChanged();
-          Navigator.pop(context);
         },
       ),
     ).then((_) {
@@ -296,7 +329,6 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
           });
           UserState().setPreferredPaperStyle(style);
           onBlocksChanged();
-          Navigator.pop(context);
         },
       ),
     ).then((_) {
