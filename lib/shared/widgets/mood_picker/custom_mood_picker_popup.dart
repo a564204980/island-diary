@@ -365,7 +365,9 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
 
     Widget emojiWidget;
     if (isCustom) {
-      final File file = File('${DiaryUtils.documentsDirPath}/$customFileName');
+      final String directPath = '${DiaryUtils.documentsDirPath}/$customFileName';
+      final String subDirPath = '${DiaryUtils.documentsDirPath}/custom_emojis/$customFileName';
+      final File file = File(subDirPath).existsSync() ? File(subDirPath) : File(directPath);
       emojiWidget = Image.file(
         file,
         width: 44,

@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'package:island_diary/core/constants/api_constants.dart';
 import '../components/diary_image_source_sheet.dart';
 import '../components/redbook_asset_picker.dart';
+import '../utils/diary_utils.dart';
 
 mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
   void onImageButtonPressed() async {
@@ -36,6 +37,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
 
     setState(() => isImagePickerOpen = true);
     await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
 
     final activeBlock = activeTextBlock;
     TextSelection? savedSelection;
@@ -293,13 +295,16 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
   /// 后台上传逻辑
   Future<void> _uploadImageInBackground(ImageBlock block, String localPath) async {
     try {
-      final String? remoteUrl = await _uploadFile(localPath);
+      // 在上传前进行背景图片缩放和质量压缩
+      final String compressedPath = await DiaryUtils.compressImage(localPath);
+      
+      final String? remoteUrl = await _uploadFile(compressedPath);
       if (remoteUrl != null && mounted) {
         setState(() {
           final index = blocks.indexOf(block);
           if (index != -1) {
-            // 替换为远程 URL，ImageBlock 内部会自动识别
-            blocks[index] = ImageBlock(XFile(remoteUrl), id: block.id, videoPath: block.videoPath);
+            // 替换为远程 URL，ImageBlock 内部会自动识别，本地文件指向压缩后的缓存文件
+            blocks[index] = ImageBlock(XFile(compressedPath), id: block.id, videoPath: block.videoPath);
           }
         });
         onBlocksChanged();
@@ -570,6 +575,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     if (source == null) return null;
 
     if (source == ImageSource.gallery) {
+      if (!mounted) return null;
       final List<AssetEntity>? result = await RedBookAssetPicker.pick(
         context,
         maxAssets: 1,

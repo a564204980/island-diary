@@ -5,6 +5,9 @@ import 'package:island_diary/features/record/domain/models/diary_book.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_book_reader_page.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
+import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:share_plus/share_plus.dart' as sp;
 import 'package:intl/intl.dart';
 
@@ -18,6 +21,32 @@ class DiaryBookDetailPage extends StatefulWidget {
 
 class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
   bool _descending = true; // 默认最新在最前
+
+  Widget _buildRichText(String text, TextStyle style, {int? maxLines, TextOverflow? overflow}) {
+    final chunks = EmojiMapping.parseText(text);
+    return RichText(
+      maxLines: maxLines,
+      overflow: overflow ?? TextOverflow.clip,
+      text: TextSpan(
+        children: chunks.map((chunk) {
+          if (chunk.isEmoji) {
+            return WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Image.asset(
+                  chunk.emojiPath!,
+                  width: (style.fontSize ?? 15) + 2.0,
+                  height: (style.fontSize ?? 15) + 2.0,
+                ),
+              ),
+            );
+          }
+          return TextSpan(text: chunk.text, style: style);
+        }).toList(),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -56,11 +85,12 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
     if (entry.content.trim().isEmpty) {
       if (hasImages) return '定格瞬间';
       if (hasAudio) return '听见时光';
-      return '无标题...';
+      return '无标题';
     }
 
-    // 过滤Markdown的一些常用符号
+    // 过滤Markdown的一些常用符号，并清除可能混入的 mood 和 mood_icon 标签字符串
     String plain = entry.content.replaceAll(RegExp(r'[#*`_\-–—]'), '').trim();
+    plain = plain.replaceAll(RegExp(r'mood(_icon)?:\s*[^\n,;]+[,;]?'), '').trim();
     final lines = plain
         .split('\n')
         .map((l) => l.trim())
@@ -69,13 +99,9 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
     if (lines.isEmpty) {
       if (hasImages) return '定格瞬间';
       if (hasAudio) return '听见时光';
-      return '无标题...';
+      return '无标题';
     }
-    String firstLine = lines.first;
-    if (firstLine.length > 12) {
-      return '${firstLine.substring(0, 12)}...';
-    }
-    return firstLine;
+    return lines.first;
   }
 
   @override
@@ -940,7 +966,27 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
               Column(
                 children: entries.map((entry) {
                   final dateStr = entry.dateTime.day.toString().padLeft(2, '0');
-                  final titleStr = entry.title ?? '未命名回忆';
+                  
+                  // 过滤标题中残留的 tag 字符串以防止豆腐块显示，若无标题或标题为“未命名回忆”则默认显示第一句话
+                  String titleStr = entry.title ?? '';
+                  titleStr = titleStr.replaceAll(RegExp(r'mood(_icon)?:\s*[^\n,;]+[,;]?'), '').trim();
+                  if (titleStr.isEmpty || titleStr == '未命名回忆') {
+                    titleStr = _getFallbackTitle(entry);
+                  }
+                  // 去除因为历史数据缓存或先前自动截断产生的尾部省略号
+                  titleStr = titleStr.replaceAll(RegExp(r'\s*\.{3,}$'), '');
+                  titleStr = titleStr.replaceAll(RegExp(r'\s*…+$'), '');
+
+                  // 获取心情数据并解析 customMood
+                  final mood = kMoods[entry.moodIndex.clamp(0, kMoods.length - 1)];
+                  final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+                  final String iconPath = parsed.customMood != null
+                      ? (entry.moodIndex >= 0 && entry.moodIndex <= 23
+                          ? 'assets/icons/custom${entry.moodIndex + 1}.png'
+                          : 'assets/images/icons/custom.png')
+                      : (mood.iconPath ?? 'assets/icons/happy.png');
+                  final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+
                   return GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
@@ -991,17 +1037,17 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                           const SizedBox(width: 20),
                           // 标题
                           Expanded(
-                            child: Text(
+                            child: _buildRichText(
                               titleStr,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
+                              TextStyle(
                                 fontSize: 15,
                                 fontFamily: fontFamily,
                                 color: isNight
                                     ? Colors.white70
                                     : const Color(0xFF4A4A4A),
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],

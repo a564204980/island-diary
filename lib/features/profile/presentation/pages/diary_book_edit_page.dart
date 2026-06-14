@@ -413,10 +413,6 @@ class _DiaryBookEditPageState extends State<DiaryBookEditPage> {
     );
   }
 
-  Color _textColorForBackground(Color bgColor) {
-    return bgColor.computeLuminance() > 0.45 ? Colors.black87 : Colors.white.withValues(alpha: 0.9);
-  }
-
   // 挑选色块 极简微缩色板 (不滚动且支持换行)
   Widget _buildColorSelector(bool isNight, String fontFamily) {
     return Wrap(
@@ -567,6 +563,7 @@ class _DiaryBookEditPageState extends State<DiaryBookEditPage> {
       );
       await UserState().updateBook(updated);
     }
+    if (!mounted) return;
     Navigator.pop(context);
   }
 }

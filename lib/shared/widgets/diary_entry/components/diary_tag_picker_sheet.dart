@@ -174,13 +174,6 @@ class _DiaryTagPickerSheetState extends State<DiaryTagPickerSheet> {
                   decoration: BoxDecoration(
                     color: accentColor,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: accentColor.withValues(alpha: 0.25),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      )
-                    ],
                   ),
                   child: Text(
                     '添加',

@@ -41,6 +41,9 @@ class EditorContentList extends StatelessWidget {
   final String? weather;
   final String? temp;
   final VoidCallback? onWeatherTap;
+  final String? location;
+  final VoidCallback? onLocationTap;
+  final VoidCallback? onClearLocation;
 
   const EditorContentList({
     super.key,
@@ -62,6 +65,9 @@ class EditorContentList extends StatelessWidget {
     this.weather,
     this.temp,
     this.onWeatherTap,
+    this.location,
+    this.onLocationTap,
+    this.onClearLocation,
     required this.onRemoveImage,
     required this.onDeleteAtStart,
     required this.onShowPreview,
@@ -111,6 +117,9 @@ class EditorContentList extends StatelessWidget {
                 temp: temp,
                 onWeatherTap: onWeatherTap,
                 onClearWeather: onClearWeather,
+                location: location,
+                onLocationTap: onLocationTap,
+                onClearLocation: onClearLocation,
               );
             }
 

@@ -241,7 +241,7 @@ class DiaryTextEditingController extends TextEditingController {
     final double y = fontSize * 1.6;
 
     if (style == 'wavy') {
-      paint.strokeWidth = 1.8;
+      paint.strokeWidth = 2.6; // 从 1.8 加粗到 2.6
       paint.strokeCap = StrokeCap.round;
       final path = Path();
       path.moveTo(0, y);
@@ -267,7 +267,7 @@ class DiaryTextEditingController extends TextEditingController {
       _shaderCache[key] = shader;
       return shader;
     } else if (style == 'dashed') {
-      paint.strokeWidth = 1.8;
+      paint.strokeWidth = 2.6; // 从 1.8 加粗到 2.6
       paint.strokeCap = StrokeCap.round;
       canvas.drawLine(Offset(1, y), Offset(6, y), paint);
       final picture = recorder.endRecording();
@@ -288,7 +288,7 @@ class DiaryTextEditingController extends TextEditingController {
       _shaderCache[key] = shader;
       return shader;
     } else if (style == 'dotted') {
-      paint.strokeWidth = 2.4;
+      paint.strokeWidth = 3.2; // 从 2.4 加粗到 3.2
       paint.strokeCap = StrokeCap.round;
       canvas.drawLine(Offset(2, y), Offset(2.1, y), paint);
       final picture = recorder.endRecording();
@@ -309,9 +309,9 @@ class DiaryTextEditingController extends TextEditingController {
       _shaderCache[key] = shader;
       return shader;
     } else if (style == 'double') {
-      paint.strokeWidth = 1.0;
-      canvas.drawLine(Offset(0, y - 1.5), Offset(10, y - 1.5), paint);
-      canvas.drawLine(Offset(0, y + 1.5), Offset(10, y + 1.5), paint);
+      paint.strokeWidth = 1.4; // 从 1.0 加粗到 1.4
+      canvas.drawLine(Offset(0, y - 1.8), Offset(10, y - 1.8), paint); // 间距和粗细按比例微调
+      canvas.drawLine(Offset(0, y + 1.8), Offset(10, y + 1.8), paint);
       final picture = recorder.endRecording();
       final width = 10;
       final height = rectHeight.clamp(1.0, 1000.0).toInt();
@@ -330,7 +330,7 @@ class DiaryTextEditingController extends TextEditingController {
       _shaderCache[key] = shader;
       return shader;
     } else if (style == 'handdrawn') {
-      paint.strokeWidth = 2.0;
+      paint.strokeWidth = 2.8; // 从 2.0 加粗到 2.8
       paint.strokeCap = StrokeCap.round;
       final path = Path();
       path.moveTo(0, y + 0.4);
@@ -369,10 +369,10 @@ class DiaryTextEditingController extends TextEditingController {
         ],
         stops: const [
           0.0,
-          0.83,
-          0.85,
-          0.93,
-          0.95,
+          0.77, // 从 0.83 下移，增加厚度
+          0.79,
+          0.94, // 从 0.93 展宽
+          0.96,
           1.0,
         ],
         tileMode: TileMode.repeated,
@@ -406,17 +406,30 @@ class DiaryTextEditingController extends TextEditingController {
     } else if (style == 'gradient') {
       final gradientShader = LinearGradient(
         colors: [
-          color,
-          const Color(0xFFFFB74D),
-          const Color(0xFF81C784),
+          const Color(0xFFFF5E62), // 红
+          const Color(0xFFFF9966), // 橙
+          const Color(0xFFFFD97D), // 黄
+          const Color(0xFFC8E688), // 黄绿
+          const Color(0xFF6DE195), // 绿
+          const Color(0xFF4DE2C6), // 青
+          const Color(0xFF3498DB), // 蓝
+          const Color(0xFF667EEA), // 靛
+          const Color(0xFF9B59B6), // 紫
+          const Color(0xFF667EEA), // 靛
+          const Color(0xFF3498DB), // 蓝
+          const Color(0xFF4DE2C6), // 青
+          const Color(0xFF6DE195), // 绿
+          const Color(0xFFC8E688), // 黄绿
+          const Color(0xFFFFD97D), // 黄
+          const Color(0xFFFF9966), // 橙
         ],
-      ).createShader(Rect.fromLTWH(0, 0, 80, rectHeight));
+      ).createShader(Rect.fromLTWH(0, 0, 160, rectHeight));
       
       paint.shader = gradientShader;
-      paint.strokeWidth = 2.0;
-      canvas.drawLine(Offset(0, y), Offset(80, y), paint);
+      paint.strokeWidth = 3.0; // 从 2.0 加粗到 3.0
+      canvas.drawLine(Offset(0, y), Offset(160, y), paint);
       final picture = recorder.endRecording();
-      final width = 80;
+      final width = 160;
       final height = rectHeight.clamp(1.0, 1000.0).toInt();
       final img = picture.toImageSync(width, height);
       final shader = ImageShader(
@@ -434,7 +447,7 @@ class DiaryTextEditingController extends TextEditingController {
       return shader;
     }
 
-    // Default 'solid' style
+    // Default 'solid' style (加粗)
     final shader = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
@@ -448,10 +461,10 @@ class DiaryTextEditingController extends TextEditingController {
       ],
       stops: const [
         0.0,
-        0.87,
-        0.89,
-        0.91,
-        0.93,
+        0.83, // 从 0.87 下移，使起始位置更早，增加厚度
+        0.85,
+        0.93, // 从 0.91 展宽，使线条更粗壮
+        0.95,
         1.0,
       ],
       tileMode: TileMode.repeated,
@@ -1026,8 +1039,21 @@ class DiaryTextEditingController extends TextEditingController {
                 final double fs = attr.fontSize ?? baseFontSize;
                 const double lh = 1.8;
                 final double rectHeight = fs * lh;
-                final lineColor = attr.color ?? (isNight ? const Color(0xFFE0C097) : const Color(0xFFA68565));
                 final String style = attr.underlineStyle ?? 'solid';
+                final lineColor = attr.color ?? () {
+                  switch (style) {
+                    case 'solid': return const Color(0xFF4A90E2);
+                    case 'thick': return const Color(0xFF2ECC71);
+                    case 'double': return const Color(0xFF9B59B6);
+                    case 'dashed': return const Color(0xFFE67E22);
+                    case 'dotted': return const Color(0xFFE91E63);
+                    case 'wavy': return const Color(0xFF1ABC9C);
+                    case 'handdrawn': return const Color(0xFFE74C3C);
+                    case 'marker': return const Color(0xFFF1C40F);
+                    case 'gradient': return const Color(0xFF3498DB);
+                    default: return isNight ? const Color(0xFFE0C097) : const Color(0xFFA68565);
+                  }
+                }();
                 return TextStyle(
                   color: attr.color ?? baseColor,
                   fontSize: attr.fontSize,
@@ -1118,8 +1144,8 @@ class DiaryTextEditingController extends TextEditingController {
               padding: const EdgeInsets.symmetric(horizontal: 1.0), // 稍微减小间距，让排版更紧凑
               child: Image.asset(
                 emojiMatch['emojiPath'],
-                width: combinedStyle.fontSize! * 1.2,
-                height: combinedStyle.fontSize! * 1.2,
+                width: combinedStyle.fontSize! * 1.45,
+                height: combinedStyle.fontSize! * 1.45,
                 fit: BoxFit.contain,
               ),
             ),

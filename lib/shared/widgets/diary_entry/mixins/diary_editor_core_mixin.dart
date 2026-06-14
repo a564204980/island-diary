@@ -356,7 +356,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
         // 修改模式
         final updatedEntry = DiaryEntry(
           id: widget.entry!.id,
-          dateTime: widget.entry!.dateTime,
+          dateTime: entryDateTime ?? widget.entry!.dateTime,
           moodIndex: currentMoodIndex ?? 0,
           intensity: currentIntensity,
           content: content,

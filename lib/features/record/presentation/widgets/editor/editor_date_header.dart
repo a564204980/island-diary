@@ -27,7 +27,7 @@ class EditorDateHeader extends StatelessWidget {
       onTap: onDateTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        margin: const EdgeInsets.only(top: 8, bottom: 12),
+        margin: const EdgeInsets.only(top: 2, bottom: 12),
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,

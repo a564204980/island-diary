@@ -155,42 +155,64 @@ class ProfileHeader extends StatelessWidget {
       children: [
         const SizedBox(height: 8),
         Row(
-          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            ValueListenableBuilder<String>(
-              valueListenable: userState.userName,
-              builder: (context, name, _) {
-                return Text(
-                  name.isEmpty ? '海岛新居民' : name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: isNight ? Colors.white : const Color(0xFF1F2937),
-                    fontFamily: _getFontFamily(),
-                    letterSpacing: 1.5,
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: ValueListenableBuilder<String>(
+                      valueListenable: userState.userName,
+                      builder: (context, name, _) {
+                        return Text(
+                          name.isEmpty ? '海岛新居民' : name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: isNight ? Colors.white : const Color(0xFF1F2937),
+                            fontFamily: _getFontFamily(),
+                            letterSpacing: 1.5,
+                          ),
+                        );
+                      },
+                    ),
                   ),
+                  const SizedBox(width: 12),
+                  GestureDetector(
+                    onTap: () => _showLifeLineSwitcher(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: isNight
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.black.withValues(alpha: 0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.alt_route_rounded,
+                        size: 16,
+                        color: isNight ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            _buildActionIcon(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
               },
-            ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: () => _showLifeLineSwitcher(context),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: isNight
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.black.withValues(alpha: 0.05),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.alt_route_rounded,
-                  size: 16,
-                  color: isNight ? Colors.white70 : Colors.black54,
-                ),
-              ),
+              icon: Icons.settings_outlined,
+              isNight: isNight,
             ),
           ],
         ),
@@ -222,67 +244,55 @@ class ProfileHeader extends StatelessWidget {
     bool isNight,
     bool isVip,
   ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // 称号标签展示区 (横向滚动，确保永远在单行显示)
-        Expanded(
-          child: ValueListenableBuilder<List<String>>(
-            valueListenable: userState.selectedTitles,
-            builder: (context, titles, _) {
-              if (titles.isEmpty) {
-                return Align(
-                  alignment: Alignment.centerLeft,
-                  child: _buildTagItem(
-                    isVip ? '岛屿永久居民' : '岛屿普通居民',
-                    null,
-                    isNight,
-                  ),
-                );
-              }
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: titles.map((title) {
-                    final tier = MascotAchievement.allAchievements
-                        .where((a) => a.rewardTitle == title)
-                        .firstOrNull
-                        ?.titleTier;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: _buildTagItem(title, tier, isNight),
-                    );
-                  }).toList(),
+    return ValueListenableBuilder<List<String>>(
+      valueListenable: userState.selectedTitles,
+      builder: (context, titles, _) {
+        final List<Widget> tagWidgets = [];
+
+        // 1. 添加称号标签
+        if (titles.isEmpty) {
+          tagWidgets.add(
+            _buildTagItem(
+              isVip ? '岛屿永久居民' : '岛屿普通居民',
+              null,
+              isNight,
+            ),
+          );
+        } else {
+          tagWidgets.addAll(titles.map((title) {
+            final tier = MascotAchievement.allAchievements
+                .where((a) => a.rewardTitle == title)
+                .firstOrNull
+                ?.titleTier;
+            return _buildTagItem(title, tier, isNight);
+          }));
+        }
+
+        return SizedBox(
+          width: double.infinity,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.start,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: tagWidgets,
                 ),
-              );
-            },
+              ),
+              const SizedBox(width: 16),
+              _buildActionIcon(
+                onTap: () => _navigateToEditProfile(context, isNight),
+                label: '编辑资料', // 保留编辑资料的文字，渲染为胶囊药丸形状
+                icon: Icons.edit_outlined,
+                isNight: isNight,
+              ),
+            ],
           ),
-        ),
-        const SizedBox(width: 8),
-        // 按钮组
-        Row(
-          children: [
-            _buildActionIcon(
-              onTap: () => _navigateToEditProfile(context, isNight),
-              label: '编辑资料', // 保留编辑资料的文字，渲染为胶囊药丸形状
-              icon: Icons.edit_outlined,
-              isNight: isNight,
-            ),
-            const SizedBox(width: 8),
-            _buildActionIcon(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsPage()),
-                );
-              },
-              icon: Icons.settings_outlined, // 无 label，自动渲染为精美对称小正圆形
-              isNight: isNight,
-            ),
-          ],
-        ),
-      ],
+        );
+      },
     ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0);
   }
 
@@ -469,10 +479,9 @@ class ProfileHeader extends StatelessWidget {
                 Navigator.pop(context);
                 final List<AssetEntity>? result = await AssetPicker.pickAssets(
                   context,
-                  pickerConfig: AssetPickerConfig(
+                  pickerConfig: const AssetPickerConfig(
                     maxAssets: 1,
                     requestType: RequestType.image,
-                    filterOptions: FilterOptionGroup(containsLivePhotos: true),
                   ),
                 );
                 if (result != null && result.isNotEmpty) {

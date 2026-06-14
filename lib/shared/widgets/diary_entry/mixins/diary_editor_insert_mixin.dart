@@ -6,6 +6,7 @@ import '../components/diary_date_picker_sheet.dart';
 import '../components/diary_time_picker_sheet.dart';
 import '../components/diary_weather_picker_sheet.dart';
 import '../components/paper_picker_sheet.dart';
+import '../components/diary_bottom_sheet.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -14,21 +15,142 @@ import './diary_editor_core_mixin.dart';
 
 mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
 
-  void onLocationClick() async {
-    if (mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('正在获取位置...'), 
-          duration: Duration(seconds: 15), 
-        ),
-      );
+  void onLocationClick() {
+    final bool isNight = UserState().isNight;
+    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego'
+        ? 'SweiFistLeg'
+        : 'LXGWWenKai';
+    final themeId = UserState().selectedIslandThemeId.value;
+    final Color inkColor;
+    final Color themeAccentColor;
+    if (isNight) {
+      inkColor = Colors.white;
+      themeAccentColor = themeId == 'cotton_candy' ? const Color(0xFFC0A6FF) : const Color(0xFFE0C097);
+    } else {
+      inkColor = themeId == 'cotton_candy' ? const Color(0xFF7C3AED) : const Color(0xFF1F2937);
+      themeAccentColor = themeId == 'cotton_candy' ? const Color(0xFF7C3AED) : const Color(0xFFA68565);
     }
 
+    final controller = TextEditingController(text: location);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
+      builder: (context) => DiaryBottomSheet(
+        paperStyle: currentPaperStyle,
+        showDragHandle: true,
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 16,
+          bottom: 24 + MediaQuery.of(context).padding.bottom + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '记录你的足迹',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: inkColor,
+                fontFamily: fontFamily,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: inkColor.withValues(alpha: 0.15),
+                ),
+              ),
+              child: TextField(
+                controller: controller,
+                style: TextStyle(color: inkColor, fontFamily: fontFamily),
+                decoration: InputDecoration(
+                  hintText: '输入地点名称 (如: 杭州·西湖)',
+                  hintStyle: TextStyle(
+                    color: inkColor.withValues(alpha: 0.3),
+                    fontSize: 14,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _autoGetLocation();
+                    },
+                    icon: Icon(Icons.my_location_rounded, size: 16, color: themeAccentColor),
+                    label: Text(
+                      '自动定位',
+                      style: TextStyle(
+                        color: themeAccentColor,
+                        fontFamily: fontFamily,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: themeAccentColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        location = controller.text.trim().isEmpty ? null : controller.text.trim();
+                      });
+                      onBlocksChanged();
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: themeAccentColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: Text(
+                      '确定',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontFamily: fontFamily,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _autoGetLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled().timeout(
         const Duration(seconds: 3), 
-        onTimeout: () => true, // 如果检测超时，假设开着继续往下走
+        onTimeout: () => true,
       );
       if (!serviceEnabled) {
         if (mounted) {
@@ -68,13 +190,11 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
 
     Position? position;
     try {
-      // 3. 优先尝试获取缓存位置（最快）
       position = await Geolocator.getLastKnownPosition().timeout(
         const Duration(seconds: 2),
         onTimeout: () => null,
       );
       
-      // 4. 如果没有缓存或已过期，则申请当前位置（增加 10s 超时）
       position ??= await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.medium,
@@ -96,7 +216,6 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
 
     String address = "";
     try {
-      // 5. 逆地理编码解析地址
       final placemarks = await placemarkFromCoordinates(
         position.latitude, 
         position.longitude
@@ -104,16 +223,13 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
 
       if (placemarks.isNotEmpty) {
         final p = placemarks.first;
-        // 拼接更友好的地址格式
         final rawAddress = "${p.locality ?? ''}${p.subLocality ?? ''}${p.street ?? ''}";
         address = rawAddress.trim();
       }
     } catch (e) {
       debugPrint("逆地理编码失败: $e");
-      // 静默处理，后面会降级显示经纬度
     }
 
-    // 6. 如果地址解析失败，降级为显示经纬度
     if (address.isEmpty) {
       address = "东经${position.longitude.toStringAsFixed(2)}°, 北纬${position.latitude.toStringAsFixed(2)}°";
     }
@@ -133,8 +249,9 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       builder: (context) => DiaryDatePickerSheet(
-        initialDate: DateTime.now(),
+        initialDate: entryDateTime ?? DateTime.now(),
         paperStyle: currentPaperStyle,
         onConfirm: (date) {
           final String insertion = DiaryUtils.getFormattedDateWithWeekday(date);
@@ -168,6 +285,15 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
           } else {
             // 无焦点模式：作为标签
             setState(() {
+              final current = entryDateTime ?? DateTime.now();
+              entryDateTime = DateTime(
+                date.year,
+                date.month,
+                date.day,
+                current.hour,
+                current.minute,
+                current.second,
+              );
               customDate = insertion;
             });
             onBlocksChanged();
@@ -192,8 +318,9 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       builder: (context) => DiaryTimePickerSheet(
-        initialTime: TimeOfDay.now(),
+        initialTime: TimeOfDay.fromDateTime(entryDateTime ?? DateTime.now()),
         paperStyle: currentPaperStyle,
         onConfirm: (time) {
           final String insertion = DiaryUtils.getFormattedFullTime(time);
@@ -227,6 +354,14 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
           } else {
             // 无焦点模式：作为标签
             setState(() {
+              final current = entryDateTime ?? DateTime.now();
+              entryDateTime = DateTime(
+                current.year,
+                current.month,
+                current.day,
+                time.hour,
+                time.minute,
+              );
               customTime = insertion;
             });
             onBlocksChanged();

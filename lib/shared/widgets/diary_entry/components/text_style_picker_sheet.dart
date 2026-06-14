@@ -28,7 +28,6 @@ class DiaryTextStylePickerSheet extends StatelessWidget {
     // 采用与通用弹窗一致的非信纸配色，不跟随信纸材质色
     final Color inkColor;
     final Color accentColor;
-    
     if (isNight) {
       inkColor = Colors.white;
       accentColor = themeId == 'cotton_candy' ? const Color(0xFFC0A6FF) : const Color(0xFFE0C097);

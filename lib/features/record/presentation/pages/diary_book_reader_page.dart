@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
@@ -7,6 +8,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/image_group_block.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_image_collage.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:intl/intl.dart';
 
 class DiaryBookReaderPage extends StatefulWidget {
@@ -38,19 +40,6 @@ class _DiaryBookReaderPageState extends State<DiaryBookReaderPage> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
-  }
-
-  IconData _getWeatherIcon(String? weather) {
-    if (weather == null) return Icons.wb_sunny_outlined;
-    if (weather.contains("晴")) return Icons.wb_sunny_outlined;
-    if (weather.contains("多云")) return Icons.wb_cloudy_outlined;
-    if (weather.contains("阴")) return Icons.cloud_outlined;
-    if (weather.contains("雨")) return Icons.umbrella_outlined;
-    if (weather.contains("雪")) return Icons.ac_unit_outlined;
-    if (weather.contains("风")) return Icons.air_outlined;
-    if (weather.contains("雾")) return Icons.grain_outlined;
-    if (weather.contains("雷")) return Icons.thunderstorm_outlined;
-    return Icons.wb_sunny_outlined;
   }
 
   @override
@@ -131,19 +120,32 @@ class _DiaryBookReaderPageState extends State<DiaryBookReaderPage> {
     bool isNight,
   ) {
     // 心情数据获取
+    // 心情数据获取并解析
     final mood = kMoods[entry.moodIndex.clamp(0, kMoods.length - 1)];
+    final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+    final String moodLabel = parsed.customMood ?? mood.label;
+    final String iconPath = parsed.customMood != null
+        ? (entry.moodIndex >= 0 && entry.moodIndex <= 23
+            ? 'assets/icons/custom${entry.moodIndex + 1}.png'
+            : 'assets/images/icons/custom.png')
+        : (mood.iconPath ?? 'assets/icons/happy.png');
+    final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 
     // 精微化整合元数据小字串
     final dateStr = DateFormat('yyyy年M月d日').format(entry.dateTime);
     final timeStr = DateFormat('HH:mm').format(entry.dateTime);
-    final List<String> metaList = [
-      dateStr,
-      timeStr,
-      '${mood.label}',
-      if (entry.weather != null) entry.weather!,
-      if (entry.location != null) entry.location!,
-    ];
-    final metaInfo = metaList.join('  ·  ');
+
+    String titleStr = entry.title ?? '';
+    titleStr = titleStr.replaceAll(RegExp(r'mood(_icon)?:\s*[^\n,;]+[,;]?'), '').trim();
+    if (titleStr.isEmpty || titleStr == '未命名回忆' || titleStr == '未命名章节') {
+      String plain = entry.content.replaceAll(RegExp(r'[#*`_\-–—]'), '').trim();
+      plain = plain.replaceAll(RegExp(r'mood(_icon)?:\s*[^\n,;]+[,;]?'), '').trim();
+      final lines = plain.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+      titleStr = lines.isNotEmpty ? lines.first : '无标题';
+    }
+    // 去除因为历史数据缓存或先前自动截断产生的尾部省略号
+    titleStr = titleStr.replaceAll(RegExp(r'\s*\.{3,}$'), '');
+    titleStr = titleStr.replaceAll(RegExp(r'\s*…+$'), '');
 
     return Container(
       color: paperColor,
@@ -158,9 +160,9 @@ class _DiaryBookReaderPageState extends State<DiaryBookReaderPage> {
               children: [
                 const SizedBox(height: 12),
                 // 1. 优雅的正文大标题
-                Text(
-                  entry.title ?? '未命名章节',
-                  style: TextStyle(
+                _buildRichText(
+                  titleStr,
+                  TextStyle(
                     fontSize: 23,
                     fontWeight: FontWeight.w500,
                     color: inkColor,
@@ -170,15 +172,79 @@ class _DiaryBookReaderPageState extends State<DiaryBookReaderPage> {
                 ).animate().fadeIn(duration: 400.ms),
                 const SizedBox(height: 10),
 
-                // 2. 精微化元数据小字
-                Text(
-                  metaInfo,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: inkColor.withValues(alpha: 0.35),
-                    fontFamily: fontFamily,
-                    height: 1.5,
-                  ),
+                // 2. 精微化元数据小字 (支持表情图标渲染)
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    Text(
+                      "$dateStr  $timeStr  ·  ",
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: inkColor.withValues(alpha: 0.35),
+                        fontFamily: fontFamily,
+                      ),
+                    ),
+                    // 心情小图标
+                    SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: Center(
+                        child: hasCustomIcon
+                            ? Image.file(
+                                File(parsed.customMoodIconPath!),
+                                width: 14,
+                                height: 14,
+                                errorBuilder: (c, e, s) => Image.asset(
+                                  'assets/icons/happy.png',
+                                  width: 14,
+                                  height: 14,
+                                ),
+                              )
+                            : Image.asset(
+                                iconPath,
+                                width: 14,
+                                height: 14,
+                                errorBuilder: (c, e, s) => Image.asset(
+                                  'assets/icons/happy.png',
+                                  width: 14,
+                                  height: 14,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      moodLabel,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: inkColor.withValues(alpha: 0.35),
+                        fontFamily: fontFamily,
+                      ),
+                    ),
+                    if (entry.weather != null && entry.weather!.isNotEmpty) ...[
+                      Text(
+                        "  ·  ${entry.weather!}",
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: inkColor.withValues(alpha: 0.35),
+                          fontFamily: fontFamily,
+                        ),
+                      ),
+                    ],
+                    if (entry.location != null && entry.location!.isNotEmpty) ...[
+                      Text(
+                        "  ·  ${entry.location!}",
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: inkColor.withValues(alpha: 0.35),
+                          fontFamily: fontFamily,
+                        ),
+                      ),
+                    ],
+                  ],
                 ).animate().fadeIn(delay: 150.ms, duration: 400.ms),
 
                 const SizedBox(height: 28),
@@ -197,15 +263,41 @@ class _DiaryBookReaderPageState extends State<DiaryBookReaderPage> {
     );
   }
 
+  Widget _buildRichText(String text, TextStyle style, {int? maxLines, TextOverflow? overflow}) {
+    final chunks = EmojiMapping.parseText(text);
+    return RichText(
+      maxLines: maxLines,
+      overflow: overflow ?? TextOverflow.clip,
+      text: TextSpan(
+        children: chunks.map((chunk) {
+          if (chunk.isEmoji) {
+            return WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Image.asset(
+                  chunk.emojiPath!,
+                  width: (style.fontSize ?? 16.5) + 2.0,
+                  height: (style.fontSize ?? 16.5) + 2.0,
+                ),
+              ),
+            );
+          }
+          return TextSpan(text: chunk.text, style: style);
+        }).toList(),
+      ),
+    );
+  }
+
   /// 构建段落文本块，支持将文本按换行符拆分成独立的段落，应用段落留白
   List<Widget> _buildParagraphWidgets(String text, TextStyle style) {
     final lines = text.split('\n');
     return lines.map((line) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 18),
-        child: Text(
+        child: _buildRichText(
           line,
-          style: style,
+          style,
         ),
       );
     }).toList();
@@ -248,7 +340,7 @@ class _DiaryBookReaderPageState extends State<DiaryBookReaderPage> {
     final List<Widget> list = [];
     for (var block in processedBlocks) {
       if (block is TextBlock) {
-        final content = block.controller?.text ?? '';
+        final content = block.controller.text;
         final filtered = DiaryUtils.getFilteredContent(content);
         if (filtered.trim().isNotEmpty) {
           list.addAll(_buildParagraphWidgets(filtered, textStyle));

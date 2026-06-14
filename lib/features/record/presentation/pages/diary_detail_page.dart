@@ -2,7 +2,6 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:ui';
-import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
@@ -52,7 +51,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           decoration: BoxDecoration(
             color: widget.isNight
                 ? const Color(0xFF2C2C2E)
-                : const Color(0xFFFCFBF8),
+                : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: widget.isNight
@@ -195,10 +194,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     if (weather.contains("雾")) return Icons.grain_outlined;
     if (weather.contains("雷")) return Icons.thunderstorm_outlined;
     if (weather.contains("冰雹")) return Icons.severe_cold_outlined;
-    if (weather.contains("炎热") || weather.contains("热"))
+    if (weather.contains("炎热") || weather.contains("热")) {
       return Icons.thermostat_outlined;
-    if (weather.contains("严寒") || weather.contains("冷"))
+    }
+    if (weather.contains("严寒") || weather.contains("冷")) {
       return Icons.ac_unit_outlined;
+    }
     return Icons.wb_sunny_outlined;
   }
 
@@ -422,7 +423,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
   }
 
   void _handleReplySubmit(String content) async {
-    if (content.trim().isEmpty) return;
+    if (content.trim().isEmpty) {
+      return;
+    }
 
     await UserState().addReplyToDiary(_currentEntry.id, content);
 
@@ -459,17 +462,6 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
   Widget _buildHeader() {
     final dt = _currentEntry.dateTime;
     final mood = kMoods[_currentEntry.moodIndex.clamp(0, kMoods.length - 1)];
-    final dateStr = "${dt.year}年${dt.month}月${dt.day}日";
-    final timeStr =
-        "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
-
-    final themeId = UserState().selectedIslandThemeId.value;
-    final bool isCottonCandyDark =
-        (themeId == 'cotton_candy') && _effectiveIsNight;
-    final baseGlowColor = mood.glowColor ?? const Color(0xFFD4A373);
-    final accentColor = _effectiveIsNight
-        ? (isCottonCandyDark ? const Color(0xFFC0A6FF) : baseGlowColor)
-        : Color.lerp(baseGlowColor, Colors.black, 0.45)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -537,7 +529,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               final parsed = ParsedTags.parse(_currentEntry.tag, _currentEntry.moodIndex);
               final String moodLabel = parsed.customMood ?? mood.label;
               final String iconPath = parsed.customMood != null
-                  ? 'assets/images/icons/custom.png'
+                  ? (_currentEntry.moodIndex >= 0 && _currentEntry.moodIndex <= 23
+                      ? 'assets/icons/custom${_currentEntry.moodIndex + 1}.png'
+                      : 'assets/images/icons/custom.png')
                   : (mood.iconPath ?? 'assets/icons/happy.png');
               final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 
@@ -559,7 +553,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Hero(
-                      tag: 'mood_${_currentEntry.id}',
+                      tag: 'mood_$_currentEntry.id',
                       child: hasCustomIcon
                           ? Image.file(
                               File(parsed.customMoodIconPath!),
@@ -614,7 +608,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   ),
                 ),
               );
-            }).toList(),
+            }),
             // 天气标签
             if (_currentEntry.weather != null)
               Container(
@@ -646,7 +640,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      "${_currentEntry.weather} ${_currentEntry.temp ?? ''}",
+                      "$_currentEntry.weather ${_currentEntry.temp ?? ''}",
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -848,7 +842,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         final tc = block.controller;
         if (tc is DiaryTextEditingController) {
           // 如果文本为空，且日记包含其他内容，则跳过此空文本块渲染，防止出现空白行
-          final hasOtherContent = processedBlocks.any((item) => item is! TextBlock || (item is TextBlock && item.controller.text.trim().isNotEmpty));
+          final hasOtherContent = processedBlocks.any((item) => item is! TextBlock || item.controller.text.trim().isNotEmpty);
           if (tc.text.trim().isEmpty && hasOtherContent) {
             continue;
           }
@@ -1018,29 +1012,6 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     );
   }
 
-  Widget _buildToolbarButton(String label, VoidCallback onTap, bool isHighlighted) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        decoration: BoxDecoration(
-          color: isHighlighted ? const Color(0xFFFDF0CD) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF5D4037),
-            fontFamily: 'LXGWWenKai',
-          ),
-        ),
-      ),
-    );
-  }
-
   static const List<Map<String, String>> _annotationColors = [
     {'name': '经典黄', 'value': '#F7E5B4'},
     {'name': '柔和粉', 'value': '#F7DAD3'},
@@ -1055,7 +1026,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     String? selectedText,
   }) {
     final bool isEdit = key != null;
-    final String actualKey = key ?? "${blockIndex}_${start}_${end}";
+    final String actualKey = key ?? "${blockIndex}_${start}_$end";
     
     Map<String, dynamic>? annData;
     if (isEdit) {
@@ -1334,7 +1305,9 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     final images = _currentEntry.blocks
         .where((b) => b['type'] == 'image')
         .toList();
-    if (images.isEmpty) return const SizedBox.shrink();
+    if (images.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     if (_currentEntry.isImageGrid) {
       if (images.length <= 5) {
@@ -1410,22 +1383,4 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       }).toList(),
     ).animate().fadeIn(delay: 500.ms, duration: 800.ms);
   }
-}
-
-class _ToolbarArrowPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..lineTo(size.width, 0)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

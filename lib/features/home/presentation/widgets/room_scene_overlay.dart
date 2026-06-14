@@ -1,5 +1,4 @@
-import 'dart:math' show sqrt, exp, max;
-import 'dart:typed_data';
+import 'dart:math' show sqrt, exp;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';

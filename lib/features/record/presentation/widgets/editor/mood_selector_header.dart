@@ -17,6 +17,9 @@ class MoodSelectorHeader extends StatefulWidget {
   final String? temp;
   final VoidCallback? onWeatherTap;
   final VoidCallback? onClearWeather;
+  final String? location;
+  final VoidCallback? onLocationTap;
+  final VoidCallback? onClearLocation;
 
   const MoodSelectorHeader({
     super.key,
@@ -32,6 +35,9 @@ class MoodSelectorHeader extends StatefulWidget {
     this.temp,
     this.onWeatherTap,
     this.onClearWeather,
+    this.location,
+    this.onLocationTap,
+    this.onClearLocation,
   });
 
   static const List<Map<String, String>> moods = [
@@ -84,24 +90,23 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
     final bool isLego = themeId == 'lego';
 
+    final Color? containerBgColor = isCottonCandyDark
+        ? null
+        : (isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : (paperStyle.startsWith('note') || (paperStyle == 'classic' && themeId == 'cotton_candy')
+                ? const Color(0xFFFEF9F0).withValues(alpha: 0.45)
+                : const Color(0xFFFEF9F0)));
+
     final pillWidget = Padding(
       key: const ValueKey('mood_selector_pill_widget'),
-      padding: EdgeInsets.only(
-        top: 6,
-        bottom: isSelected ? 8 : 24,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: AnimatedContainer(
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOutCubic,
           margin: isLego ? const EdgeInsets.only(bottom: 6) : null,
           decoration: BoxDecoration(
-            color: isCottonCandyDark
-                ? null
-                : (isDark
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : (paperStyle.startsWith('note') || (paperStyle == 'classic' && themeId == 'cotton_candy')
-                        ? const Color(0xFFFEF9F0).withValues(alpha: 0.45)
-                        : const Color(0xFFFEF9F0))),
+            color: containerBgColor,
             gradient: isCottonCandyDark
                 ? LinearGradient(
                     begin: Alignment.topLeft,
@@ -210,6 +215,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
 
 
     final weatherWidget = _buildWeatherPill(context);
+    final locationWidget = _buildLocationPill(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,41 +229,21 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
         else
           const SizedBox.shrink(),
         const SizedBox.shrink(),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Flexible(child: pillWidget),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              switchOutCurve: Curves.easeInCubic,
-              switchInCurve: Curves.easeOutCubic,
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: SizeTransition(
-                    sizeFactor: animation,
-                    axis: Axis.horizontal,
-                    axisAlignment: -1.0,
-                    child: child,
-                  ),
-                );
-              },
-              child: (isSelected && widget.weather != null && widget.weather!.isNotEmpty)
-                  ? Row(
-                      key: const ValueKey('weather_pill_visible'),
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(width: 12),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6), // 与 pillWidget 的 top: 6 padding 保持对齐
-                          child: weatherWidget,
-                        ),
-                      ],
-                    )
-                  : const SizedBox(
-                      key: ValueKey('weather_pill_hidden'),
-                    ),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isSelected ? 220 : double.infinity,
+              ),
+              child: pillWidget,
             ),
+            if (widget.weather != null && widget.weather!.isNotEmpty)
+              weatherWidget,
+            if (widget.location != null && widget.location!.isNotEmpty)
+              locationWidget,
           ],
         ),
       ],
@@ -393,12 +379,130 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     );
   }
 
+  Widget _buildLocationPill(BuildContext context) {
+    final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
+    final bool isLego = themeId == 'lego';
+    final bool isDark = isNight;
+
+    final bool hasLocation = widget.location != null && widget.location!.isNotEmpty;
+
+    return GestureDetector(
+      onTap: widget.onLocationTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutCubic,
+        margin: isLego ? const EdgeInsets.only(bottom: 6) : null,
+        decoration: BoxDecoration(
+          color: isCottonCandyDark
+              ? null
+              : (isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : (paperStyle.startsWith('note') || (paperStyle == 'classic' && themeId == 'cotton_candy')
+                      ? const Color(0xFFFEF9F0).withValues(alpha: 0.45)
+                      : const Color(0xFFFEF9F0))),
+          gradient: isCottonCandyDark
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFFC0A6FF).withValues(alpha: 0.18),
+                    const Color(0xFFC0A6FF).withValues(alpha: 0.03),
+                  ],
+                )
+              : null,
+          borderRadius: BorderRadius.circular(24),
+          border: isLego
+              ? null
+              : Border.all(
+                  color: isCottonCandyDark
+                      ? const Color(0xFFC0A6FF).withValues(alpha: 0.8)
+                      : inkColor.withValues(alpha: isDark ? 0.1 : 0.08),
+                  width: isCottonCandyDark ? 1.5 : 1,
+                ),
+          boxShadow: isLego
+              ? [
+                  BoxShadow(
+                    color: isDark ? const Color(0xFF1B160E) : const Color(0xFFEADAB9),
+                    blurRadius: 0,
+                    offset: const Offset(0, 4.0),
+                  ),
+                  BoxShadow(
+                    color: isDark ? Colors.black.withValues(alpha: 0.4) : const Color(0xFFDCC8A0).withValues(alpha: 0.4),
+                    blurRadius: 4.0,
+                    offset: const Offset(0, 5.0),
+                  ),
+                ]
+              : null,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.location_on_outlined,
+              size: 18,
+              color: hasLocation
+                  ? (isDark ? Colors.white70 : inkColor.withValues(alpha: 0.5))
+                  : inkColor.withValues(alpha: 0.4),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              hasLocation ? widget.location! : "+ 地点",
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: hasLocation
+                    ? (isDark ? Colors.white.withValues(alpha: 0.9) : inkColor.withValues(alpha: 0.8))
+                    : inkColor.withValues(alpha: 0.4),
+                fontFamily: 'LXGWWenKai',
+              ),
+            ),
+            if (hasLocation) ...[
+              const SizedBox(width: 4),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  widget.onClearLocation?.call();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : inkColor.withValues(alpha: 0.05),
+                  ),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 12,
+                    color: isDark ? Colors.white70 : inkColor.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
 
 
   Widget _buildExpandedContent(BuildContext context) {
     final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
     final bool isDark = isNight;
     final double screenWidth = MediaQuery.of(context).size.width;
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
+    final Color? containerBgColor = isCottonCandyDark
+        ? null
+        : (isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : (paperStyle.startsWith('note') || (paperStyle == 'classic' && themeId == 'cotton_candy')
+                ? const Color(0xFFFEF9F0).withValues(alpha: 0.45)
+                : const Color(0xFFFEF9F0)));
 
     final double availableWidth = screenWidth - 40;
     final double itemWidth = availableWidth / 5.8;
@@ -627,8 +731,8 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                         colors: [
-                          (isDark ? const Color(0xFF1E1C1A) : const Color(0xFFFEF9F0)).withValues(alpha: 0.0),
-                          isDark ? const Color(0xFF1E1C1A) : const Color(0xFFFEF9F0),
+                          (containerBgColor ?? (isCottonCandyDark ? const Color(0xFFC0A6FF).withValues(alpha: 0.03) : Colors.transparent)).withValues(alpha: 0.0),
+                          containerBgColor ?? (isCottonCandyDark ? const Color(0xFFC0A6FF).withValues(alpha: 0.03) : Colors.transparent),
                         ],
                       ),
                     ),

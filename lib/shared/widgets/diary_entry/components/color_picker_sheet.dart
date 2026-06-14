@@ -48,57 +48,49 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
     final Color accentColor = DiaryUtils.getAccentColor(widget.paperStyle, isNight);
     final Color textColor = DiaryUtils.getInkColor(widget.paperStyle, isNight).withValues(alpha: 0.9);
 
-    final List<Color> currentColors = isBackground 
-        ? DiaryUtils.presetBgColors 
-        : DiaryUtils.presetTextColors;
+    final List<Color> currentColors = DiaryUtils.presetTextColors;
     
     final Color effectiveCurrentColor = isBackground 
         ? widget.currentBgColor 
         : widget.currentTextColor;
 
+    // 分割预设色彩为两行，每行固定 8 个元素（第二行最后放置重置按钮），以此免除 GridView 所产生的任何横向滚动和拖拽条边界问题
+    final List<Color> row1Colors = currentColors.sublist(0, 8);
+    final List<Color> row2Colors = currentColors.sublist(8, 15);
+
     return DiaryBottomSheet(
       paperStyle: widget.paperStyle,
       showDragHandle: false,
+      isDiary: true,
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
         top: 24,
-        bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
+        bottom: 24 + MediaQuery.of(context).padding.bottom + MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 头部区域
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    showCustom ? '自定义取色' : '色彩工具',
-                    style: TextStyle(
-                      fontFamily: 'LXGWWenKai',
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Container(
-                    width: 32,
-                    height: 3,
-                    decoration: BoxDecoration(
-                      color: accentColor,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ],
-              ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.1),
+              Text(
+                showCustom ? '自定义取色' : '色彩工具',
+                style: TextStyle(
+                  fontFamily: 'LXGWWenKai',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
               Row(
                 children: [
-                  _buildHeaderButton(
-                    icon: showCustom ? Icons.grid_view_rounded : Icons.colorize_rounded,
+                  IconButton(
+                    icon: Icon(
+                      showCustom ? Icons.grid_view_rounded : Icons.colorize_rounded,
+                      color: accentColor,
+                      size: 20,
+                    ),
                     onPressed: () {
                       setState(() {
                         showCustom = !showCustom;
@@ -107,101 +99,78 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
                         }
                       });
                     },
-                    color: accentColor,
                   ),
-                  const SizedBox(width: 8),
-                  _buildHeaderButton(
-                    icon: Icons.close_rounded,
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: textColor.withValues(alpha: 0.5),
+                      size: 20,
+                    ),
                     onPressed: () => Navigator.pop(context),
-                    color: textColor.withValues(alpha: 0.3),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           
-          // Tab 切换区
+          // Tab 切换区（iOS Segmented Control 高级毛玻璃悬浮风格）
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(18),
+              color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
               children: [
-                Expanded(child: _buildTab(label: "文字墨水", active: !isBackground, color: accentColor, textColor: textColor)),
+                Expanded(
+                  child: _buildTab(
+                    label: "文字颜色",
+                    active: !isBackground,
+                    color: accentColor,
+                    textColor: textColor,
+                    isNight: isNight,
+                  ),
+                ),
                 const SizedBox(width: 4),
-                Expanded(child: _buildTab(label: "高亮底色", active: isBackground, color: accentColor, textColor: textColor)),
+                Expanded(
+                  child: _buildTab(
+                    label: "背景颜色",
+                    active: isBackground,
+                    color: accentColor,
+                    textColor: textColor,
+                    isNight: isNight,
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 28),
 
           if (!showCustom)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Wrap(
-                spacing: 14,
-                runSpacing: 18,
-                alignment: WrapAlignment.start, // 改为靠左，更有规律
-                children: [
-                   ...currentColors.map((color) {
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: row1Colors.map((color) {
                     final bool isSelected = effectiveCurrentColor == color;
-                    return GestureDetector(
-                      onTap: () => widget.onApplyColor(color, isBackground),
-                      child: Tooltip(
-                        message: "选择此色",
-                        child: AnimatedContainer(
-                          duration: 300.ms,
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected ? accentColor : Colors.white.withValues(alpha: 0.3),
-                              width: isSelected ? 3 : 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: color.withValues(alpha: 0.3),
-                                blurRadius: isSelected ? 12 : 6,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: isSelected 
-                              ? Icon(Icons.check_rounded, size: 24, color: color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white)
-                              : null,
-                        ),
-                      ).animate(target: isSelected ? 1 : 0).scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1)),
-                    );
-                  }),
-                  // 重置按钮
-                  GestureDetector(
-                    onTap: () => widget.onClear(isBackground),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: textColor.withValues(alpha: 0.05),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: textColor.withValues(alpha: 0.1),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.format_color_reset_rounded,
-                        color: Colors.redAccent.withValues(alpha: 0.7),
-                        size: 22,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ).animate().fadeIn(duration: 500.ms).scaleY(begin: 0.9, curve: Curves.easeOutBack)
+                    return _buildColorItem(color, isSelected, accentColor, isNight);
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ...row2Colors.map((color) {
+                      final bool isSelected = effectiveCurrentColor == color;
+                      return _buildColorItem(color, isSelected, accentColor, isNight);
+                    }),
+                    _buildResetItem(isNight, textColor),
+                  ],
+                ),
+              ],
+            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOutCubic)
           else
             Column(
               children: [
@@ -214,14 +183,21 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: accentColor.withValues(alpha: 0.1)),
                     ),
-                    child: ColorPicker(
-                      pickerColor: pickerColor,
-                      onColorChanged: (color) => setState(() => pickerColor = color),
-                      pickerAreaHeightPercent: 0.6,
-                      enableAlpha: false,
-                      displayThumbColor: true,
-                      labelTypes: const [],
-                      paletteType: PaletteType.hsvWithHue,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // 动态获取宽度，保证在各种大小的屏幕上，横向拖动条都能被完美包裹，不再发生溢出和跑偏
+                        return ColorPicker(
+                          pickerColor: pickerColor,
+                          onColorChanged: (color) => setState(() => pickerColor = color),
+                          pickerAreaHeightPercent: 0.55,
+                          enableAlpha: false,
+                          displayThumbColor: true,
+                          labelTypes: const [],
+                          paletteType: PaletteType.hsvWithHue,
+                          colorPickerWidth: constraints.maxWidth,
+                          pickerAreaBorderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -269,20 +245,13 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
     );
   }
 
-  Widget _buildHeaderButton({required IconData icon, required VoidCallback onPressed, required Color color}) {
-    return Material(
-      color: color.withValues(alpha: 0.1),
-      shape: const CircleBorder(),
-      child: IconButton(
-        icon: Icon(icon, color: color, size: 22),
-        onPressed: onPressed,
-        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-        padding: EdgeInsets.zero,
-      ),
-    );
-  }
-
-  Widget _buildTab({required String label, required bool active, required Color color, required Color textColor}) {
+  Widget _buildTab({
+    required String label,
+    required bool active,
+    required Color color,
+    required Color textColor,
+    required bool isNight,
+  }) {
     return GestureDetector(
       onTap: () {
         if (!active) {
@@ -295,18 +264,20 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
         }
       },
       child: AnimatedContainer(
-        duration: 400.ms,
+        duration: 250.ms,
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: active ? color : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
+          color: active
+              ? (isNight ? Colors.white.withValues(alpha: 0.15) : Colors.white)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
           boxShadow: [
             if (active)
               BoxShadow(
-                color: color.withValues(alpha: 0.3),
+                color: Colors.black.withValues(alpha: isNight ? 0.2 : 0.06),
                 blurRadius: 8,
-                offset: const Offset(0, 2),
+                offset: const Offset(0, 3),
               ),
           ],
         ),
@@ -315,13 +286,88 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
             label,
             style: TextStyle(
               fontFamily: 'LXGWWenKai',
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: active ? FontWeight.bold : FontWeight.w500,
-              color: active ? Colors.white : textColor.withValues(alpha: 0.5),
+              color: active ? color : textColor.withValues(alpha: 0.4),
             ),
           ),
         ),
       ),
     );
   }
+
+  Widget _buildColorItem(Color color, bool isSelected, Color accentColor, bool isNight) {
+    return GestureDetector(
+      onTap: () => widget.onApplyColor(color, isBackground),
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isSelected ? accentColor : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: AnimatedContainer(
+          duration: 200.ms,
+          width: isSelected ? 26 : 28,
+          height: isSelected ? 26 : 28,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: color.computeLuminance() > 0.9
+                  ? (isNight ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.08))
+                  : Colors.transparent,
+              width: 0.5,
+            ),
+            boxShadow: [
+              if (isSelected)
+                BoxShadow(
+                  color: color.withValues(alpha: 0.3),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+            ],
+          ),
+          child: isSelected
+              ? Center(
+                  child: Icon(
+                    Icons.check_rounded,
+                    size: 13,
+                    color: color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white,
+                  ),
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResetItem(bool isNight, Color textColor) {
+    return GestureDetector(
+      onTap: () => widget.onClear(isBackground),
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isNight ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.03),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isNight ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06),
+            width: 1.0,
+          ),
+        ),
+        child: Icon(
+          Icons.format_color_reset_rounded,
+          color: Colors.redAccent.withValues(alpha: 0.8),
+          size: 16,
+        ),
+      ),
+    );
+  }
 }
+

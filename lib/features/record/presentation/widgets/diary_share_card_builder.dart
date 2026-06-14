@@ -63,7 +63,7 @@ class DiaryShareCardBuilder extends StatelessWidget {
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF5D4037),
                 fontFamily: 'LXGWWenKai',
-                fontFamilyFallback: const ['Nishiki'],
+                fontFamilyFallback: ['Nishiki'],
               ),
             ),
             const Icon(Icons.auto_awesome, color: Color(0xFFD4A373), size: 24),
@@ -94,7 +94,9 @@ class DiaryShareCardBuilder extends StatelessWidget {
         final mood = kMoods[entry.moodIndex.clamp(0, kMoods.length - 1)];
         final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
         final String iconPath = parsed.customMood != null
-            ? 'assets/images/icons/custom.png'
+            ? (entry.moodIndex >= 0 && entry.moodIndex <= 23
+                ? 'assets/icons/custom${entry.moodIndex + 1}.png'
+                : 'assets/images/icons/custom.png')
             : (mood.iconPath ?? 'assets/icons/happy.png');
         final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 
@@ -443,7 +445,9 @@ class DiaryShareCardBuilder extends StatelessWidget {
     final mood = kMoods[entry.moodIndex.clamp(0, kMoods.length - 1)];
     final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
     final String iconPath = parsed.customMood != null
-        ? 'assets/images/icons/custom.png'
+        ? (entry.moodIndex >= 0 && entry.moodIndex <= 23
+            ? 'assets/icons/custom${entry.moodIndex + 1}.png'
+            : 'assets/images/icons/custom.png')
         : (mood.iconPath ?? 'assets/icons/happy.png');
     final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
     

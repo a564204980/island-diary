@@ -234,8 +234,10 @@ class DiaryTextContextMenu extends StatelessWidget {
                         context: context,
                         backgroundColor: Colors.transparent,
                         isScrollControlled: true,
+                        showDragHandle: false,
                         builder: (ctx) => UnderlinePickerSheet(
                           currentStyle: currentStyle,
+                          paperStyle: paperStyle ?? 'classic',
                           onSelectStyle: (style) {
                             if (style == null) {
                               controller.applyAttributeToSelection(

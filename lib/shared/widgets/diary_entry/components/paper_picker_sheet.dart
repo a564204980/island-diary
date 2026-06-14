@@ -175,7 +175,8 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                   final stylesMap = _getEffectiveStyles();
                   final key = stylesMap.keys.elementAt(index);
                   final label = stylesMap.values.elementAt(index);
-                  final isSelected = (_localStyle == key) && (key != 'classic');
+                  final isSelected = _localStyle == key;
+                  final itemAccentColor = DiaryUtils.getAccentColor(key, isNight);
 
                   return GestureDetector(
                     onTap: () {
@@ -202,9 +203,9 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                                   borderRadius: BorderRadius.circular(19),
                                   border: Border.all(
                                     color: isSelected
-                                        ? widget.accentColor.withValues(alpha: 0.8)
+                                        ? itemAccentColor.withValues(alpha: 0.85)
                                         : Colors.transparent,
-                                    width: 1.5, // 细雅外圈
+                                    width: 2.2, // 加粗的外圈，更加显眼精致
                                   ),
                                 ),
                                 child: AnimatedContainer(
@@ -228,7 +229,7 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                                       boxShadow: [
                                         if (isSelected)
                                           BoxShadow(
-                                            color: widget.accentColor.withValues(alpha: 0.3),
+                                            color: itemAccentColor.withValues(alpha: 0.35),
                                             blurRadius: 10,
                                             spreadRadius: 0.5,
                                             offset: const Offset(0, 3),
@@ -281,7 +282,7 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                                                 child: Container(
                                                   padding: const EdgeInsets.all(2.5),
                                                   decoration: BoxDecoration(
-                                                    color: widget.accentColor,
+                                                    color: itemAccentColor,
                                                     shape: BoxShape.circle,
                                                     boxShadow: [
                                                       BoxShadow(
@@ -311,7 +312,7 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isSelected
-                                    ? widget.accentColor
+                                    ? itemAccentColor
                                     : textColor.withValues(alpha: 0.6),
                                 fontWeight: isSelected
                                     ? FontWeight.bold

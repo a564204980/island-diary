@@ -10,6 +10,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/core/models/daily_task.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 
 import 'package:island_diary/features/statistics/domain/utils/soul_season_logic.dart';
 import 'package:island_diary/features/statistics/presentation/pages/memories_today_page.dart';
@@ -206,9 +207,8 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     for (var entry in entries) {
       // 1. 获取核心标签
       // 优先从 tag 获取（用户自定义心境），如果没有则取内置情绪 label
-      String label = entry.tag != null && entry.tag!.isNotEmpty 
-          ? entry.tag! 
-          : kMoods[entry.moodIndex % kMoods.length].label;
+      final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+      final String label = parsed.customMood ?? kMoods[entry.moodIndex % kMoods.length].label;
 
       counts[label] = (counts[label] ?? 0) + 1;
 
@@ -231,7 +231,9 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
            // 基于 label 的哈希值生成一个色相，确保同一标签颜色一致
            final h = (label.hashCode % 360).toDouble();
            colorMap[label] = HSVColor.fromAHSV(1.0, h, 0.4, 0.9).toColor();
-           iconMap[label] = 'assets/images/icons/custom.png'; // 备选图标
+           iconMap[label] = entry.moodIndex >= 0 && entry.moodIndex <= 23
+               ? 'assets/icons/custom${entry.moodIndex + 1}.png'
+               : 'assets/images/icons/custom.png'; // 备选图标
            moodIdxMap[label] = null;
         }
       }

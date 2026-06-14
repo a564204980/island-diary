@@ -11,7 +11,6 @@ import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_medi
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_format_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_insert_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
-import 'package:island_diary/shared/widgets/island_vip_guard_dialog.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 import '../widgets/editor/editor_header.dart';
 import '../widgets/editor/editor_content_list.dart';
@@ -155,7 +154,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                           slivers: [
                             // 顶部留白，给内容留出适当呼吸感
                             const SliverToBoxAdapter(
-                              child: SizedBox(height: 12),
+                              child: SizedBox(height: 0),
                             ),
                             // 编辑主体：内容块列表
                             EditorContentList(
@@ -176,6 +175,14 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               weather: weather,
                               temp: temp,
                               onWeatherTap: onWeatherClick,
+                              location: location,
+                              onLocationTap: onLocationClick,
+                              onClearLocation: () {
+                                setState(() {
+                                  location = null;
+                                });
+                                onBlocksChanged();
+                              },
                               dateTime: entryDateTime ?? DateTime.now(),
                               onDateTap: onDateClick,
                               onClearWeather: () {
@@ -534,7 +541,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                           },
                         ),
                       );
-                        }).toList(),
+                        }),
                     ],
                   );
                 },
@@ -747,7 +754,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     String? selectedText,
   }) {
     final bool isEdit = key != null;
-    final String actualKey = key ?? "${blockIndex}_${start}_${end}";
+    final String actualKey = key ?? "${blockIndex}_${start}_$end";
     
     Map<String, dynamic>? annData;
     if (isEdit) {
@@ -1025,7 +1032,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
           decoration: BoxDecoration(
             color: isNight
                 ? const Color(0xFF2C2C2E)
-                : const Color(0xFFFCFBF8),
+                : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isNight

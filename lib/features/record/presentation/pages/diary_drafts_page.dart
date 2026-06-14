@@ -6,6 +6,7 @@ import 'package:island_diary/features/record/domain/models/diary_draft.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 
 class DiaryDraftsPage extends StatefulWidget {
   const DiaryDraftsPage({super.key});
@@ -39,7 +40,7 @@ class _DiaryDraftsPageState extends State<DiaryDraftsPage> {
         elevation: 0,
         child: Container(
           decoration: BoxDecoration(
-            color: isNight ? const Color(0xFF2C2C2E) : const Color(0xFFFCFBF8),
+            color: isNight ? const Color(0xFF2C2C2E) : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
@@ -126,10 +127,101 @@ class _DiaryDraftsPageState extends State<DiaryDraftsPage> {
   }
 
   void _deleteDraft(BuildContext context, String draftId) {
-    UserState().deleteDraftEntry(draftId);
-    try {
-      HapticFeedback.lightImpact();
-    } catch (_) {}
+    final bool isNight = UserState().isNight;
+    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+    
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (dialogCtx) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          decoration: BoxDecoration(
+            color: isNight ? const Color(0xFF2C2C2E) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+              width: 0.5,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 32, bottom: 20, left: 24, right: 24),
+                child: Text(
+                  "确定要删除这篇草稿吗？",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF2C2C2C),
+                    fontFamily: fontFamily,
+                  ),
+                ),
+              ),
+              Container(
+                height: 0.5,
+                color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => Navigator.pop(dialogCtx),
+                      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          "取消",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: fontFamily,
+                            fontSize: 15,
+                            color: isNight ? Colors.white54 : const Color(0xFF8E8E93),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 0.5,
+                    height: 50,
+                    color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        UserState().deleteDraftEntry(draftId);
+                        Navigator.pop(dialogCtx);
+                        try {
+                          HapticFeedback.mediumImpact();
+                        } catch (_) {}
+                      },
+                      borderRadius: const BorderRadius.only(bottomRight: Radius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          "删除",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: fontFamily,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFD35D5D),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -238,9 +330,17 @@ class _DiaryDraftsPageState extends State<DiaryDraftsPage> {
               }
 
               // 获取心情图标
+              final parsed = ParsedTags.parse(draft.tag, draft.moodIndex);
               String moodIcon = 'assets/icons/happy.png';
               String moodLabel = '未记录';
-              if (draft.moodIndex != null && draft.moodIndex! >= 0 && draft.moodIndex! < kMoods.length) {
+              String? customMoodIconPath = parsed.customMoodIconPath;
+
+              if (parsed.customMood != null) {
+                moodLabel = parsed.customMood!;
+                moodIcon = (draft.moodIndex != null && draft.moodIndex! >= 0 && draft.moodIndex! <= 23)
+                    ? 'assets/icons/custom${draft.moodIndex! + 1}.png'
+                    : 'assets/images/icons/custom.png';
+              } else if (draft.moodIndex != null && draft.moodIndex! >= 0 && draft.moodIndex! < kMoods.length) {
                 final mood = kMoods[draft.moodIndex!];
                 moodIcon = mood.iconPath ?? moodIcon;
                 moodLabel = mood.label;
@@ -281,11 +381,10 @@ class _DiaryDraftsPageState extends State<DiaryDraftsPage> {
                           // 心情区域
                           Column(
                             children: [
-                              Image.asset(
-                                moodIcon,
+                              DiaryUtils.buildImage(
+                                customMoodIconPath ?? moodIcon,
                                 width: 28,
                                 height: 28,
-                                errorBuilder: (_, __, ___) => Icon(Icons.mood, size: 28, color: textColor.withValues(alpha: 0.3)),
                               ),
                               const SizedBox(height: 6),
                               Text(
@@ -305,17 +404,53 @@ class _DiaryDraftsPageState extends State<DiaryDraftsPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  draft.content.trim().isEmpty ? "无文字内容" : draft.content,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    height: 1.5,
-                                    fontFamily: fontFamily,
-                                    color: draft.content.trim().isEmpty ? subTextColor.withValues(alpha: 0.5) : textColor.withValues(alpha: 0.85),
-                                    fontWeight: draft.content.trim().isEmpty ? FontWeight.normal : FontWeight.w500,
-                                  ),
+                                Builder(
+                                  builder: (context) {
+                                    final String plainText = draft.content.trim();
+                                    if (plainText.isEmpty) {
+                                      return Text(
+                                        "无文字内容",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          height: 1.5,
+                                          fontFamily: fontFamily,
+                                          color: subTextColor.withValues(alpha: 0.5),
+                                        ),
+                                      );
+                                    }
+
+                                    final baseStyle = TextStyle(
+                                      fontSize: 14,
+                                      height: 1.5,
+                                      fontFamily: fontFamily,
+                                      color: textColor.withValues(alpha: 0.85),
+                                      fontWeight: FontWeight.w500,
+                                    );
+
+                                    final List<InlineSpan> spans = EmojiMapping.parseText(plainText).map((chunk) {
+                                      if (chunk.isEmoji) {
+                                        return WidgetSpan(
+                                          alignment: PlaceholderAlignment.middle,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                                            child: Image.asset(
+                                              chunk.emojiPath!,
+                                              width: baseStyle.fontSize! * 1.2,
+                                              height: baseStyle.fontSize! * 1.2,
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      return TextSpan(text: chunk.text, style: baseStyle);
+                                    }).toList();
+
+                                    return RichText(
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      text: TextSpan(children: spans),
+                                    );
+                                  },
                                 ),
                                 const SizedBox(height: 12),
                                 Text(

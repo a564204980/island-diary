@@ -292,12 +292,14 @@ class DiaryMasonryCard extends StatelessWidget {
                     child: _buildTagsRow(isWhiteText: true),
                   ),
                   const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _buildTime(isWhiteText: true),
-                      _buildLocation(isWhiteText: true),
-                    ],
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _buildTime(isWhiteText: true),
+                        _buildLocation(isWhiteText: true),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -332,12 +334,14 @@ class DiaryMasonryCard extends StatelessWidget {
                     child: _buildTagsRow(),
                   ),
                   const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _buildTime(),
-                      _buildLocation(),
-                    ],
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _buildTime(),
+                        _buildLocation(),
+                      ],
+                    ),
                   ),
                 ],
               )
@@ -437,12 +441,14 @@ class DiaryMasonryCard extends StatelessWidget {
                   child: _buildTagsRow(),
                 ),
                 const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _buildTime(),
-                    _buildLocation(),
-                  ],
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _buildTime(),
+                      _buildLocation(),
+                    ],
+                  ),
                 ),
               ],
             )
@@ -556,7 +562,9 @@ class DiaryMasonryCard extends StatelessWidget {
     final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
     final String moodLabel = parsed.customMood ?? mood.label;
     final String iconPath = parsed.customMood != null
-        ? 'assets/images/icons/custom.png'
+        ? (entry.moodIndex >= 0 && entry.moodIndex <= 23
+            ? 'assets/icons/custom${entry.moodIndex + 1}.png'
+            : 'assets/images/icons/custom.png')
         : (mood.iconPath ?? 'assets/icons/happy.png');
 
     tagWidgets.add(_buildTagPill(

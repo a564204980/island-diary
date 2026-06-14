@@ -53,7 +53,7 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
       paperStyle: widget.paperStyle,
       isDiary: true,
       showDragHandle: true,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -61,7 +61,7 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: EdgeInsets.zero,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -319,24 +319,32 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
+        curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isNight ? accentColor.withValues(alpha: 0.25) : accentColor.withValues(alpha: 0.12))
+              ? (isNight ? Colors.white.withValues(alpha: 0.15) : Colors.white)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            if (isSelected)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isNight ? 0.2 : 0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+          ],
         ),
         child: AnimatedDefaultTextStyle(
           duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
+          curve: Curves.easeOutCubic,
           style: TextStyle(
             fontFamily: fontFamily,
             fontSize: 13,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
             color: isSelected
-                ? accentColor
-                : inkColor.withValues(alpha: 0.5),
+                ? (isNight ? accentColor : inkColor)
+                : inkColor.withValues(alpha: 0.4),
           ),
           child: Text(label),
         ),

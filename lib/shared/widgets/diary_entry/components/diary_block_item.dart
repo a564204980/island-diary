@@ -224,7 +224,7 @@ class DiaryBlockItem extends StatelessWidget {
           return Center(
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: isWideScreen ? 760 : MediaQuery.of(context).size.width * 0.95,
+                maxWidth: isWideScreen ? 760 : double.infinity,
               ),
               child: Stack(
                 clipBehavior: Clip.none,
@@ -300,7 +300,7 @@ class DiaryBlockItem extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 8),
         constraints: BoxConstraints(
-          maxWidth: isWideScreen ? 760 : MediaQuery.of(context).size.width * 0.95,
+          maxWidth: isWideScreen ? 760 : double.infinity,
         ),
         child: DiaryImageCollage(
           imagePaths: paths,

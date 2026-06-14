@@ -161,7 +161,14 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       builder: (context) {
         return DiaryBottomSheet(
           paperStyle: currentPaperStyle,
-          height: MediaQuery.of(context).size.height * 0.55,
+          isDiary: true,
+          height: MediaQuery.of(context).size.height * 0.40,
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 12,
+            bottom: 24 + MediaQuery.of(context).padding.bottom,
+          ),
           child: EmojiPanel(
             onEmojiSelected: (emoji) {
               onEmojiSelected(emoji);

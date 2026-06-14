@@ -134,7 +134,9 @@ class UserState
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // 同步执行必须先做的命名空间与基础配置加载（极快，仅读取已缓存的 prefs 对象）
+    // 同步/立即加载基础目录路径，确保在首帧渲染前 documentsDirPath 就绪
+    await DiaryUtils.initDocumentsDirPath();
+
     loadLifeLines(prefs);
     loadProfile(prefs);
     loadSecurity(prefs);
@@ -148,7 +150,6 @@ class UserState
       loadDiaries(prefs),
       loadDecoration(prefs),
       loadAchievements(prefs),
-      DiaryUtils.initDocumentsDirPath(),
     ]);
   }
 

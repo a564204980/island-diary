@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:image/image.dart' as img;
 import 'package:island_diary/core/state/user_state.dart';
 
 class DiaryUtils {
@@ -18,6 +19,7 @@ class DiaryUtils {
     _documentsDirPath = dir.path;
     return _documentsDirPath!;
   }
+
   /// 预设文本颜色
   static const List<Color> presetTextColors = [
     Color(0xFF5D4037),
@@ -64,7 +66,15 @@ class DiaryUtils {
 
   /// 获取中文星期 (1-7)
   static String getWeekdayChinese(int weekday) {
-    const List<String> weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+    const List<String> weekdays = [
+      '星期一',
+      '星期二',
+      '星期三',
+      '星期四',
+      '星期五',
+      '星期六',
+      '星期日',
+    ];
     if (weekday < 1 || weekday > 7) return "";
     return weekdays[weekday - 1];
   }
@@ -72,8 +82,18 @@ class DiaryUtils {
   /// 获取月份英文缩写 (1-12)
   static String getMonthEnglish(int month) {
     const List<String> months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     if (month < 1 || month > 12) return "";
     return months[month - 1];
@@ -117,8 +137,19 @@ class DiaryUtils {
   /// 获取日期对应的星座 (Sync: 2026-04-21)
   static String getZodiacSign(int month, int day) {
     const List<String> signs = [
-      '摩羯座', '水瓶座', '双鱼座', '白羊座', '金牛座', '双子座',
-      '巨蟹座', '狮子座', '处女座', '天秤座', '天蝎座', '射手座', '摩羯座'
+      '摩羯座',
+      '水瓶座',
+      '双鱼座',
+      '白羊座',
+      '金牛座',
+      '双子座',
+      '巨蟹座',
+      '狮子座',
+      '处女座',
+      '天秤座',
+      '天蝎座',
+      '射手座',
+      '摩羯座',
     ];
     // 对应 1-12 月的星座分界点
     const List<int> cutoffs = [20, 19, 21, 20, 21, 22, 23, 23, 23, 24, 23, 22];
@@ -183,16 +214,20 @@ class DiaryUtils {
   }) {
     // 路径规格化处理
     final String normalizedPath = _normalizeImagePath(path);
-    
+
     Widget image;
     final bool isGif = normalizedPath.toLowerCase().endsWith('.gif');
-    final int? cacheW = isGif ? null : (width != null ? (width * 3).toInt() : 400);
+    final int? cacheW = isGif
+        ? null
+        : (width != null ? (width * 3).toInt() : 400);
 
-    if (normalizedPath.startsWith('http') || normalizedPath.startsWith('blob:') || normalizedPath.startsWith('data:')) {
+    if (normalizedPath.startsWith('http') ||
+        normalizedPath.startsWith('blob:') ||
+        normalizedPath.startsWith('data:')) {
       image = Image.network(
-        normalizedPath, 
-        width: width, 
-        height: height, 
+        normalizedPath,
+        width: width,
+        height: height,
         fit: fit,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
@@ -216,9 +251,9 @@ class DiaryUtils {
       if (kIsWeb) {
         // 在 Web 平台上，所有的本地文件路径实际上是由浏览器代理的 blob 或相对路径，必须使用 Image.network
         image = Image.network(
-          normalizedPath, 
-          width: width, 
-          height: height, 
+          normalizedPath,
+          width: width,
+          height: height,
           fit: fit,
         );
       } else {
@@ -230,9 +265,9 @@ class DiaryUtils {
         }
 
         image = Image.file(
-          file, 
-          width: width, 
-          height: height, 
+          file,
+          width: width,
+          height: height,
           fit: fit,
           cacheWidth: cacheW, // 关键优化：限制本地原图解码尺寸
         );
@@ -290,10 +325,10 @@ class DiaryUtils {
     if (path.isEmpty) return path;
 
     // 1. 如果已经是绝对路径、URL、Blob 或 Base64，则保持原样
-    if (path.startsWith('http') || 
-        path.startsWith('blob:') || 
-        path.startsWith('data:') || 
-        path.startsWith('/') || 
+    if (path.startsWith('http') ||
+        path.startsWith('blob:') ||
+        path.startsWith('data:') ||
+        path.startsWith('/') ||
         path.startsWith('assets/')) {
       return path;
     }
@@ -303,7 +338,7 @@ class DiaryUtils {
     if (!path.contains('/')) {
       return 'assets/images/note/$path';
     }
-    
+
     // 3. 包含路径但缺少 assets/ 前缀
     if (path.startsWith('images/')) {
       return 'assets/$path';
@@ -313,7 +348,11 @@ class DiaryUtils {
   }
 
   /// 构建统一的加载失败占位符
-  static Widget _buildErrorPlaceholder(double? width, double? height, BorderRadius? borderRadius) {
+  static Widget _buildErrorPlaceholder(
+    double? width,
+    double? height,
+    BorderRadius? borderRadius,
+  ) {
     return Container(
       width: width,
       height: height,
@@ -324,9 +363,16 @@ class DiaryUtils {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(CupertinoIcons.photo, size: 24, color: Colors.black.withValues(alpha: 0.2)),
+          Icon(
+            CupertinoIcons.photo,
+            size: 24,
+            color: Colors.black.withValues(alpha: 0.2),
+          ),
           const SizedBox(height: 4),
-          const Text('图片加载失败', style: TextStyle(fontSize: 10, color: Colors.black45)),
+          const Text(
+            '图片加载失败',
+            style: TextStyle(fontSize: 10, color: Colors.black45),
+          ),
         ],
       ),
     );
@@ -365,8 +411,7 @@ class DiaryUtils {
     try {
       final tempDir = await getTemporaryDirectory();
       final name =
-          fileName ??
-          "diary_data_${DateTime.now().millisecondsSinceEpoch}.bin";
+          fileName ?? "diary_data_${DateTime.now().millisecondsSinceEpoch}.bin";
       final file = io.File('${tempDir.path}/$name');
       await file.writeAsBytes(bytes);
       return file.path;
@@ -383,7 +428,9 @@ class DiaryUtils {
     if (locationMatch != null) {
       info['location'] = locationMatch.group(1)?.trim() ?? "";
     }
-    final weatherMatch = RegExp(r'#天气:\s*(.+?)\s*(-?\d+°C)').firstMatch(content);
+    final weatherMatch = RegExp(
+      r'#天气:\s*(.+?)\s*(-?\d+°C)',
+    ).firstMatch(content);
     if (weatherMatch != null) {
       info['weather'] = weatherMatch.group(1)?.trim() ?? "";
       info['temp'] = weatherMatch.group(2)?.trim() ?? "";
@@ -399,7 +446,10 @@ class DiaryUtils {
       filtered = filtered.replaceFirst(RegExp(r'\n?#地点:\s*[^\n#]+\s*'), "");
     }
     if (info.containsKey('weather')) {
-      filtered = filtered.replaceFirst(RegExp(r'\n?#天气:\s*(.+?)\s*-?\d+°C\s*'), "");
+      filtered = filtered.replaceFirst(
+        RegExp(r'\n?#天气:\s*(.+?)\s*-?\d+°C\s*'),
+        "",
+      );
     }
     return filtered.trim();
   }
@@ -407,7 +457,7 @@ class DiaryUtils {
   /// 获取信纸对应的墨水颜色 (文字颜色)
   static Color getInkColor(String paperStyle, bool isNight) {
     if (isNight) {
-      return const Color(0xFFFFFFFF); 
+      return const Color(0xFFFFFFFF);
     }
 
     // 针对“时光叙事”(note2) 风格使用深咖啡色
@@ -474,7 +524,7 @@ class DiaryUtils {
       return const Color(0xFFC0A6FF);
     }
     if (isNight) {
-      return const Color(0xFFE0C097); 
+      return const Color(0xFFE0C097);
     }
 
     // 针对“时光叙事”(note2) 风格使用复古棕褐色
@@ -517,15 +567,24 @@ class DiaryUtils {
   }
 
   /// 获取弹窗统一装饰样式，支持棉花糖主题夜间模式的顶部紫色描边与去发光
-  static BoxDecoration getPopupDecoration(String paperStyle, bool isNight, {Color? customBgColor}) {
+  static BoxDecoration getPopupDecoration(
+    String paperStyle,
+    bool isNight, {
+    Color? customBgColor,
+  }) {
     final themeId = UserState().selectedIslandThemeId.value;
     final isCottonCandy = themeId == 'cotton_candy';
     final isLego = themeId == 'lego';
-    final Color bgColor = customBgColor ?? getPopupBackgroundColor(paperStyle, isNight);
+    final Color bgColor =
+        customBgColor ?? getPopupBackgroundColor(paperStyle, isNight);
 
     if (isLego) {
-      final Color depthColor = isNight ? const Color(0xFF1B160E) : const Color(0xFFEADAB9);
-      final Color shadowColor = isNight ? const Color(0x80000000) : const Color(0x3D5D4037);
+      final Color depthColor = isNight
+          ? const Color(0xFF1B160E)
+          : const Color(0xFFEADAB9);
+      final Color shadowColor = isNight
+          ? const Color(0x80000000)
+          : const Color(0x3D5D4037);
       return BoxDecoration(
         color: bgColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -550,12 +609,7 @@ class DiaryUtils {
       color: bgColor,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
       border: (isCottonCandy && isNight)
-          ? const Border(
-              top: BorderSide(
-                color: Color(0xFFC0A6FF),
-                width: 1.5,
-              ),
-            )
+          ? const Border(top: BorderSide(color: Color(0xFFC0A6FF), width: 1.5))
           : null,
       boxShadow: (isCottonCandy && isNight)
           ? null
@@ -570,7 +624,11 @@ class DiaryUtils {
   }
 
   /// 获取弹窗统一把手，适配棉花糖主题夜间模式
-  static Widget buildPopupDragHandle(String paperStyle, bool isNight, Color inkColor) {
+  static Widget buildPopupDragHandle(
+    String paperStyle,
+    bool isNight,
+    Color inkColor,
+  ) {
     final themeId = UserState().selectedIslandThemeId.value;
     final isCottonCandy = themeId == 'cotton_candy';
 
@@ -591,7 +649,7 @@ class DiaryUtils {
   /// 获取信纸背景资产路径
   static String getPaperBackgroundPath(String paperStyle, bool isNight) {
     if (!paperStyle.startsWith('note')) return '';
-    
+
     final String prefix = isNight ? 'note_night_bg' : 'note_bg';
     // 目前 note1-9 都是 png
     return 'assets/images/note/${paperStyle.replaceFirst('note', prefix)}.png';
@@ -600,19 +658,19 @@ class DiaryUtils {
   /// 根据心情和强度判断背景是否为深色，用于自动切换文字颜色
   static bool isMoodBackgroundDark(int moodIndex, double intensity) {
     // 0: 期待, 1: 厌恶, 2: 恐惧, 3: 惊喜, 4: 平静, 5: 愤怒, 6: 悲伤, 7: 开心
-    
+
     // 始终定义为深色的背景 (需要白色文字)
     if (moodIndex == 2 || moodIndex == 5) return true;
-    
+
     // 厌恶系列通常偏冷色调/深色
     if (moodIndex == 1) return true;
-    
+
     // 平静系列 1, 2 较浅, 3 较深
     if (moodIndex == 4) return intensity > 7.0;
-    
+
     // 惊喜、期待、开心系列通常较亮 (需要深色文字)
     if (moodIndex == 0 || moodIndex == 3 || moodIndex == 7) return false;
-    
+
     return false;
   }
 
@@ -627,7 +685,8 @@ class DiaryUtils {
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (context) {
-        final String fontFamily = UserState().selectedIslandThemeId.value == 'lego'
+        final String fontFamily =
+            UserState().selectedIslandThemeId.value == 'lego'
             ? 'SweiFistLeg'
             : 'LXGWWenKai';
         return Dialog(
@@ -703,6 +762,49 @@ class DiaryUtils {
       },
     );
   }
+
+  /// 压缩图片：将大图片等比例缩放并压缩，保留合理画质不压得太狠（宽限制1200，质量80）
+  static Future<String> compressImage(String originalPath) async {
+    try {
+      final file = io.File(originalPath);
+      if (!await file.exists()) return originalPath;
+
+      final int sizeInBytes = await file.length();
+      // 如果小于 600KB，直接返回原路径，不需要再压缩
+      if (sizeInBytes < 600 * 1024) {
+        debugPrint(
+          "图片文件较小 (${(sizeInBytes / 1024).toStringAsFixed(1)}KB)，跳过压缩",
+        );
+        return originalPath;
+      }
+
+      final bytes = await file.readAsBytes();
+      final image = img.decodeImage(bytes);
+      if (image == null) return originalPath;
+
+      // 等比例缩放：如果宽度大于 1440，则等比缩放到宽度为 1440 以保留高清晰度
+      img.Image resized = image;
+      if (image.width > 1440) {
+        resized = img.copyResize(image, width: 1440);
+      }
+
+      // 质量压缩：选择 82 以保留非常高品质的视觉效果，不压缩太狠
+      final compressedBytes = img.encodeJpg(resized, quality: 82);
+
+      final tempDir = await getTemporaryDirectory();
+      final compressedPath =
+          '${tempDir.path}/compressed_${DateTime.now().microsecondsSinceEpoch}.jpg';
+      await io.File(compressedPath).writeAsBytes(compressedBytes);
+
+      debugPrint(
+        "图片压缩成功: 原图 ${(sizeInBytes / 1024 / 1024).toStringAsFixed(2)}MB -> 压缩后 ${(compressedBytes.length / 1024).toStringAsFixed(2)}KB",
+      );
+      return compressedPath;
+    } catch (e) {
+      debugPrint("图片压缩失败: $e");
+      return originalPath;
+    }
+  }
 }
 
 class ParsedTags {
@@ -715,7 +817,11 @@ class ParsedTags {
     if (rawTag == null || rawTag.isEmpty) {
       return ParsedTags(tags: []);
     }
-    final List<String> parts = rawTag.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
+    final List<String> parts = rawTag
+        .split(',')
+        .map((t) => t.trim())
+        .where((t) => t.isNotEmpty)
+        .toList();
     String? customMood;
     String? customMoodIconPath;
     final List<String> tags = [];
@@ -726,7 +832,16 @@ class ParsedTags {
       } else if (part.startsWith('mood_icon:')) {
         final relPath = part.substring(10);
         if (DiaryUtils.documentsDirPath.isNotEmpty) {
-          customMoodIconPath = '${DiaryUtils.documentsDirPath}/$relPath';
+          final String directPath = '${DiaryUtils.documentsDirPath}/$relPath';
+          final String subDirPath =
+              '${DiaryUtils.documentsDirPath}/custom_emojis/$relPath';
+          if (io.File(subDirPath).existsSync()) {
+            customMoodIconPath = subDirPath;
+          } else if (io.File(directPath).existsSync()) {
+            customMoodIconPath = directPath;
+          } else {
+            customMoodIconPath = subDirPath;
+          }
         }
       } else {
         tags.add(part);
@@ -743,6 +858,10 @@ class ParsedTags {
       }
     }
 
-    return ParsedTags(customMood: customMood, customMoodIconPath: customMoodIconPath, tags: tags);
+    return ParsedTags(
+      customMood: customMood,
+      customMoodIconPath: customMoodIconPath,
+      tags: tags,
+    );
   }
 }

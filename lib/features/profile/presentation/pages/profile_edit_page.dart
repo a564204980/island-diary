@@ -58,44 +58,40 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     final bool isNight = userState.isNight;
     final Color bgColor = isNight ? const Color(0xFF0D1B2A) : const Color(0xFFE6F3F5);
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          '编辑资料',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            color: isNight ? Colors.white : const Color(0xFF1F2937),
-            fontFamily: 'LXGWWenKai',
-            letterSpacing: 2,
-          ),
-        ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: isNight ? Colors.white70 : Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _saveProfile,
-            child: Text(
-              '完成',
-              style: TextStyle(
-                color: const Color(0xFF7B5C2E),
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                fontFamily: 'LXGWWenKai',
-              ),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
+          final userState = UserState();
+          await userState.setUserName(_nameController.text);
+          await userState.setUserBio(_bioController.text);
+          await userState.setUserGender(_selectedGender);
+          await userState.setUserBirthday(_selectedBirthday);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: bgColor,
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            '编辑资料',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: isNight ? Colors.white : const Color(0xFF1F2937),
+              fontFamily: 'LXGWWenKai',
+              letterSpacing: 2,
             ),
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Stack(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: isNight ? Colors.white70 : Colors.black87),
+            onPressed: _saveProfile,
+          ),
+        ),
+        body: Stack(
         children: [
           Center(
             child: ConstrainedBox(
@@ -179,8 +175,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildDivider(bool isNight) {
     return Padding(

@@ -1,18 +1,18 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import '../utils/diary_utils.dart';
-import '../models/diary_block.dart';
 import 'diary_bottom_sheet.dart';
 
 class UnderlinePickerSheet extends StatelessWidget {
   final ValueChanged<String?> onSelectStyle;
   final String? currentStyle;
+  final String paperStyle;
 
   const UnderlinePickerSheet({
     super.key,
     required this.onSelectStyle,
     this.currentStyle,
+    this.paperStyle = 'standard',
   });
 
   @override
@@ -25,56 +25,57 @@ class UnderlinePickerSheet extends StatelessWidget {
       {'index': '05', 'label': '点线', 'value': 'dotted', 'text': '这是一段文字', 'color': const Color(0xFFE91E63)},
       {'index': '06', 'label': '波浪', 'value': 'wavy', 'text': '这是一段文字', 'color': const Color(0xFF1ABC9C)},
       {'index': '07', 'label': '手写', 'value': 'handdrawn', 'text': '这是一段文字', 'color': const Color(0xFFE74C3C)},
-      {'index': '08', 'label': '荧光', 'value': 'marker', 'text': '这是一段文字', 'color': const Color(0xFFF1C40F)},
-      {'index': '09', 'label': '渐变', 'value': 'gradient', 'text': '这是一段文字', 'color': const Color(0xFF3498DB)},
+      {'index': '08', 'label': '渐变', 'value': 'gradient', 'text': '这是一段文字', 'color': const Color(0xFF3498DB)},
     ];
 
     final bool isNight = UserState().isNight;
-    final Color textColor = DiaryUtils.getInkColor('standard', isNight);
+    final themeId = UserState().selectedIslandThemeId.value;
+    final String fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+    final Color textColor = DiaryUtils.getInkColor(paperStyle, isNight);
 
     return DiaryBottomSheet(
-      paperStyle: 'standard',
+      paperStyle: paperStyle,
       isDiary: true,
       showDragHandle: true,
-      padding: EdgeInsets.only(
-        left: 12,
-        right: 12,
-        top: 10,
-        bottom: 10 + MediaQuery.of(context).padding.bottom,
-      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
                 '选择划线样式',
                 style: TextStyle(
-                  fontFamily: 'LXGWWenKai',
-                  fontSize: 15,
+                  fontFamily: fontFamily,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: textColor.withValues(alpha: 0.9),
                 ),
               ),
-            ),
+              IconButton(
+                icon: Icon(
+                  Icons.close_rounded,
+                  color: textColor.withValues(alpha: 0.5),
+                  size: 20,
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
+              crossAxisCount: 2,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              childAspectRatio: 1.75, // 更紧凑比例，缩小上下空隙
+              childAspectRatio: 3.4, // 双列比例
             ),
             itemCount: styles.length,
             itemBuilder: (context, index) {
               final item = styles[index];
               final String val = item['value']!;
-              final String idxStr = item['index']!;
               final String label = item['label']!;
               final String previewText = item['text']!;
               final Color indexColor = item['color']!;
@@ -82,115 +83,163 @@ class UnderlinePickerSheet extends StatelessWidget {
 
               return GestureDetector(
                 onTap: () {
-                  onSelectStyle(val);
+                  if (isSelected) {
+                    onSelectStyle(null);
+                  } else {
+                    onSelectStyle(val);
+                  }
                   Navigator.pop(context);
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
                     color: isNight 
                         ? (isSelected ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.02))
-                        : (isSelected ? Colors.white : Colors.white.withValues(alpha: 0.8)),
+                        : (isSelected ? Colors.white : Colors.white.withValues(alpha: 0.5)),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected ? indexColor : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
-                      width: isSelected ? 2.0 : 1.0,
+                      width: isSelected ? 1.5 : 1.0,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: isSelected ? 0.06 : 0.01),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  child: Row(
                     children: [
-                      // Top badge + Label
-                      Row(
-                        children: [
-                          Container(
-                            width: 13,
-                            height: 13,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: indexColor,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              idxStr,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: 'LXGWWenKai',
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: isNight ? Colors.white70 : Colors.black87,
-                              ),
-                            ),
-                          ),
-                        ],
+                      // Label
+                      Text(
+                        "$label：",
+                        style: TextStyle(
+                          fontFamily: fontFamily,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.bold,
+                          color: isNight ? Colors.white70 : Colors.black87,
+                        ),
                       ),
-                      const SizedBox(height: 2),
-                      // Center text with actual style applied
-                      Expanded(
-                        child: Center(
-                           child: Text(
+                      const SizedBox(width: 2),
+                      // Underlined text preview
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
                             previewText,
                             style: TextStyle(
-                              fontSize: 11,
-                              height: 1.8,
+                              fontSize: 11.5,
                               fontWeight: FontWeight.bold,
                               color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xDE000000),
                               fontFamily: 'LXGWWenKai',
-                              background: Paint()
-                                ..shader = DiaryTextEditingController.getUnderlineShader(
-                                  val,
-                                  indexColor,
-                                  11.0 * 1.8,
-                                ),
                             ),
                           ),
-                        ),
+                          const SizedBox(height: 2),
+                          CustomPaint(
+                            size: const Size(69, 6),
+                            painter: _UnderlinePreviewPainter(val, indexColor),
+                          ),
+                        ],
                       ),
+                      const Spacer(),
+                      if (isSelected)
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: indexColor,
+                          size: 15,
+                        ),
                     ],
                   ),
                 ),
               );
             },
           ),
-          if (currentStyle != null) ...[
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () {
-                onSelectStyle(null);
-                Navigator.pop(context);
-              },
-              child: Text(
-                '清除当前划线',
-                style: TextStyle(
-                  fontFamily: 'LXGWWenKai',
-                  fontSize: 13,
-                  color: Colors.redAccent.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
+  }
+}
+
+class _UnderlinePreviewPainter extends CustomPainter {
+  final String style;
+  final Color color;
+
+  _UnderlinePreviewPainter(this.style, this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke;
+
+    final double y = size.height / 2;
+
+    if (style == 'wavy') {
+      paint.strokeWidth = 1.8;
+      paint.strokeCap = StrokeCap.round;
+      final path = Path();
+      path.moveTo(0, y);
+      for (double x = 0; x < size.width; x += 12) {
+        path.quadraticBezierTo(x + 3, y - 2.2, x + 6, y);
+        path.quadraticBezierTo(x + 9, y + 2.2, x + 12, y);
+      }
+      canvas.drawPath(path, paint);
+    } else if (style == 'handdrawn') {
+      paint.strokeWidth = 2.0;
+      paint.strokeCap = StrokeCap.round;
+      final path = Path();
+      path.moveTo(0, y + 0.4);
+      for (double x = 0; x < size.width; x += 12) {
+        path.quadraticBezierTo(x + 3, y - 0.8, x + 6, y + 0.6);
+        path.quadraticBezierTo(x + 9, y - 0.6, x + 12, y + 0.3);
+      }
+      canvas.drawPath(path, paint);
+    } else if (style == 'dashed') {
+      paint.strokeWidth = 1.8;
+      paint.strokeCap = StrokeCap.round;
+      for (double x = 0; x < size.width; x += 10) {
+        canvas.drawLine(Offset(x + 1, y), Offset(x + 6, y), paint);
+      }
+    } else if (style == 'dotted') {
+      paint.strokeWidth = 2.4;
+      paint.strokeCap = StrokeCap.round;
+      for (double x = 0; x < size.width; x += 8) {
+        canvas.drawLine(Offset(x + 2, y), Offset(x + 2.1, y), paint);
+      }
+    } else if (style == 'double') {
+      paint.strokeWidth = 1.0;
+      canvas.drawLine(Offset(0, y - 1.5), Offset(size.width, y - 1.5), paint);
+      canvas.drawLine(Offset(0, y + 1.5), Offset(size.width, y + 1.5), paint);
+    } else if (style == 'thick') {
+      paint.strokeWidth = 3.0;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    } else if (style == 'gradient') {
+      paint.strokeWidth = 2.0;
+      paint.shader = const LinearGradient(
+        colors: [
+          Color(0xFFFF5E62), // 红
+          Color(0xFFFF9966), // 橙
+          Color(0xFFFFD97D), // 黄
+          Color(0xFFC8E688), // 黄绿
+          Color(0xFF6DE195), // 绿
+          Color(0xFF4DE2C6), // 青
+          Color(0xFF3498DB), // 蓝
+          Color(0xFF667EEA), // 靛
+          Color(0xFF9B59B6), // 紫
+          Color(0xFF667EEA), // 靛
+          Color(0xFF3498DB), // 蓝
+          Color(0xFF4DE2C6), // 青
+          Color(0xFF6DE195), // 绿
+          Color(0xFFC8E688), // 黄绿
+          Color(0xFFFFD97D), // 黄
+          Color(0xFFFF9966), // 橙
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    } else {
+      // solid
+      paint.strokeWidth = 1.2;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _UnderlinePreviewPainter oldDelegate) {
+    return oldDelegate.style != style || oldDelegate.color != color;
   }
 }

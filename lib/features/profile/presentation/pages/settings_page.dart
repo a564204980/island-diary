@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'dart:io' as io;
+import 'package:path_provider/path_provider.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/constants/legal_text.dart';
 import 'package:island_diary/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:island_diary/shared/services/backup_service.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -65,6 +66,14 @@ class SettingsPage extends StatelessWidget {
                             accentColor: const Color(0xFFEC4899),
                             isNight: isNight,
                             onTap: () => _showLegalDialog(context, '意见反馈', LegalText.feedbackInfo, isNight),
+                          ),
+                          _buildDivider(isNight),
+                          _SettingsTile(
+                            title: '清理缓存',
+                            icon: Icons.cleaning_services_rounded,
+                            accentColor: const Color(0xFF10B981),
+                            isNight: isNight,
+                            onTap: () => _showClearCacheDialog(context, isNight),
                           ),
                         ],
                       ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
@@ -613,6 +622,67 @@ class SettingsPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<double> _calculateCacheSize() async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      double totalSize = 0;
+      if (await tempDir.exists()) {
+        final list = tempDir.listSync(recursive: true);
+        for (var file in list) {
+          if (file is io.File) {
+            totalSize += await file.length();
+          }
+        }
+      }
+      return totalSize;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  Future<void> _clearCacheDirectory() async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        final list = tempDir.listSync(recursive: true);
+        for (var file in list) {
+          if (file is io.File) {
+            await file.delete();
+          } else if (file is io.Directory) {
+            try {
+              await file.delete(recursive: true);
+            } catch (_) {}
+          }
+        }
+      }
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+    } catch (e) {
+      debugPrint("清理缓存出错: $e");
+    }
+  }
+
+  void _showClearCacheDialog(BuildContext context, bool isNight) async {
+    // 异步计算当前缓存大小
+    final double sizeInBytes = await _calculateCacheSize();
+    final double sizeInMb = sizeInBytes / (1024 * 1024);
+
+    if (!context.mounted) return;
+
+    _showActionDialog(
+      context,
+      '清理缓存',
+      '当前临时缓存大小为 ${sizeInMb.toStringAsFixed(2)} MB。\n清理缓存后，下载的临时图片及浏览记录将会被清除，写过的日记内容不会受到任何影响。',
+      isNight,
+      onConfirm: () async {
+        await _clearCacheDirectory();
+        if (context.mounted) {
+          _showToast(context, '缓存清理成功 ✨');
+        }
+      },
     );
   }
 }

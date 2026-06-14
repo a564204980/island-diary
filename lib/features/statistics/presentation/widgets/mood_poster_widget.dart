@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/statistics/domain/utils/soul_season_logic.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 
 class MoodPosterWidget extends StatefulWidget {
   final List<DiaryEntry> entries;
@@ -148,13 +149,37 @@ class _MoodPosterWidgetState extends State<MoodPosterWidget> {
                               spacing: -20,
                               children: widget.entries.take(5).map((e) {
                                 final mood = kMoods[e.moodIndex % kMoods.length];
+                                final parsed = ParsedTags.parse(e.tag, e.moodIndex);
+                                final String iconPath = parsed.customMood != null
+                                    ? (e.moodIndex >= 0 && e.moodIndex <= 23
+                                        ? 'assets/icons/custom${e.moodIndex + 1}.png'
+                                        : 'assets/images/icons/custom.png')
+                                    : (mood.iconPath ?? 'assets/icons/happy.png');
+                                final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+
                                 return Transform.rotate(
                                   angle: (widget.entries.indexOf(e) - 2) * 0.2,
-                                  child: Image.asset(
-                                    (e.tag != null && e.tag!.isNotEmpty) ? 'assets/images/icons/custom.png' : mood.iconPath!,
-                                    width: 80,
-                                    height: 80,
-                                  ),
+                                  child: hasCustomIcon
+                                      ? Image.file(
+                                          File(parsed.customMoodIconPath!),
+                                          width: 80,
+                                          height: 80,
+                                          errorBuilder: (c, err, s) => Image.asset(
+                                            'assets/icons/happy.png',
+                                            width: 80,
+                                            height: 80,
+                                          ),
+                                        )
+                                      : Image.asset(
+                                          iconPath,
+                                          width: 80,
+                                          height: 80,
+                                          errorBuilder: (c, err, s) => Image.asset(
+                                            'assets/icons/happy.png',
+                                            width: 80,
+                                            height: 80,
+                                          ),
+                                        ),
                                 );
                               }).toList(),
                             ),

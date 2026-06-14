@@ -133,40 +133,33 @@ class EditorBottomBar extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const SizedBox(width: 4),
-                          // 1. A 按钮 (文字样式)
+                          // 1. 笑脸 (表情) 移动至最左侧
+                          _buildToolbarIcon(
+                            isEmojiOpen ? Icons.keyboard_alt_outlined : Icons.sentiment_satisfied_alt_outlined,
+                            onEmojiToggle,
+                            iconColor,
+                          ),
+                          const SizedBox(width: 4),
+                          // 2. A 按钮 (文字样式)
                           _buildTextButton(iconColor),
                           const SizedBox(width: 4),
-                          // 2. 标签按钮（带角标）
+                          // 3. 标签按钮（带角标）
                           _buildTagIconWithBadge(context, iconColor),
                           const SizedBox(width: 4),
-                          // 3. 图片
+                          // 4. 图片
                           _buildToolbarIcon(Icons.image_outlined, onImagePick, iconColor),
                           const SizedBox(width: 4),
-                          // 4. 地点定位
+                          // 5. 地点定位
                           _buildToolbarIcon(Icons.location_on_outlined, onLocationClick, iconColor),
                           const SizedBox(width: 4),
-                          // 5. 调色盘 (背景模板)
+                          // 6. 调色盘 (背景模板)
                           _buildToolbarIcon(Icons.palette_outlined, onBgColorClick, iconColor),
-                          const SizedBox(width: 4),
-                          // 6. 麦克风 (语音输入)
-                          _buildToolbarIcon(Icons.mic_none_outlined, () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('语音输入功能开发中...')),
-                            );
-                          }, iconColor),
                           const SizedBox(width: 4),
                           // 7. 太阳 (天气)
                           _buildToolbarIcon(Icons.wb_sunny_outlined, onWeatherClick, iconColor),
                           const SizedBox(width: 4),
                           // 8. 设置
                           _buildToolbarIcon(Icons.settings_outlined, onMoreClick, iconColor),
-                          const SizedBox(width: 4),
-                          // 9. 笑脸 (表情)
-                          _buildToolbarIcon(
-                            isEmojiOpen ? Icons.keyboard_alt_outlined : Icons.sentiment_satisfied_alt_outlined,
-                            onEmojiToggle,
-                            iconColor,
-                          ),
                           const SizedBox(width: 8),
                         ],
                       ),
