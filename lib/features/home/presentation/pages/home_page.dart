@@ -234,8 +234,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           : 'assets/images/theme/miamhuadao/mianhuadao_xiaodao.png';
     } else if (themeId == 'lego') {
       return 'assets/images/theme/legao/legao_xiaodao.png';
-    } else if (themeId == 'lantern_festival') {
-      return 'assets/images/home5.png';
     }
 
     if (UserState().themeMode.value == 'light') {
@@ -253,9 +251,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Color _getIslandGlowColorForCurrentTime() {
     final themeId = UserState().selectedIslandThemeId.value;
-    if (themeId == 'lantern_festival') {
-      return const Color(0xFFFFD180).withValues(alpha: 0.7); // 温暖金橙光
-    }
     if (themeId == 'cotton_candy') {
       return const Color(0xFFFFE8F5).withValues(alpha: 0.8); // 粉紫色柔光
     }
@@ -272,9 +267,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Color _getIslandBottomLightColorForCurrentTime() {
     final themeId = UserState().selectedIslandThemeId.value;
-    if (themeId == 'lantern_festival') {
-      return const Color(0xFFFF8A65).withValues(alpha: 0.95); // 暖红橙火光
-    }
     if (themeId == 'cotton_candy') {
       return _isNight
           ? const Color(0xFFD1C4E9).withValues(alpha: 0.85) // 粉紫色柔光
@@ -295,9 +287,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Color _getIslandBottomRockLightColorForCurrentTime() {
     final themeId = UserState().selectedIslandThemeId.value;
-    if (themeId == 'lantern_festival') {
-      return const Color(0xFFFF8A65).withValues(alpha: 0.7); // 底部岩石映照色
-    }
     if (themeId == 'cotton_candy') {
       return _isNight
           ? const Color(0xFFD1C4E9).withValues(alpha: 0.6) // 底部岩石映照粉紫光
@@ -468,12 +457,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           ? '心情漫游'
                                           : '${UserState().userName.value}的小岛',
                                       style: TextStyle(
-                                        color:
-                                            (isNight ||
-                                                UserState()
-                                                        .selectedIslandThemeId
-                                                        .value ==
-                                                    'lantern_festival')
+                                        color: isNight
                                             ? Colors.white
                                             : const Color(0xFF5A3E28),
                                         fontSize: 22,
@@ -515,13 +499,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                   Text(
                                                     "我的岛屿日记",
                                                     style: TextStyle(
-                                                      color: isLantern
-                                                          ? const Color(0xFFF6DFA5)
-                                                          : (isCottonCandy
-                                                                ? (isNight ? Colors.white : const Color(0xFF4E3A46))
-                                                                : (isNight
-                                                                      ? Colors.white
-                                                                      : const Color(0xFF3B2E25))),
+                                                      color: isCottonCandy
+                                                          ? (isNight ? Colors.white : const Color(0xFF4E3A46))
+                                                          : (isNight
+                                                              ? Colors.white
+                                                              : const Color(0xFF3B2E25)),
                                                       fontSize: 22,
                                                       fontWeight: FontWeight.bold,
                                                       fontFamily: headerFont,
@@ -539,13 +521,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                               Text(
                                                 "${UserState().userName.value} 的小岛 · 第 ${UserState().savedDiaries.value.length} 天",
                                                 style: TextStyle(
-                                                  color: isLantern
-                                                      ? const Color(0xFFE6C78F)
-                                                      : (isCottonCandy
-                                                            ? (isNight ? Colors.white54 : const Color(0xFF8D7A84))
-                                                            : (isNight
-                                                                  ? Colors.white54
-                                                                  : const Color(0xFF8B7E74))),
+                                                  color: isCottonCandy
+                                                      ? (isNight ? Colors.white54 : const Color(0xFF8D7A84))
+                                                      : (isNight ? Colors.white54 : const Color(0xFF8B7E74)),
                                                   fontSize: 12,
                                                   fontFamily: headerFont,
                                                   fontWeight: FontWeight.bold,
@@ -694,17 +672,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           islandScale = 1.0; // 棉花糖小岛大小为1.0
           islandOffsetY = 15.0; // 对应偏移微调为15.0
         } else if (themeId == 'lego') {
-          bgScale = 1.15;
-          bgOffsetY = -10.0;
-          islandScale = 1.05;
-          islandOffsetY = 5.0;
-        } else if (themeId == 'lantern_festival') {
-          bgScale = 1.4; // 元宵节背景放大
-          bgOffsetY = -30.0; // 元宵节背景偏移
-
-          islandScale = 1.1; // 元宵节小岛缩放
-          islandOffsetY = 0.0; // 元宵节小岛垂直偏移
-        } else if (themeId == 'starry_night') {
           bgScale = 1.1;
           bgOffsetY = 0.0;
         }
@@ -778,24 +745,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
           ),
         ),
-        // 闪烁繁星层 (元宵节主题专属)
-        if (!_isLandscape && themeId == 'lantern_festival')
-          const Positioned.fill(child: TwinklingStars(count: 35)),
-        if (!_isLandscape && themeId != 'lantern_festival' && themeId != 'lego')
+        if (!_isLandscape && themeId != 'lego')
           Positioned.fill(
             child: FloatingClouds(
               isNight: isNight,
               themeId: themeId,
-              shouldAnimate:
-                  _currentNavIndex == 0 &&
-                  UserState().homeDisplayMode.value == 'island',
-            ),
-          ),
-        if (!_isLandscape && themeId == 'lantern_festival')
-          Positioned.fill(
-            child: RisingLanterns(
-              count: 6,
-              isForeground: false, // 背景层灯笼
               shouldAnimate:
                   _currentNavIndex == 0 &&
                   UserState().homeDisplayMode.value == 'island',
@@ -975,22 +929,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         if (_isLandscape && _groupedEntries.isNotEmpty)
           Positioned.fill(child: _buildBarrageLayer()),
 
-        if (!_isLandscape && themeId != 'lantern_festival' && themeId != 'lego')
+        if (!_isLandscape && themeId != 'lego')
           Positioned.fill(
             child: FloatingClouds(
               isNight: isNight,
               isForeground: true,
               themeId: themeId,
-              shouldAnimate:
-                  _currentNavIndex == 0 &&
-                  UserState().homeDisplayMode.value == 'island',
-            ),
-          ),
-        if (!_isLandscape && themeId == 'lantern_festival')
-          Positioned.fill(
-            child: RisingLanterns(
-              count: 4,
-              isForeground: true, // 前景层灯笼
               shouldAnimate:
                   _currentNavIndex == 0 &&
                   UserState().homeDisplayMode.value == 'island',
@@ -1123,17 +1067,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     Color containerColor;
     Color borderColor;
 
-    if (themeId == 'lantern_festival') {
-      activeColor = const Color(0xFFD4A373);
-      selectedIconColor = Colors.white;
-      unselectedIconColor = Colors.white.withValues(alpha: 0.6);
-      containerColor = isNight
-          ? Colors.white.withValues(alpha: 0.15)
-          : Colors.black.withValues(alpha: 0.25);
-      borderColor = isNight
-          ? const Color(0xFFD4A373).withValues(alpha: 0.25)
-          : Colors.black.withValues(alpha: 0.05);
-    } else if (themeId == 'cotton_candy') {
+    if (themeId == 'cotton_candy') {
       activeColor = const Color(0xFFFF94B8);
       selectedIconColor = Colors.white;
       unselectedIconColor = isNight
@@ -1144,7 +1078,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           : const Color(0xFFFFCADB).withValues(alpha: 0.45);
       borderColor = isNight
           ? const Color(0xFFB19FFB).withValues(alpha: 0.3)
-          : const Color(0xFFFFD1E1).withValues(alpha: 0.4);
+          : const Color(0xFFFFD1E1).withValues(alpha: 0.45);
     } else if (themeId == 'lego') {
       activeColor = const Color(0xFFFFD54F);
       selectedIconColor = const Color(0xFF3B2E25);

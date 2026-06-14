@@ -48,7 +48,6 @@ class _SlimeButtonState extends State<SlimeButton> {
   @override
   Widget build(BuildContext context) {
     final themeId = UserState().selectedIslandThemeId.value;
-    final isLanternFestival = themeId == 'lantern_festival';
     final isCottonCandy = themeId == 'cotton_candy';
     const double totalSize = SlimeButton.centerButtonRadius * 2 + 12;
 
@@ -78,40 +77,34 @@ class _SlimeButtonState extends State<SlimeButton> {
                 height: SlimeButton.centerButtonRadius * 2,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isLanternFestival
-                      ? const Color(0xFFFFB347).withValues(alpha: 0.3)
-                      : (isCottonCandy
-                          ? (widget.isNight
-                              ? const Color(0xFFFFFDF5).withValues(alpha: 0.75)
-                              : const Color(0xFFFFF9F0).withValues(alpha: 0.6))
-                          : (widget.isNight
-                              ? const Color(0xFF2A2E50).withValues(alpha: 0.1)
-                              : Colors.white.withValues(alpha: 0.6))),
+                  color: isCottonCandy
+                      ? (widget.isNight
+                          ? const Color(0xFFFFFDF5).withValues(alpha: 0.75)
+                          : const Color(0xFFFFF9F0).withValues(alpha: 0.6))
+                      : (widget.isNight
+                          ? const Color(0xFF2A2E50).withValues(alpha: 0.1)
+                          : Colors.white.withValues(alpha: 0.6)),
                   boxShadow: [
                     BoxShadow(
-                      color: isLanternFestival
-                          ? const Color(0xFFFFD97D).withValues(alpha: 0.9)
-                          : (isCottonCandy
-                              ? (widget.isNight
-                                  ? const Color(0xFFFFFFFF).withValues(alpha: 0.55)
-                                  : const Color(0xFFFFCADB).withValues(alpha: 0.8))
-                              : const Color(
-                                  0xFFFFD97D,
-                                ).withValues(alpha: widget.isNight ? 0.8 : 0.3)),
+                      color: isCottonCandy
+                          ? (widget.isNight
+                              ? const Color(0xFFFFFFFF).withValues(alpha: 0.55)
+                              : const Color(0xFFFFCADB).withValues(alpha: 0.8))
+                          : const Color(
+                              0xFFFFD97D,
+                            ).withValues(alpha: widget.isNight ? 0.8 : 0.3),
                       blurRadius: 10,
                       spreadRadius: 2,
                     ),
                   ],
                   border: Border.all(
-                    color: isLanternFestival
-                        ? const Color(0xFFFFE4B5)
-                        : (isCottonCandy
-                            ? (widget.isNight
-                                ? const Color(0xFFFFFFFF).withValues(alpha: 0.95)
-                                : const Color(0xFFFFFFFF))
-                            : (widget.isNight
-                                ? const Color(0xFFFFE4B5).withValues(alpha: 0.5)
-                                : const Color(0xFFFFE4B5).withValues(alpha: 0.8))),
+                    color: isCottonCandy
+                        ? (widget.isNight
+                            ? const Color(0xFFFFFFFF).withValues(alpha: 0.95)
+                            : const Color(0xFFFFFFFF))
+                        : (widget.isNight
+                            ? const Color(0xFFFFE4B5).withValues(alpha: 0.5)
+                            : const Color(0xFFFFE4B5).withValues(alpha: 0.8)),
                     width: isCottonCandy ? 3.0 : 2.5,
                   ),
                 ),
@@ -186,7 +179,6 @@ class _BreathGlowState extends State<_BreathGlow>
   @override
   Widget build(BuildContext context) {
     final themeId = UserState().selectedIslandThemeId.value;
-    final isLanternFestival = themeId == 'lantern_festival';
     final isCottonCandy = themeId == 'cotton_candy';
 
     return IgnorePointer(
@@ -207,34 +199,28 @@ class _BreathGlowState extends State<_BreathGlow>
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isLanternFestival
-                    ? const Color(0xFFFFB347).withValues(alpha: 0.25)
-                    : (isCottonCandy
-                        ? (widget.isNight
-                            ? const Color(0xFFFFFFFF).withValues(alpha: 0.2)
-                            : const Color(0xFFFFF9F0).withValues(alpha: 0.35))
-                        : Colors.white.withValues(alpha: 0.15)),
+                color: isCottonCandy
+                    ? (widget.isNight
+                        ? const Color(0xFFFFFFFF).withValues(alpha: 0.2)
+                        : const Color(0xFFFFF9F0).withValues(alpha: 0.35))
+                    : Colors.white.withValues(alpha: 0.15),
                 border: Border.all(
-                  color: isLanternFestival
-                      ? const Color(0xFFFFE4B5).withValues(alpha: 0.9)
-                      : (isCottonCandy
-                          ? (widget.isNight
-                              ? const Color(0xFFFFFFFF).withValues(alpha: 0.6)
-                              : const Color(0xFFFFFFFF).withValues(alpha: 0.9))
-                          : Colors.white.withValues(alpha: 0.8)),
+                  color: isCottonCandy
+                      ? (widget.isNight
+                          ? const Color(0xFFFFFFFF).withValues(alpha: 0.6)
+                          : const Color(0xFFFFFFFF).withValues(alpha: 0.9))
+                      : Colors.white.withValues(alpha: 0.8),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: isLanternFestival
-                        ? const Color(0xFFFFB347).withValues(alpha: 0.5)
-                        : (isCottonCandy
-                            ? (widget.isNight
-                                ? const Color(0xFFFFFFFF).withValues(alpha: 0.4)
-                                : const Color(0xFFFFF9F0).withValues(alpha: 0.6))
-                            : const Color(
-                                0xFFFFD97D,
-                              ).withValues(alpha: widget.isNight ? 0.4 : 0.2)),
+                    color: isCottonCandy
+                        ? (widget.isNight
+                            ? const Color(0xFFFFFFFF).withValues(alpha: 0.4)
+                            : const Color(0xFFFFF9F0).withValues(alpha: 0.6))
+                        : const Color(
+                            0xFFFFD97D,
+                          ).withValues(alpha: widget.isNight ? 0.4 : 0.2),
                     blurRadius: isCottonCandy ? 16 : 12,
                     spreadRadius: isCottonCandy ? 3 : 2,
                   ),

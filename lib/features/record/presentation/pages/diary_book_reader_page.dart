@@ -146,6 +146,8 @@ class _DiaryBookReaderPageState extends State<DiaryBookReaderPage> {
     // 去除因为历史数据缓存或先前自动截断产生的尾部省略号
     titleStr = titleStr.replaceAll(RegExp(r'\s*\.{3,}$'), '');
     titleStr = titleStr.replaceAll(RegExp(r'\s*…+$'), '');
+    // 强制大标题也仅显示第一句（且不含末尾标点）
+    titleStr = _getFirstSentence(titleStr);
 
     return Container(
       color: paperColor,
@@ -457,6 +459,35 @@ class _DiaryBookReaderPageState extends State<DiaryBookReaderPage> {
           ),
         );
       }).toList(),
-    );
+  }
+
+  /// 智能提取日记第一句话（不含末尾标点，当句末标点句过长时，智能在逗号处切分）
+  String _getFirstSentence(String text) {
+    if (text.isEmpty) return text;
+    
+    // 1. 先尝试以句号、问号、感叹号、分号或换行（句末标点）进行第一轮切分
+    final RegExp endSentenceRegex = RegExp(r'[。？！；!?;\n]');
+    final endMatch = endSentenceRegex.firstMatch(text);
+    String candidate = text;
+    if (endMatch != null) {
+      // 截取至标点符号之前，不显示末尾标点
+      candidate = text.substring(0, endMatch.start).trim();
+    }
+    
+    // 2. 如果切出的句子依然较长（大于 14 个字），则尝试在第一个逗号处切分，提高列表排版美感
+    if (candidate.length > 14) {
+      final RegExp commaRegex = RegExp(r'[，,]');
+      final commaMatch = commaRegex.firstMatch(candidate);
+      if (commaMatch != null) {
+        // 截取至逗号之前，不显示逗号
+        final String subSentence = candidate.substring(0, commaMatch.start).trim();
+        // 保证切分后的内容至少 4 个字，避免截出“今天”等无实际意义的极短词
+        if (subSentence.length >= 4) {
+          return subSentence;
+        }
+      }
+    }
+    
+    return candidate;
   }
 }

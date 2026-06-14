@@ -508,16 +508,14 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
           body: Stack(
             children: [
               // 0. 节日特定背景/主题特定背景
-              if (themeId == 'lantern_festival' || themeId == 'cotton_candy' || themeId == 'lego')
+              if (themeId == 'cotton_candy' || themeId == 'lego')
                 Positioned.fill(
                   child: Image.asset(
-                    themeId == 'lantern_festival'
-                        ? 'assets/images/background/page_yuanxiaojie_bg.png'
-                        : (themeId == 'lego'
-                            ? 'assets/images/theme/legao/legao_data_bg.png'
-                            : (isNight
-                                ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
-                                : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png')),
+                    themeId == 'lego'
+                        ? 'assets/images/theme/legao/legao_data_bg.png'
+                        : (isNight
+                            ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
+                            : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png'),
                     fit: BoxFit.cover,
                   ),
                 ),

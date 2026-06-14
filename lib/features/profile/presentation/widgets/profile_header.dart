@@ -535,6 +535,8 @@ class ProfileHeader extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
       builder: (context) => const LifeLineSwitcherSheet(),
     );
   }

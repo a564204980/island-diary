@@ -11,6 +11,7 @@ import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
+import 'package:island_diary/shared/widgets/top_toast.dart';
 
 class DiaryBooksPage extends StatefulWidget {
   const DiaryBooksPage({super.key});
@@ -26,131 +27,144 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
     final String fontFamily = UserState().selectedIslandThemeId.value == 'lego'
         ? 'SweiFistLeg'
         : 'LXGWWenKai';
+    final Color bgColor = isNight
+        ? const Color(0xFF13131F)
+        : const Color(0xFFFDFCF7);
 
-    return Scaffold(
-      backgroundColor: isNight
-          ? const Color(0xFF13131F)
-          : const Color(0xFFFDFCF7),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: isNight ? Colors.white70 : Colors.black87,
-            size: 20,
-          ),
-          onPressed: () => Navigator.pop(context),
+    return Stack(
+      children: [
+        // 1. 全屏背景
+        Positioned.fill(
+          child: Container(color: bgColor),
         ),
-        title: Text(
-          '岁月成书',
-          style: TextStyle(
-            color: isNight ? Colors.white : Colors.black87,
-            fontFamily: fontFamily,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.add_rounded,
-              color: isNight ? Colors.white70 : Colors.black87,
-              size: 28,
+        // 2. 页面主体（Scaffold 保持透明背景，限制滚动视口）
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          extendBodyBehindAppBar: false,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            surfaceTintColor: Colors.transparent,
+            leading: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: isNight ? Colors.white70 : Colors.black87,
+                size: 20,
+              ),
+              onPressed: () => Navigator.pop(context),
             ),
-            onPressed: () => _showCreateBookDialog(context),
+            title: Text(
+              '岁月成书',
+              style: TextStyle(
+                color: isNight ? Colors.white : Colors.black87,
+                fontFamily: fontFamily,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            centerTitle: true,
+            actions: [
+              IconButton(
+                icon: Icon(
+                  Icons.add_rounded,
+                  color: isNight ? Colors.white70 : Colors.black87,
+                  size: 28,
+                ),
+                onPressed: () => _showCreateBookDialog(context),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: ValueListenableBuilder<List<DiaryBook>>(
-        valueListenable: UserState().savedBooks,
-        builder: (context, books, _) {
-          return ValueListenableBuilder<List<dynamic>>(
-            valueListenable: UserState().savedDiaries,
-            builder: (context, diaries, _) {
-              if (books.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.library_books_rounded,
-                        size: 60,
-                        color: isNight
-                            ? Colors.white.withValues(alpha: 0.12)
-                            : Colors.black.withValues(alpha: 0.1),
+          body: ValueListenableBuilder<List<DiaryBook>>(
+            valueListenable: UserState().savedBooks,
+            builder: (context, books, _) {
+              return ValueListenableBuilder<List<dynamic>>(
+                valueListenable: UserState().savedDiaries,
+                builder: (context, diaries, _) {
+                  if (books.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.library_books_rounded,
+                            size: 60,
+                            color: isNight
+                                ? Colors.white.withValues(alpha: 0.12)
+                                : Colors.black.withValues(alpha: 0.1),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '还没有日记本',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: fontFamily,
+                              color: isNight ? Colors.white38 : Colors.black38,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '点击右上角的「+」按钮\n创建属于自己的第一本日记',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.6,
+                              fontFamily: fontFamily,
+                              color: isNight ? Colors.white24 : Colors.black26,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '还没有日记本',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: fontFamily,
-                          color: isNight ? Colors.white38 : Colors.black38,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '点击右上角的「+」按钮\n创建属于自己的第一本日记',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          height: 1.6,
-                          fontFamily: fontFamily,
-                          color: isNight ? Colors.white24 : Colors.black26,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
+                    );
+                  }
 
-              return GridView.builder(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 24,
-                ),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 18,
-                  mainAxisSpacing: 18,
-                  childAspectRatio: 0.70, // 修改比例以匹配图2中更修长的真实书本比例
-                ),
-                itemCount: books.length,
-                itemBuilder: (context, index) {
-                  final book = books[index];
-                  // 计算属于该日记本的日记数量
-                  final int count = diaries
-                      .where((d) => d.bookId == book.id)
-                      .length;
+                  return GridView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 24,
+                    ),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 18,
+                      mainAxisSpacing: 18,
+                      childAspectRatio: 0.70, // 修改比例以匹配图2中更修长的真实书本比例
+                    ),
+                    itemCount: books.length,
+                    itemBuilder: (context, index) {
+                      final book = books[index];
+                      // 计算属于该日记本的日记数量
+                      final int count = diaries
+                          .where((d) => d.bookId == book.id)
+                          .length;
 
-                  // 获取属于该日记本的所有日记，按时间排序找到最早的记录时间
-                  final bookDiaries = diaries
-                      .where((d) => d.bookId == book.id)
-                      .toList();
-                  bookDiaries.sort((a, b) => a.dateTime.compareTo(b.dateTime));
-                  final String dateStr = bookDiaries.isNotEmpty
-                      ? DateFormat(
-                          'yyyy/MM/dd',
-                        ).format(bookDiaries.first.dateTime)
-                      : '2024/11/26'; // 无记录时使用默认或图示示例日期
+                      // 获取属于该日记本的所有日记，按时间排序找到最早的记录时间
+                      final bookDiaries = diaries
+                          .where((d) => d.bookId == book.id)
+                          .toList();
+                      bookDiaries.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+                      final String dateStr = bookDiaries.isNotEmpty
+                          ? DateFormat(
+                              'yyyy/MM/dd',
+                            ).format(bookDiaries.first.dateTime)
+                          : '2024/11/26'; // 无记录时使用默认或图示示例日期
 
-                  return _buildBookCard(
-                    context,
-                    book,
-                    count,
-                    dateStr,
-                    isNight,
-                    fontFamily,
+                      return _buildBookCard(
+                        context,
+                        book,
+                        count,
+                        dateStr,
+                        isNight,
+                        fontFamily,
+                      );
+                    },
                   );
                 },
               );
             },
-          );
-        },
-      ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -569,6 +583,12 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
                             final navigator = Navigator.of(context);
                             await UserState().deleteBook(book.id);
                             navigator.pop();
+                            showTopToast(
+                              context,
+                              '岁月成书已删除 🍃',
+                              icon: Icons.delete_outline_rounded,
+                              iconColor: const Color(0xFFEF4444),
+                            );
                           },
                           borderRadius: const BorderRadius.only(
                             bottomRight: Radius.circular(16),

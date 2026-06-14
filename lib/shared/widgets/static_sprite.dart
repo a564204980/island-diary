@@ -139,6 +139,7 @@ class _StaticSpriteState extends State<StaticSprite> with SingleTickerProviderSt
                   userState.selectedGlassesDecoration,
                   userState.selectedEarringDecoration,
                   userState.isGlassesAboveHat,
+                  userState.wearAnimPlayTrigger,
                 ]),
                 builder: (context, _) {
                   final String? decoPath = userState.selectedMascotDecoration.value;
@@ -232,21 +233,92 @@ class _StaticSpriteState extends State<StaticSprite> with SingleTickerProviderSt
         final decoConfig = config?.getConfigForCharacter(mascotPath) ?? const MascotDecorationConfig();
         final offset = decoConfig.offset;
         final scale = decoConfig.scale;
+        final hasAnim = config != null && config.wearAnimPath != null && config.wearAnimFrameCount > 0;
 
         return Positioned.fill(
           child: Transform.translate(
             offset: offset * (size / 200.0),
             child: Transform.scale(
               scale: scale,
-              child: Image.asset(
-                path,
-                fit: BoxFit.contain,
-                gaplessPlayback: true,
-              ),
+              child: hasAnim
+                  ? MascotDecorationAnimationWidget(
+                      key: ValueKey('${path}_${UserState().wearAnimPlayTrigger.value}'),
+                      decoration: config,
+                      fallbackPath: path,
+                    )
+                  : Image.asset(
+                      path,
+                      fit: BoxFit.contain,
+                      gaplessPlayback: true,
+                    ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class MascotDecorationAnimationWidget extends StatefulWidget {
+  final MascotDecoration decoration;
+  final String fallbackPath;
+
+  const MascotDecorationAnimationWidget({
+    super.key,
+    required this.decoration,
+    required this.fallbackPath,
+  });
+
+  @override
+  State<MascotDecorationAnimationWidget> createState() => _MascotDecorationAnimationWidgetState();
+}
+
+class _MascotDecorationAnimationWidgetState extends State<MascotDecorationAnimationWidget> {
+  int _currentFrame = 1;
+  Timer? _timer;
+  bool _animationDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final animFrameCount = widget.decoration.wearAnimFrameCount;
+    final interval = widget.decoration.wearAnimIntervalMs;
+
+    _timer = Timer.periodic(Duration(milliseconds: interval), (timer) {
+      if (!mounted) return;
+      if (_currentFrame < animFrameCount) {
+        setState(() {
+          _currentFrame++;
+        });
+      } else {
+        _timer?.cancel();
+        setState(() {
+          _animationDone = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_animationDone) {
+      return Image.asset(
+        widget.fallbackPath,
+        fit: BoxFit.contain,
+        gaplessPlayback: true,
+      );
+    }
+    final animPath = widget.decoration.wearAnimPath;
+    return Image.asset(
+      '$animPath/$_currentFrame.png',
+      fit: BoxFit.contain,
+      gaplessPlayback: true,
     );
   }
 }

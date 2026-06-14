@@ -52,6 +52,7 @@ class MascotPreviewHero extends StatelessWidget {
         final MascotRarity displayRarity = hasDec
             ? activeDec.rarity
             : formRarity;
+        final String? displayStyleTag = hasDec ? activeDec.styleTag : null;
 
         return Container(
           width: double.infinity,
@@ -135,6 +136,22 @@ class MascotPreviewHero extends StatelessWidget {
                   ),
                 ),
               ),
+              // 繁花之约专属背景图片层（带淡入淡出动效，夜间不使用）
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (hasDec && activeDec.id == 'flower_appointment' && !isNight)
+                      ? 1.0
+                      : 0.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/emoji/modules_bg/5.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
               // 专属传说背景图片层（带淡入淡出动效，夜间不使用）
               Positioned.fill(
                 child: AnimatedOpacity(
@@ -155,7 +172,7 @@ class MascotPreviewHero extends StatelessWidget {
               Positioned.fill(
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 300),
-                  opacity: (hasDec && activeDec.rarity == MascotRarity.epic && !isNight)
+                  opacity: (hasDec && activeDec.rarity == MascotRarity.epic && activeDec.id != 'flower_appointment' && !isNight)
                       ? 1.0
                       : 0.0,
                   child: ClipRRect(
@@ -249,6 +266,10 @@ class MascotPreviewHero extends StatelessWidget {
                                       const SizedBox(width: 12),
                                       // 椭圆胶囊品质标签
                                       _buildRarityTag(displayRarity),
+                                      if (displayStyleTag != null) ...[
+                                        const SizedBox(width: 6),
+                                        _buildStyleTag(displayStyleTag, displayRarity.color),
+                                      ],
                                       const SizedBox(width: 8),
                                       // 装备名称
                                       Text(
@@ -447,6 +468,29 @@ class MascotPreviewHero extends StatelessWidget {
       child: Text(
         rarity.label,
         style: textStyle,
+      ),
+    );
+  }
+
+  Widget _buildStyleTag(String tag, Color themeColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: themeColor.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(
+          color: themeColor.withValues(alpha: 0.2),
+          width: 0.5,
+        ),
+      ),
+      child: Text(
+        tag,
+        style: const TextStyle(
+          fontSize: 8.5,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+          fontFamily: 'SweiFistLeg',
+        ),
       ),
     );
   }

@@ -146,6 +146,9 @@ const List<MascotDecoration> _hatDecorations = [
     description: '机魂觉醒，星海远征。在金属的轰鸣中，守护最后一份纯净的梦想。',
     rarity: MascotRarity.legendary,
     category: MascotDecorationCategory.hat,
+    wearAnimPath: 'assets/images/animation/legao/helmet',
+    wearAnimFrameCount: 6,
+    wearAnimIntervalMs: 83,
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -6), scale: 1.1),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
@@ -204,6 +207,7 @@ const List<MascotDecoration> _hatDecorations = [
     description: '采下一朵最娇艳的记忆',
     rarity: MascotRarity.epic,
     category: MascotDecorationCategory.hat,
+    styleTag: '戏曲',
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -28), scale: 1.8),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
@@ -392,6 +396,7 @@ const List<MascotDecoration> _hatDecorations = [
     description: '吉祥如意，华贵非凡',
     rarity: MascotRarity.legendary,
     category: MascotDecorationCategory.hat,
+    styleTag: '戏曲',
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -30), scale: 1.8),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
@@ -656,9 +661,9 @@ const List<MascotDecoration> _hatDecorations = [
   ),
   MascotDecoration(
     id: 'yellow_duck_hat',
-    name: '可爱粉色发夹怪',
+    name: '疯狂小丑女双马尾',
     path: 'assets/images/emoji/decorate/decorate22.png',
-    description: '藏在发间的粉色小心思，捕捉每一份轻盈的快乐',
+    description: '半是蜜糖，半是疯狂。戴上独特的粉蓝双马尾，开启一场随心所欲的华丽冒险！',
     rarity: MascotRarity.legendary,
     category: MascotDecorationCategory.hat,
     defaultConfig: MascotDecorationConfig(offset: Offset(0, 10), scale: 1.12),
@@ -961,6 +966,7 @@ const List<MascotDecoration> _hatDecorations = [
     description: '粉樱如雪，旦角点妆。一颦一笑皆是戏，最美不过这春日容颜。',
     rarity: MascotRarity.epic,
     category: MascotDecorationCategory.hat,
+    styleTag: '戏曲',
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -20), scale: 1.5),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(

@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_book.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
-import 'package:island_diary/features/record/presentation/pages/diary_book_reader_page.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_detail_page.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
+import 'package:island_diary/features/profile/presentation/pages/diary_book_edit_page.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
@@ -104,25 +105,60 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
     return lines.first;
   }
 
+  /// 智能提取日记第一句话（不含末尾标点，当句末标点句过长时，智能在逗号处切分）
+  String _getFirstSentence(String text) {
+    if (text.isEmpty) return text;
+    
+    // 1. 先尝试以句号、问号、感叹号、分号或换行（句末标点）进行第一轮切分
+    final RegExp endSentenceRegex = RegExp(r'[。？！；!?;\n]');
+    final endMatch = endSentenceRegex.firstMatch(text);
+    String candidate = text;
+    if (endMatch != null) {
+      // 截取至标点符号之前，不显示末尾标点
+      candidate = text.substring(0, endMatch.start).trim();
+    }
+    
+    // 2. 如果切出的句子依然较长（大于 14 个字），则尝试在第一个逗号处切分，提高列表排版美感
+    if (candidate.length > 14) {
+      final RegExp commaRegex = RegExp(r'[，,]');
+      final commaMatch = commaRegex.firstMatch(candidate);
+      if (commaMatch != null) {
+        // 截取至逗号之前，不显示逗号
+        final String subSentence = candidate.substring(0, commaMatch.start).trim();
+        // 保证切分后的内容至少 4 个字，避免截出“今天”等无实际意义的极短词
+        if (subSentence.length >= 4) {
+          return subSentence;
+        }
+      }
+    }
+    
+    return candidate;
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isNight = UserState().isNight;
     final themeId = UserState().selectedIslandThemeId.value;
     final bool isLego = themeId == 'lego';
     final String fontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
-    final bookColor = Color(widget.book.coverColorValue);
 
-    return Scaffold(
-      backgroundColor: isNight
-          ? const Color(0xFF13131F)
-          : const Color(0xFFFDFCF7),
-      appBar: _buildAppBar(context, isNight, isLego, fontFamily),
-      body: ValueListenableBuilder<List<DiaryEntry>>(
-        valueListenable: UserState().savedDiaries,
-        builder: (context, diaries, _) {
-          final bookDiaries = diaries
-              .where((d) => d.bookId == widget.book.id)
-              .toList();
+    return ValueListenableBuilder<List<DiaryBook>>(
+      valueListenable: UserState().savedBooks,
+      builder: (context, books, _) {
+        final book = books.firstWhere((b) => b.id == widget.book.id, orElse: () => widget.book);
+        final bookColor = Color(book.coverColorValue);
+
+        return Scaffold(
+          backgroundColor: isNight
+              ? const Color(0xFF13131F)
+              : const Color(0xFFFDFCF7),
+          appBar: _buildAppBar(context, book, isNight, isLego, fontFamily),
+          body: ValueListenableBuilder<List<DiaryEntry>>(
+            valueListenable: UserState().savedDiaries,
+            builder: (context, diaries, _) {
+              final bookDiaries = diaries
+                  .where((d) => d.bookId == book.id)
+                  .toList();
           // 根据排序状态进行排序
           if (_descending) {
             bookDiaries.sort((a, b) => b.dateTime.compareTo(a.dateTime));
@@ -141,7 +177,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
               .length;
           final String createdAtStr = DateFormat(
             'yyyy-MM-dd',
-          ).format(widget.book.createdAt);
+          ).format(book.createdAt);
 
           // 按月份将日记分组
           final Map<int, List<DiaryEntry>> monthlyDiaries = {};
@@ -171,6 +207,8 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                     children: [
                       // 封面与手帐统计卡片
                       _buildHeaderCard(
+                        context,
+                        book,
                         isNight,
                         isLego,
                         bookColor,
@@ -431,11 +469,14 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
         },
       ),
     );
-  }
+  },
+);
+}
 
   /// 构建与图1一致的标准 AppBar
   PreferredSizeWidget _buildAppBar(
     BuildContext context,
+    DiaryBook book,
     bool isNight,
     bool isLego,
     String fontFamily,
@@ -488,17 +529,17 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
             icon: Icon(
               Icons.share_rounded,
               size: 22,
-              color: isNight ? Colors.white70 : Colors.black87,
+              color: isNight ? Colors.white70 : const Color(0xFF5D4037),
             ),
             onPressed: () {
               final diaries = UserState().savedDiaries.value
-                  .where((d) => d.bookId == widget.book.id)
+                  .where((d) => d.bookId == book.id)
                   .toList();
               final createdAtStr = DateFormat(
                 'yyyy-MM-dd',
-              ).format(widget.book.createdAt);
+              ).format(book.createdAt);
               final text =
-                  '《${widget.book.name}》\n共记录了 ${diaries.length} 篇回忆。\n创于 $createdAtStr。';
+                  '《${book.name}》\n共记录了 ${diaries.length} 篇回忆。\n创于 $createdAtStr。';
               // ignore: deprecated_member_use
               sp.Share.share(text);
             },
@@ -537,13 +578,13 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
           ),
           onPressed: () {
             final diaries = UserState().savedDiaries.value
-                .where((d) => d.bookId == widget.book.id)
+                .where((d) => d.bookId == book.id)
                 .toList();
             final createdAtStr = DateFormat(
               'yyyy-MM-dd',
-            ).format(widget.book.createdAt);
+            ).format(book.createdAt);
             final text =
-                '《${widget.book.name}》\n共记录了 ${diaries.length} 篇回忆。\n创于 $createdAtStr。';
+                '《${book.name}》\n共记录了 ${diaries.length} 篇回忆。\n创于 $createdAtStr。';
             // ignore: deprecated_member_use
             sp.Share.share(text);
           },
@@ -616,6 +657,8 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
   }
 
   Widget _buildHeaderCard(
+    BuildContext context,
+    DiaryBook book,
     bool isNight,
     bool isLego,
     Color bookColor,
@@ -624,7 +667,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
     String createdAtStr,
     String fontFamily,
   ) {
-    final description = widget.book.description;
+    final description = book.description;
     final hasDesc = description != null && description.trim().isNotEmpty;
 
     return Padding(
@@ -632,7 +675,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildMiniBookCover(bookColor),
+          _buildMiniBookCover(book, bookColor),
           const SizedBox(width: 24),
           Expanded(
             child: Column(
@@ -641,7 +684,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                 const SizedBox(height: 4),
                 // 书名
                 Text(
-                  widget.book.name,
+                  book.name,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -728,10 +771,10 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
   }
 
   /// 绘制微缩极简书籍封面
-  Widget _buildMiniBookCover(Color bookColor) {
+  Widget _buildMiniBookCover(DiaryBook book, Color bookColor) {
     final bool hasCustomCover =
-        widget.book.customCoverPath != null &&
-        File(widget.book.customCoverPath!).existsSync();
+        book.customCoverPath != null &&
+        File(book.customCoverPath!).existsSync();
     final bool isNight = UserState().isNight;
 
     // 降低饱和度，增加莫兰迪色调
@@ -806,7 +849,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                 ),
                 image: hasCustomCover
                     ? DecorationImage(
-                        image: FileImage(File(widget.book.customCoverPath!)),
+                        image: FileImage(File(book.customCoverPath!)),
                         fit: BoxFit.cover,
                       )
                     : null,
@@ -973,6 +1016,8 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                   if (titleStr.isEmpty || titleStr == '未命名回忆') {
                     titleStr = _getFallbackTitle(entry);
                   }
+                  // 强制提取只保留第一句话
+                  titleStr = _getFirstSentence(titleStr);
                   // 去除因为历史数据缓存或先前自动截断产生的尾部省略号
                   titleStr = titleStr.replaceAll(RegExp(r'\s*\.{3,}$'), '');
                   titleStr = titleStr.replaceAll(RegExp(r'\s*…+$'), '');
@@ -990,17 +1035,12 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                   return GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      final sortedList = List<DiaryEntry>.from(bookDiaries)
-                        ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-                      final initialIdx = sortedList.indexWhere(
-                        (e) => e.id == entry.id,
-                      );
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => DiaryBookReaderPage(
-                            entries: sortedList,
-                            initialIndex: initialIdx >= 0 ? initialIdx : 0,
+                          builder: (context) => DiaryBookDetailReaderPage(
+                            entries: bookDiaries,
+                            initialIndex: bookDiaries.indexOf(entry),
                           ),
                         ),
                       );
@@ -1050,6 +1090,21 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              _showEditTitleDialog(context, entry, titleStr, isNight, fontFamily);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              child: Icon(
+                                Icons.edit_rounded,
+                                size: 16,
+                                color: isNight ? Colors.white38 : Colors.black38,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1076,8 +1131,10 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  DiaryBookReaderPage(entries: bookDiaries, initialIndex: 0),
+              builder: (context) => DiaryBookDetailReaderPage(
+                entries: bookDiaries,
+                initialIndex: 0,
+              ),
             ),
           );
         },
@@ -1111,6 +1168,160 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
       ),
     );
   }
+
+  void _showEditTitleDialog(BuildContext context, DiaryEntry entry, String currentTitle, bool isNight, String fontFamily) {
+    final controller = TextEditingController(text: currentTitle);
+    
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            width: 310,
+            decoration: BoxDecoration(
+              color: isNight ? const Color(0xFF2C2C2E) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isNight
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.05),
+                width: 0.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 30,
+                  offset: const Offset(0, 15),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 标题
+                Padding(
+                  padding: const EdgeInsets.only(top: 24, left: 24, right: 24),
+                  child: Text(
+                    '修改章节标题',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: fontFamily,
+                      color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF2C2C2C),
+                    ),
+                  ),
+                ),
+                
+                // 输入框
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isNight 
+                          ? Colors.white.withValues(alpha: 0.04) 
+                          : const Color(0xFFF7F7F7),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isNight 
+                            ? Colors.white.withValues(alpha: 0.08) 
+                            : Colors.black.withValues(alpha: 0.05),
+                        width: 0.5,
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: TextField(
+                      controller: controller,
+                      autofocus: true,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontFamily: fontFamily,
+                        color: isNight ? Colors.white.withValues(alpha: 0.95) : const Color(0xFF2C2C2C),
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '写个有意义的标题吧...',
+                        hintStyle: TextStyle(
+                          fontSize: 14,
+                          fontFamily: fontFamily,
+                          color: isNight ? Colors.white38 : Colors.black38,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 分割线
+                Container(
+                  height: 0.5,
+                  color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                ),
+
+                // 操作按钮
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => Navigator.pop(context),
+                        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          child: Text(
+                            "取消",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: fontFamily,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: isNight ? Colors.white54 : const Color(0xFF8E8E93),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 0.5,
+                      height: 48,
+                      color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final newTitle = controller.text.trim();
+                          final updated = entry.copyWith(title: newTitle);
+                          await UserState().updateDiary(updated);
+                          if (context.mounted) Navigator.pop(context);
+                        },
+                        borderRadius: const BorderRadius.only(bottomRight: Radius.circular(20)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          child: Text(
+                            "确定",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: fontFamily,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFFA68565),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _DashedLinePainter extends CustomPainter {
@@ -1133,4 +1344,97 @@ class _DashedLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class DiaryBookDetailReaderPage extends StatefulWidget {
+  final List<DiaryEntry> entries;
+  final int initialIndex;
+
+  const DiaryBookDetailReaderPage({
+    super.key,
+    required this.entries,
+    this.initialIndex = 0,
+  });
+
+  @override
+  State<DiaryBookDetailReaderPage> createState() => _DiaryBookDetailReaderPageState();
+}
+
+class _DiaryBookDetailReaderPageState extends State<DiaryBookDetailReaderPage> {
+  late PageController _pageController;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: _currentIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isNight = UserState().isNight;
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            itemCount: widget.entries.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            itemBuilder: (context, index) {
+              return DiaryDetailPage(
+                entry: widget.entries[index],
+                isNight: isNight,
+                showFloatingActions: false,
+              );
+            },
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              leading: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 20,
+                  color: isNight ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              actions: [
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 20.0),
+                    child: Text(
+                      '${_currentIndex + 1} / ${widget.entries.length}',
+                      style: TextStyle(
+                        color: isNight ? Colors.white38 : Colors.black38,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

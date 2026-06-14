@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:intl/intl.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 import 'package:island_diary/features/profile/presentation/widgets/title_selection_sheet.dart';
 
 class ProfileEditPage extends StatefulWidget {
@@ -359,23 +360,53 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   }
 
   void _showGenderPicker(BuildContext context, bool isNight) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final Color inkColor;
+    final Color accentColor;
+    if (isNight) {
+      inkColor = Colors.white;
+      accentColor = themeId == 'cotton_candy'
+          ? const Color(0xFFC0A6FF)
+          : const Color(0xFFE0C097);
+    } else {
+      inkColor = themeId == 'cotton_candy'
+          ? const Color(0xFF7C3AED)
+          : const Color(0xFF1F2937);
+      accentColor = themeId == 'cotton_candy'
+          ? const Color(0xFF7C3AED)
+          : const Color(0xFFA68565);
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: isNight ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      showDragHandle: false,
+      builder: (context) => DiaryBottomSheet(
+        paperStyle: 'default',
+        isDiary: false,
+        showDragHandle: true,
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 12,
+          bottom: 24 + MediaQuery.of(context).padding.bottom,
         ),
-        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('选择性别', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(
+              '选择性别',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: inkColor.withValues(alpha: 0.8),
+                fontFamily: 'LXGWWenKai',
+              ),
+            ),
             const SizedBox(height: 24),
-            _buildGenderOption(context, 'male', '男', Icons.male_rounded, Colors.blue, isNight),
-            _buildGenderOption(context, 'female', '女', Icons.female_rounded, Colors.pink, isNight),
-            _buildGenderOption(context, 'secret', '保密', Icons.lock_outline_rounded, Colors.grey, isNight),
+            _buildGenderOption(context, 'male', '男', Icons.male_rounded, Colors.blue, isNight, inkColor, accentColor),
+            _buildGenderOption(context, 'female', '女', Icons.female_rounded, Colors.pink, isNight, inkColor, accentColor),
+            _buildGenderOption(context, 'secret', '保密', Icons.lock_outline_rounded, Colors.grey, isNight, inkColor, accentColor),
             const SizedBox(height: 12),
           ],
         ),
@@ -383,22 +414,58 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     );
   }
 
-  Widget _buildGenderOption(BuildContext context, String value, String label, IconData icon, Color color, bool isNight) {
+  Widget _buildGenderOption(BuildContext context, String value, String label, IconData icon, Color defaultIconColor, bool isNight, Color inkColor, Color accentColor) {
     final isSelected = _selectedGender == value;
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? color : (isNight ? Colors.white24 : Colors.black26)),
-      title: Text(
-        label,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? (isNight ? Colors.white : Colors.black) : (isNight ? Colors.white54 : Colors.black54),
-        ),
-      ),
-      trailing: isSelected ? Icon(Icons.check_circle_rounded, color: color, size: 20) : null,
+    return GestureDetector(
       onTap: () {
         setState(() => _selectedGender = value);
         Navigator.pop(context);
       },
+      child: Container(
+        height: 56,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isNight ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFFDF7E9))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? accentColor.withValues(alpha: isNight ? 0.3 : 0.15)
+                : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03)),
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? defaultIconColor : (isNight ? Colors.white.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.3)),
+              size: 22,
+            ),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected
+                    ? (isNight ? Colors.white : Colors.black87)
+                    : (isNight ? Colors.white54 : Colors.black54),
+                fontFamily: 'LXGWWenKai',
+              ),
+            ),
+            const Spacer(),
+            if (isSelected)
+              Icon(
+                Icons.check_circle_rounded,
+                color: defaultIconColor,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -415,10 +482,28 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     final monthController = FixedExtentScrollController(initialItem: currentMonth - 1);
     final dayController = FixedExtentScrollController(initialItem: currentDay - 1);
 
+    final themeId = UserState().selectedIslandThemeId.value;
+    final Color inkColor;
+    final Color accentColor;
+    if (isNight) {
+      inkColor = Colors.white;
+      accentColor = themeId == 'cotton_candy'
+          ? const Color(0xFFC0A6FF)
+          : const Color(0xFFE0C097);
+    } else {
+      inkColor = themeId == 'cotton_candy'
+          ? const Color(0xFF7C3AED)
+          : const Color(0xFF1F2937);
+      accentColor = themeId == 'cotton_candy'
+          ? const Color(0xFF7C3AED)
+          : const Color(0xFFA68565);
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setPickerState) {
           int daysInMonth = DateTime(currentYear, currentMonth + 1, 0).day;
@@ -439,46 +524,40 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             return '${currentYear}年 · $age岁 · ${signs[index]}';
           }
 
-          return Container(
-            height: 400,
-            decoration: BoxDecoration(
-              color: isNight ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          return DiaryBottomSheet(
+            height: 460,
+            paperStyle: 'default',
+            isDiary: false,
+            showDragHandle: true,
+            padding: EdgeInsets.only(
+              left: 24,
+              right: 24,
+              top: 12,
+              bottom: 24 + MediaQuery.of(context).padding.bottom,
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 12),
-                Container(width: 38, height: 4.5, decoration: BoxDecoration(color: isNight ? Colors.white24 : Colors.black12, borderRadius: BorderRadius.circular(2.25))),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context), 
-                        child: Text('取消', style: TextStyle(color: isNight ? Colors.white38 : Colors.black38, fontSize: 15, fontFamily: 'LXGWWenKai'))
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('选择生日', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: isNight ? Colors.white : Colors.black87, fontFamily: 'LXGWWenKai')),
-                          const SizedBox(height: 6),
-                          Text(
-                            getMetadataText(),
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF29B6E0), fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                          ),
-                        ],
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          setState(() => _selectedBirthday = DateTime(currentYear, currentMonth, currentDay));
-                          Navigator.pop(context);
-                        },
-                        child: const Text('确定', style: TextStyle(color: Color(0xFF29B6E0), fontWeight: FontWeight.w900, fontSize: 16, fontFamily: 'LXGWWenKai')),
-                      ),
-                    ],
+                Text(
+                  '选择生日',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: inkColor.withValues(alpha: 0.8),
+                    fontFamily: 'LXGWWenKai',
                   ),
                 ),
+                const SizedBox(height: 6),
+                Text(
+                  getMetadataText(),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF29B6E0),
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
                 Expanded(
                   child: ShaderMask(
                     shaderCallback: (rect) => LinearGradient(
@@ -493,11 +572,16 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       children: [
                         Container(
                           height: 48,
-                          margin: const EdgeInsets.symmetric(horizontal: 24),
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
-                            color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                            color: isNight ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFFDF7E9),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFF29B6E0).withValues(alpha: 0.15), width: 1),
+                            border: Border.all(
+                              color: accentColor.withValues(
+                                alpha: isNight ? 0.1 : 0.08,
+                              ),
+                              width: 1,
+                            ),
                           ),
                         ),
                         Row(
@@ -517,7 +601,39 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: () {
+                    setState(() => _selectedBirthday = DateTime(currentYear, currentMonth, currentDay));
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: accentColor,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accentColor.withValues(alpha: 0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      '确定',
+                      style: TextStyle(
+                        fontFamily: 'LXGWWenKai',
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           );
@@ -562,6 +678,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       builder: (context) => TitleSelectionSheet(isNight: isNight),
     );
   }

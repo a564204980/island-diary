@@ -72,6 +72,21 @@ class MascotDecoration {
   final String? leftPath;
   final String? rightPath;
 
+  /// 风格/题材题材标签 (例如：戏曲、国风、节日)
+  final String? styleTag;
+
+  /// 穿戴时的动效序列帧路径 (例如: 'assets/images/animation/legao/helmet')
+  final String? wearAnimPath;
+
+  /// 动效的总帧数
+  final int wearAnimFrameCount;
+
+  /// 动效每帧播放的间隔 (毫秒)
+  final int wearAnimIntervalMs;
+
+  /// 是否在获得弹窗中允许图片向上溢出边界展示（适用于大型发型/长马尾等）
+  final bool shouldOverflowInPopup;
+
   const MascotDecoration({
     required this.id,
     required this.name,
@@ -84,6 +99,11 @@ class MascotDecoration {
     this.keepEars = false,
     this.leftPath,
     this.rightPath,
+    this.styleTag,
+    this.wearAnimPath,
+    this.wearAnimFrameCount = 0,
+    this.wearAnimIntervalMs = 80,
+    this.shouldOverflowInPopup = false,
   });
 
   /// 获取指定卡通形象对应的装扮配置

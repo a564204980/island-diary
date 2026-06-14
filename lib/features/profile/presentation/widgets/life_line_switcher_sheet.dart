@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:island_diary/core/models/life_line_profile.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/frosted_rainbow.dart';
+import 'package:island_diary/shared/widgets/top_toast.dart';
+
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 
 /// 人生线切换与管理底部弹窗 - 深度视觉优化版
 class LifeLineSwitcherSheet extends StatelessWidget {
@@ -12,8 +15,16 @@ class LifeLineSwitcherSheet extends StatelessWidget {
     final userState = UserState();
     final isNight = userState.isNight;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+    return DiaryBottomSheet(
+      paperStyle: 'default',
+      isDiary: false,
+      showDragHandle: true,
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 12,
+        bottom: 32 + MediaQuery.of(context).padding.bottom,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,6 +328,12 @@ class LifeLineSwitcherSheet extends StatelessWidget {
             onPressed: () {
               UserState().deleteLifeLine(profile.id);
               Navigator.pop(context);
+              showTopToast(
+                context,
+                '人生线「${profile.name}」已成功抹除 🍃',
+                icon: Icons.delete_outline_rounded,
+                iconColor: const Color(0xFFEF4444),
+              );
             },
             child: const Text('确认抹除', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),

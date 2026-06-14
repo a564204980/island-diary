@@ -105,10 +105,6 @@ class PremiumBentoCard extends StatelessWidget {
                   const Spacer(),
                   GestureDetector(
                     onTap: () {
-                      final userState = UserState();
-                      userState.isVip.value = true;
-                      userState.isEventDrawerUnlocked.value = true;
-                      
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -126,7 +122,7 @@ class PremiumBentoCard extends StatelessWidget {
                             ? const Color(0xFFEADBFC) // 柔和且不透明的马卡龙淡粉紫色背景，与底色完美契合
                             : (isVip
                                 ? Colors.white.withValues(alpha: 0.2)
-                                : (isNight ? Colors.white : const Color(0xFF3E2723))),
+                                : Colors.white),
                         borderRadius: BorderRadius.circular(99), // 完美胶囊圆角
                         border: themeId == 'lego'
                             ? Border.all(
@@ -153,7 +149,7 @@ class PremiumBentoCard extends StatelessWidget {
                               ? const Color(0xFF673AB7) // 深靛紫色，与实色淡粉紫底高对比度且融洽
                               : (isVip
                                   ? Colors.white
-                                  : (isNight ? const Color(0xFF3E2723) : Colors.white)),
+                                  : const Color(0xFF673AB7)),
                           fontFamily: _getFontFamily(),
                           letterSpacing: 0.5,
                         ),

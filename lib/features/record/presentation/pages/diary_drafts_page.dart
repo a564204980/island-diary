@@ -7,6 +7,7 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
+import 'package:island_diary/shared/widgets/top_toast.dart';
 
 class DiaryDraftsPage extends StatefulWidget {
   const DiaryDraftsPage({super.key});
@@ -97,6 +98,12 @@ class _DiaryDraftsPageState extends State<DiaryDraftsPage> {
                       onTap: () {
                         UserState().clearAllDrafts();
                         Navigator.pop(dialogCtx);
+                        showTopToast(
+                          context,
+                          '所有草稿已成功清空 🍃',
+                          icon: Icons.delete_outline_rounded,
+                          iconColor: const Color(0xFFEF4444),
+                        );
                         try {
                           HapticFeedback.mediumImpact();
                         } catch (_) {}
@@ -195,6 +202,12 @@ class _DiaryDraftsPageState extends State<DiaryDraftsPage> {
                       onTap: () {
                         UserState().deleteDraftEntry(draftId);
                         Navigator.pop(dialogCtx);
+                        showTopToast(
+                          context,
+                          '草稿已成功删除 🍃',
+                          icon: Icons.delete_outline_rounded,
+                          iconColor: const Color(0xFFEF4444),
+                        );
                         try {
                           HapticFeedback.mediumImpact();
                         } catch (_) {}
@@ -236,274 +249,286 @@ class _DiaryDraftsPageState extends State<DiaryDraftsPage> {
     final Color subTextColor = isNight ? Colors.white54 : const Color(0xFF6B7280);
     final Color borderColor = isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05);
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 20),
-          onPressed: () => Navigator.pop(context),
+    return Stack(
+      children: [
+        // 1. 全屏背景
+        Positioned.fill(
+          child: Container(color: bgColor),
         ),
-        title: Text(
-          "草稿箱",
-          style: TextStyle(
-            color: textColor,
-            fontFamily: fontFamily,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+        // 2. 页面主体（Scaffold 保持透明背景，限制滚动视口）
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          extendBodyBehindAppBar: false,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            surfaceTintColor: Colors.transparent,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              "草稿箱",
+              style: TextStyle(
+                color: textColor,
+                fontFamily: fontFamily,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            actions: [
+              ValueListenableBuilder<List<DiaryDraft>>(
+                valueListenable: UserState().savedDrafts,
+                builder: (context, drafts, _) {
+                  if (drafts.isEmpty) return const SizedBox.shrink();
+                  return TextButton(
+                    onPressed: () => _clearAll(context),
+                    child: Text(
+                      "清空",
+                      style: TextStyle(
+                        color: const Color(0xFFD35D5D),
+                        fontFamily: fontFamily,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-        ),
-        actions: [
-          ValueListenableBuilder<List<DiaryDraft>>(
+          body: ValueListenableBuilder<List<DiaryDraft>>(
             valueListenable: UserState().savedDrafts,
             builder: (context, drafts, _) {
-              if (drafts.isEmpty) return const SizedBox.shrink();
-              return TextButton(
-                onPressed: () => _clearAll(context),
-                child: Text(
-                  "清空",
-                  style: TextStyle(
-                    color: const Color(0xFFD35D5D),
-                    fontFamily: fontFamily,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: ValueListenableBuilder<List<DiaryDraft>>(
-        valueListenable: UserState().savedDrafts,
-        builder: (context, drafts, _) {
-          if (drafts.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.edit_note_rounded,
-                    size: 64,
-                    color: isNight ? Colors.white24 : Colors.black12,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    "草稿箱空空如也",
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontFamily: fontFamily,
-                      color: subTextColor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    "随手写下但未发布的内容会保存在这里",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontFamily: fontFamily,
-                      color: subTextColor.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            itemCount: drafts.length,
-            itemBuilder: (context, index) {
-              final draft = drafts[index];
-              
-              // 提取首张图片
-              String? imagePath;
-              if (draft.blocks != null) {
-                for (var block in draft.blocks!) {
-                  if (block['type'] == 'image' && block['filePath'] != null) {
-                    imagePath = block['filePath'] as String;
-                    break;
-                  }
-                }
-              }
-
-              // 获取心情图标
-              final parsed = ParsedTags.parse(draft.tag, draft.moodIndex);
-              String moodIcon = 'assets/icons/happy.png';
-              String moodLabel = '未记录';
-              String? customMoodIconPath = parsed.customMoodIconPath;
-
-              if (parsed.customMood != null) {
-                moodLabel = parsed.customMood!;
-                moodIcon = (draft.moodIndex != null && draft.moodIndex! >= 0 && draft.moodIndex! <= 23)
-                    ? 'assets/icons/custom${draft.moodIndex! + 1}.png'
-                    : 'assets/images/icons/custom.png';
-              } else if (draft.moodIndex != null && draft.moodIndex! >= 0 && draft.moodIndex! < kMoods.length) {
-                final mood = kMoods[draft.moodIndex!];
-                moodIcon = mood.iconPath ?? moodIcon;
-                moodLabel = mood.label;
-              }
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: cardBgColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: borderColor, width: 0.8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isNight ? 0.15 : 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DiaryEditorPage(
-                            draft: draft,
-                          ),
+              if (drafts.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.edit_note_rounded,
+                        size: 64,
+                        color: isNight ? Colors.white24 : Colors.black12,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "草稿箱空空如也",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontFamily: fontFamily,
+                          color: subTextColor,
+                          fontWeight: FontWeight.w500,
                         ),
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // 心情区域
-                          Column(
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "随手写下但未发布的内容会保存在这里",
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontFamily: fontFamily,
+                          color: subTextColor.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                itemCount: drafts.length,
+                itemBuilder: (context, index) {
+                  final draft = drafts[index];
+                  
+                  // 提取首张图片
+                  String? imagePath;
+                  if (draft.blocks != null) {
+                    for (var block in draft.blocks!) {
+                      if (block['type'] == 'image' && block['filePath'] != null) {
+                        imagePath = block['filePath'] as String;
+                        break;
+                      }
+                    }
+                  }
+
+                  // 获取心情图标
+                  final parsed = ParsedTags.parse(draft.tag, draft.moodIndex);
+                  String moodIcon = 'assets/icons/happy.png';
+                  String moodLabel = '未记录';
+                  String? customMoodIconPath = parsed.customMoodIconPath;
+
+                  if (parsed.customMood != null) {
+                    moodLabel = parsed.customMood!;
+                    moodIcon = (draft.moodIndex != null && draft.moodIndex! >= 0 && draft.moodIndex! <= 23)
+                        ? 'assets/icons/custom${draft.moodIndex! + 1}.png'
+                        : 'assets/images/icons/custom.png';
+                  } else if (draft.moodIndex != null && draft.moodIndex! >= 0 && draft.moodIndex! < kMoods.length) {
+                    final mood = kMoods[draft.moodIndex!];
+                    moodIcon = mood.iconPath ?? moodIcon;
+                    moodLabel = mood.label;
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: cardBgColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: borderColor, width: 0.8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isNight ? 0.15 : 0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DiaryEditorPage(
+                                draft: draft,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              DiaryUtils.buildImage(
-                                customMoodIconPath ?? moodIcon,
-                                width: 28,
-                                height: 28,
+                              // 心情区域
+                              Column(
+                                children: [
+                                  DiaryUtils.buildImage(
+                                    customMoodIconPath ?? moodIcon,
+                                    width: 28,
+                                    height: 28,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    moodLabel,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontFamily: fontFamily,
+                                      color: subTextColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                moodLabel,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontFamily: fontFamily,
-                                  color: subTextColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 16),
-                          // 文本区域
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Builder(
-                                  builder: (context) {
-                                    final String plainText = draft.content.trim();
-                                    if (plainText.isEmpty) {
-                                      return Text(
-                                        "无文字内容",
-                                        style: TextStyle(
+                              const SizedBox(width: 16),
+                              // 文本区域
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Builder(
+                                      builder: (context) {
+                                        final String plainText = draft.content.trim();
+                                        if (plainText.isEmpty) {
+                                          return Text(
+                                            "无文字内容",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              height: 1.5,
+                                              fontFamily: fontFamily,
+                                              color: subTextColor.withValues(alpha: 0.5),
+                                            ),
+                                          );
+                                        }
+
+                                        final baseStyle = TextStyle(
                                           fontSize: 14,
                                           height: 1.5,
                                           fontFamily: fontFamily,
-                                          color: subTextColor.withValues(alpha: 0.5),
-                                        ),
-                                      );
-                                    }
-
-                                    final baseStyle = TextStyle(
-                                      fontSize: 14,
-                                      height: 1.5,
-                                      fontFamily: fontFamily,
-                                      color: textColor.withValues(alpha: 0.85),
-                                      fontWeight: FontWeight.w500,
-                                    );
-
-                                    final List<InlineSpan> spans = EmojiMapping.parseText(plainText).map((chunk) {
-                                      if (chunk.isEmoji) {
-                                        return WidgetSpan(
-                                          alignment: PlaceholderAlignment.middle,
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 1.5),
-                                            child: Image.asset(
-                                              chunk.emojiPath!,
-                                              width: baseStyle.fontSize! * 1.2,
-                                              height: baseStyle.fontSize! * 1.2,
-                                              fit: BoxFit.contain,
-                                            ),
-                                          ),
+                                          color: textColor.withValues(alpha: 0.85),
+                                          fontWeight: FontWeight.w500,
                                         );
-                                      }
-                                      return TextSpan(text: chunk.text, style: baseStyle);
-                                    }).toList();
 
-                                    return RichText(
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      text: TextSpan(children: spans),
-                                    );
-                                  },
+                                        final List<InlineSpan> spans = EmojiMapping.parseText(plainText).map((chunk) {
+                                          if (chunk.isEmoji) {
+                                            return WidgetSpan(
+                                              alignment: PlaceholderAlignment.middle,
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                                                child: Image.asset(
+                                                  chunk.emojiPath!,
+                                                  width: baseStyle.fontSize! * 1.2,
+                                                  height: baseStyle.fontSize! * 1.2,
+                                                  fit: BoxFit.contain,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          return TextSpan(text: chunk.text, style: baseStyle);
+                                        }).toList();
+
+                                        return RichText(
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          text: TextSpan(children: spans),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      _formatDateTime(draft.updatedAt),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: subTextColor.withValues(alpha: 0.6),
+                                        fontFamily: 'sans-serif',
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  _formatDateTime(draft.updatedAt),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: subTextColor.withValues(alpha: 0.6),
-                                    fontFamily: 'sans-serif',
+                              ),
+                              const SizedBox(width: 12),
+                              // 右侧多媒体缩略图/删除按钮
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (imagePath != null) ...[
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: borderColor, width: 0.5),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: DiaryUtils.buildImage(imagePath, fit: BoxFit.cover),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.delete_outline_rounded,
+                                      color: const Color(0xFFD35D5D).withValues(alpha: 0.8),
+                                      size: 20,
+                                    ),
+                                    onPressed: () => _deleteDraft(context, draft.id),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // 右侧多媒体缩略图/删除按钮
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (imagePath != null) ...[
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: borderColor, width: 0.5),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: DiaryUtils.buildImage(imagePath, fit: BoxFit.cover),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                              ],
-                              IconButton(
-                                icon: Icon(
-                                  Icons.delete_outline_rounded,
-                                  color: const Color(0xFFD35D5D).withValues(alpha: 0.8),
-                                  size: 20,
-                                ),
-                                onPressed: () => _deleteDraft(context, draft.id),
+                                ],
                               ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               );
             },
-          );
-        },
-      ),
+          ),
+        ),
+      ],
     );
   }
 }

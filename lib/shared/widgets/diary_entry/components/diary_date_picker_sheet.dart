@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../utils/diary_utils.dart';
+import 'diary_bottom_sheet.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:lunar/lunar.dart';
 
@@ -123,66 +124,41 @@ class _DiaryDatePickerSheetState extends State<DiaryDatePickerSheet> {
                     ? const Color(0xFFF9FAFB)
                     : const Color(0xFFFAF9F6)));
 
-    return BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: isNight ? 15 : 0,
-            sigmaY: isNight ? 15 : 0,
-          ),
-          child: Container(
-            padding: const EdgeInsets.only(left: 24, right: 24, top: 20),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(32),
-                topRight: Radius.circular(32),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: isNight
-                      ? Colors.black.withValues(alpha: 0.3)
-                      : accentColor.withValues(alpha: 0.08),
-                  blurRadius: 30,
-                  offset: const Offset(0, -5),
-                ),
-              ],
+    return DiaryBottomSheet(
+      paperStyle: widget.paperStyle,
+      isDiary: false,
+      showDragHandle: true,
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 12,
+        bottom: 24 + MediaQuery.of(context).padding.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '选择日期',
+            style: TextStyle(
+              fontFamily: 'LXGWWenKai',
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: inkColor.withValues(alpha: 0.8),
             ),
-            child: SafeArea(
-              top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 顶部指示条
-                  Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: inkColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '选择日期',
-                    style: TextStyle(
-                      fontFamily: 'LXGWWenKai',
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: inkColor.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '选择要记录的那一天',
-                    style: TextStyle(
-                      fontFamily: 'LXGWWenKai',
-                      fontSize: 12,
-                      color: inkColor.withValues(alpha: 0.35),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '选择要记录的那一天',
+            style: TextStyle(
+              fontFamily: 'LXGWWenKai',
+              fontSize: 12,
+              color: inkColor.withValues(alpha: 0.35),
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 24),
 
-                  // 虚空晶石滚轮区
+          // 虚空晶石滚轮区
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -337,12 +313,10 @@ class _DiaryDatePickerSheetState extends State<DiaryDatePickerSheet> {
                   ),
                 ],
               ),
-            ),
-          ),
-        )
-        .animate()
-        .fadeIn(duration: 400.ms)
-        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
+            )
+            .animate()
+            .fadeIn(duration: 400.ms)
+            .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
   }
 
   Widget _buildWheel({

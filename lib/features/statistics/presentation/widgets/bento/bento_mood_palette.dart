@@ -394,83 +394,28 @@ extension _BentoMoodPalette on _StatisticsPageState {
               ? paletteItems.sublist(paletteItems.length - totalCols * rowCount)
               : paletteItems;
 
+          final int displayActiveCols = (displayItems.length / rowCount).ceil();
+          final int emptyCols = (showCols - displayActiveCols).clamp(0, showCols);
+
           contentWidget = SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             physics: const NeverScrollableScrollPhysics(),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: List.generate(showCols, (colIdx) {
+                final bool isEmptyCol = colIdx < emptyCols;
+
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: List.generate(rowCount, (rowIdx) {
-                    final int itemIdx = colIdx * rowCount + rowIdx;
+                    if (isEmptyCol) {
+                      return _buildPlaceholderCell(isNight, isCottonCandy, cellSize);
+                    }
+
+                    final int activeColIdx = colIdx - emptyCols;
+                    final int itemIdx = activeColIdx * rowCount + rowIdx;
                     if (itemIdx >= displayItems.length) {
-                      // 填充半透明的灰色/粉色微晶边框网格，保持整体画布无缝铺满且不显得太空
-                      final String themeId = UserState().selectedIslandThemeId.value;
-                      final bool isLego = themeId == 'lego';
-                      if (isLego) {
-                        final Color whiteColor = isNight
-                            ? const Color(0xFF2C2F36).withValues(alpha: 0.12)
-                            : const Color(0xFFF9F9FB).withValues(alpha: 0.15);
-                        return Container(
-                          width: cellSize,
-                          height: cellSize,
-                          margin: const EdgeInsets.all(0.6),
-                          decoration: BoxDecoration(
-                            color: whiteColor,
-                            borderRadius: BorderRadius.circular(1.8),
-                            boxShadow: [
-                              BoxShadow(
-                                color: isNight ? Colors.white.withValues(alpha: 0.01) : Colors.white.withValues(alpha: 0.12),
-                                offset: const Offset(-0.8, -0.8),
-                                blurRadius: 0.8,
-                              ),
-                              BoxShadow(
-                                color: isNight ? Colors.black.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.02),
-                                offset: const Offset(0.8, 0.8),
-                                blurRadius: 0.8,
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Container(
-                              width: cellSize * 0.54,
-                              height: cellSize * 0.54,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: whiteColor,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: isNight ? Colors.white.withValues(alpha: 0.02) : Colors.white.withValues(alpha: 0.15),
-                                    offset: const Offset(-0.8, -0.8),
-                                    blurRadius: 0.8,
-                                  ),
-                                  BoxShadow(
-                                    color: isNight ? Colors.black.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.03),
-                                    offset: const Offset(0.8, 0.8),
-                                    blurRadius: 0.8,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                      return Container(
-                        width: cellSize,
-                        height: cellSize,
-                        decoration: BoxDecoration(
-                          color: isCottonCandy
-                              ? const Color(0xFFFFEDE7).withValues(alpha: 0.45)
-                              : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02)),
-                          border: Border.all(
-                            color: isCottonCandy
-                                ? const Color(0xFFF8DDD5).withValues(alpha: 0.35)
-                                : (isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04)),
-                            width: 0.4,
-                          ),
-                        ),
-                      );
+                      return _buildPlaceholderCell(isNight, isCottonCandy, cellSize);
                     }
 
                     final item = displayItems[itemIdx];
@@ -792,6 +737,74 @@ extension _BentoMoodPalette on _StatisticsPageState {
       default:
         return Colors.grey;
     }
+  }
+
+  Widget _buildPlaceholderCell(bool isNight, bool isCottonCandy, double cellSize) {
+    final String themeId = UserState().selectedIslandThemeId.value;
+    final bool isLego = themeId == 'lego';
+    if (isLego) {
+      final Color whiteColor = isNight
+          ? const Color(0xFF2C2F36).withValues(alpha: 0.12)
+          : const Color(0xFFF9F9FB).withValues(alpha: 0.15);
+      return Container(
+        width: cellSize,
+        height: cellSize,
+        margin: const EdgeInsets.all(0.6),
+        decoration: BoxDecoration(
+          color: whiteColor,
+          borderRadius: BorderRadius.circular(1.8),
+          boxShadow: [
+            BoxShadow(
+              color: isNight ? Colors.white.withValues(alpha: 0.01) : Colors.white.withValues(alpha: 0.12),
+              offset: const Offset(-0.8, -0.8),
+              blurRadius: 0.8,
+            ),
+            BoxShadow(
+              color: isNight ? Colors.black.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.02),
+              offset: const Offset(0.8, 0.8),
+              blurRadius: 0.8,
+            ),
+          ],
+        ),
+        child: Center(
+          child: Container(
+            width: cellSize * 0.54,
+            height: cellSize * 0.54,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: whiteColor,
+              boxShadow: [
+                BoxShadow(
+                  color: isNight ? Colors.white.withValues(alpha: 0.02) : Colors.white.withValues(alpha: 0.15),
+                  offset: const Offset(-0.8, -0.8),
+                  blurRadius: 0.8,
+                ),
+                BoxShadow(
+                  color: isNight ? Colors.black.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.03),
+                  offset: const Offset(0.8, 0.8),
+                  blurRadius: 0.8,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return Container(
+      width: cellSize,
+      height: cellSize,
+      decoration: BoxDecoration(
+        color: isCottonCandy
+            ? const Color(0xFFFFEDE7).withValues(alpha: 0.45)
+            : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02)),
+        border: Border.all(
+          color: isCottonCandy
+              ? const Color(0xFFF8DDD5).withValues(alpha: 0.35)
+              : (isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04)),
+          width: 0.4,
+        ),
+      ),
+    );
   }
 }
 

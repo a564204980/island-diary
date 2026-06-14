@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 
 
 class TitleSelectionSheet extends StatelessWidget {
@@ -17,27 +18,20 @@ class TitleSelectionSheet extends StatelessWidget {
             .where((a) => a.rewardTitle != null)
             .toList();
 
-    return Container(
+    return DiaryBottomSheet(
       height: MediaQuery.of(context).size.height * 0.82,
-      decoration: BoxDecoration(
-        color: isNight ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      paperStyle: 'default',
+      isDiary: false,
+      showDragHandle: true,
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 12,
+        bottom: MediaQuery.of(context).padding.bottom,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 把手
-          Center(
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              width: 36, height: 4,
-              decoration: BoxDecoration(
-                color: isNight ? Colors.white10 : Colors.black12,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-
           // 标题行
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 4, 20, 14),
@@ -61,20 +55,6 @@ class TitleSelectionSheet extends StatelessWidget {
                             fontFamily: _getFontFamily(),
                           )),
                     ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isNight
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.black.withValues(alpha: 0.06),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.close_rounded, size: 18,
-                        color: isNight ? Colors.white70 : const Color(0xFF475569)),
                   ),
                 ),
               ],

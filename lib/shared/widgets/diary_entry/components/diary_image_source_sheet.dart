@@ -51,7 +51,7 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
 
     return DiaryBottomSheet(
       paperStyle: widget.paperStyle,
-      isDiary: true,
+      isDiary: false,
       showDragHandle: true,
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
       child: SafeArea(

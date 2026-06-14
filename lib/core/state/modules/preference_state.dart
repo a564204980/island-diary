@@ -26,6 +26,9 @@ mixin PreferenceMixin on ProfileMixin {
   // 新增：棉花岛主题长按屏幕时的云朵快速移动倍率
   final ValueNotifier<double> cloudSpeedMultiplier = ValueNotifier<double>(1.0);
 
+  // 控制是否显示获得道具弹窗
+  final ValueNotifier<bool> showPropObtainedPopup = ValueNotifier<bool>(true);
+
   void loadPreference(SharedPreferences prefs) {
 
     diaryLayoutMode.value = prefs.getInt(UserState().n(_K.diaryLayoutMode)) ?? 0;
@@ -44,6 +47,7 @@ mixin PreferenceMixin on ProfileMixin {
     isGlassesAboveHat.value = prefs.getBool(UserState().n(_K.isGlassesAboveHat)) ?? true;
     selectedMascotType.value = prefs.getString(UserState().n(_K.mascotType)) ?? 'assets/images/emoji/marshmallow2.png';
     homeDisplayMode.value = prefs.getString(UserState().n(_K.homeDisplayMode)) ?? 'island';
+    showPropObtainedPopup.value = prefs.getBool(UserState().n(_K.showPropObtainedPopup)) ?? true;
   }
 
 
@@ -222,5 +226,11 @@ mixin PreferenceMixin on ProfileMixin {
     homeDisplayMode.value = mode;
     final p = await SharedPreferences.getInstance();
     await p.setString(UserState().n(_K.homeDisplayMode), mode);
+  }
+
+  Future<void> setShowPropObtainedPopup(bool value) async {
+    showPropObtainedPopup.value = value;
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(UserState().n(_K.showPropObtainedPopup), value);
   }
 }

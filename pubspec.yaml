@@ -133,6 +133,7 @@ flutter:
     - assets/images/theme/legao/icons/
     - assets/images/theme/legao/pages/
     - assets/images/theme/legao/my/
+    - assets/images/animation/legao/helmet/
 
 
   fonts:

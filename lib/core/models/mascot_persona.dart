@@ -84,8 +84,6 @@ class MascotPersona {
           return '樱花漫天飞舞！我要帮主人接住最漂亮的那片，汪！';
         case 'starry_night':
           return '天黑了，但有灯塔在照耀，我也会永远为主人指引方向的，汪！';
-        case 'lantern_festival':
-          return '好多花灯！闪闪发光的，我们一起去捉灯影吧，汪！';
         case 'light':
           return '太阳出来啦！今天也要充满活力地奔跑，汪！';
         case 'dark':
@@ -105,8 +103,6 @@ class MascotPersona {
           return '樱花？哼，落得满地都是，大费周章。不过……确实不算难看。';
         case 'starry_night':
           return '夜晚是猫咪的天下。不过有灯塔在，本喵的行踪都要被你看光了。';
-        case 'lantern_festival':
-          return '这么多纸糊的灯笼，抓坏一个应该不用我赔吧？';
         case 'light':
           return '哼，刺眼的阳光。不过，正适合伸个懒腰补个觉。';
         case 'dark':
@@ -126,8 +122,6 @@ class MascotPersona {
           return '落樱缤纷，如雨如歌。一期一会的美丽，正适合记录在笔墨间。';
         case 'starry_night':
           return '星河璀璨，孤塔照长空。在这静谧的夜里，灵魂仿佛与星辰共鸣。';
-        case 'lantern_festival':
-          return '东风夜放花千树。这满岛的灯火，正映照着人间最温馨的期盼。';
         case 'light':
           return '清晨的曙光破开云雾，万物复苏，又是一个清朗的开始。';
         case 'dark':
@@ -148,8 +142,6 @@ class MascotPersona {
           return '春天的气息扑面而来呢，樱花树下很适合喝杯热茶、静静享受生活呀。';
         case 'starry_night':
           return '繁星漫天，有灯塔温柔的微光指引，别怕，无论多晚我都在这守候着你。';
-        case 'lantern_festival':
-          return '元宵花灯点亮啦，温暖的橘色光芒照亮了夜空，真希望能和你分享这片祥和。';
         case 'light':
           return '早上好呀！新的一天开始啦，记得好好吃早餐哦。';
         case 'dark':

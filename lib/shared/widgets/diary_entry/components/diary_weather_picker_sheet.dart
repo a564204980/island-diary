@@ -223,7 +223,7 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
 
     return DiaryBottomSheet(
       paperStyle: widget.paperStyle,
-      isDiary: true,
+      isDiary: false,
       showDragHandle: true,
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -19,13 +19,20 @@ import '../widgets/diary/diary_replies.dart';
 import '../widgets/diary_reply_sheet.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_image_collage.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
+import 'package:island_diary/shared/widgets/top_toast.dart';
 
 
 class DiaryDetailPage extends StatefulWidget {
   final DiaryEntry entry;
   final bool isNight;
+  final bool showFloatingActions;
 
-  const DiaryDetailPage({super.key, required this.entry, this.isNight = false});
+  const DiaryDetailPage({
+    super.key,
+    required this.entry,
+    this.isNight = false,
+    this.showFloatingActions = true,
+  });
 
   @override
   State<DiaryDetailPage> createState() => _DiaryDetailPageState();
@@ -126,6 +133,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     child: InkWell(
                       onTap: () {
                         UserState().deleteDiary(_currentEntry.id);
+                        showTopToast(
+                          context,
+                          '回忆已成功抹去 🍃',
+                          icon: Icons.delete_outline_rounded,
+                          iconColor: const Color(0xFFEF4444),
+                        );
                         Navigator.pop(context);
                         Navigator.pop(context);
                       },
@@ -270,45 +283,57 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           Positioned.fill(
             child: SafeArea(
               bottom: false,
+              top: widget.showFloatingActions,
               child: Align(
                 alignment: Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 800),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(
-                      24,
-                      16,
-                      24,
-                      80,
-                    ), // 调整顶部边距配合 SafeArea
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHeader(),
-                        const SizedBox(height: 8),
-                        ..._buildBlocksView(),
-                        if (_currentEntry.replies.isNotEmpty)
-                          const SizedBox(height: 48),
-                        DiaryTimeline(
-                          replies: _currentEntry.replies,
-                          isNight: _effectiveIsNight,
-                          inkColor: inkColor,
-                          accentColor: accentColor,
+                  child: Column(
+                    children: [
+                      if (!widget.showFloatingActions)
+                        SizedBox(
+                          height: MediaQuery.of(context).padding.top + kToolbarHeight,
                         ),
-                        DiaryReplies(
-                          replies: _currentEntry.replies,
-                          isNight: _effectiveIsNight,
-                          inkColor: inkColor,
-                          accentColor: accentColor,
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(
+                            24,
+                            16,
+                            24,
+                            80,
+                          ), // 调整边距配合 SafeArea
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildHeader(),
+                              const SizedBox(height: 8),
+                              ..._buildBlocksView(),
+                              if (_currentEntry.replies.isNotEmpty)
+                                const SizedBox(height: 48),
+                              DiaryTimeline(
+                                replies: _currentEntry.replies,
+                                isNight: _effectiveIsNight,
+                                inkColor: inkColor,
+                                accentColor: accentColor,
+                              ),
+                              DiaryReplies(
+                                replies: _currentEntry.replies,
+                                isNight: _effectiveIsNight,
+                                inkColor: inkColor,
+                                accentColor: accentColor,
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
           ),
-          _buildFloatingActions(_effectiveIsNight),
+          if (widget.showFloatingActions)
+            _buildFloatingActions(_effectiveIsNight),
         ],
       ),
     );
@@ -598,7 +623,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   ),
                 ),
                 child: Text(
-                  '# $tag',
+                  '#$tag',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -640,7 +665,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      "$_currentEntry.weather ${_currentEntry.temp ?? ''}",
+                      "${_currentEntry.weather} ${_currentEntry.temp ?? ''}",
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,

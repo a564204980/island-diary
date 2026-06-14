@@ -7,16 +7,22 @@ import 'package:path/path.dart' as p;
 import 'package:island_diary/features/record/domain/models/diary_book.dart';
 import 'package:island_diary/core/state/user_state.dart';
 
-// 预设书籍封面颜色
+// 预设书籍封面颜色 (扩展为14个经典的莫兰迪低饱和度高级配色)
 final List<int> _presetColors = [
   0xFFD4A373, // 温暖驼
   0xFF8BA3B5, // 雾霾蓝
-  0xFF8F9E8B, //苔藓绿
+  0xFF8F9E8B, // 苔藓绿
   0xFFC0A9BD, // 丁香紫
   0xFFC9A297, // 浅烟粉
   0xFF5A6B5C, // 深野绿
   0xFF4E5E70, // 暮色蓝
   0xFF8C6B50, // 摩卡棕
+  0xFFA3B899, // 灰绿竹
+  0xFFD2C5B5, // 杏仁灰
+  0xFFBCAAA4, // 陶土粉
+  0xFF90A4AE, // 蓝石灰
+  0xFFB0BEC5, // 灰雨燕
+  0xFFA59385, // 砂岩褐
 ];
 
 final List<String> _presetColorNames = [
@@ -28,6 +34,12 @@ final List<String> _presetColorNames = [
   '深野绿',
   '暮色蓝',
   '摩卡棕',
+  '灰绿竹',
+  '杏仁灰',
+  '陶土粉',
+  '蓝石灰',
+  '灰雨燕',
+  '砂岩褐',
 ];
 
 class DiaryBookEditPage extends StatefulWidget {
@@ -413,64 +425,78 @@ class _DiaryBookEditPageState extends State<DiaryBookEditPage> {
     );
   }
 
-  // 挑选色块 极简微缩色板 (不滚动且支持换行)
+  // 挑选色块 精致呼吸感圆色板 (强制一行7个，两行填满，自动平分空间)
   Widget _buildColorSelector(bool isNight, String fontFamily) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: List.generate(_presetColors.length, (index) {
-        final colorVal = _presetColors[index];
-        final bool isSelected = _selectedColorValue == colorVal && _tempCoverPath == null;
-        final Color displayColor = Color(colorVal);
+    final List<int> row1Colors = _presetColors.sublist(0, 7);
+    final List<int> row2Colors = _presetColors.sublist(7, 14);
 
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedColorValue = colorVal;
-              _tempCoverPath = null; // 切换色系自动取消照片封面
-            });
-          },
-          child: AnimatedScale(
-            scale: isSelected ? 1.08 : 1.0,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutBack,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: displayColor,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isSelected
-                      ? (isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF2C2C2C).withValues(alpha: 0.8))
-                      : Colors.transparent,
-                  width: 1.8,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: displayColor.withValues(alpha: isSelected ? 0.3 : 0.04),
-                    blurRadius: isSelected ? 8 : 2,
-                    offset: Offset(0, isSelected ? 3 : 1),
+    Widget buildColorRow(List<int> colors) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: colors.map((colorVal) {
+          final bool isSelected = _selectedColorValue == colorVal && _tempCoverPath == null;
+          final Color displayColor = Color(colorVal);
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedColorValue = colorVal;
+                _tempCoverPath = null; // 切换色系自动取消照片封面
+              });
+            },
+            child: AnimatedScale(
+              scale: isSelected ? 1.05 : 1.0,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutBack,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: 38,
+                height: 38,
+                padding: const EdgeInsets.all(2.5), // 内部留空，打造空气感 Gap
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected
+                        ? (isNight ? Colors.white.withValues(alpha: 0.8) : const Color(0xFFA68565))
+                        : Colors.transparent,
+                    width: 1.5,
                   ),
-                ],
-              ),
-              child: isSelected
-                  ? Center(
-                      child: Container(
-                        width: 5,
-                        height: 5,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: displayColor,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: displayColor.withValues(alpha: isSelected ? 0.35 : 0.08),
+                        blurRadius: isSelected ? 6 : 2,
+                        offset: Offset(0, isSelected ? 2.5 : 1),
                       ),
-                    )
-                  : null,
+                    ],
+                  ),
+                  child: isSelected
+                      ? const Center(
+                          child: Icon(
+                            Icons.check_rounded,
+                            size: 13,
+                            color: Colors.white,
+                          ),
+                        )
+                      : null,
+                ),
+              ),
             ),
-          ),
-        );
-      }),
+          );
+        }).toList(),
+      );
+    }
+
+    return Column(
+      children: [
+        buildColorRow(row1Colors),
+        const SizedBox(height: 12),
+        buildColorRow(row2Colors),
+      ],
     );
   }
 

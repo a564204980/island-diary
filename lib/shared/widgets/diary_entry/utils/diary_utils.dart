@@ -554,13 +554,13 @@ class DiaryUtils {
   /// 获取与信纸风格高度协调的弹窗背景色
   static Color getPopupBackgroundColor(String paperStyle, bool isNight) {
     if (UserState().selectedIslandThemeId.value == 'cotton_candy' && isNight) {
-      return const Color(0xFF241E3D).withValues(alpha: 0.95);
+      return const Color(0xFF241E3D);
     }
     final Color baseBgColor = getPaperBaseColor(paperStyle, isNight);
     final Color accent = getAccentColor(paperStyle, isNight);
 
-    // 夜间模式下增加透明度，为后续的 BackdropFilter 预留透气感
-    final double opacity = isNight ? 0.85 : 0.98;
+    // 夜间模式下不使用透明度，使背景完全实色不透光
+    final double opacity = isNight ? 1.0 : 0.98;
 
     // 通过与强调色微弱混合，让背景带上一层温润的色调
     return Color.lerp(baseBgColor, accent, 0.05)!.withValues(alpha: opacity);
@@ -608,18 +608,24 @@ class DiaryUtils {
     return BoxDecoration(
       color: bgColor,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
-      border: (isCottonCandy && isNight)
-          ? const Border(top: BorderSide(color: Color(0xFFC0A6FF), width: 1.5))
-          : null,
-      boxShadow: (isCottonCandy && isNight)
-          ? null
-          : [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
+      border: isNight
+          ? Border(
+              top: BorderSide(
+                color: isCottonCandy
+                    ? const Color(0xFFC0A6FF)
+                    : Colors.white.withValues(alpha: 0.08),
+                width: 1.5,
               ),
-            ],
+            )
+          : null,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: isNight ? 0.35 : 0.1),
+          blurRadius: isNight ? 25 : 20,
+          spreadRadius: isNight ? 2 : 0,
+          offset: const Offset(0, -5),
+        ),
+      ],
     );
   }
 

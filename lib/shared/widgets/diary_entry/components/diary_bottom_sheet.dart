@@ -10,6 +10,7 @@ class DiaryBottomSheet extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final bool showDragHandle;
   final bool isDiary;
+  final Clip clipBehavior;
 
   const DiaryBottomSheet({
     super.key,
@@ -19,6 +20,7 @@ class DiaryBottomSheet extends StatelessWidget {
     this.padding,
     this.showDragHandle = true,
     this.isDiary = false,
+    this.clipBehavior = Clip.antiAlias,
   });
 
   @override
@@ -37,8 +39,8 @@ class DiaryBottomSheet extends StatelessWidget {
       // 非日记相关页面：使用符合当前主题的纯色/中性配色，而非纸张材质色
       if (isNight) {
         bgColor = themeId == 'cotton_candy' 
-            ? const Color(0xFF1E1B2E).withValues(alpha: 0.95)
-            : (themeId == 'lego' ? const Color(0xFF18181B).withValues(alpha: 0.95) : const Color(0xFF111827).withValues(alpha: 0.95));
+            ? const Color(0xFF1E1B2E)
+            : (themeId == 'lego' ? const Color(0xFF18181B) : const Color(0xFF162537));
         inkColor = Colors.white;
       } else {
         bgColor = themeId == 'cotton_candy' 
@@ -50,7 +52,7 @@ class DiaryBottomSheet extends StatelessWidget {
 
     Widget content = Container(
       height: height,
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: clipBehavior,
       padding: padding ?? EdgeInsets.only(
         left: 20,
         right: 20,

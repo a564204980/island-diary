@@ -99,12 +99,7 @@ class _RecordPageState extends State<RecordPage> {
                 child: Builder(
                   builder: (context) {
                     final themeId = UserState().selectedIslandThemeId.value;
-                    if (themeId == 'lantern_festival') {
-                      return Image.asset(
-                        'assets/images/background/page_yuanxiaojie_bg.png',
-                        fit: BoxFit.cover,
-                      );
-                    } else if (themeId == 'cotton_candy') {
+                    if (themeId == 'cotton_candy') {
                       return Image.asset(
                         isNight
                             ? 'assets/images/theme/miamhuadao/mianhuadao_page_night_bg.png'

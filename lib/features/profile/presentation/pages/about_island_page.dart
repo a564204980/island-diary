@@ -10,27 +10,28 @@ class AboutIslandPage extends StatelessWidget {
     final userState = UserState();
     final bool isNight = userState.isNight;
 
-    return Scaffold(
-      backgroundColor: isNight
-          ? const Color(0xFF0D1B2A)
-          : const Color(0xFFE6F3F5),
-      appBar: _buildStandardAppBar(context, isNight),
-      body: Stack(
-        children: [
-          Positioned.fill(child: AboutHeroBackground(isNight: isNight)),
+    return Stack(
+      children: [
+        // 1. 全屏艺术背景
+        Positioned.fill(child: AboutHeroBackground(isNight: isNight)),
 
-          // 静态浅色/深色透明遮罩层
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: isNight
-                    ? const Color(0xFF0D1B2A).withValues(alpha: 0.15)
-                    : Colors.white.withValues(alpha: 0.15),
-              ),
+        // 2. 静态浅色/深色透明遮罩层
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              color: isNight
+                  ? const Color(0xFF0D1B2A).withValues(alpha: 0.15)
+                  : Colors.white.withValues(alpha: 0.15),
             ),
           ),
+        ),
 
-          Center(
+        // 3. 页面主体（Scaffold 保持透明背景，限制 CustomScrollView 视口）
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          extendBodyBehindAppBar: false,
+          appBar: _buildStandardAppBar(context, isNight),
+          body: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 800),
               child: CustomScrollView(
@@ -96,17 +97,17 @@ class AboutIslandPage extends StatelessWidget {
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   PreferredSizeWidget _buildStandardAppBar(BuildContext context, bool isNight) {
     return AppBar(
-      backgroundColor: isNight
-          ? const Color(0xFF0D1B2A)
-          : const Color(0xFFE6F3F5),
+      backgroundColor: Colors.transparent,
       elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
       centerTitle: true,
       leading: IconButton(
         icon: Icon(

@@ -106,7 +106,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   Widget _buildBackground(double barMaxWidth) {
     final themeId = UserState().selectedIslandThemeId.value;
-    final isLanternFestival = themeId == 'lantern_festival';
+    final isLanternFestival = false;
     final isCottonCandy = themeId == 'cotton_candy';
 
     return Positioned(
@@ -119,27 +119,25 @@ class _BottomNavBarState extends State<BottomNavBar> {
           decoration: BoxDecoration(
             boxShadow: [
               BoxShadow(
-                color: isLanternFestival
-                    ? const Color(0xFFFF8A65).withValues(alpha: 0.15)
-                    : (isCottonCandy
-                        ? const Color(0xFFFF94B8).withValues(alpha: 0.25)
-                        : (widget.isNight
-                            ? Colors.black.withValues(alpha: 0.18)
-                            : const Color(
-                                0xFF1B3B5F,
-                              ).withValues(alpha: 0.2))),
+                color: isCottonCandy
+                    ? const Color(0xFFFF94B8).withValues(alpha: 0.25)
+                    : (widget.isNight
+                        ? Colors.black.withValues(alpha: 0.18)
+                        : const Color(
+                            0xFF1B3B5F,
+                          ).withValues(alpha: 0.2)),
                 blurRadius:
-                    (widget.isNight || isLanternFestival || isCottonCandy)
+                    (widget.isNight || isCottonCandy)
                         ? 20
                         : 40,
                 offset: Offset(
                   0,
-                  (widget.isNight || isLanternFestival || isCottonCandy)
+                  (widget.isNight || isCottonCandy)
                       ? 8
                       : 12,
                 ),
               ),
-              if (!widget.isNight && !isLanternFestival && !isCottonCandy)
+              if (!widget.isNight && !isCottonCandy)
                 BoxShadow(
                   color: const Color(0xFF80D8FF).withValues(alpha: 0.12),
                   blurRadius: 20,

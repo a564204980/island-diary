@@ -58,7 +58,7 @@ class IslandDiaryApp extends StatelessWidget {
             scaffoldBackgroundColor: const Color(0xFFE6F3F5),
             fontFamily: defaultFont,
             bottomSheetTheme: const BottomSheetThemeData(
-              showDragHandle: true,
+              showDragHandle: false,
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
               elevation: 0,
@@ -76,7 +76,7 @@ class IslandDiaryApp extends StatelessWidget {
             scaffoldBackgroundColor: const Color(0xFF0D1B2A),
             fontFamily: darkFont,
             bottomSheetTheme: const BottomSheetThemeData(
-              showDragHandle: true,
+              showDragHandle: false,
               backgroundColor: Color(0xFF1A1A1A),
               surfaceTintColor: Colors.transparent,
               elevation: 0,

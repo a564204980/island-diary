@@ -24,7 +24,6 @@ class DiaryMasonryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeId = UserState().selectedIslandThemeId.value;
-    final bool isLantern = themeId == 'lantern_festival';
     final bool isCottonCandy = themeId == 'cotton_candy';
 
     final Color themeGoldColor = isNight
@@ -35,13 +34,11 @@ class DiaryMasonryHeader extends StatelessWidget {
         ? const Color(0xFFE1AF78).withValues(alpha: 0.9)
         : const Color(0xFF5C4E43); // 暖深咖啡褐色，契合图1
 
-    final subTextColor = isLantern
-        ? const Color(0xFFEAD2A8)
-        : (isCottonCandy
-            ? (isNight ? Colors.white54 : const Color(0xFF6F5E63))
-            : (isNight
-                ? Colors.white54
-                : Colors.black.withValues(alpha: 0.8)));
+    final subTextColor = isCottonCandy
+        ? (isNight ? Colors.white54 : const Color(0xFF6F5E63))
+        : (isNight
+            ? Colors.white54
+            : Colors.black.withValues(alpha: 0.8));
 
     return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),

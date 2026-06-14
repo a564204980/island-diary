@@ -56,12 +56,6 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
     //   previewPath: 'assets/images/home_small_demo2.png',
     //   islandPath: 'assets/images/home_small_demo2.png',
     // ),
-    const IslandTheme(
-      id: 'lantern_festival',
-      name: '元宵花灯岛',
-      previewPath: 'assets/images/home5.png',
-      islandPath: 'assets/images/home5.png',
-    ),
   ];
 
   @override
@@ -114,22 +108,6 @@ class _IslandThemePickerState extends State<IslandThemePicker> {
           : [const Color(0xFFFFF1F1), Colors.white];
       topBorder = isNight
           ? const Border(top: BorderSide(color: Color(0xFFC0A6FF), width: 1.5))
-          : null;
-    } else if (themeId == 'lantern_festival') {
-      mainTextColor = isNight
-          ? const Color(0xFFFFF2D0)
-          : const Color(0xFF5A1E1E);
-      subTextColor = isNight
-          ? const Color(0xFFE5C88F)
-          : const Color(0xFF8C5A5A);
-      accentPink = const Color(0xFFFFB74D);
-      buttonGradientStart = const Color(0xFFFFD54F);
-      buttonGradientEnd = const Color(0xFFFF5722);
-      bgColors = isNight
-          ? [const Color(0xFF381515), const Color(0xFF200A0A)]
-          : [const Color(0xFFFFF5EE), Colors.white];
-      topBorder = isNight
-          ? const Border(top: BorderSide(color: Color(0xFFFF7043), width: 1.5))
           : null;
     } else if (themeId == 'starry_night') {
       mainTextColor = isNight

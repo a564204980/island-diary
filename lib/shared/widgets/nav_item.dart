@@ -34,7 +34,6 @@ class _NavItemState extends State<NavItem> {
   Widget build(BuildContext context) {
     final isSelected = widget.currentIndex == widget.index;
     final themeId = UserState().selectedIslandThemeId.value;
-    final isLanternFestival = themeId == 'lantern_festival';
     final isCottonCandy = themeId == 'cotton_candy';
     final isLego = themeId == 'lego';
 
@@ -57,17 +56,13 @@ class _NavItemState extends State<NavItem> {
                         : widget.index == 3
                             ? const Color(0xFF629DE4)
                             : const Color(0xFFB4AED7)))
-            : (isLanternFestival
-                ? const Color(0xFFFFEFA1)
-                : (widget.isNight ? const Color(0xFFFFEFA1) : const Color(0xFF7B5C2E))));
+            : (widget.isNight ? const Color(0xFFFFEFA1) : const Color(0xFF7B5C2E)));
 
     final Color inactiveColor = isCottonCandy
         ? (widget.isNight ? const Color(0xFFD3C6FF) : const Color(0xFF9E7777))
         : (isLego
             ? (widget.isNight ? const Color(0xFF9E9E9E) : const Color(0xFF9E9E9E))
-            : (isLanternFestival
-                ? const Color(0xFFB5A492)
-                : (widget.isNight ? const Color(0xFFB5B5C9) : const Color(0xFF8B7763))));
+            : (widget.isNight ? const Color(0xFFB5B5C9) : const Color(0xFF8B7763)));
 
     final List<Shadow>? strokeShadows = isSelected && isCottonCandy
         ? (widget.isNight

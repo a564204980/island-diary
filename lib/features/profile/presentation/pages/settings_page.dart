@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'dart:io' as io;
+import 'dart:math' as math;
 import 'package:path_provider/path_provider.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/constants/legal_text.dart';
 import 'package:island_diary/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:island_diary/core/models/mascot_decoration.dart';
+import 'package:island_diary/shared/widgets/prop_obtained/prop_obtained_popup.dart';
+import 'package:island_diary/shared/widgets/top_toast.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -17,27 +21,44 @@ class SettingsPage extends StatelessWidget {
       builder: (context, _) {
         final isNight = UserState().isNight;
         
-        return Scaffold(
-          extendBodyBehindAppBar: true,
-          body: Stack(
-            children: [
-              // 1. 艺术渐变与慢速漂浮光晕背景
-              _buildBackground(isNight),
-              
-              // 2. 主体滚动内容
-              SafeArea(
-                child: CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
-                    // 返回与大标题栏
-                    SliverToBoxAdapter(
-                      child: _buildHeader(context, isNight)
-                          .animate()
-                          .fadeIn(duration: 600.ms)
-                          .slideY(begin: -0.2, end: 0, curve: Curves.easeOutCubic),
-                    ),
-                    
-                    const SliverToBoxAdapter(child: SizedBox(height: 10)),
+        return Stack(
+          children: [
+            // 1. 艺术渐变与慢速漂浮光晕背景
+            _buildBackground(isNight),
+            
+            // 2. 页面主体（Scaffold 保持透明背景，内容不穿透 AppBar）
+            Scaffold(
+              backgroundColor: Colors.transparent,
+              extendBodyBehindAppBar: false,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                surfaceTintColor: Colors.transparent,
+                centerTitle: true,
+                title: Text(
+                  '系统设置',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: isNight ? Colors.white : const Color(0xFF1F2937),
+                    fontFamily: _getFontFamily(),
+                    letterSpacing: 2,
+                  ),
+                ),
+                leading: IconButton(
+                  icon: Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 20,
+                    color: isNight ? Colors.white70 : Colors.black87,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              body: CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  const SliverToBoxAdapter(child: SizedBox(height: 10)),
                     
 
                     // 支持与反馈
@@ -123,7 +144,12 @@ class SettingsPage extends StatelessWidget {
                             isNight: isNight,
                             onTap: () {
                               UserState().unlockAllForTesting();
-                              _showToast(context, '已触发全量解锁测试模式 ⚡');
+                              _showToast(
+                                context,
+                                '已触发全量解锁测试模式 ⚡',
+                                icon: Icons.offline_bolt_rounded,
+                                iconColor: const Color(0xFFFBBF24),
+                              );
                             },
                           ),
                           _buildDivider(isNight),
@@ -135,8 +161,53 @@ class SettingsPage extends StatelessWidget {
                             onTap: () async {
                               await UserState().generateMockDiaries();
                               if (context.mounted) {
-                                _showToast(context, '已成功生成 100 条测试数据 📅');
+                                _showToast(
+                                  context,
+                                  '已成功生成 100 条测试数据 📅',
+                                  icon: Icons.check_circle_rounded,
+                                  iconColor: const Color(0xFF10B981),
+                                );
                               }
+                            },
+                          ),
+                          _buildDivider(isNight),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: UserState().showPropObtainedPopup,
+                            builder: (context, value, _) {
+                              return _SettingsTile(
+                                title: '启用获得道具弹窗',
+                                icon: Icons.celebration_rounded,
+                                accentColor: const Color(0xFFF59E0B),
+                                isNight: isNight,
+                                trailing: Switch(
+                                  value: value,
+                                  activeColor: isNight ? const Color(0xFF818CF8) : const Color(0xFF7E57C2),
+                                  onChanged: (val) {
+                                    UserState().setShowPropObtainedPopup(val);
+                                  },
+                                ),
+                                onTap: () {
+                                  UserState().setShowPropObtainedPopup(!value);
+                                },
+                              );
+                            },
+                          ),
+                          _buildDivider(isNight),
+                          _SettingsTile(
+                            title: '调试：触发获得道具弹窗',
+                            icon: Icons.animation_rounded,
+                            accentColor: const Color(0xFFEC4899),
+                            isNight: isNight,
+                            onTap: () {
+                              final decos = MascotDecoration.allDecorations;
+                              if (decos.isEmpty) {
+                                _showToast(context, '无可用饰品数据 😢');
+                                return;
+                              }
+                              final premiumDecos = decos.where((d) => d.rarity == MascotRarity.legendary || d.rarity == MascotRarity.epic).toList();
+                              final list = premiumDecos.isNotEmpty ? premiumDecos : decos;
+                              final randomDeco = list[math.Random().nextInt(list.length)];
+                              showPropObtainedPopup(context, randomDeco);
                             },
                           ),
                         ],
@@ -185,11 +256,10 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        );
-      },
-    );
-  }
+          );
+        },
+      );
+    }
 
   String _getFontFamily() {
     return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
@@ -375,17 +445,12 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  void _showToast(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message, 
-          style: TextStyle(fontFamily: _getFontFamily(), fontSize: 14)
-        ), 
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: UserState().isNight ? const Color(0xFF1E1E2E) : const Color(0xFF3F3D56),
-      ),
+  void _showToast(BuildContext context, String message, {IconData icon = Icons.info_outline_rounded, Color? iconColor}) {
+    showTopToast(
+      context,
+      message,
+      icon: icon,
+      iconColor: iconColor,
     );
   }
 
@@ -680,7 +745,12 @@ class SettingsPage extends StatelessWidget {
       onConfirm: () async {
         await _clearCacheDirectory();
         if (context.mounted) {
-          _showToast(context, '缓存清理成功 ✨');
+          _showToast(
+            context,
+            '缓存清理成功 ✨',
+            icon: Icons.cleaning_services_rounded,
+            iconColor: const Color(0xFF10B981),
+          );
         }
       },
     );
@@ -695,6 +765,7 @@ class _SettingsTile extends StatefulWidget {
   final Color accentColor;
   final bool isNight;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   const _SettingsTile({
     required this.title,
@@ -702,6 +773,7 @@ class _SettingsTile extends StatefulWidget {
     required this.accentColor,
     required this.isNight,
     required this.onTap,
+    this.trailing,
   });
 
   @override
@@ -774,7 +846,7 @@ class _SettingsTileState extends State<_SettingsTile> {
                 ),
               ),
               const Spacer(),
-              Icon(
+              widget.trailing ?? Icon(
                 Icons.arrow_forward_ios_rounded, 
                 size: 13, 
                 color: widget.isNight ? Colors.white24 : Colors.black26

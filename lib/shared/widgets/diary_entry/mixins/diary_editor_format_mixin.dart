@@ -161,7 +161,7 @@ mixin DiaryEditorFormatMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       builder: (context) {
         return DiaryBottomSheet(
           paperStyle: currentPaperStyle,
-          isDiary: true,
+          isDiary: false,
           height: MediaQuery.of(context).size.height * 0.40,
           padding: EdgeInsets.only(
             left: 24,

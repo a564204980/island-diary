@@ -111,6 +111,7 @@ class _K {
   static const mascotType = 'selected_mascot_type';
   static const homeDisplayMode = 'home_display_mode';
   static const selectedIslandThemeId = 'selected_island_theme_id';
+  static const showPropObtainedPopup = 'show_prop_obtained_popup';
 }
 
 /// 聚合状态管理类
@@ -127,6 +128,7 @@ class UserState
   factory UserState() => _instance;
   UserState._internal();
   final ValueNotifier<int> refreshNavbarBgTrigger = ValueNotifier<int>(0);
+  final ValueNotifier<int> wearAnimPlayTrigger = ValueNotifier<int>(0);
 
   /// 是否已加载最小必需数据（userName/安全设置），可以开始路由
   final ValueNotifier<bool> isMinimalDataLoaded = ValueNotifier<bool>(false);
@@ -189,5 +191,7 @@ class UserState
     achievementPoints.dispose();
     unlockedMascotPaths.dispose();
     refreshNavbarBgTrigger.dispose();
+    wearAnimPlayTrigger.dispose();
+    showPropObtainedPopup.dispose();
   }
 }

@@ -120,6 +120,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
     _searchFocusNode.dispose();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UserState().refreshNavbarBgTrigger.value++;
+      UserState().wearAnimPlayTrigger.value++;
     });
     super.dispose();
   }

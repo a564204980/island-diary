@@ -112,16 +112,14 @@ class _ProfilePageState extends State<ProfilePage> {
         return Stack(
           children: [
             // 节日与主题特定背景
-            if (themeId == 'lantern_festival' || themeId == 'cotton_candy' || themeId == 'lego')
+            if (themeId == 'cotton_candy' || themeId == 'lego')
               Positioned.fill(
                 child: Image.asset(
-                  themeId == 'lantern_festival'
-                      ? 'assets/images/background/page_yuanxiaojie_bg.png'
-                      : (themeId == 'lego'
-                          ? 'assets/images/theme/legao/legao_my_bg.png'
-                          : (isNight
-                              ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
-                              : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png')),
+                  themeId == 'lego'
+                      ? 'assets/images/theme/legao/legao_my_bg.png'
+                      : (isNight
+                          ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
+                          : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png'),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -130,14 +128,12 @@ class _ProfilePageState extends State<ProfilePage> {
             Positioned.fill(
               child: BackdropFilter(
                 filter: ImageFilter.blur(
-                  sigmaX: (themeId == 'lantern_festival' || themeId == 'cotton_candy' || themeId == 'lego') ? 0 : 10,
-                  sigmaY: (themeId == 'lantern_festival' || themeId == 'cotton_candy' || themeId == 'lego') ? 0 : 10,
+                  sigmaX: (themeId == 'cotton_candy' || themeId == 'lego') ? 0 : 10,
+                  sigmaY: (themeId == 'cotton_candy' || themeId == 'lego') ? 0 : 10,
                 ),
                 child: Container(
                   color: Colors.black.withValues(
-                    alpha: themeId == 'lantern_festival' 
-                        ? 0.3 
-                        : 0.0,
+                    alpha: 0.0,
                   ),
                 ),
               ),
