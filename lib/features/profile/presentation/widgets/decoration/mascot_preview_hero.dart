@@ -114,7 +114,7 @@ class MascotPreviewHero extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(24),
                     child: Image.asset(
-                      'assets/images/emoji/modules_bg/3.png',
+                      'assets/images/emoji/modules_bg/9.png',
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -152,6 +152,54 @@ class MascotPreviewHero extends StatelessWidget {
                   ),
                 ),
               ),
+              // 凹凸曼专属背景图片层（带淡入淡出动效，夜间不使用）
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (hasDec && activeDec.id == 'ultraman' && !isNight)
+                      ? 1.0
+                      : 0.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/emoji/modules_bg/6.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+              // 蝴蝶盔专属背景图片层（带淡入淡出动效，夜间不使用）
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (hasDec && activeDec.id == 'flower' && !isNight)
+                      ? 1.0
+                      : 0.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/emoji/modules_bg/7.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+              // 幻彩蝶影花环专属背景图片层（带淡入淡出动效，夜间不使用）
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (hasDec && activeDec.id == 'butterfly_wreath' && !isNight)
+                      ? 1.0
+                      : 0.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/emoji/modules_bg/8.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
               // 专属传说背景图片层（带淡入淡出动效，夜间不使用）
               Positioned.fill(
                 child: AnimatedOpacity(
@@ -172,7 +220,7 @@ class MascotPreviewHero extends StatelessWidget {
               Positioned.fill(
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 300),
-                  opacity: (hasDec && activeDec.rarity == MascotRarity.epic && activeDec.id != 'flower_appointment' && !isNight)
+                  opacity: (hasDec && activeDec.rarity == MascotRarity.epic && activeDec.id != 'flower_appointment' && activeDec.id != 'ultraman' && activeDec.id != 'flower' && activeDec.id != 'butterfly_wreath' && !isNight)
                       ? 1.0
                       : 0.0,
                   child: ClipRRect(
@@ -348,8 +396,9 @@ class MascotPreviewHero extends StatelessWidget {
   }
 
   Widget _buildGlowBg(MascotRarity? rarity) {
-    if (rarity == null || rarity == MascotRarity.common)
+    if (rarity == null || rarity == MascotRarity.common) {
       return const SizedBox.shrink();
+    }
 
     final Color glowColor = rarity.color.withValues(
       alpha: isNight ? 0.15 : 0.22,

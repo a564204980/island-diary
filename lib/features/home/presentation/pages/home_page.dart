@@ -11,22 +11,23 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/shared/widgets/bottom_nav_bar.dart';
 import 'package:island_diary/features/home/presentation/widgets/floating_clouds.dart';
 import 'package:island_diary/features/home/presentation/widgets/floating_bricks.dart';
-import 'package:island_diary/features/home/presentation/widgets/rising_lanterns.dart';
-import 'package:island_diary/features/home/presentation/widgets/twinkling_stars.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/models/mascot_persona.dart';
 import 'package:island_diary/features/record/presentation/pages/record_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/profile_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/cloud_sync_page.dart';
-import 'package:island_diary/shared/widgets/barrage/mood_barrage_wall.dart';
 import 'package:island_diary/shared/widgets/sprite_dialogue.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/statistics/presentation/pages/statistics_page.dart';
 import 'package:island_diary/shared/widgets/frosted_rainbow.dart';
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
-import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
 import 'package:island_diary/features/home/presentation/widgets/island_theme_picker.dart';
 import 'package:island_diary/features/home/presentation/widgets/room_scene_overlay.dart';
+import 'package:island_diary/features/home/presentation/widgets/backup_reminder_dialog.dart';
+import 'package:island_diary/features/home/presentation/widgets/restore_overlays.dart';
+import 'package:island_diary/features/home/presentation/widgets/layout_quick_switcher.dart';
+import 'package:island_diary/features/home/presentation/widgets/mood_barrage_layer.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -52,8 +53,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   // 弹幕相关
   List<Map<DateTime, List<DiaryEntry>>> _groupedEntries = [];
-  int _barrageCurrentIndex = 0;
-  late PageController _barragePageController;
+
 
   bool get _isNight {
     final themeId = UserState().selectedIslandThemeId.value;
@@ -104,7 +104,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           }
         });
 
-    _barragePageController = PageController();
     _groupEntriesByDate();
 
     // 监听日记变化，实时更新分组
@@ -314,7 +313,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _floatController.dispose();
     _zoomAnimationController.dispose();
     _transformationController.dispose();
-    _barragePageController.dispose();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -394,7 +392,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       builder: (context, values, child) {
         final String themeId = values[1] as String;
         final bool isNight = _isNight;
-        final bool isLantern = themeId == 'lantern_festival';
         final bool isCottonCandy = themeId == 'cotton_candy';
         final isWide = MediaQuery.of(context).size.width > 600;
 
@@ -576,7 +573,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 ),
                               ],
                               if (_currentNavIndex == 1) ...[
-                                _buildLayoutQuickSwitcher(isNight),
+                                LayoutQuickSwitcher(isNight: isNight),
                               ],
                             ],
                           ),
@@ -639,7 +636,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ),
                 ),
               if (_isRestoring)
-                _buildLoadingOverlay("正在还原备份数据，请稍候...", isNight, themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai'),
+                RestoreLoadingOverlay(
+                  text: "正在还原备份数据，请稍候...",
+                  isNight: isNight,
+                  fontFamily: themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai',
+                ),
             ],
           ),
         );
@@ -927,7 +928,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
 
         if (_isLandscape && _groupedEntries.isNotEmpty)
-          Positioned.fill(child: _buildBarrageLayer()),
+          Positioned.fill(
+            child: MoodBarrageLayer(groupedEntries: _groupedEntries),
+          ),
 
         if (!_isLandscape && themeId != 'lego')
           Positioned.fill(
@@ -946,74 +949,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
 
-  Widget _buildBarrageLayer() {
-    return Stack(
-      children: [
-        PageView.builder(
-          controller: _barragePageController,
-          itemCount: _groupedEntries.length,
-          onPageChanged: (index) {
-            setState(() {
-              _barrageCurrentIndex = index;
-            });
-          },
-          itemBuilder: (context, index) {
-            final dateGroup = _groupedEntries[index];
-            final dayEntries = dateGroup.values.first;
 
-            return BarrageDayScene(
-              entries: dayEntries,
-              date: dateGroup.keys.first,
-              onFinished: () {
-                if (index == _barrageCurrentIndex) {
-                  _autoNextDay();
-                }
-              },
-            );
-          },
-        ),
-
-        Positioned(
-          bottom: 40,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                _formatBarrageDate(
-                  _groupedEntries[_barrageCurrentIndex].keys.first,
-                ),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'LXGWWenKai',
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    ).animate().fadeIn(duration: 800.ms);
-  }
-
-  void _autoNextDay() {
-    if (_barrageCurrentIndex < _groupedEntries.length - 1) {
-      _barragePageController.nextPage(
-        duration: const Duration(seconds: 2),
-        curve: Curves.easeInOutCubic,
-      );
-    }
-  }
-
-  String _formatBarrageDate(DateTime dt) {
-    return "${dt.year}年${dt.month}月${dt.day}日";
-  }
 
   Widget _buildTopIconButton({
     required IconData icon,
@@ -1055,139 +991,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           duration: 3.seconds,
           curve: Curves.easeInOut,
         );
-  }
-
-  Widget _buildLayoutQuickSwitcher(bool isNight) {
-    final currentModeIndex = UserState().diaryLayoutMode.value;
-    final themeId = UserState().selectedIslandThemeId.value;
-
-    Color activeColor;
-    Color selectedIconColor;
-    Color unselectedIconColor;
-    Color containerColor;
-    Color borderColor;
-
-    if (themeId == 'cotton_candy') {
-      activeColor = const Color(0xFFFF94B8);
-      selectedIconColor = Colors.white;
-      unselectedIconColor = isNight
-          ? Colors.white.withValues(alpha: 0.6)
-          : const Color(0xFF6F5E63).withValues(alpha: 0.6);
-      containerColor = isNight
-          ? const Color(0xFF8676FF).withValues(alpha: 0.25)
-          : const Color(0xFFFFCADB).withValues(alpha: 0.45);
-      borderColor = isNight
-          ? const Color(0xFFB19FFB).withValues(alpha: 0.3)
-          : const Color(0xFFFFD1E1).withValues(alpha: 0.45);
-    } else if (themeId == 'lego') {
-      activeColor = const Color(0xFFFFD54F);
-      selectedIconColor = const Color(0xFF3B2E25);
-      unselectedIconColor = isNight
-          ? Colors.white.withValues(alpha: 0.6)
-          : Colors.black.withValues(alpha: 0.5);
-      containerColor = isNight
-          ? Colors.white.withValues(alpha: 0.12)
-          : Colors.black.withValues(alpha: 0.15);
-      borderColor = isNight
-          ? Colors.white.withValues(alpha: 0.1)
-          : Colors.black.withValues(alpha: 0.08);
-    } else {
-      // 默认水蓝色主题
-      activeColor = isNight ? const Color(0xFF00ACC1) : const Color(0xFF83B7C5);
-      selectedIconColor = Colors.white;
-      unselectedIconColor = isNight
-          ? Colors.white.withValues(alpha: 0.6)
-          : const Color(0xFF83B7C5);
-      containerColor = isNight
-          ? const Color(0xFF1B2A4A).withValues(alpha: 0.4)
-          : const Color(0xFFEDF5F7).withValues(alpha: 0.7);
-      borderColor = isNight
-          ? const Color(0xFF80D8FF).withValues(alpha: 0.25)
-          : const Color(0xFF83B7C5).withValues(alpha: 0.65);
-    }
-
-    final List<DiaryLayoutMode> modes = [
-      DiaryLayoutMode.masonry,
-      DiaryLayoutMode.timeline,
-      DiaryLayoutMode.calendar,
-    ];
-
-    final selectedIndex = modes.indexOf(
-      DiaryLayoutMode.values[currentModeIndex.clamp(0, DiaryLayoutMode.values.length - 1)],
-    ).clamp(0, 2);
-
-    final List<IconData> icons = [
-      Icons.view_quilt_rounded,
-      Icons.format_list_bulleted_rounded,
-      Icons.calendar_month_rounded,
-    ];
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          width: 120,
-          height: 36,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: containerColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: borderColor,
-              width: 0.8,
-            ),
-          ),
-          child: Stack(
-            children: [
-              AnimatedAlign(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeInOut,
-                alignment: selectedIndex == 0
-                    ? Alignment.centerLeft
-                    : (selectedIndex == 1
-                        ? Alignment.center
-                        : Alignment.centerRight),
-                child: FractionallySizedBox(
-                  widthFactor: 0.33,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: activeColor,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: Row(
-                  children: List.generate(modes.length, (i) {
-                    final isSelected = i == selectedIndex;
-                    return Expanded(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          UserState().setDiaryLayoutMode(modes[i].index);
-                          setState(() {});
-                        },
-                        child: Center(
-                          child: Icon(
-                            icons[i],
-                            size: 18,
-                            color: isSelected
-                                ? selectedIconColor
-                                : unselectedIconColor,
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _handleReceivedFile(String path) async {
@@ -1286,7 +1089,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         setState(() => _isRestoring = false);
         final themeId = UserState().selectedIslandThemeId.value;
         final fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
-        _showSuccessDialog(fontFamily);
+        RestoreSuccessDialog.show(context, fontFamily: fontFamily, isNight: _isNight);
       }
     } catch (e) {
       if (mounted) {
@@ -1333,569 +1136,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (differenceSeconds >= intervalSeconds) {
       if (!mounted) return;
       _hasPromptedBackupThisSession = true;
-      _showBackupReminderDialog(differenceSeconds);
+      final themeId = UserState().selectedIslandThemeId.value;
+      final fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+      BackupReminderDialog.show(
+        context,
+        overdueSeconds: differenceSeconds,
+        isNight: _isNight,
+        fontFamily: fontFamily,
+      );
     }
   }
 
-  String _formatOverdueTime(int totalSeconds) {
-    final days = totalSeconds ~/ 86400;
-    final hours = (totalSeconds % 86400) ~/ 3600;
-    final minutes = (totalSeconds % 3600) ~/ 60;
-    final seconds = totalSeconds % 60;
-
-    final parts = <String>[];
-    if (days > 0) parts.add('$days天');
-    if (hours > 0) parts.add('$hours小时');
-    if (minutes > 0) parts.add('$minutes分钟');
-    if (seconds > 0 || parts.isEmpty) parts.add('$seconds秒');
-
-    return parts.join('');
-  }
-
-  void _showBackupReminderDialog(int overdueSeconds) {
-    final themeId = UserState().selectedIslandThemeId.value;
-    final fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
-    final isNight = _isNight;
-    final overdueStr = _formatOverdueTime(overdueSeconds);
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withValues(alpha: 0.4),
-      builder: (context) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.topCenter,
-              children: [
-                // 1. 主体卡片
-                Container(
-                  width: 320,
-                  decoration: BoxDecoration(
-                    color: isNight ? const Color(0xFF1E293B) : const Color(0xFFFFFDF9),
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(
-                      color: isNight
-                          ? Colors.white.withValues(alpha: 0.15)
-                          : const Color(0xFFEADCC9),
-                      width: 2.0,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: isNight ? 0.4 : 0.12),
-                        blurRadius: 36,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 16),
-                      ),
-                    ],
-                  ),
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // 左侧虚线心形线条装饰
-                      Positioned(
-                        left: 12,
-                        top: 60,
-                        child: CustomPaint(
-                          size: const Size(30, 60),
-                          painter: _LeftCurvePainter(isNight: isNight),
-                        ),
-                      ),
-                      // 右侧植物分支与星光装饰
-                      Positioned(
-                        right: 12,
-                        top: 40,
-                        child: Icon(
-                          Icons.local_florist_rounded,
-                          color: isNight ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFD7CCC8).withValues(alpha: 0.5),
-                          size: 28,
-                        ),
-                      ),
-                      Positioned(
-                        right: 20,
-                        top: 80,
-                        child: Icon(
-                          Icons.star_rounded,
-                          color: isNight ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFFFE082).withValues(alpha: 0.5),
-                          size: 14,
-                        ),
-                      ),
-                      
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // 头部悬浮头像在主体卡片内部的占位高度，确保标题不与头像重叠
-                            const SizedBox(height: 54),
-                            
-                            // 标题
-                            Text(
-                              '别忘了备份今天的回忆',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF3E2723),
-                                fontFamily: fontFamily,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            
-                            // 状态小药丸布局
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: isNight
-                                    ? Colors.white.withValues(alpha: 0.05)
-                                    : const Color(0xFFEDF2F7),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.access_time_rounded,
-                                    color: Color(0xFF00ACC1),
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  RichText(
-                                    text: TextSpan(
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: isNight ? Colors.white70 : const Color(0xFF5D5450),
-                                        fontFamily: fontFamily,
-                                      ),
-                                      children: [
-                                        const TextSpan(text: '已 '),
-                                        TextSpan(
-                                          text: overdueStr,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF00ACC1),
-                                          ),
-                                        ),
-                                        const TextSpan(text: ' 未备份'),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            
-                            // 描述内容
-                            Column(
-                              children: [
-                                Text(
-                                  '你的日记和回忆还没有完成备份',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: isNight ? Colors.white60 : const Color(0xFF8D827A),
-                                    fontFamily: fontFamily,
-                                    height: 1.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '去给珍贵的数据加一份安心守护吧',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: isNight ? Colors.white60 : const Color(0xFF8D827A),
-                                    fontFamily: fontFamily,
-                                    height: 1.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 28),
-                            
-                            // 按钮栏
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildReminderOutlineButton(
-                                    label: '稍后提醒',
-                                    isNight: isNight,
-                                    fontFamily: fontFamily,
-                                    onPressed: () => Navigator.pop(context),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _buildReminderGradientButton(
-                                    label: '立即备份',
-                                    isNight: isNight,
-                                    fontFamily: fontFamily,
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => const CloudSyncPage(),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // 2. 头部悬浮的 Mascot 头像（半个圆在主体卡片上方）
-                Positioned(
-                  top: -42, // 直径 84，向上偏移 42
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isNight ? const Color(0xFF0F172A) : Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isNight
-                            ? const Color(0xFF00ACC1).withValues(alpha: 0.4)
-                            : const Color(0xFFE0F7FA),
-                        width: 4.0,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF00ACC1).withValues(alpha: isNight ? 0.3 : 0.15),
-                          blurRadius: 18,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Image.asset(
-                      UserState().selectedMascotType.value,
-                      width: 60,
-                      height: 60,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildReminderOutlineButton({
-    required String label,
-    required bool isNight,
-    required String fontFamily,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      height: 48,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(
-            color: isNight ? Colors.white24 : const Color(0xFFE2E8F0),
-            width: 1.5,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          backgroundColor: isNight ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF8FAFC),
-          elevation: 0,
-          padding: EdgeInsets.zero,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.access_alarm_rounded,
-              size: 18,
-              color: isNight ? Colors.white70 : const Color(0xFF64748B),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: isNight ? Colors.white70 : const Color(0xFF64748B),
-                fontFamily: fontFamily,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReminderGradientButton({
-    required String label,
-    required bool isNight,
-    required String fontFamily,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4DD0E1), Color(0xFF00ACC1)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF00ACC1).withValues(alpha: 0.35),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          elevation: 0,
-          padding: EdgeInsets.zero,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.cloud_upload_rounded,
-              size: 18,
-              color: Colors.white,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                fontFamily: fontFamily,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSuccessDialog(String fontFamily) {
-    final isNight = _isNight;
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.5),
-      builder: (context) {
-        Future.delayed(const Duration(milliseconds: 1500), () {
-          if (context.mounted) {
-            Navigator.pop(context);
-          }
-        });
-
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(
-                  color: isNight ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(
-                    color: isNight ? Colors.white.withValues(alpha: 0.1) : const Color(0xFF00ACC1).withValues(alpha: 0.2),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00ACC1).withValues(alpha: isNight ? 0.3 : 0.15),
-                      blurRadius: 30,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // 渐变流光勾号
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF00ACC1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check_rounded,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ).animate().scale(curve: Curves.elasticOut, duration: 800.ms),
-                    const SizedBox(height: 20),
-                    Text(
-                      '记忆复苏成功！',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isNight ? Colors.white : const Color(0xFF1A1A1A),
-                        fontFamily: fontFamily,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '我们的岛屿已安全重建 ✨',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isNight ? Colors.white60 : Colors.black54,
-                        fontFamily: fontFamily,
-                      ),
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1.0, 1.0), curve: Curves.easeOutBack),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildLoadingOverlay(String text, bool isNight, String fontFamily) {
-    return Positioned.fill(
-      child: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-          child: Container(
-            color: Colors.black.withValues(alpha: isNight ? 0.5 : 0.35),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 旋转的流光光圈与跳动的小伙伴容器
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // 旋转流光圈
-                      Container(
-                        width: 110,
-                        height: 110,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.transparent,
-                          ),
-                          gradient: const SweepGradient(
-                            colors: [
-                              Color(0xFF00ACC1),
-                              Color(0xFF818CF8),
-                              Color(0xFFCE93D8),
-                              Color(0xFF00ACC1),
-                            ],
-                          ),
-                        ),
-                      )
-                      .animate(onPlay: (controller) => controller.repeat())
-                      .rotate(duration: 2.seconds),
-                      
-                      // 内层遮罩，制造环形感
-                      Container(
-                        width: 102,
-                        height: 102,
-                        decoration: BoxDecoration(
-                          color: isNight ? const Color(0xFF161513) : const Color(0xFFFAF7F0),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      
-                      // 永久弹性跳动的小胖形象 (Mascot)
-                      Image.asset(
-                        UserState().selectedMascotType.value,
-                        width: 60,
-                        height: 60,
-                      )
-                      .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                      .moveY(begin: -8, end: 8, duration: 800.ms, curve: Curves.easeInOutCubic)
-                      .rotate(begin: -0.05, end: 0.05, duration: 800.ms, curve: Curves.easeInOutCubic),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-                  
-                  // 呼吸灯文字
-                  Text(
-                    text,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF374151),
-                      fontFamily: fontFamily,
-                      letterSpacing: 0.8,
-                    ),
-                  )
-                  .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                  .fadeIn(duration: 1.seconds, curve: Curves.easeInOut),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LeftCurvePainter extends CustomPainter {
-  final bool isNight;
-  _LeftCurvePainter({required this.isNight});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = isNight ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFD7CCC8)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-
-    // 绘制二次贝塞尔曲线点集，实现虚线效果
-    for (var i = 0; i <= 20; i++) {
-      final t = i / 20;
-      // 曲线起始点 (0, 0)，控制点 (22, 18)，终点 (10, 52)
-      final x = (1 - t) * (1 - t) * 0 + 2 * (1 - t) * t * 22 + t * t * 10;
-      final y = (1 - t) * (1 - t) * 0 + 2 * (1 - t) * t * 18 + t * t * 52;
-      
-      if (i % 2 == 0) {
-        canvas.drawCircle(Offset(x, y), 1.0, paint);
-      }
-    }
-    
-    // 在曲线终点绘制一个精美的小心形 (Color: Color(0xFF81D4FA))
-    final heartPaint = Paint()
-      ..color = const Color(0xFF81D4FA)
-      ..style = PaintingStyle.fill;
-      
-    final heartPath = Path();
-    const hx = 10.0;
-    const hy = 52.0;
-    
-    // 心形绘制路径以 hx, hy 为顶端交汇点
-    heartPath.moveTo(hx, hy);
-    heartPath.cubicTo(hx - 3, hy - 3, hx - 6, hy, hx, hy + 5);
-    heartPath.cubicTo(hx + 6, hy, hx + 3, hy - 3, hx, hy);
-    canvas.drawPath(heartPath, heartPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

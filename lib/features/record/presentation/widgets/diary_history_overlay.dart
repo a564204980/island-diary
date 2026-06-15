@@ -639,7 +639,10 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
     setState(() => _isCapturing = false);
     if (path != null) {
       await SharePlus.instance.share(
-        ShareParams(files: [XFile(path)], text: '分享我在岛屿日记的点滴记录 ✨'),
+        ShareParams(
+          files: [XFile(path)],
+          text: '分享我在岛屿日记的点滴记录 ✨',
+        ),
       );
     }
   }

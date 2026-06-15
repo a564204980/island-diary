@@ -51,7 +51,10 @@ class _MoodPosterWidgetState extends State<MoodPosterWidget> {
       await file.writeAsBytes(buffer);
 
       await SharePlus.instance.share(
-        ShareParams(files: [XFile(file.path)], text: '分享我在岛屿上的情绪洞察 ✨'),
+        ShareParams(
+          files: [XFile(file.path)],
+          text: '分享我在岛屿上的情绪洞察 ✨',
+        ),
       );
     } catch (e) {
       debugPrint('Error sharing poster: $e');

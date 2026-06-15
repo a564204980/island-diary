@@ -62,9 +62,9 @@ extension _BentoMoodPalette on _StatisticsPageState {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 左侧占比 26%
+              // 左侧占比 35%
               Expanded(
-                flex: 26,
+                flex: 35,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -158,7 +158,7 @@ extension _BentoMoodPalette on _StatisticsPageState {
               const SizedBox(width: 6),
               // 右侧密集马赛克画布
               Expanded(
-                flex: 74,
+                flex: 65,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 28), // 进一步下沉至 28px，完美拉开与标题的距离并优美撑高卡片高度
                   child: AspectRatio(
@@ -575,7 +575,10 @@ extension _BentoMoodPalette on _StatisticsPageState {
             Positioned.fill(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: contentWidget,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: contentWidget,
+                ),
               ),
             ),
 

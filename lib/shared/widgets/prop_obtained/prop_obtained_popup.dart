@@ -220,11 +220,17 @@ class _PropObtainedPopupWidgetState extends State<_PropObtainedPopupWidget>
       } else if (widget.decoration.id == 'phoenix_crown') {
         customBgAsset = 'assets/images/emoji/modules_bg/ruyifengguan_bg.png';
       } else if (widget.decoration.id == 'yellow_duck_hat') {
-        customBgAsset = 'assets/images/emoji/modules_bg/3.png';
+        customBgAsset = 'assets/images/emoji/modules_bg/9.png';
       } else if (widget.decoration.id == 'candy_heart_lion') {
         customBgAsset = 'assets/images/emoji/modules_bg/4.png';
       } else if (widget.decoration.id == 'flower_appointment') {
         customBgAsset = 'assets/images/emoji/modules_bg/5.png';
+      } else if (widget.decoration.id == 'ultraman') {
+        customBgAsset = 'assets/images/emoji/modules_bg/6.png';
+      } else if (widget.decoration.id == 'flower') {
+        customBgAsset = 'assets/images/emoji/modules_bg/7.png';
+      } else if (widget.decoration.id == 'butterfly_wreath') {
+        customBgAsset = 'assets/images/emoji/modules_bg/8.png';
       } else if (widget.decoration.rarity == MascotRarity.legendary && 
                  widget.decoration.category != MascotDecorationCategory.hat) {
         customBgAsset = 'assets/images/review/chuanshuo_bg.png';

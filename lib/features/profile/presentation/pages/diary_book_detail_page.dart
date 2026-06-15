@@ -3,14 +3,13 @@ import 'dart:io';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_book.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
-import 'package:island_diary/features/record/presentation/pages/diary_detail_page.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
-import 'package:island_diary/features/profile/presentation/pages/diary_book_edit_page.dart';
-import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
-import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:share_plus/share_plus.dart' as sp;
 import 'package:intl/intl.dart';
+import 'package:island_diary/features/profile/presentation/pages/diary_book_export_page.dart';
+import 'package:island_diary/features/profile/presentation/pages/diary_book_detail_reader_page.dart';
+import 'package:island_diary/features/profile/presentation/widgets/dashed_line_painter.dart';
 
 class DiaryBookDetailPage extends StatefulWidget {
   final DiaryBook book;
@@ -444,18 +443,19 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                   ),
                 ),
 
-                // 3. 底部“开始阅读”大按钮
+                // 3. 底部“导出成书”大按钮
                 if (bookDiaries.isNotEmpty)
                   Builder(
                     builder: (context) {
-                      // 克隆并强制按时间升序排序，使阅读总是从最早的第一篇日记开始
-                      final readingList = List<DiaryEntry>.from(bookDiaries)
+                      // 导出时按时间升序排序，从第一篇到最后一篇
+                      final exportList = List<DiaryEntry>.from(bookDiaries)
                         ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
                       return Padding(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                        child: _buildReadBtn(
+                        child: _buildExportBtn(
                           context,
-                          readingList,
+                          book,
+                          exportList,
                           isNight,
                           isLego,
                           fontFamily,
@@ -540,8 +540,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
               ).format(book.createdAt);
               final text =
                   '《${book.name}》\n共记录了 ${diaries.length} 篇回忆。\n创于 $createdAtStr。';
-              // ignore: deprecated_member_use
-              sp.Share.share(text);
+              sp.SharePlus.instance.share(sp.ShareParams(text: text));
             },
           ),
         ],
@@ -585,76 +584,14 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
             ).format(book.createdAt);
             final text =
                 '《${book.name}》\n共记录了 ${diaries.length} 篇回忆。\n创于 $createdAtStr。';
-            // ignore: deprecated_member_use
-            sp.Share.share(text);
+            sp.SharePlus.instance.share(sp.ShareParams(text: text));
           },
         ),
       ],
     );
   }
 
-  /// 绘制圆圈返回/分享按钮（仅Lego主题列表页使用）
-  Widget _buildCircleBtn({
-    required IconData icon,
-    required bool isNight,
-    required bool isLego,
-    required VoidCallback? onTap,
-  }) {
-    if (onTap == null) {
-      return const SizedBox(width: 40, height: 40);
-    }
 
-    if (isLego) {
-      final Color btnColor = isNight
-          ? const Color(0xFF2C2518)
-          : const Color(0xFFFFFDF2);
-      final Color depthColor = isNight
-          ? const Color(0xFF1B160E)
-          : const Color(0xFFEADAB9);
-      final Color shadowColor = isNight
-          ? const Color(0x80000000)
-          : const Color(0x3D5D4037);
-      final Color arrowColor = isNight
-          ? Colors.white70
-          : const Color(0xFF5D4037);
-
-      return GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 44,
-          height: 38,
-          decoration: BoxDecoration(
-            color: btnColor,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: depthColor,
-                blurRadius: 0,
-                offset: const Offset(0, 3.5),
-              ),
-              BoxShadow(
-                color: shadowColor,
-                blurRadius: 5.0,
-                offset: const Offset(0, 5.0),
-              ),
-            ],
-          ),
-          child: Icon(icon, size: 18, color: arrowColor),
-        ),
-      );
-    }
-
-    return IconButton(
-      onPressed: onTap,
-      icon: Icon(
-        icon == Icons.chevron_left_rounded
-            ? Icons.arrow_back_ios_new_rounded
-            : icon,
-        size: 20,
-        color: isNight ? Colors.white70 : Colors.black87,
-      ),
-    );
-  }
 
   Widget _buildHeaderCard(
     BuildContext context,
@@ -668,7 +605,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
     String fontFamily,
   ) {
     final description = book.description;
-    final hasDesc = description != null && description.trim().isNotEmpty;
+    final hasDesc = description.trim().isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
@@ -1000,7 +937,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                 bottom: 20, // 终点稍微上移
                 child: CustomPaint(
                   size: const Size(1, double.infinity),
-                  painter: _DashedLinePainter(
+                  painter: DashedLinePainter(
                     color: isNight ? Colors.white24 : const Color(0xFFD8D2C4),
                   ),
                 ),
@@ -1022,15 +959,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                   titleStr = titleStr.replaceAll(RegExp(r'\s*\.{3,}$'), '');
                   titleStr = titleStr.replaceAll(RegExp(r'\s*…+$'), '');
 
-                  // 获取心情数据并解析 customMood
-                  final mood = kMoods[entry.moodIndex.clamp(0, kMoods.length - 1)];
-                  final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
-                  final String iconPath = parsed.customMood != null
-                      ? (entry.moodIndex >= 0 && entry.moodIndex <= 23
-                          ? 'assets/icons/custom${entry.moodIndex + 1}.png'
-                          : 'assets/images/icons/custom.png')
-                      : (mood.iconPath ?? 'assets/icons/happy.png');
-                  final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+
 
                   return GestureDetector(
                     behavior: HitTestBehavior.opaque,
@@ -1118,8 +1047,9 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
     );
   }
 
-  Widget _buildReadBtn(
+  Widget _buildExportBtn(
     BuildContext context,
+    DiaryBook book,
     List<DiaryEntry> bookDiaries,
     bool isNight,
     bool isLego,
@@ -1131,9 +1061,9 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => DiaryBookDetailReaderPage(
-                entries: bookDiaries,
-                initialIndex: 0,
+              builder: (context) => DiaryBookExportPage(
+                book: book,
+                diaries: bookDiaries,
               ),
             ),
           );
@@ -1154,7 +1084,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
           ),
           child: Center(
             child: Text(
-              '开始阅读',
+              '导出成书',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -1324,117 +1254,3 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
   }
 }
 
-class _DashedLinePainter extends CustomPainter {
-  final Color color;
-  _DashedLinePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    var paint = Paint()
-      ..color = color
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-
-    double dashHeight = 4, dashSpace = 4, startY = 0;
-    while (startY < size.height) {
-      canvas.drawLine(Offset(0, startY), Offset(0, startY + dashHeight), paint);
-      startY += dashHeight + dashSpace;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class DiaryBookDetailReaderPage extends StatefulWidget {
-  final List<DiaryEntry> entries;
-  final int initialIndex;
-
-  const DiaryBookDetailReaderPage({
-    super.key,
-    required this.entries,
-    this.initialIndex = 0,
-  });
-
-  @override
-  State<DiaryBookDetailReaderPage> createState() => _DiaryBookDetailReaderPageState();
-}
-
-class _DiaryBookDetailReaderPageState extends State<DiaryBookDetailReaderPage> {
-  late PageController _pageController;
-  late int _currentIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = widget.initialIndex;
-    _pageController = PageController(initialPage: _currentIndex);
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isNight = UserState().isNight;
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          PageView.builder(
-            controller: _pageController,
-            itemCount: widget.entries.length,
-            onPageChanged: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-            itemBuilder: (context, index) {
-              return DiaryDetailPage(
-                entry: widget.entries[index],
-                isNight: isNight,
-                showFloatingActions: false,
-              );
-            },
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              leading: IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 20,
-                  color: isNight ? Colors.white70 : Colors.black87,
-                ),
-              ),
-              actions: [
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 20.0),
-                    child: Text(
-                      '${_currentIndex + 1} / ${widget.entries.length}',
-                      style: TextStyle(
-                        color: isNight ? Colors.white38 : Colors.black38,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

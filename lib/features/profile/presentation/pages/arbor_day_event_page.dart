@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -410,7 +409,7 @@ class ArborDayEventPage extends StatelessWidget {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     ).animate().slideX(begin: 0.1, duration: 800.ms).fade();
@@ -726,9 +725,13 @@ class _ForestSilhouettePainter extends CustomPainter {
         int treeType = random.nextInt(3);
         double treeHeight = 50 + random.nextDouble() * 70;
 
-        if (treeType == 0) _drawPine(canvas, Offset(tx, ty), treeHeight, paint);
-        else if (treeType == 1) _drawRoundTree(canvas, Offset(tx, ty), treeHeight * 0.8, paint);
-        else _drawBush(canvas, Offset(tx, ty), treeHeight * 0.4, paint);
+        if (treeType == 0) {
+          _drawPine(canvas, Offset(tx, ty), treeHeight, paint);
+        } else if (treeType == 1) {
+          _drawRoundTree(canvas, Offset(tx, ty), treeHeight * 0.8, paint);
+        } else {
+          _drawBush(canvas, Offset(tx, ty), treeHeight * 0.4, paint);
+        }
       }
     }
   }

@@ -459,6 +459,7 @@ class _DiaryBookReaderPageState extends State<DiaryBookReaderPage> {
           ),
         );
       }).toList(),
+    );
   }
 
   /// 智能提取日记第一句话（不含末尾标点，当句末标点句过长时，智能在逗号处切分）

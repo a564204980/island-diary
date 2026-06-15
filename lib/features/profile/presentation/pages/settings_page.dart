@@ -181,7 +181,7 @@ class SettingsPage extends StatelessWidget {
                                 isNight: isNight,
                                 trailing: Switch(
                                   value: value,
-                                  activeColor: isNight ? const Color(0xFF818CF8) : const Color(0xFF7E57C2),
+                                  activeThumbColor: isNight ? const Color(0xFF818CF8) : const Color(0xFF7E57C2),
                                   onChanged: (val) {
                                     UserState().setShowPropObtainedPopup(val);
                                   },
@@ -329,42 +329,6 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isNight) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 40,
-              height: 40,
-              color: Colors.transparent,
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 20,
-                color: isNight ? Colors.white70 : Colors.black87,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              '系统设置',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                fontFamily: _getFontFamily(),
-                letterSpacing: 3,
-              ),
-            ),
-          ),
-          const SizedBox(width: 42), // 占位居中
-        ],
-      ),
-    );
-  }
 
   Widget _buildSection({
     required String title, 
