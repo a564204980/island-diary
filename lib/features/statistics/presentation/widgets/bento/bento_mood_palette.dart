@@ -403,7 +403,7 @@ extension _BentoMoodPalette on _StatisticsPageState {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: List.generate(showCols, (colIdx) {
-                final bool isEmptyCol = colIdx < emptyCols;
+                final bool isEmptyCol = colIdx >= displayActiveCols;
 
                 return Column(
                   mainAxisSize: MainAxisSize.min,
@@ -412,7 +412,7 @@ extension _BentoMoodPalette on _StatisticsPageState {
                       return _buildPlaceholderCell(isNight, isCottonCandy, cellSize);
                     }
 
-                    final int activeColIdx = colIdx - emptyCols;
+                    final int activeColIdx = colIdx;
                     final int itemIdx = activeColIdx * rowCount + rowIdx;
                     if (itemIdx >= displayItems.length) {
                       return _buildPlaceholderCell(isNight, isCottonCandy, cellSize);

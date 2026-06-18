@@ -564,14 +564,14 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xAAFFFDF9)
+                      ? const Color(0xFFF2F2F2)
                       : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
-                        ? const Color(0xFFE5DEC9)
-                        : Colors.white.withValues(alpha: 0.1),
-                    width: !_effectiveIsNight ? 0.6 : 0.8,
+                        ? const Color(0xFFD8D8D8)
+                        : Colors.white.withValues(alpha: 0.15),
+                    width: 0.8,
                   ),
                 ),
                 child: Row(
@@ -596,10 +596,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       moodLabel,
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         color: !_effectiveIsNight
-                            ? const Color(0xFF5E6C6D)
-                            : Colors.white.withValues(alpha: 0.9),
+                            ? const Color(0xFF5C5C5C)
+                            : Colors.white.withValues(alpha: 0.75),
                       ),
                     ),
                   ],
@@ -612,24 +612,24 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xAAFFFDF9)
+                      ? const Color(0xFFF2F2F2)
                       : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
-                        ? const Color(0xFFE5DEC9)
-                        : Colors.white.withValues(alpha: 0.1),
-                    width: !_effectiveIsNight ? 0.6 : 0.8,
+                        ? const Color(0xFFD8D8D8)
+                        : Colors.white.withValues(alpha: 0.15),
+                    width: 0.8,
                   ),
                 ),
                 child: Text(
                   '#$tag',
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     color: !_effectiveIsNight
-                        ? const Color(0xFF5E6C6D)
-                        : Colors.white.withValues(alpha: 0.9),
+                        ? const Color(0xFF5C5C5C)
+                        : Colors.white.withValues(alpha: 0.75),
                   ),
                 ),
               );
@@ -643,14 +643,14 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 ),
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xAAFFFDF9)
+                      ? const Color(0xFFF2F2F2)
                       : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
-                        ? const Color(0xFFE5DEC9)
-                        : Colors.white.withValues(alpha: 0.1),
-                    width: !_effectiveIsNight ? 0.6 : 0.8,
+                        ? const Color(0xFFD8D8D8)
+                        : Colors.white.withValues(alpha: 0.15),
+                    width: 0.8,
                   ),
                 ),
                 child: Row(
@@ -660,18 +660,18 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       _getWeatherIcon(_currentEntry.weather),
                       size: 14,
                       color: !_effectiveIsNight
-                          ? const Color(0xFF5E6C6D)
-                          : Colors.white.withValues(alpha: 0.7),
+                          ? const Color(0xFF5C5C5C)
+                          : Colors.white.withValues(alpha: 0.6),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       "${_currentEntry.weather} ${_currentEntry.temp ?? ''}",
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         color: !_effectiveIsNight
-                            ? const Color(0xFF5E6C6D)
-                            : Colors.white.withValues(alpha: 0.9),
+                            ? const Color(0xFF5C5C5C)
+                            : Colors.white.withValues(alpha: 0.75),
                       ),
                     ),
                   ],
@@ -686,14 +686,14 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 ),
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xAAFFFDF9)
+                      ? const Color(0xFFF2F2F2)
                       : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
-                        ? const Color(0xFFE5DEC9)
-                        : Colors.white.withValues(alpha: 0.1),
-                    width: !_effectiveIsNight ? 0.6 : 0.8,
+                        ? const Color(0xFFD8D8D8)
+                        : Colors.white.withValues(alpha: 0.15),
+                    width: 0.8,
                   ),
                 ),
                 child: Row(
@@ -703,8 +703,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       Icons.location_on_outlined,
                       size: 14,
                       color: !_effectiveIsNight
-                          ? const Color(0xFF5E6C6D)
-                          : Colors.white.withValues(alpha: 0.7),
+                          ? const Color(0xFF5C5C5C)
+                          : Colors.white.withValues(alpha: 0.6),
                     ),
                     const SizedBox(width: 4),
                     ConstrainedBox(
@@ -717,10 +717,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                         maxLines: 1,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                           color: !_effectiveIsNight
-                              ? const Color(0xFF5E6C6D)
-                              : Colors.white.withValues(alpha: 0.9),
+                              ? const Color(0xFF5C5C5C)
+                              : Colors.white.withValues(alpha: 0.75),
                         ),
                       ),
                     ),
@@ -736,14 +736,14 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 ),
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xAAFFFDF9)
+                      ? const Color(0xFFF2F2F2)
                       : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
-                        ? const Color(0xFFE5DEC9)
-                        : Colors.white.withValues(alpha: 0.1),
-                    width: !_effectiveIsNight ? 0.6 : 0.8,
+                        ? const Color(0xFFD8D8D8)
+                        : Colors.white.withValues(alpha: 0.15),
+                    width: 0.8,
                   ),
                 ),
                 child: Row(
@@ -753,18 +753,18 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       Icons.calendar_today_outlined,
                       size: 14,
                       color: !_effectiveIsNight
-                          ? const Color(0xFF5E6C6D)
-                          : Colors.white.withValues(alpha: 0.7),
+                          ? const Color(0xFF5C5C5C)
+                          : Colors.white.withValues(alpha: 0.6),
                     ),
                     const SizedBox(width: 5),
                     Text(
                       _currentEntry.customDate!,
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         color: !_effectiveIsNight
-                            ? const Color(0xFF5E6C6D)
-                            : Colors.white.withValues(alpha: 0.9),
+                            ? const Color(0xFF5C5C5C)
+                            : Colors.white.withValues(alpha: 0.75),
                       ),
                     ),
                   ],
@@ -779,14 +779,14 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 ),
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xAAFFFDF9)
+                      ? const Color(0xFFF2F2F2)
                       : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
-                        ? const Color(0xFFE5DEC9)
-                        : Colors.white.withValues(alpha: 0.1),
-                    width: !_effectiveIsNight ? 0.6 : 0.8,
+                        ? const Color(0xFFD8D8D8)
+                        : Colors.white.withValues(alpha: 0.15),
+                    width: 0.8,
                   ),
                 ),
                 child: Row(
@@ -796,18 +796,18 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       Icons.access_time_outlined,
                       size: 14,
                       color: !_effectiveIsNight
-                          ? const Color(0xFF5E6C6D)
-                          : Colors.white.withValues(alpha: 0.7),
+                          ? const Color(0xFF5C5C5C)
+                          : Colors.white.withValues(alpha: 0.6),
                     ),
                     const SizedBox(width: 5),
                     Text(
                       _currentEntry.customTime!,
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         color: !_effectiveIsNight
-                            ? const Color(0xFF5E6C6D)
-                            : Colors.white.withValues(alpha: 0.9),
+                            ? const Color(0xFF5C5C5C)
+                            : Colors.white.withValues(alpha: 0.75),
                       ),
                     ),
                   ],
@@ -1335,7 +1335,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     }
 
     if (_currentEntry.isImageGrid) {
-      if (images.length <= 5) {
+      if (images.length <= 3) {
         final paths = images.map((img) => img['path'] as String).toList();
         return DiaryImageCollage(
           imagePaths: paths,
@@ -1344,35 +1344,53 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         ).animate().fadeIn(delay: 500.ms, duration: 800.ms);
       }
 
+      // 超过3张：只显示前3张，第3张加遮罩显示剩余数量
       return LayoutBuilder(
         builder: (context, constraints) {
           final double spacing = 8;
           final double itemSize = (constraints.maxWidth - spacing * 2) / 3;
+          final displayImages = images.take(3).toList();
+          final remaining = images.length - 3;
 
-          return Wrap(
+          return Row(
             spacing: spacing,
-            runSpacing: spacing,
-            children: images.map((image) {
+            children: List.generate(3, (index) {
+              final image = displayImages[index];
               final path = image['path'];
-              return Container(
-                width: itemSize,
-                height: itemSize,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+              final isLast = index == 2;
+
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  children: [
+                    SizedBox(
+                      width: itemSize,
+                      height: itemSize,
+                      child: DiaryUtils.buildImage(path, fit: BoxFit.cover),
                     ),
+                    if (isLast)
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.45),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '+$remaining',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: DiaryUtils.buildImage(path, fit: BoxFit.cover),
-                ),
               );
-            }).toList(),
+            }),
           );
         },
       ).animate().fadeIn(delay: 500.ms, duration: 800.ms);

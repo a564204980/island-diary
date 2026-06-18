@@ -59,7 +59,7 @@ extension _BentoMoodTrend on _StatisticsPageState {
 
         double dayScore = 0;
         for (var e in dayDiaries) {
-          dayScore += getMoodWeight(e.moodIndex) * e.intensity.toDouble();
+          dayScore += getMoodWeight(e.moodIndex);
         }
         aggregatedPoints.add({
           'date': d,
@@ -86,7 +86,7 @@ extension _BentoMoodTrend on _StatisticsPageState {
 
         double dayScore = 0;
         for (var e in dayDiaries) {
-          dayScore += getMoodWeight(e.moodIndex) * e.intensity.toDouble();
+          dayScore += getMoodWeight(e.moodIndex);
         }
         aggregatedPoints.add({
           'date': d,
@@ -118,7 +118,7 @@ extension _BentoMoodTrend on _StatisticsPageState {
             .toList();
         double monthTotal = 0;
         for (var e in monthDiaries) {
-          monthTotal += getMoodWeight(e.moodIndex) * e.intensity.toDouble();
+          monthTotal += getMoodWeight(e.moodIndex);
         }
 
         aggregatedPoints.add({
@@ -509,6 +509,8 @@ extension _BentoMoodTrend on _StatisticsPageState {
                                   borderData: FlBorderData(show: false),
                                   lineBarsData: [barData],
                                   lineTouchData: LineTouchData(
+                                    handleBuiltInTouches: false,
+                                    touchSpotThreshold: 18.0,
                                     touchCallback: (event, response) {
                                       if (event is FlTapUpEvent) {
                                         if (response == null ||
@@ -518,7 +520,14 @@ extension _BentoMoodTrend on _StatisticsPageState {
                                         } else {
                                           final spot =
                                               response.lineBarSpots!.first;
-                                          updateMoodTrendX(spot.x.toInt());
+                                          final int index = spot.x.toInt();
+                                          if (index >= 0 &&
+                                              index < aggregatedPoints.length &&
+                                              aggregatedPoints[index]['hasData'] == true) {
+                                            updateMoodTrendX(index);
+                                          } else {
+                                            updateMoodTrendX(null);
+                                          }
                                         }
                                       }
                                     },

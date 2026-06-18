@@ -34,7 +34,7 @@ extension _BentoMoodFlow on _StatisticsPageState {
           ? e.tag! 
           : kMoods[e.moodIndex % kMoods.length].label;
       
-      labelTotalIntensity[label] = (labelTotalIntensity[label] ?? 0) + e.intensity.toDouble();
+      labelTotalIntensity[label] = (labelTotalIntensity[label] ?? 0) + 1.0;
       if (!labelToMoodIndex.containsKey(label)) {
         labelToMoodIndex[label] = e.moodIndex % kMoods.length;
       }
@@ -63,7 +63,7 @@ extension _BentoMoodFlow on _StatisticsPageState {
       
       final dayDiff = e.dateTime.difference(startDate).inDays;
       if (dayDiff >= 0 && dayDiff < daysCount) {
-        dataMap[label]![dayDiff] += e.intensity.toDouble();
+        dataMap[label]![dayDiff] += 1.0;
       }
     }
 
@@ -293,14 +293,25 @@ extension _BentoMoodFlow on _StatisticsPageState {
                                 borderData: FlBorderData(show: false),
                                 lineBarsData: lineBarsData,
                                 lineTouchData: LineTouchData(
-                                  handleBuiltInTouches: true,
+                                  handleBuiltInTouches: false,
+                                  touchSpotThreshold: 18.0,
                                   touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
                                     if (event is FlTapUpEvent) {
                                       if (response == null || response.lineBarSpots == null || response.lineBarSpots!.isEmpty) {
                                         updateMoodFlowX(null);
                                       } else {
                                         final spot = response.lineBarSpots!.first;
-                                        updateMoodFlowX(spot.x.toInt());
+                                        final int index = spot.x.toInt();
+                                        if (index >= 0 && index < daysCount) {
+                                          final bool hasAnyData = targetLabels.any((label) => dataMap[label]![index] > 0);
+                                          if (hasAnyData) {
+                                            updateMoodFlowX(index);
+                                          } else {
+                                            updateMoodFlowX(null);
+                                          }
+                                        } else {
+                                          updateMoodFlowX(null);
+                                        }
                                       }
                                     }
                                   },
@@ -334,12 +345,12 @@ extension _BentoMoodFlow on _StatisticsPageState {
                                         if (dataMap[label]![_selectedMoodFlowX!] > 0)
                                           _BentoTooltipItem(
                                             label: label,
-                                            value: dataMap[label]![_selectedMoodFlowX!].toStringAsFixed(1),
+                                            value: '${dataMap[label]![_selectedMoodFlowX!].toInt()}次',
                                             color: label == kMoods[labelToMoodIndex[label]!].label
                                               ? kMoods[labelToMoodIndex[label]!].glowColor ?? (isNight ? Colors.white : Colors.black87)
                                               : HSLColor.fromAHSL(1.0, (label.hashCode % 360).toDouble(), 0.5, 0.6).toColor()
                                           )
-                                  ]..sort((a, b) => double.parse(b.value).compareTo(double.parse(a.value))),
+                                  ]..sort((a, b) => dataMap[b.label]![_selectedMoodFlowX!].compareTo(dataMap[a.label]![_selectedMoodFlowX!])),
                                   relativeX: (_selectedMoodFlowX! + 0.18) / (daysCount - 0.32),
                                   chartWidth: finalWidth,
                                   isNight: isNight,

@@ -39,10 +39,41 @@ mixin PreferenceMixin on ProfileMixin {
     preferredPaperStyle.value = prefs.getString(UserState().n(_K.preferredPaperStyle)) ?? 'note1';
     preferredFontSize.value = prefs.getDouble(UserState().n(_K.preferredFontSize)) ?? 20.0;
     preferredFontFamily.value = prefs.getString(UserState().n(_K.preferredFontFamily)) ?? 'LXGWWenKai';
-    selectedMascotDecoration.value = prefs.getString(UserState().n(_K.mascotDecoration));
-    selectedGlassesDecoration.value = prefs.getString(UserState().n(_K.selectedGlassesDecoration));
-    selectedEarringDecoration.value = prefs.getString(UserState().n(_K.selectedEarringDecoration));
-    selectedBackgroundDecoration.value = prefs.getString(UserState().n(_K.selectedBackgroundDecoration));
+    // 容错防崩：主饰品槽位校验
+    final mascotDecPath = prefs.getString(UserState().n(_K.mascotDecoration));
+    if (mascotDecPath != null && MascotDecoration.getByPath(mascotDecPath) == null) {
+      prefs.remove(UserState().n(_K.mascotDecoration));
+      selectedMascotDecoration.value = null;
+    } else {
+      selectedMascotDecoration.value = mascotDecPath;
+    }
+
+    // 容错防崩：眼镜槽位校验
+    final glassesDecPath = prefs.getString(UserState().n(_K.selectedGlassesDecoration));
+    if (glassesDecPath != null && MascotDecoration.getByPath(glassesDecPath) == null) {
+      prefs.remove(UserState().n(_K.selectedGlassesDecoration));
+      selectedGlassesDecoration.value = null;
+    } else {
+      selectedGlassesDecoration.value = glassesDecPath;
+    }
+
+    // 容错防崩：耳饰槽位校验
+    final earringDecPath = prefs.getString(UserState().n(_K.selectedEarringDecoration));
+    if (earringDecPath != null && MascotDecoration.getByPath(earringDecPath) == null) {
+      prefs.remove(UserState().n(_K.selectedEarringDecoration));
+      selectedEarringDecoration.value = null;
+    } else {
+      selectedEarringDecoration.value = earringDecPath;
+    }
+
+    // 容错防崩：背景槽位校验
+    final backgroundDecPath = prefs.getString(UserState().n(_K.selectedBackgroundDecoration));
+    if (backgroundDecPath != null && MascotDecoration.getByPath(backgroundDecPath) == null) {
+      prefs.remove(UserState().n(_K.selectedBackgroundDecoration));
+      selectedBackgroundDecoration.value = null;
+    } else {
+      selectedBackgroundDecoration.value = backgroundDecPath;
+    }
     isGlassesOverlayEnabled.value = prefs.getBool(UserState().n(_K.isGlassesOverlayEnabled)) ?? false;
     isGlassesAboveHat.value = prefs.getBool(UserState().n(_K.isGlassesAboveHat)) ?? true;
     selectedMascotType.value = prefs.getString(UserState().n(_K.mascotType)) ?? 'assets/images/emoji/marshmallow2.png';

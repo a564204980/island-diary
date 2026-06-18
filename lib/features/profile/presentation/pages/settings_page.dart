@@ -10,6 +10,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/shared/widgets/prop_obtained/prop_obtained_popup.dart';
 import 'package:island_diary/shared/widgets/top_toast.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -199,15 +200,73 @@ class SettingsPage extends StatelessWidget {
                             accentColor: const Color(0xFFEC4899),
                             isNight: isNight,
                             onTap: () {
-                              final decos = MascotDecoration.allDecorations;
-                              if (decos.isEmpty) {
-                                _showToast(context, '无可用饰品数据 😢');
-                                return;
-                              }
-                              final premiumDecos = decos.where((d) => d.rarity == MascotRarity.legendary || d.rarity == MascotRarity.epic).toList();
-                              final list = premiumDecos.isNotEmpty ? premiumDecos : decos;
-                              final randomDeco = list[math.Random().nextInt(list.length)];
-                              showPropObtainedPopup(context, randomDeco);
+                              showModalBottomSheet(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) => DiaryBottomSheet(
+                                  paperStyle: 'default',
+                                  showDragHandle: true,
+                                  isDiary: false,
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Text(
+                                        '选择测试道具类型',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: isNight ? Colors.white : const Color(0xFF5A3E28),
+                                          fontFamily: 'LXGWWenKai',
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ...[
+                                        ('随机帽子/头饰', MascotDecorationCategory.hat),
+                                        ('随机发型', MascotDecorationCategory.hair),
+                                        ('随机眼镜', MascotDecorationCategory.glasses),
+                                        ('随机耳饰', MascotDecorationCategory.face),
+                                        ('随机高阶饰品 (全部)', null),
+                                      ].map((item) {
+                                        return ListTile(
+                                          title: Text(
+                                            item.$1,
+                                            style: TextStyle(
+                                              fontFamily: 'LXGWWenKai',
+                                              fontSize: 14,
+                                              color: isNight ? Colors.white70 : const Color(0xFF5A3E28),
+                                            ),
+                                          ),
+                                          trailing: Icon(
+                                            Icons.arrow_forward_ios_rounded,
+                                            size: 12,
+                                            color: isNight ? Colors.white30 : const Color(0xFF8A7A6E),
+                                          ),
+                                          onTap: () {
+                                            Navigator.pop(context);
+                                            final decos = MascotDecoration.allDecorations;
+                                            List<MascotDecoration> filtered;
+                                            if (item.$2 == null) {
+                                              filtered = decos.where((d) => d.rarity == MascotRarity.legendary || d.rarity == MascotRarity.epic).toList();
+                                            } else {
+                                              filtered = decos.where((d) => d.category == item.$2).toList();
+                                            }
+                                            if (filtered.isEmpty) {
+                                              _showToast(context, '该分类下无可用饰品数据 😢');
+                                              return;
+                                            }
+                                            final randomDeco = filtered[math.Random().nextInt(filtered.length)];
+                                            showPropObtainedPopup(context, randomDeco);
+                                          },
+                                        );
+                                      }),
+                                      const SizedBox(height: 12),
+                                    ],
+                                  ),
+                                ),
+                              );
                             },
                           ),
                         ],

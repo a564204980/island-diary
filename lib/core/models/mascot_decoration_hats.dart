@@ -43,8 +43,8 @@ const List<MascotDecoration> _hatDecorations = [
         scale: 1.15,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, -42),
-        scale: 1.15,
+        offset: Offset(0, -28),
+        scale: 1.1,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
         offset: Offset(0, -42),
@@ -833,20 +833,20 @@ const List<MascotDecoration> _hatDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.4),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, 0),
-        scale: 1.38,
+        offset: Offset(5, 0),
+        scale: 1.44,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, 0),
+        offset: Offset(4, 0),
         scale: 1.38,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, 0),
-        scale: 1.38,
+        offset: Offset(5, 0),
+        scale: 1.44,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, 0),
-        scale: 1.38,
+        offset: Offset(5, 0),
+        scale: 1.44,
       ),
     },
   ),
@@ -1080,19 +1080,19 @@ const List<MascotDecoration> _hatDecorations = [
     defaultConfig: MascotDecorationConfig(offset: Offset(0, -10), scale: 1.6),
     characterConfigs: {
       'assets/images/emoji/marshmallow.png': MascotDecorationConfig(
-        offset: Offset(0, 0),
+        offset: Offset(0, -10),
         scale: 1.1,
       ),
       'assets/images/emoji/marshmallow2.png': MascotDecorationConfig(
-        offset: Offset(0, 0),
+        offset: Offset(0, -10),
         scale: 1.1,
       ),
       'assets/images/emoji/marshmallow3.png': MascotDecorationConfig(
-        offset: Offset(0, 0),
+        offset: Offset(0, -10),
         scale: 1.1,
       ),
       'assets/images/emoji/marshmallow4.png': MascotDecorationConfig(
-        offset: Offset(0, 0),
+        offset: Offset(0, -10),
         scale: 1.1,
       ),
     },

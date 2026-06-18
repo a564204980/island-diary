@@ -79,6 +79,8 @@ class _PropObtainedPopupWidgetState extends State<_PropObtainedPopupWidget>
     final path = widget.decoration.path;
     switch (widget.decoration.category) {
       case MascotDecorationCategory.hat:
+      case MascotDecorationCategory.hair:
+      case MascotDecorationCategory.hairAccessory:
         UserState().setMascotDecoration(path);
         break;
       case MascotDecorationCategory.glasses:
@@ -102,6 +104,10 @@ class _PropObtainedPopupWidgetState extends State<_PropObtainedPopupWidget>
     switch (category) {
       case MascotDecorationCategory.hat:
         return '解锁了新发饰';
+      case MascotDecorationCategory.hair:
+        return '解锁了新发型';
+      case MascotDecorationCategory.hairAccessory:
+        return '解锁了新发饰';
       case MascotDecorationCategory.glasses:
         return '解锁了新眼镜';
       case MascotDecorationCategory.face:
@@ -114,6 +120,8 @@ class _PropObtainedPopupWidgetState extends State<_PropObtainedPopupWidget>
   IconData _getCategoryIcon(MascotDecorationCategory category) {
     switch (category) {
       case MascotDecorationCategory.hat:
+      case MascotDecorationCategory.hair:
+      case MascotDecorationCategory.hairAccessory:
         return Icons.auto_awesome_rounded;
       case MascotDecorationCategory.glasses:
         return Icons.face_retouching_natural_rounded;
@@ -231,6 +239,14 @@ class _PropObtainedPopupWidgetState extends State<_PropObtainedPopupWidget>
         customBgAsset = 'assets/images/emoji/modules_bg/7.png';
       } else if (widget.decoration.id == 'butterfly_wreath') {
         customBgAsset = 'assets/images/emoji/modules_bg/8.png';
+      } else if (widget.decoration.id == 'reindeer') {
+        customBgAsset = 'assets/images/emoji/modules_bg/10.png';
+      } else if (widget.decoration.id == 'luo_yan') {
+        customBgAsset = 'assets/images/emoji/modules_bg/11.png';
+      } else if (widget.decoration.id == 'chen_yu') {
+        customBgAsset = 'assets/images/emoji/modules_bg/12.png';
+      } else if (widget.decoration.id == 'red_long_tassel') {
+        customBgAsset = 'assets/images/emoji/modules_bg/13.png';
       } else if (widget.decoration.rarity == MascotRarity.legendary && 
                  widget.decoration.category != MascotDecorationCategory.hat) {
         customBgAsset = 'assets/images/review/chuanshuo_bg.png';
@@ -408,12 +424,11 @@ class _PropObtainedPopupWidgetState extends State<_PropObtainedPopupWidget>
                     const SizedBox(height: 14),
                   ],
 
-                  // 饰品名称与等级标签 (横向排版，等级在名称左侧)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                  // 饰品名称与等级标签 (标签在上居中，名称在下居中)
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 饰品等级标签 (微缩扁平胶囊设计，去掉“级”字，只显示“卓越”/“传说”)
+                      // 饰品等级标签
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                         decoration: BoxDecoration(
@@ -434,8 +449,8 @@ class _PropObtainedPopupWidgetState extends State<_PropObtainedPopupWidget>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // 饰品名称
+                      const SizedBox(height: 4),
+                      // 饰品名称（居中）
                       Text(
                         widget.decoration.name,
                         style: TextStyle(
@@ -448,6 +463,7 @@ class _PropObtainedPopupWidgetState extends State<_PropObtainedPopupWidget>
                       ),
                     ],
                   ).animate().fadeIn(delay: 100.ms, duration: 250.ms),
+
 
                   // 极细高级感横向分割线 (更换为国风两端渐变 + 中间小菱形点缀设计)
                   Padding(
@@ -512,7 +528,7 @@ class _PropObtainedPopupWidgetState extends State<_PropObtainedPopupWidget>
                     ),
                   ).animate().fadeIn(delay: 200.ms, duration: 250.ms),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
 
                   // 底部操作按钮：华为风格简约纯色药丸设计
                   Row(

@@ -499,7 +499,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           }
 
           // 九宫格模式
-          if (images.length <= 5) {
+          if (images.length <= 3) {
             final paths = images.map((img) => img['path'] as String).toList();
             return DiaryImageCollage(
               imagePaths: paths,
@@ -508,25 +508,49 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
             );
           }
 
+          // 超过3张：只显示前3张，第3张加遮罩+剩余数量
           final double spacing = 6;
           final int crossAxisCount = 3;
           final double itemSize =
               (gridWidth - (spacing * (crossAxisCount - 1))) / crossAxisCount;
+          final displayImages = images.take(3).toList();
+          final remaining = images.length - 3;
 
-          return Wrap(
+          return Row(
             spacing: spacing,
-            runSpacing: spacing,
-            children: images.take(9).map((img) {
+            children: List.generate(3, (index) {
+              final img = displayImages[index];
+              final isLast = index == 2;
               return ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: DiaryUtils.buildImage(
-                  img['path'],
-                  width: itemSize,
-                  height: itemSize,
-                  fit: BoxFit.cover,
+                child: Stack(
+                  children: [
+                    DiaryUtils.buildImage(
+                      img['path'],
+                      width: itemSize,
+                      height: itemSize,
+                      fit: BoxFit.cover,
+                    ),
+                    if (isLast)
+                      Positioned.fill(
+                        child: Container(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          child: Center(
+                            child: Text(
+                              '+$remaining',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               );
-            }).toList(),
+            }),
           );
         },
       ),
@@ -573,8 +597,16 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: badgeColor.withValues(alpha: isNight ? 0.15 : 0.18),
+            color: isNight
+                ? Colors.white.withValues(alpha: 0.08)
+                : const Color(0xFFF2F2F2),
             borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : const Color(0xFFD8D8D8),
+              width: 0.8,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -587,7 +619,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                       errorBuilder: (c, e, s) => Icon(
                         Icons.mood,
                         size: 14,
-                        color: badgeColor.withValues(alpha: isNight ? 0.8 : 1.0),
+                        color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
                       ),
                     )
                   : Image.asset(
@@ -597,7 +629,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                       errorBuilder: (c, e, s) => Icon(
                         Icons.mood,
                         size: 14,
-                        color: badgeColor.withValues(alpha: isNight ? 0.8 : 1.0),
+                        color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
                       ),
                     ),
               const SizedBox(width: 4),
@@ -605,8 +637,8 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                 moodLabel,
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: badgeColor.withValues(alpha: isNight ? 0.8 : 1.0),
+                  fontWeight: FontWeight.w500,
+                  color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
                   fontFamily: 'LXGWWenKai',
                 ),
               ),
@@ -619,19 +651,23 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: badgeColor.withValues(alpha: isNight ? 0.08 : 0.12),
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : const Color(0xFFF2F2F2),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: badgeColor.withValues(alpha: isNight ? 0.2 : 0.25),
-                width: 0.5,
+                color: isNight
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : const Color(0xFFD8D8D8),
+                width: 0.8,
               ),
             ),
             child: Text(
               "${widget.entry.weather} ${widget.entry.temp ?? ''}",
               style: TextStyle(
                 fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: badgeColor.withValues(alpha: isNight ? 0.6 : 1.0),
+                fontWeight: FontWeight.w500,
+                color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
                 fontFamily: 'LXGWWenKai',
               ),
             ),
@@ -642,11 +678,15 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: badgeColor.withValues(alpha: isNight ? 0.08 : 0.12),
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : const Color(0xFFF2F2F2),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: badgeColor.withValues(alpha: isNight ? 0.2 : 0.25),
-                width: 0.5,
+                color: isNight
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : const Color(0xFFD8D8D8),
+                width: 0.8,
               ),
             ),
             child: Row(
@@ -655,7 +695,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                 Icon(
                   Icons.location_on_outlined,
                   size: 10,
-                  color: badgeColor.withValues(alpha: isNight ? 0.6 : 1.0),
+                  color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
                 ),
                 const SizedBox(width: 2),
                 ConstrainedBox(
@@ -666,8 +706,8 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                     maxLines: 1,
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: badgeColor.withValues(alpha: isNight ? 0.6 : 1.0),
+                      fontWeight: FontWeight.w500,
+                      color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
                       fontFamily: 'LXGWWenKai',
                     ),
                   ),
@@ -682,44 +722,25 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
               decoration: BoxDecoration(
                 color: isNight
                     ? Colors.white.withValues(alpha: 0.08)
-                    : const Color(0xFF8B7763).withValues(alpha: 0.08),
+                    : const Color(0xFFF2F2F2),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isNight
-                      ? Colors.white12
-                      : const Color(0xFF8B7763).withValues(alpha: 0.15),
-                  width: 0.5,
+                      ? Colors.white.withValues(alpha: 0.15)
+                      : const Color(0xFFD8D8D8),
+                  width: 0.8,
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '#',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isNight
-                          ? Colors.white38
-                          : const Color(0xFF8B7763).withValues(alpha: 0.5),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 160),
-                    child: Text(
-                      singleTag,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: isNight ? Colors.white70 : const Color(0xFF8B7763),
-                        fontFamily: 'LXGWWenKai',
-                      ),
-                    ),
-                  ),
-                ],
+              child: Text(
+                '#$singleTag',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                  fontFamily: 'LXGWWenKai',
+                ),
               ),
             )),
       ],

@@ -44,15 +44,30 @@ class ExportPageMargin {
 class ExportBackgroundSettings {
   Color color;
   String? imagePath; // 可选的背景图片
+  double opacity;
+  double x;
+  double y;
+  double scale;
+  String? cropRatio;
 
   ExportBackgroundSettings({
     this.color = const Color(0xFFE8F4F8),
     this.imagePath,
+    this.opacity = 1.0,
+    this.x = 0.0,
+    this.y = 0.0,
+    this.scale = 1.0,
+    this.cropRatio,
   });
 
   ExportBackgroundSettings copy() => ExportBackgroundSettings(
         color: color,
         imagePath: imagePath,
+        opacity: opacity,
+        x: x,
+        y: y,
+        scale: scale,
+        cropRatio: cropRatio,
       );
 }
 
@@ -79,6 +94,10 @@ class ExportElement {
   double opacity;
   double borderRadius;
   String? cropRatio;
+  Color? textBackgroundColor;
+  double textBackgroundBorderRadius;
+  double textBackgroundOpacity;
+  double textBackgroundPadding;
 
   ExportElement({
     required this.id,
@@ -103,6 +122,10 @@ class ExportElement {
     this.opacity = 1.0,
     this.borderRadius = 0.0,
     this.cropRatio,
+    this.textBackgroundColor,
+    this.textBackgroundBorderRadius = 0.0,
+    this.textBackgroundOpacity = 1.0,
+    this.textBackgroundPadding = 0.0,
   });
 
   ExportElement copy() => ExportElement(
@@ -128,6 +151,10 @@ class ExportElement {
         opacity: opacity,
         borderRadius: borderRadius,
         cropRatio: cropRatio,
+        textBackgroundColor: textBackgroundColor,
+        textBackgroundBorderRadius: textBackgroundBorderRadius,
+        textBackgroundOpacity: textBackgroundOpacity,
+        textBackgroundPadding: textBackgroundPadding,
       );
 }
 

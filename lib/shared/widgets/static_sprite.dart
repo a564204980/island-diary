@@ -74,9 +74,11 @@ class _StaticSpriteState extends State<StaticSprite> with SingleTickerProviderSt
                 final hasDeco = !widget.ignoreDecorations && selectedDecoPath != null && selectedDecoPath.isNotEmpty;
                 if (hasDeco && targetPath.contains('marshmallow')) {
                   final deco = MascotDecoration.getByPath(selectedDecoPath);
-                  final isHat = deco?.category == MascotDecorationCategory.hat;
+                  final isHairOrHat = deco?.category == MascotDecorationCategory.hat ||
+                      deco?.category == MascotDecorationCategory.hair ||
+                      deco?.category == MascotDecorationCategory.hairAccessory;
                   final keepEars = deco?.keepEars ?? false;
-                  if (isHat && !keepEars) {
+                  if (isHairOrHat && !keepEars) {
                     targetPath = targetPath.replaceAll('.png', '_noEars.png');
                   }
                 }

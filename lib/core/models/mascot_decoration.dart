@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 part 'mascot_decoration_hats.dart';
 part 'mascot_decoration_glasses.dart';
 part 'mascot_decoration_earrings.dart';
+part 'mascot_decoration_hair.dart';
 
 /// 装饰品分类
 enum MascotDecorationCategory {
@@ -12,6 +13,10 @@ enum MascotDecorationCategory {
   glasses('眼镜'),
   /// 耳饰 (如耳环、耳钉等)
   face('耳饰'),
+  /// 发型
+  hair('发型'),
+  /// 发饰
+  hairAccessory('发饰'),
   /// 其他
   other('背景');
 
@@ -113,6 +118,7 @@ class MascotDecoration {
 
   /// 全局饰品注册表 (维持向下兼容)
   static const List<MascotDecoration> allDecorations = [
+    ..._hairDecorations,
     ..._hatDecorations,
     ..._glassesDecorations,
     ..._earringDecorations,

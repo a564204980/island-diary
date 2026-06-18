@@ -89,6 +89,11 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   ? const Color(0xFFFBF3E9)
                   : const Color(0xFFFAF8F5));
 
+        final double safeArea = MediaQuery.paddingOf(context).bottom;
+        final double tagsHeight = currentTags.where((t) => !t.startsWith('mood:')).isNotEmpty ? 40.0 : 0.0;
+        final double imagesHeight = !isMixedLayout && blocks.any((b) => b is ImageBlock) ? 68.0 : 0.0;
+        final double bottomOffset = keyboardHeight + 98.0 + safeArea + tagsHeight + imagesHeight;
+
         return PopScope(
           canPop: false,
           onPopInvokedWithResult: (didPop, result) {
@@ -138,7 +143,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   top: MediaQuery.paddingOf(context).top + 56,
                   left: 0,
                   right: 0,
-                  bottom: 0,
+                  bottom: bottomOffset,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
@@ -228,15 +233,15 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                 );
                               },
                               onDeleteAnnotation: (key) {
-                                setState(() {
+                                  setState(() {
                                   currentAnnotations.remove(key);
                                 });
                               },
                             ),
                             // 底部留白
-                            SliverToBoxAdapter(
+                            const SliverToBoxAdapter(
                               child: SizedBox(
-                                height: keyboardHeight + 100,
+                                height: 40,
                               ),
                             ),
                           ],

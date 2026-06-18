@@ -79,13 +79,15 @@ class FormGridItem extends StatelessWidget {
                           child: Center(
                             child: Opacity(
                               opacity: isLocked ? 0.3 : 1.0,
-                              child:
-                                  StaticSprite(
-                                        assetPath: path,
-                                        size: 80,
-                                        frameCount: 1,
-                                        ignoreDecorations: true,
-                                      )
+                              child: FittedBox(
+                                fit: BoxFit.contain,
+                                child: StaticSprite(
+                                  assetPath: path,
+                                  size: 80,
+                                  frameCount: 1,
+                                  ignoreDecorations: true,
+                                ),
+                              )
                                       .animate(target: isSelected ? 1 : 0)
                                       .scale(
                                         duration: 300.ms,

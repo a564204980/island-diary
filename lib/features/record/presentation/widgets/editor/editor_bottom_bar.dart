@@ -88,14 +88,7 @@ class EditorBottomBar extends StatelessWidget {
     final bool hasPaper = paperStyle.startsWith('note') || 
         (paperStyle == 'classic' && themeId == 'cotton_candy');
 
-    // 动态色彩配置（支持深色/浅色模式）
-    final Color baseColor = isNight 
-        ? const Color(0xFF141426) 
-        : const Color(0xFFFAF9F6);
-
-    final Color barBgColor = hasPaper 
-        ? baseColor.withValues(alpha: 0.9) 
-        : baseColor;
+    final Color barBgColor = Colors.transparent;
 
     final Color iconColor = isNight
         ? Colors.white70
@@ -202,14 +195,6 @@ class EditorBottomBar extends StatelessWidget {
         ),
     );
 
-    if (hasPaper) {
-      return ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: bottomBarContent,
-        ),
-      );
-    }
     return bottomBarContent;
   }
 

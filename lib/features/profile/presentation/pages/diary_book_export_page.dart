@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -24,9 +25,21 @@ import 'package:island_diary/shared/widgets/diary_entry/models/image_group_block
 import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 part 'export/parts/export_canvas.dart';
+part 'export/parts/export_canvas_gesture.dart';
+part 'export/parts/export_canvas_render.dart';
+part 'export/parts/export_canvas_toolbar.dart';
 part 'export/parts/export_panels.dart';
+part 'export/parts/export_panel_page.dart';
+part 'export/parts/export_panel_background.dart';
+part 'export/parts/export_panel_add.dart';
+part 'export/parts/export_panel_properties.dart';
+part 'export/parts/export_panel_layers.dart';
+part 'export/parts/export_panel_export.dart';
 
 
 // --- 主页面实现 ---
@@ -64,8 +77,11 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   String? _selectedElementId;
   String? _editingElementId;
   String? _activeHandle;
+  double _dragX = 0.0;
+  double _dragY = 0.0;
   final FocusNode _inlineFocusNode = FocusNode();
   int _activeTabIndex = 0; // 0:页面, 1:背景, 2:添加, 3:属性, 4:图层, 5:导出
+  int _focusedPageIndex = 0; // 当前选中的/聚焦的页面
   bool _isZoomScaleInitialized = false; // 是否已经根据容器尺寸初始化了缩放比例
   final TransformationController _transformationController = TransformationController();
 
@@ -76,6 +92,9 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   final GlobalKey _chartKeyPalette  = GlobalKey();
   final GlobalKey _chartKeyMoodFlow = GlobalKey();
   final GlobalKey _chartKeyHeatmap  = GlobalKey();
+
+  // 画布截图用 GlobalKey
+  final GlobalKey _canvasBoundaryKey = GlobalKey();
 
   // 临时挂载的待截图图表组件
   Widget? _capturingChartWidget;
@@ -131,6 +150,29 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     }
   }
 
+  void _navigateToPage(int pageIndex) {
+    updateState(() {
+      _focusedPageIndex = pageIndex;
+    });
+    
+    final constraints = _lastConstraints;
+    if (constraints == null) return;
+    
+    const padding = 32.0;
+    final targetWidth = constraints.maxWidth - padding;
+    final scale = targetWidth / _canvasWidth;
+    
+    final dx = (constraints.maxWidth - _canvasWidth * scale) / 2;
+    final dy = 16.0 - pageIndex * (_canvasHeight + pageGap) * scale;
+    
+    final targetMatrix = Matrix4.identity()
+      ..translateByDouble(dx, dy, 0.0, 1.0)
+      ..scaleByDouble(scale, scale, 1.0, 1.0);
+      
+    _animateMatrixTo(targetMatrix);
+  }
+
+
   void _selectElement(String? id) {
     setState(() {
       if (_editingElementId != null) {
@@ -142,6 +184,9 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
         final idx = _elements.indexWhere((e) => e.id == id);
         if (idx != -1) {
           _textEditorController.text = _elements[idx].content;
+          if (!_elements[idx].isLocked) {
+            _activeTabIndex = 3; // 自动切换到“属性”面板
+          }
         }
       }
     });
@@ -185,8 +230,11 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     );
   }
 
+  Timer? _nudgeTimer;
+
   @override
   void dispose() {
+    _nudgeTimer?.cancel();
     _transformationController.dispose();
     _matrixAnimationController?.dispose();
     _textEditorController.dispose();
@@ -213,133 +261,472 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
   // 初始化默认放入一些精美的占位元素，基于用户日记，起点和宽度与页边距联动
   void _initDefaultElements() {
-    _elements = [
-      ExportElement(
-        id: 'title',
+    _elements = [];
+    
+    if (widget.diaries.isNotEmpty) {
+      final firstDiary = widget.diaries.first;
+      final dt = firstDiary.dateTime;
+      final inkColor = DiaryUtils.getInkColor(firstDiary.paperStyle, false);
+
+      // 1. 日期天数元素 (Georgia 68)
+      final dayElement = ExportElement(
+        id: 'diary_date_day_${DateTime.now().millisecondsSinceEpoch}',
         type: 'text',
         x: _margin.left,
-        y: _margin.top + 20,
-        width: 250.0,
-        height: 60,
-        content: widget.book.name,
-        fontSize: 28,
-        color: const Color(0xFF2C3E50),
-      ),
-      ExportElement(
-        id: 'subtitle',
+        y: _margin.top,
+        width: 80,
+        height: 68,
+        content: dt.day.toString(),
+        fontSize: 68,
+        color: inkColor,
+        fontFamily: 'Georgia',
+        lineHeight: 1.0,
+      );
+      _adjustTextElementWidth(dayElement);
+      _elements.add(dayElement);
+
+      // 2. 年月文本元素 (LXGWWenKai 14, 带有 alpha 0.6 柔和色彩)
+      final yearMonthElement = ExportElement(
+        id: 'diary_date_year_month_${DateTime.now().millisecondsSinceEpoch}',
         type: 'text',
-        x: _margin.left,
-        y: _margin.top + 80,
-        width: 280.0,
-        height: 35,
-        content: '—— 属于我的海岛生活日记书',
+        x: _margin.left + dayElement.width - 4,
+        y: _margin.top + 13,
+        width: 150,
+        height: 25,
+        content: "${dt.year}年${dt.month}月",
+        fontSize: 14,
+        color: inkColor.withValues(alpha: 0.6),
+        fontFamily: 'LXGWWenKai',
+        lineHeight: 1.2,
+      );
+      _adjustTextElementWidth(yearMonthElement);
+      _elements.add(yearMonthElement);
+
+      // 3. 星期与具体时刻元素 (LXGWWenKai 16, FontWeight.bold 粗体)
+      final weekTimeElement = ExportElement(
+        id: 'diary_date_week_time_${DateTime.now().millisecondsSinceEpoch}',
+        type: 'text',
+        x: _margin.left + dayElement.width - 4,
+        y: _margin.top + 32,
+        width: 180,
+        height: 30,
+        content: "${["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"][dt.weekday - 1]}  ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}",
         fontSize: 16,
-        color: Colors.grey[600]!,
-      ),
-      ExportElement(
-        id: 'divider',
-        type: 'line',
-        x: _margin.left,
-        y: _margin.top + 120,
-        width: _canvasWidth - _margin.left - _margin.right,
-        height: 2,
-        content: 'solid',
-        color: const Color(0xFFBDC3C7),
-      ),
-    ];
+        fontWeight: 'bold',
+        color: inkColor.withValues(alpha: 0.8),
+        fontFamily: 'LXGWWenKai',
+        lineHeight: 1.2,
+      );
+      _adjustTextElementWidth(weekTimeElement);
+      _elements.add(weekTimeElement);
+    }
 
     // 如果有日记，把第一篇日记的内容精简放上去，并自动把日记内的插图也加载进来
     if (widget.diaries.isNotEmpty) {
       final firstDiary = widget.diaries.first;
-      final firstTitle = firstDiary.title;
-      _elements.add(
-        ExportElement(
-          id: 'diary_title',
-          type: 'text',
-          x: _margin.left,
-          y: _margin.top + 160,
-          width: 200.0,
-          height: 40,
-          content: (firstTitle != null && firstTitle.isNotEmpty)
-              ? firstTitle
-              : '第一章：启程的岛屿',
-          fontSize: 20,
-          color: const Color(0xFF34495E),
-        ),
-      );
+
+      // 1. 将心情、标签、天气、地点作为独立的文本标签元素进行流式排布并计算高度
+      final parsed = ParsedTags.parse(firstDiary.tag, firstDiary.moodIndex);
+      final mood = kMoods[firstDiary.moodIndex.clamp(0, kMoods.length - 1)];
+      final String moodLabel = parsed.customMood ?? mood.label;
       
-      final firstContent = firstDiary.content;
-      _elements.add(
-        ExportElement(
-          id: 'diary_content',
+      final List<String> tagTexts = [];
+      tagTexts.add("😊 $moodLabel");
+      for (var t in parsed.tags) {
+        tagTexts.add("#$t");
+      }
+      if (firstDiary.weather != null) {
+        tagTexts.add("☀️ ${firstDiary.weather} ${firstDiary.temp ?? ''}");
+      }
+      if (firstDiary.location != null) {
+        tagTexts.add("📍 ${firstDiary.location!}");
+      }
+
+      double currentTagX = _margin.left;
+      double currentTagY = _margin.top + 80;
+      final double maxTagRight = _canvasWidth - _margin.right;
+
+      for (int i = 0; i < tagTexts.length; i++) {
+        final String text = tagTexts[i];
+        
+        final tempElem = ExportElement(
+          id: 'temp_tag_$i',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 24,
+          content: text,
+          fontSize: 11,
+          fontWeight: 'bold',
+          color: const Color(0xFF5E6C6D),
+          textBackgroundColor: const Color(0xFFFFFDF9),
+          textBackgroundBorderRadius: 12.0,
+          textBackgroundPadding: 6.0,
+          textBackgroundOpacity: 1.0,
+        );
+        _adjustTextElementWidth(tempElem);
+        
+        if (currentTagX + tempElem.width > maxTagRight && currentTagX > _margin.left) {
+          currentTagX = _margin.left;
+          currentTagY += 36;
+        }
+
+        _elements.add(
+          ExportElement(
+            id: 'diary_metadata_tag_${i}_${DateTime.now().millisecondsSinceEpoch}',
+            type: 'text',
+            x: currentTagX,
+            y: currentTagY,
+            width: tempElem.width,
+            height: 24,
+            content: text,
+            fontSize: 11,
+            fontWeight: 'bold',
+            color: const Color(0xFF5E6C6D),
+            textBackgroundColor: const Color(0xFFFFFDF9),
+            textBackgroundBorderRadius: 12.0,
+            textBackgroundPadding: 6.0,
+            textBackgroundOpacity: 1.0,
+          ),
+        );
+
+        currentTagX += tempElem.width + 8;
+      }
+
+      // 2. 根据标签排列后的最终高度计算正文 Y 坐标（留出 50 像素间距）
+      double checkPagination(double targetY, double itemHeight) {
+        int pageIndex = (targetY / _canvasHeight).floor();
+        double pageBottom = (pageIndex + 1) * _canvasHeight - _margin.bottom;
+        if (targetY + itemHeight > pageBottom) {
+          return (pageIndex + 1) * _canvasHeight + _margin.top;
+        }
+        return targetY;
+      }
+
+      // 辅助方法：将正文切分成独立的句子，保留句末标点符号及处理换行
+      List<String> splitIntoSentences(String text) {
+        if (text.isEmpty) return [];
+        // 正则：匹配遇到标点（。？！；）或者换行符（\n）进行断句并保留标点
+        final RegExp regExp = RegExp(r'[^。？！;\n]+[。？！;\n]?');
+        final Iterable<Match> matches = regExp.allMatches(text);
+        
+        List<String> result = [];
+        for (final match in matches) {
+          final s = match.group(0)?.trim() ?? '';
+          if (s.isNotEmpty) {
+            result.add(s);
+          }
+        }
+        if (result.isEmpty) {
+          result.add(text);
+        }
+        return result;
+      }
+
+      double contentY = tagTexts.isEmpty ? (_margin.top + 80) : (currentTagY + 50);
+      final rawContent = firstDiary.content.isNotEmpty
+          ? firstDiary.content
+          : '今天天气晴朗，微风徐徐。小岛的清晨总是如此宁静，蔚蓝的海浪轻轻拍打着沙滩。我漫步在林间小道上，呼吸着新鲜空气，仿佛所有的烦恼都随风消逝了...';
+
+      final List<String> sentences = splitIntoSentences(rawContent);
+      double lastTextBottomY = contentY;
+
+      for (int i = 0; i < sentences.length; i++) {
+        final sentence = sentences[i];
+        final sentenceElement = ExportElement(
+          id: 'diary_content_$i',
           type: 'text',
           x: _margin.left,
-          y: _margin.top + 210,
+          y: contentY,
           width: _canvasWidth - _margin.left - _margin.right,
-          height: 250,
-          content: firstContent.isNotEmpty
-              ? (firstContent.length > 250 
-                  ? '${firstContent.substring(0, 250)}...' 
-                  : firstContent)
-              : '今天天气晴朗，微风徐徐。小岛的清晨总是如此宁静，蔚蓝的海浪轻轻拍打着沙滩。我漫步在林间小道上，呼吸着新鲜空气，仿佛所有的烦恼都随风消逝了...',
+          height: 30,
+          content: sentence,
           fontSize: 15,
           color: Colors.black87,
-        ),
-      );
+        );
 
-      // 解析日记的 blocks 数据
+        final sStyle = TextStyle(
+          fontSize: sentenceElement.fontSize,
+          fontFamily: 'LXGWWenKai',
+          height: sentenceElement.lineHeight,
+        );
+        final sPainter = TextPainter(
+          text: TextSpan(text: sentenceElement.content, style: sStyle),
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: _canvasWidth - _margin.left - _margin.right);
+
+        sentenceElement.height = sPainter.height;
+
+        // 检查分页定位
+        contentY = checkPagination(contentY, sentenceElement.height);
+        sentenceElement.y = contentY;
+        _elements.add(sentenceElement);
+
+        // 每句话留 12 像素的段落句间距
+        contentY += sentenceElement.height + 12;
+        lastTextBottomY = contentY;
+      }
+
+      // 3. 解析日记的 blocks 数据并计算图片坐标
       final List<DiaryBlock> diaryBlocks = firstDiary.blocks.map((b) => DiaryBlock.fromMap(b)).toList();
-      double currentY = _margin.top + 480;
-      double currentX = _margin.left;
+      final List<DiaryBlock> processedBlocks = ImageGroupBlock.preprocess(
+        diaryBlocks,
+        isMixedLayout: true,
+        isImageGrid: true,
+      );
+      double currentY = lastTextBottomY + 12;
       final double availableWidth = _canvasWidth - _margin.left - _margin.right;
-      final double colWidth = (availableWidth - 16) / 2; // 双列排版，间距 16
+      const double spacing = 8.0;
 
-      for (var block in diaryBlocks) {
+      for (var block in processedBlocks) {
         if (block is ImageBlock) {
+          final double h = availableWidth / 1.5;
+          currentY = checkPagination(currentY, h);
           _elements.add(
             ExportElement(
               id: 'diary_image_${block.id}',
               type: 'image',
-              x: currentX,
+              x: _margin.left,
               y: currentY,
-              width: colWidth,
-              height: colWidth,
+              width: availableWidth,
+              height: h,
               content: block.file.path,
+              borderRadius: 16.0,
             ),
           );
-          if (currentX == _margin.left) {
-            currentX = _margin.left + colWidth + 16;
-          } else {
-            currentX = _margin.left;
-            currentY += colWidth + 16;
-          }
+          currentY += h + 8.0;
         } else if (block is ImageGroupBlock) {
-          for (var img in block.images) {
-            _elements.add(
-              ExportElement(
-                id: 'diary_image_${img.id}',
-                type: 'image',
-                x: currentX,
-                y: currentY,
-                width: colWidth,
-                height: colWidth,
-                content: img.file.path,
-              ),
-            );
-            if (currentX == _margin.left) {
-              currentX = _margin.left + colWidth + 16;
-            } else {
-              currentX = _margin.left;
-              currentY += colWidth + 16;
+          final images = block.images;
+          int index = 0;
+          while (index < images.length) {
+            final chunk = images.sublist(index, (index + 5).clamp(0, images.length));
+            final n = chunk.length;
+            if (n == 1) {
+              final double h = availableWidth / 1.5;
+              currentY = checkPagination(currentY, h);
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[0].id}',
+                  type: 'image',
+                  x: _margin.left,
+                  y: currentY,
+                  width: availableWidth,
+                  height: h,
+                  content: chunk[0].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              currentY += h;
+            } else if (n == 2) {
+              final double colW = (availableWidth - spacing) / 2;
+              final double h = colW / 0.75;
+              currentY = checkPagination(currentY, h);
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[0].id}',
+                  type: 'image',
+                  x: _margin.left,
+                  y: currentY,
+                  width: colW,
+                  height: h,
+                  content: chunk[0].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[1].id}',
+                  type: 'image',
+                  x: _margin.left + colW + spacing,
+                  y: currentY,
+                  width: colW,
+                  height: h,
+                  content: chunk[1].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              currentY += h;
+            } else if (n == 3) {
+              final double h = availableWidth / 1.2;
+              final double leftW = (availableWidth - spacing) * 2 / 3;
+              final double rightW = (availableWidth - spacing) / 3;
+              final double rightH = (h - spacing) / 2;
+              currentY = checkPagination(currentY, h);
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[0].id}',
+                  type: 'image',
+                  x: _margin.left,
+                  y: currentY,
+                  width: leftW,
+                  height: h,
+                  content: chunk[0].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[1].id}',
+                  type: 'image',
+                  x: _margin.left + leftW + spacing,
+                  y: currentY,
+                  width: rightW,
+                  height: rightH,
+                  content: chunk[1].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[2].id}',
+                  type: 'image',
+                  x: _margin.left + leftW + spacing,
+                  y: currentY + rightH + spacing,
+                  width: rightW,
+                  height: rightH,
+                  content: chunk[2].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              currentY += h;
+            } else if (n == 4) {
+              final double h = availableWidth / 1.1;
+              final double leftW = (availableWidth - spacing) * 2 / 3;
+              final double rightW = (availableWidth - spacing) / 3;
+              final double rightH = (h - 2 * spacing) / 3;
+              currentY = checkPagination(currentY, h);
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[0].id}',
+                  type: 'image',
+                  x: _margin.left,
+                  y: currentY,
+                  width: leftW,
+                  height: h,
+                  content: chunk[0].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[1].id}',
+                  type: 'image',
+                  x: _margin.left + leftW + spacing,
+                  y: currentY,
+                  width: rightW,
+                  height: rightH,
+                  content: chunk[1].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[2].id}',
+                  type: 'image',
+                  x: _margin.left + leftW + spacing,
+                  y: currentY + rightH + spacing,
+                  width: rightW,
+                  height: rightH,
+                  content: chunk[2].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[3].id}',
+                  type: 'image',
+                  x: _margin.left + leftW + spacing,
+                  y: currentY + 2 * (rightH + spacing),
+                  width: rightW,
+                  height: rightH,
+                  content: chunk[3].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              currentY += h;
+            } else { // n == 5
+              final double topH = availableWidth / 1.1;
+              final double bottomH = availableWidth / 3.0;
+              final double leftW = (availableWidth - spacing) * 2 / 3;
+              final double rightW = (availableWidth - spacing) / 3;
+              final double rightH = (topH - 2 * spacing) / 3;
+              currentY = checkPagination(currentY, topH + spacing + bottomH);
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[0].id}',
+                  type: 'image',
+                  x: _margin.left,
+                  y: currentY,
+                  width: leftW,
+                  height: topH,
+                  content: chunk[0].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[1].id}',
+                  type: 'image',
+                  x: _margin.left + leftW + spacing,
+                  y: currentY,
+                  width: rightW,
+                  height: rightH,
+                  content: chunk[1].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[2].id}',
+                  type: 'image',
+                  x: _margin.left + leftW + spacing,
+                  y: currentY + rightH + spacing,
+                  width: rightW,
+                  height: rightH,
+                  content: chunk[2].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[3].id}',
+                  type: 'image',
+                  x: _margin.left + leftW + spacing,
+                  y: currentY + 2 * (rightH + spacing),
+                  width: rightW,
+                  height: rightH,
+                  content: chunk[3].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              _elements.add(
+                ExportElement(
+                  id: 'diary_image_${chunk[4].id}',
+                  type: 'image',
+                  x: _margin.left,
+                  y: currentY + topH + spacing,
+                  width: availableWidth,
+                  height: bottomH,
+                  content: chunk[4].file.path,
+                  borderRadius: 16.0,
+                ),
+              );
+              currentY += topH + spacing + bottomH;
+            }
+            index += 5;
+            if (index < images.length) {
+              currentY += 8.0;
             }
           }
+          currentY += 8.0;
         }
       }
     }
 
     // 针对短文本元素自适应测量实际文字宽度以紧贴文本内容
     for (var element in _elements) {
-      if (element.type == 'text' && element.id != 'diary_content') {
+      if (element.type == 'text' && element.id != 'diary_content' && !element.id.startsWith('diary_metadata_tag_')) {
         _adjustTextElementWidth(element);
       }
     }
@@ -348,32 +735,40 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   // 根据当前滑动的页边距，动态同步更新系统默认排版元素的位置和宽度
   void _updateElementsMargin() {
     setState(() {
+      // 1. 重排所有标签元素
+      double currentTagX = _margin.left;
+      double currentTagY = _margin.top + 80;
+      final double maxTagRight = _canvasWidth - _margin.right;
+      
+      final List<ExportElement> tags = _elements.where((e) => e.id.startsWith('diary_metadata_tag_')).toList();
+      tags.sort((a, b) {
+        final aIdx = int.tryParse(a.id.split('_')[3]) ?? 0;
+        final bIdx = int.tryParse(b.id.split('_')[3]) ?? 0;
+        return aIdx.compareTo(bIdx);
+      });
+      
+      for (var tag in tags) {
+        if (currentTagX + tag.width > maxTagRight && currentTagX > _margin.left) {
+          currentTagX = _margin.left;
+          currentTagY += 36;
+        }
+        tag.x = currentTagX;
+        tag.y = currentTagY;
+        currentTagX += tag.width + 8;
+      }
+
+      final double contentY = tags.isEmpty ? (_margin.top + 80) : (currentTagY + 50);
+
       for (var element in _elements) {
         // 联动 X 坐标与宽度
-        if (element.id == 'divider' || element.id == 'diary_content') {
+        if (element.id == 'diary_content') {
           element.x = _margin.left;
           element.width = (_canvasWidth - _margin.left - _margin.right).clamp(50.0, _canvasWidth);
-        } else if (element.id == 'title' ||
-            element.id == 'subtitle' ||
-            element.id == 'diary_title') {
-          element.x = _margin.left;
-          final maxAllowedWidth = _canvasWidth - _margin.left - _margin.right;
-          if (element.width > maxAllowedWidth) {
-            element.width = maxAllowedWidth.clamp(50.0, _canvasWidth);
-          }
         }
 
         // 联动 Y 坐标
-        if (element.id == 'title') {
-          element.y = _margin.top + 20;
-        } else if (element.id == 'subtitle') {
-          element.y = _margin.top + 80;
-        } else if (element.id == 'divider') {
-          element.y = _margin.top + 120;
-        } else if (element.id == 'diary_title') {
-          element.y = _margin.top + 160;
-        } else if (element.id == 'diary_content') {
-          element.y = _margin.top + 210;
+        if (element.id == 'diary_content') {
+          element.y = contentY;
         }
       }
     });
@@ -392,8 +787,10 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
   // 保存历史状态用于撤销
   void _saveToHistory() {
-    _undoStack.add(_elements.map((e) => e.copy()).toList());
-    _redoStack.clear();
+    setState(() {
+      _undoStack.add(_elements.map((e) => e.copy()).toList());
+      _redoStack.clear();
+    });
   }
 
   void _undo() {
@@ -417,6 +814,46 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   // 获取当前编辑画布的实际像素宽度和高度，与印刷纸张尺寸规格动态绑定
   double get _canvasWidth => _isLandscape ? _pageSize.height : _pageSize.width;
   double get _canvasHeight => _isLandscape ? _pageSize.width : _pageSize.height;
+
+  double get pageGap => 20.0;
+
+  int get _pageCount {
+    double maxY = 0;
+    for (var element in _elements) {
+      if (element.isVisible) {
+        final double bottom = element.y + element.height;
+        if (bottom > maxY) {
+          maxY = bottom;
+        }
+      }
+    }
+    final double contentHeightLimit = _canvasHeight - _margin.bottom;
+    if (maxY <= contentHeightLimit) return 1;
+    int maxPage = (maxY / _canvasHeight).floor();
+    final double pageOffset = maxY % _canvasHeight;
+    if (pageOffset > contentHeightLimit) {
+      maxPage += 1;
+    }
+    return (maxPage + 1).clamp(1, 10);
+  }
+
+  double get _totalCanvasHeight {
+    final int count = _pageCount;
+    return _canvasHeight * count + (count - 1) * pageGap;
+  }
+
+  double getScreenY(double y) {
+    final int pageIndex = y ~/ _canvasHeight;
+    final double yInPage = y % _canvasHeight;
+    return pageIndex * (_canvasHeight + pageGap) + yInPage;
+  }
+
+  double getLayoutY(double screenY) {
+    final int pageIndex = screenY ~/ (_canvasHeight + pageGap);
+    final double yInPage = screenY % (_canvasHeight + pageGap);
+    final double clampedYInPage = yInPage.clamp(0.0, _canvasHeight);
+    return pageIndex * _canvasHeight + clampedYInPage;
+  }
 
   // 截图某个预渲染图表，返回临时文件路径
   Future<String?> _captureChart(GlobalKey key) async {
@@ -451,8 +888,9 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
       text: TextSpan(text: element.content, style: textStyle),
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: _canvasWidth - _margin.left - _margin.right);
-    // 额外留出 16dp 容错间距
-    element.width = (textPainter.width + 16.0).clamp(50.0, _canvasWidth - _margin.left - _margin.right);
+    // 额外留出 16dp 容错间距与文本背景的 padding
+    final double paddingOffset = (element.textBackgroundColor != null) ? (element.textBackgroundPadding * 2) : 0.0;
+    element.width = (textPainter.width + 16.0 + paddingOffset).clamp(50.0, _canvasWidth - _margin.left - _margin.right);
   }
 
   @override
@@ -468,7 +906,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          '导出设计器',
+          'PDF 编辑器',
           style: TextStyle(
             color: Color(0xFF5A3E28),
             fontWeight: FontWeight.bold,
@@ -578,21 +1016,21 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
                             ..scaleByDouble(scale, scale, 1.0, 1.0);
                           _isZoomScaleInitialized = true;
                         }
-
                         return InteractiveViewer(
                           transformationController: _transformationController,
                           minScale: 0.1,
                           maxScale: 3.0,
+                          clipBehavior: Clip.none,
                           constrained: false, // 解锁视口高度约束，使 A4/A5 纸张恢复其原本真实的物理比例
                           boundaryMargin: const EdgeInsets.all(800.0), // 留出充足的边界以供拖拽
                           child: Align(
                             alignment: Alignment.topLeft,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 350),
-                              curve: Curves.easeInOutCubic,
+                            child: SizedBox(
                               width: _canvasWidth,
-                              height: _canvasHeight,
-                              child: _buildCanvas(),
+                              child: RepaintBoundary(
+                                key: _canvasBoundaryKey,
+                                child: _buildCanvas(),
+                              ),
                             ),
                           ),
                         );

@@ -200,6 +200,70 @@ class MascotPreviewHero extends StatelessWidget {
                   ),
                 ),
               ),
+              // 麋鹿头饰专属背景图片层（带淡入淡出动效，夜间不使用）
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (hasDec && activeDec.id == 'reindeer' && !isNight)
+                      ? 1.0
+                      : 0.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/emoji/modules_bg/10.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+              // 落雁专属背景图片层（带淡入淡出动效，夜间不使用）
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (hasDec && activeDec.id == 'luo_yan' && !isNight)
+                      ? 1.0
+                      : 0.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/emoji/modules_bg/11.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+              // 沉鱼专属背景图片层（带淡入淡出动效，夜间不使用）
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (hasDec && activeDec.id == 'chen_yu' && !isNight)
+                      ? 1.0
+                      : 0.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/emoji/modules_bg/12.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+              // 红色长流苏专属背景图片层（带淡入淡出动效，夜间不使用）
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (hasDec && activeDec.id == 'red_long_tassel' && !isNight)
+                      ? 1.0
+                      : 0.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/emoji/modules_bg/13.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
               // 专属传说背景图片层（带淡入淡出动效，夜间不使用）
               Positioned.fill(
                 child: AnimatedOpacity(
@@ -236,7 +300,7 @@ class MascotPreviewHero extends StatelessWidget {
               Positioned.fill(
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 300),
-                  opacity: (hasDec && activeDec.rarity == MascotRarity.rare && !isNight)
+                  opacity: (hasDec && activeDec.rarity == MascotRarity.rare && activeDec.id != 'reindeer' && !isNight)
                       ? 1.0
                       : 0.0,
                   child: ClipRRect(

@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
-
+import 'package:share_plus/share_plus.dart';
 
 // 模拟导出过程的精美进度条 Dialog
 class ExportingDialog extends StatefulWidget {
   final String fileName;
   final String dpi;
+  final Future<String?> Function() onExport;
 
-  const ExportingDialog({required this.fileName, required this.dpi});
+  const ExportingDialog({
+    required this.fileName,
+    required this.dpi,
+    required this.onExport,
+  });
 
   @override
   State<ExportingDialog> createState() => _ExportingDialogState();
@@ -14,6 +19,7 @@ class ExportingDialog extends StatefulWidget {
 
 class _ExportingDialogState extends State<ExportingDialog> {
   double _progress = 0.0;
+  String? _exportedFilePath;
 
   @override
   void initState() {
@@ -22,17 +28,25 @@ class _ExportingDialogState extends State<ExportingDialog> {
   }
 
   void _startProgress() {
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (!mounted) return false;
-      setState(() {
-        _progress += 0.05;
-      });
-      if (_progress >= 1.0) {
+    widget.onExport().then((path) {
+      if (mounted) {
+        setState(() {
+          _exportedFilePath = path;
+          _progress = 1.0;
+        });
         Navigator.pop(context); // 关闭进度对话框
         _showSuccessDialog(); // 显示导出成功
-        return false;
       }
+    });
+
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (!mounted || _progress >= 1.0) return false;
+      setState(() {
+        if (_progress < 0.9) {
+          _progress += 0.05;
+        }
+      });
       return true;
     });
   }
@@ -51,9 +65,16 @@ class _ExportingDialogState extends State<ExportingDialog> {
         ),
         content: Text('已成功为您生成高质量 PDF 文件：\n"${widget.fileName}.pdf" (${widget.dpi} DPI)。'),
         actions: [
+          if (_exportedFilePath != null)
+            TextButton(
+              onPressed: () {
+                Share.shareXFiles([XFile(_exportedFilePath!)], text: '我的日记 PDF');
+              },
+              child: const Text('分享到微信/社交软件', style: TextStyle(color: Colors.teal, fontWeight: FontWeight.bold)),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('确定', style: TextStyle(color: Colors.teal, fontWeight: FontWeight.bold)),
+            child: const Text('确定', style: TextStyle(color: Colors.grey)),
           ),
         ],
       ),
@@ -90,4 +111,3 @@ class _ExportingDialogState extends State<ExportingDialog> {
     );
   }
 }
-

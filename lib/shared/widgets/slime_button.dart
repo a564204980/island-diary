@@ -79,17 +79,21 @@ class _SlimeButtonState extends State<SlimeButton> {
                   shape: BoxShape.circle,
                   color: isCottonCandy
                       ? (widget.isNight
-                          ? const Color(0xFFFFFDF5).withValues(alpha: 0.75)
-                          : const Color(0xFFFFF9F0).withValues(alpha: 0.6))
+                            ? const Color(0xFFFFFDF5).withValues(alpha: 0.75)
+                            : const Color(0xFFFFF9F0).withValues(alpha: 0.6))
                       : (widget.isNight
-                          ? const Color(0xFF2A2E50).withValues(alpha: 0.1)
-                          : Colors.white.withValues(alpha: 0.6)),
+                            ? const Color(0xFF2A2E50).withValues(alpha: 0.1)
+                            : Colors.white.withValues(alpha: 0.6)),
                   boxShadow: [
                     BoxShadow(
                       color: isCottonCandy
                           ? (widget.isNight
-                              ? const Color(0xFFFFFFFF).withValues(alpha: 0.55)
-                              : const Color(0xFFFFCADB).withValues(alpha: 0.8))
+                                ? const Color(
+                                    0xFFFFFFFF,
+                                  ).withValues(alpha: 0.55)
+                                : const Color(
+                                    0xFFFFCADB,
+                                  ).withValues(alpha: 0.8))
                           : const Color(
                               0xFFFFD97D,
                             ).withValues(alpha: widget.isNight ? 0.8 : 0.3),
@@ -100,16 +104,16 @@ class _SlimeButtonState extends State<SlimeButton> {
                   border: Border.all(
                     color: isCottonCandy
                         ? (widget.isNight
-                            ? const Color(0xFFFFFFFF).withValues(alpha: 0.95)
-                            : const Color(0xFFFFFFFF))
+                              ? const Color(0xFFFFFFFF).withValues(alpha: 0.95)
+                              : const Color(0xFFFFFFFF))
                         : (widget.isNight
-                            ? const Color(0xFFFFE4B5).withValues(alpha: 0.5)
-                            : const Color(0xFFFFE4B5).withValues(alpha: 0.8)),
+                              ? const Color(0xFFFFE4B5).withValues(alpha: 0.5)
+                              : const Color(0xFFFFE4B5).withValues(alpha: 0.8)),
                     width: isCottonCandy ? 3.0 : 2.5,
                   ),
                 ),
                 child: Align(
-                  alignment: const Alignment(0, 10),
+                  alignment: const Alignment(0, 0.0),
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 400),
                     opacity: widget.showSlime ? 1.0 : 0.0,
@@ -121,7 +125,9 @@ class _SlimeButtonState extends State<SlimeButton> {
                       ]),
                       builder: (context, _) {
                         return StaticSprite(
-                          assetPath: widget.assetPath ?? UserState().selectedMascotType.value,
+                          assetPath:
+                              widget.assetPath ??
+                              UserState().selectedMascotType.value,
                           size: widget.spriteSize,
                           frameCount: 1,
                         );
@@ -201,14 +207,14 @@ class _BreathGlowState extends State<_BreathGlow>
                 shape: BoxShape.circle,
                 color: isCottonCandy
                     ? (widget.isNight
-                        ? const Color(0xFFFFFFFF).withValues(alpha: 0.2)
-                        : const Color(0xFFFFF9F0).withValues(alpha: 0.35))
+                          ? const Color(0xFFFFFFFF).withValues(alpha: 0.2)
+                          : const Color(0xFFFFF9F0).withValues(alpha: 0.35))
                     : Colors.white.withValues(alpha: 0.15),
                 border: Border.all(
                   color: isCottonCandy
                       ? (widget.isNight
-                          ? const Color(0xFFFFFFFF).withValues(alpha: 0.6)
-                          : const Color(0xFFFFFFFF).withValues(alpha: 0.9))
+                            ? const Color(0xFFFFFFFF).withValues(alpha: 0.6)
+                            : const Color(0xFFFFFFFF).withValues(alpha: 0.9))
                       : Colors.white.withValues(alpha: 0.8),
                   width: 1.5,
                 ),
@@ -216,8 +222,8 @@ class _BreathGlowState extends State<_BreathGlow>
                   BoxShadow(
                     color: isCottonCandy
                         ? (widget.isNight
-                            ? const Color(0xFFFFFFFF).withValues(alpha: 0.4)
-                            : const Color(0xFFFFF9F0).withValues(alpha: 0.6))
+                              ? const Color(0xFFFFFFFF).withValues(alpha: 0.4)
+                              : const Color(0xFFFFF9F0).withValues(alpha: 0.6))
                         : const Color(
                             0xFFFFD97D,
                           ).withValues(alpha: widget.isNight ? 0.4 : 0.2),
