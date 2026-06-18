@@ -65,7 +65,12 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   ExportPageSize _pageSize = ExportPageSize.presets[0];
   bool _isLandscape = false; // 是否横向
   final ExportPageMargin _margin = ExportPageMargin();
-  final ExportBackgroundSettings _bgSettings = ExportBackgroundSettings();
+  final Map<int, ExportBackgroundSettings> _pageBgSettings = {};
+  ExportBackgroundSettings get _bgSettings => getBgSettingsForPage(_focusedPageIndex);
+
+  ExportBackgroundSettings getBgSettingsForPage(int pageIndex) {
+    return _pageBgSettings.putIfAbsent(pageIndex, () => ExportBackgroundSettings());
+  }
   List<ExportElement> _elements = [];
   final ExportSettings _exportSettings = ExportSettings();
 
@@ -81,6 +86,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   double _dragY = 0.0;
   final FocusNode _inlineFocusNode = FocusNode();
   int _activeTabIndex = 0; // 0:页面, 1:背景, 2:添加, 3:属性, 4:图层, 5:导出
+  bool _isPanelExpanded = false; // 面板是否展开，默认收起
   int _focusedPageIndex = 0; // 当前选中的/聚焦的页面
   bool _isZoomScaleInitialized = false; // 是否已经根据容器尺寸初始化了缩放比例
   final TransformationController _transformationController = TransformationController();
@@ -188,6 +194,9 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
             _activeTabIndex = 3; // 自动切换到“属性”面板
           }
         }
+        _isPanelExpanded = true;
+      } else {
+        _isPanelExpanded = false;
       }
     });
   }
@@ -262,18 +271,59 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   // 初始化默认放入一些精美的占位元素，基于用户日记，起点和宽度与页边距联动
   void _initDefaultElements() {
     _elements = [];
-    
-    if (widget.diaries.isNotEmpty) {
-      final firstDiary = widget.diaries.first;
-      final dt = firstDiary.dateTime;
-      final inkColor = DiaryUtils.getInkColor(firstDiary.paperStyle, false);
+    if (widget.diaries.isEmpty) return;
+
+    double currentY = _margin.top;
+    final double availableWidth = _canvasWidth - _margin.left - _margin.right;
+    const double spacing = 8.0;
+
+    // 辅助方法：分页检查
+    double checkPagination(double targetY, double itemHeight) {
+      int pageIndex = (targetY / _canvasHeight).floor();
+      double pageBottom = (pageIndex + 1) * _canvasHeight - _margin.bottom;
+      if (targetY + itemHeight > pageBottom) {
+        return (pageIndex + 1) * _canvasHeight + _margin.top;
+      }
+      return targetY;
+    }
+
+    // 辅助方法：将正文切分成独立的句子，保留句末标点符号及处理换行
+    List<String> splitIntoSentences(String text) {
+      if (text.isEmpty) return [];
+      // 正则：匹配遇到标点（。？！；）或者换行符（\n）进行断句并保留标点
+      final RegExp regExp = RegExp(r'[^。？！;\n]+[。？！;\n]?');
+      final Iterable<Match> matches = regExp.allMatches(text);
+      
+      List<String> result = [];
+      for (final match in matches) {
+        final s = match.group(0)?.trim() ?? '';
+        if (s.isNotEmpty) {
+          result.add(s);
+        }
+      }
+      if (result.isEmpty) {
+        result.add(text);
+      }
+      return result;
+    }
+
+    for (int diaryIdx = 0; diaryIdx < widget.diaries.length; diaryIdx++) {
+      final diary = widget.diaries[diaryIdx];
+      final dt = diary.dateTime;
+      final inkColor = DiaryUtils.getInkColor(diary.paperStyle, false);
+
+      // 如果不是第一篇日记，默认另起一页排版（每一篇日记独占新的一页开始）
+      if (diaryIdx > 0) {
+        int currentPageIndex = (currentY / _canvasHeight).floor();
+        currentY = (currentPageIndex + 1) * _canvasHeight + _margin.top;
+      }
 
       // 1. 日期天数元素 (Georgia 68)
       final dayElement = ExportElement(
-        id: 'diary_date_day_${DateTime.now().millisecondsSinceEpoch}',
+        id: 'diary_date_day_${diary.id}_${DateTime.now().millisecondsSinceEpoch}',
         type: 'text',
         x: _margin.left,
-        y: _margin.top,
+        y: currentY,
         width: 80,
         height: 68,
         content: dt.day.toString(),
@@ -287,10 +337,10 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
       // 2. 年月文本元素 (LXGWWenKai 14, 带有 alpha 0.6 柔和色彩)
       final yearMonthElement = ExportElement(
-        id: 'diary_date_year_month_${DateTime.now().millisecondsSinceEpoch}',
+        id: 'diary_date_year_month_${diary.id}_${DateTime.now().millisecondsSinceEpoch}',
         type: 'text',
         x: _margin.left + dayElement.width - 4,
-        y: _margin.top + 13,
+        y: currentY + 13,
         width: 150,
         height: 25,
         content: "${dt.year}年${dt.month}月",
@@ -304,10 +354,10 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
       // 3. 星期与具体时刻元素 (LXGWWenKai 16, FontWeight.bold 粗体)
       final weekTimeElement = ExportElement(
-        id: 'diary_date_week_time_${DateTime.now().millisecondsSinceEpoch}',
+        id: 'diary_date_week_time_${diary.id}_${DateTime.now().millisecondsSinceEpoch}',
         type: 'text',
         x: _margin.left + dayElement.width - 4,
-        y: _margin.top + 32,
+        y: currentY + 32,
         width: 180,
         height: 30,
         content: "${["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"][dt.weekday - 1]}  ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}",
@@ -319,15 +369,12 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
       );
       _adjustTextElementWidth(weekTimeElement);
       _elements.add(weekTimeElement);
-    }
 
-    // 如果有日记，把第一篇日记的内容精简放上去，并自动把日记内的插图也加载进来
-    if (widget.diaries.isNotEmpty) {
-      final firstDiary = widget.diaries.first;
+      currentY += 80;
 
-      // 1. 将心情、标签、天气、地点作为独立的文本标签元素进行流式排布并计算高度
-      final parsed = ParsedTags.parse(firstDiary.tag, firstDiary.moodIndex);
-      final mood = kMoods[firstDiary.moodIndex.clamp(0, kMoods.length - 1)];
+      // 4. 将心情、标签、天气、地点作为独立的文本标签元素进行流式排布并计算高度
+      final parsed = ParsedTags.parse(diary.tag, diary.moodIndex);
+      final mood = kMoods[diary.moodIndex.clamp(0, kMoods.length - 1)];
       final String moodLabel = parsed.customMood ?? mood.label;
       
       final List<String> tagTexts = [];
@@ -335,22 +382,22 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
       for (var t in parsed.tags) {
         tagTexts.add("#$t");
       }
-      if (firstDiary.weather != null) {
-        tagTexts.add("☀️ ${firstDiary.weather} ${firstDiary.temp ?? ''}");
+      if (diary.weather != null) {
+        tagTexts.add("☀️ ${diary.weather} ${diary.temp ?? ''}");
       }
-      if (firstDiary.location != null) {
-        tagTexts.add("📍 ${firstDiary.location!}");
+      if (diary.location != null) {
+        tagTexts.add("📍 ${diary.location!}");
       }
 
       double currentTagX = _margin.left;
-      double currentTagY = _margin.top + 80;
+      double currentTagY = currentY;
       final double maxTagRight = _canvasWidth - _margin.right;
 
       for (int i = 0; i < tagTexts.length; i++) {
         final String text = tagTexts[i];
         
         final tempElem = ExportElement(
-          id: 'temp_tag_$i',
+          id: 'temp_tag_${diary.id}_$i',
           type: 'text',
           x: 0,
           y: 0,
@@ -374,7 +421,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
         _elements.add(
           ExportElement(
-            id: 'diary_metadata_tag_${i}_${DateTime.now().millisecondsSinceEpoch}',
+            id: 'diary_metadata_tag_${diary.id}_${i}_${DateTime.now().millisecondsSinceEpoch}',
             type: 'text',
             x: currentTagX,
             y: currentTagY,
@@ -394,52 +441,22 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
         currentTagX += tempElem.width + 8;
       }
 
-      // 2. 根据标签排列后的最终高度计算正文 Y 坐标（留出 50 像素间距）
-      double checkPagination(double targetY, double itemHeight) {
-        int pageIndex = (targetY / _canvasHeight).floor();
-        double pageBottom = (pageIndex + 1) * _canvasHeight - _margin.bottom;
-        if (targetY + itemHeight > pageBottom) {
-          return (pageIndex + 1) * _canvasHeight + _margin.top;
-        }
-        return targetY;
-      }
+      currentY = tagTexts.isEmpty ? currentY : (currentTagY + 50);
 
-      // 辅助方法：将正文切分成独立的句子，保留句末标点符号及处理换行
-      List<String> splitIntoSentences(String text) {
-        if (text.isEmpty) return [];
-        // 正则：匹配遇到标点（。？！；）或者换行符（\n）进行断句并保留标点
-        final RegExp regExp = RegExp(r'[^。？！;\n]+[。？！;\n]?');
-        final Iterable<Match> matches = regExp.allMatches(text);
-        
-        List<String> result = [];
-        for (final match in matches) {
-          final s = match.group(0)?.trim() ?? '';
-          if (s.isNotEmpty) {
-            result.add(s);
-          }
-        }
-        if (result.isEmpty) {
-          result.add(text);
-        }
-        return result;
-      }
-
-      double contentY = tagTexts.isEmpty ? (_margin.top + 80) : (currentTagY + 50);
-      final rawContent = firstDiary.content.isNotEmpty
-          ? firstDiary.content
-          : '今天天气晴朗，微风徐徐。小岛的清晨总是如此宁静，蔚蓝的海浪轻轻拍打着沙滩。我漫步在林间小道上，呼吸着新鲜空气，仿佛所有的烦恼都随风消逝了...';
+      final rawContent = diary.content.isNotEmpty
+          ? diary.content
+          : '今天天气晴朗，微风徐徐。小岛的清晨总是如此宁静，蔚蓝的海浪轻轻拍打着沙滩...';
 
       final List<String> sentences = splitIntoSentences(rawContent);
-      double lastTextBottomY = contentY;
 
       for (int i = 0; i < sentences.length; i++) {
         final sentence = sentences[i];
         final sentenceElement = ExportElement(
-          id: 'diary_content_$i',
+          id: 'diary_content_${diary.id}_$i',
           type: 'text',
           x: _margin.left,
-          y: contentY,
-          width: _canvasWidth - _margin.left - _margin.right,
+          y: currentY,
+          width: availableWidth,
           height: 30,
           content: sentence,
           fontSize: 15,
@@ -454,30 +471,28 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
         final sPainter = TextPainter(
           text: TextSpan(text: sentenceElement.content, style: sStyle),
           textDirection: TextDirection.ltr,
-        )..layout(maxWidth: _canvasWidth - _margin.left - _margin.right);
+        )..layout(maxWidth: availableWidth);
 
         sentenceElement.height = sPainter.height;
 
         // 检查分页定位
-        contentY = checkPagination(contentY, sentenceElement.height);
-        sentenceElement.y = contentY;
+        currentY = checkPagination(currentY, sentenceElement.height);
+        sentenceElement.y = currentY;
         _elements.add(sentenceElement);
 
         // 每句话留 12 像素的段落句间距
-        contentY += sentenceElement.height + 12;
-        lastTextBottomY = contentY;
+        currentY += sentenceElement.height + 12;
       }
 
-      // 3. 解析日记的 blocks 数据并计算图片坐标
-      final List<DiaryBlock> diaryBlocks = firstDiary.blocks.map((b) => DiaryBlock.fromMap(b)).toList();
+      // 6. 解析日记的 blocks 数据并计算图片坐标
+      final List<DiaryBlock> diaryBlocks = diary.blocks.map((b) => DiaryBlock.fromMap(b)).toList();
       final List<DiaryBlock> processedBlocks = ImageGroupBlock.preprocess(
         diaryBlocks,
         isMixedLayout: true,
         isImageGrid: true,
       );
-      double currentY = lastTextBottomY + 12;
-      final double availableWidth = _canvasWidth - _margin.left - _margin.right;
-      const double spacing = 8.0;
+      
+      currentY += 12;
 
       for (var block in processedBlocks) {
         if (block is ImageBlock) {
@@ -485,7 +500,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
           currentY = checkPagination(currentY, h);
           _elements.add(
             ExportElement(
-              id: 'diary_image_${block.id}',
+              id: 'diary_image_${diary.id}_${block.id}',
               type: 'image',
               x: _margin.left,
               y: currentY,
@@ -507,7 +522,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               currentY = checkPagination(currentY, h);
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[0].id}',
+                  id: 'diary_image_${diary.id}_${chunk[0].id}',
                   type: 'image',
                   x: _margin.left,
                   y: currentY,
@@ -524,7 +539,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               currentY = checkPagination(currentY, h);
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[0].id}',
+                  id: 'diary_image_${diary.id}_${chunk[0].id}',
                   type: 'image',
                   x: _margin.left,
                   y: currentY,
@@ -536,7 +551,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               );
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[1].id}',
+                  id: 'diary_image_${diary.id}_${chunk[1].id}',
                   type: 'image',
                   x: _margin.left + colW + spacing,
                   y: currentY,
@@ -555,7 +570,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               currentY = checkPagination(currentY, h);
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[0].id}',
+                  id: 'diary_image_${diary.id}_${chunk[0].id}',
                   type: 'image',
                   x: _margin.left,
                   y: currentY,
@@ -567,7 +582,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               );
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[1].id}',
+                  id: 'diary_image_${diary.id}_${chunk[1].id}',
                   type: 'image',
                   x: _margin.left + leftW + spacing,
                   y: currentY,
@@ -579,7 +594,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               );
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[2].id}',
+                  id: 'diary_image_${diary.id}_${chunk[2].id}',
                   type: 'image',
                   x: _margin.left + leftW + spacing,
                   y: currentY + rightH + spacing,
@@ -598,7 +613,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               currentY = checkPagination(currentY, h);
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[0].id}',
+                  id: 'diary_image_${diary.id}_${chunk[0].id}',
                   type: 'image',
                   x: _margin.left,
                   y: currentY,
@@ -610,7 +625,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               );
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[1].id}',
+                  id: 'diary_image_${diary.id}_${chunk[1].id}',
                   type: 'image',
                   x: _margin.left + leftW + spacing,
                   y: currentY,
@@ -622,7 +637,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               );
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[2].id}',
+                  id: 'diary_image_${diary.id}_${chunk[2].id}',
                   type: 'image',
                   x: _margin.left + leftW + spacing,
                   y: currentY + rightH + spacing,
@@ -634,7 +649,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               );
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[3].id}',
+                  id: 'diary_image_${diary.id}_${chunk[3].id}',
                   type: 'image',
                   x: _margin.left + leftW + spacing,
                   y: currentY + 2 * (rightH + spacing),
@@ -654,7 +669,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               currentY = checkPagination(currentY, topH + spacing + bottomH);
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[0].id}',
+                  id: 'diary_image_${diary.id}_${chunk[0].id}',
                   type: 'image',
                   x: _margin.left,
                   y: currentY,
@@ -666,7 +681,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               );
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[1].id}',
+                  id: 'diary_image_${diary.id}_${chunk[1].id}',
                   type: 'image',
                   x: _margin.left + leftW + spacing,
                   y: currentY,
@@ -678,7 +693,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               );
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[2].id}',
+                  id: 'diary_image_${diary.id}_${chunk[2].id}',
                   type: 'image',
                   x: _margin.left + leftW + spacing,
                   y: currentY + rightH + spacing,
@@ -690,7 +705,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               );
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[3].id}',
+                  id: 'diary_image_${diary.id}_${chunk[3].id}',
                   type: 'image',
                   x: _margin.left + leftW + spacing,
                   y: currentY + 2 * (rightH + spacing),
@@ -702,7 +717,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               );
               _elements.add(
                 ExportElement(
-                  id: 'diary_image_${chunk[4].id}',
+                  id: 'diary_image_${diary.id}_${chunk[4].id}',
                   type: 'image',
                   x: _margin.left,
                   y: currentY + topH + spacing,
@@ -726,7 +741,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
     // 针对短文本元素自适应测量实际文字宽度以紧贴文本内容
     for (var element in _elements) {
-      if (element.type == 'text' && element.id != 'diary_content' && !element.id.startsWith('diary_metadata_tag_')) {
+      if (element.type == 'text' && !element.id.contains('diary_content_') && !element.id.contains('diary_metadata_tag_')) {
         _adjustTextElementWidth(element);
       }
     }
@@ -735,42 +750,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   // 根据当前滑动的页边距，动态同步更新系统默认排版元素的位置和宽度
   void _updateElementsMargin() {
     setState(() {
-      // 1. 重排所有标签元素
-      double currentTagX = _margin.left;
-      double currentTagY = _margin.top + 80;
-      final double maxTagRight = _canvasWidth - _margin.right;
-      
-      final List<ExportElement> tags = _elements.where((e) => e.id.startsWith('diary_metadata_tag_')).toList();
-      tags.sort((a, b) {
-        final aIdx = int.tryParse(a.id.split('_')[3]) ?? 0;
-        final bIdx = int.tryParse(b.id.split('_')[3]) ?? 0;
-        return aIdx.compareTo(bIdx);
-      });
-      
-      for (var tag in tags) {
-        if (currentTagX + tag.width > maxTagRight && currentTagX > _margin.left) {
-          currentTagX = _margin.left;
-          currentTagY += 36;
-        }
-        tag.x = currentTagX;
-        tag.y = currentTagY;
-        currentTagX += tag.width + 8;
-      }
-
-      final double contentY = tags.isEmpty ? (_margin.top + 80) : (currentTagY + 50);
-
-      for (var element in _elements) {
-        // 联动 X 坐标与宽度
-        if (element.id == 'diary_content') {
-          element.x = _margin.left;
-          element.width = (_canvasWidth - _margin.left - _margin.right).clamp(50.0, _canvasWidth);
-        }
-
-        // 联动 Y 坐标
-        if (element.id == 'diary_content') {
-          element.y = contentY;
-        }
-      }
+      _initDefaultElements();
     });
   }
 
@@ -1040,8 +1020,10 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
                 ),
               ),
               // 2. 浮动悬浮工具栏 (定位在配置面板上方)
-              Positioned(
-                bottom: 220 + 68 + MediaQuery.of(context).padding.bottom + 12,
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                bottom: (_isPanelExpanded ? 220 : 0) + 68 + MediaQuery.of(context).padding.bottom + 12,
                 left: 0,
                 right: 0,
                 child: Center(

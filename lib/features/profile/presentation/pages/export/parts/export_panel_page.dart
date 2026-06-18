@@ -359,41 +359,14 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              '页面定位',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 10,
-                color: Color(0xFF8A7A6E),
-                fontFamily: 'LXGWWenKai',
-              ),
-            ),
-            GestureDetector(
-              onTap: _showCustomPageJumpDialog,
-              child: const Row(
-                children: [
-                  Text(
-                    '自定义跳转',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF5A3E28),
-                      fontFamily: 'LXGWWenKai',
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(width: 2),
-                  Icon(
-                    Icons.keyboard_arrow_right_rounded,
-                    size: 12,
-                    color: Color(0xFF5A3E28),
-                  ),
-                ],
-              ),
-            ),
-          ],
+        const Text(
+          '页面定位',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 10,
+            color: Color(0xFF8A7A6E),
+            fontFamily: 'LXGWWenKai',
+          ),
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -401,15 +374,23 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            itemCount: count,
+            itemCount: count + 1,
             separatorBuilder: (context, index) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
-              final bool isSelected = _focusedPageIndex == index;
+              if (index == 0) {
+                return _JumpInputWidget(
+                  pageCount: count,
+                  onJump: (pIdx) => _navigateToPage(pIdx),
+                );
+              }
+
+              final int pageIdx = index - 1;
+              final bool isSelected = _focusedPageIndex == pageIdx;
               return GestureDetector(
-                onTap: () => _navigateToPage(index),
+                onTap: () => _navigateToPage(pageIdx),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: isSelected ? Colors.white : const Color(0xFFF7F4F2),
@@ -429,7 +410,7 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
                         : null,
                   ),
                   child: Text(
-                    '第 ${index + 1} 页',
+                    '第 ${pageIdx + 1} 页',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
@@ -446,128 +427,82 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
       ],
     );
   }
+}
 
-  void _showCustomPageJumpDialog() {
-    final TextEditingController controller = TextEditingController();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true, // 确保键盘顶起时 bottomSheet 不会被遮挡
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
+// 直接输入页码跳转的小输入框组件
+class _JumpInputWidget extends StatefulWidget {
+  final int pageCount;
+  final Function(int) onJump;
+
+  const _JumpInputWidget({
+    required this.pageCount,
+    required this.onJump,
+  });
+
+  @override
+  State<_JumpInputWidget> createState() => _JumpInputWidgetState();
+}
+
+class _JumpInputWidgetState extends State<_JumpInputWidget> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 76,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F4F2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFECE5DF),
+          width: 1,
+        ),
+      ),
+      child: TextField(
+        controller: _controller,
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        textInputAction: TextInputAction.go,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF5A3E28),
+          fontFamily: 'LXGWWenKai',
+        ),
+        decoration: const InputDecoration(
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+          border: InputBorder.none,
+          hintText: '页码跳转',
+          hintStyle: TextStyle(
+            fontSize: 10,
+            color: Color(0xFFC4B8B0),
+            fontFamily: 'LXGWWenKai',
           ),
-          child: DiaryBottomSheet(
-            paperStyle: 'default',
-            showDragHandle: true,
-            isDiary: false,
-            padding: const EdgeInsets.only(
-              left: 24,
-              right: 24,
-              top: 12,
-              bottom: 24,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  '自定义页码跳转',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF5A3E28),
-                    fontFamily: 'LXGWWenKai',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: controller,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: '请输入目标页码 (1 - $_pageCount)',
-                    hintStyle: const TextStyle(color: Color(0xFFC4B8B0), fontSize: 13, fontFamily: 'LXGWWenKai'),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    filled: true,
-                    fillColor: const Color(0xFFF7F4F2),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFECE5DF)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF5A3E28)),
-                    ),
-                  ),
-                  style: const TextStyle(color: Color(0xFF5A3E28), fontSize: 14, fontFamily: 'LXGWWenKai'),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF7F4F2),
-                          foregroundColor: const Color(0xFF8A7A6E),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          '取消',
-                          style: TextStyle(fontSize: 14, fontFamily: 'LXGWWenKai', fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          final text = controller.text.trim();
-                          final pageNum = int.tryParse(text);
-                          if (pageNum != null && pageNum >= 1 && pageNum <= _pageCount) {
-                            Navigator.pop(context);
-                            _navigateToPage(pageNum - 1);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '请输入 1 到 $_pageCount 之间的有效页码',
-                                  style: const TextStyle(fontFamily: 'LXGWWenKai'),
-                                ),
-                                behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5A3E28),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          '跳转',
-                          style: TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'LXGWWenKai', fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+        ),
+        onSubmitted: (val) {
+          final pageNum = int.tryParse(val.trim());
+          if (pageNum != null && pageNum >= 1 && pageNum <= widget.pageCount) {
+            widget.onJump(pageNum - 1);
+            _controller.clear();
+          } else {
+            _controller.clear();
+          }
+        },
+      ),
     );
   }
 }

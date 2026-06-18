@@ -17,7 +17,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
       left: element.x - handlePadding,
       top: screenY - handlePadding,
       child: GestureDetector(
-        onPanStart: (element.isLocked || element.id == _editingElementId)
+        onPanStart: (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId)
             ? null
             : (details) {
                 _saveToHistory();
@@ -27,21 +27,21 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                   _dragY = screenY;
                 });
               },
-        onPanEnd: (element.isLocked || element.id == _editingElementId)
+        onPanEnd: (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId)
             ? null
             : (details) {
                 updateState(() {
                   _activeHandle = null;
                 });
               },
-        onPanCancel: (element.isLocked || element.id == _editingElementId)
+        onPanCancel: (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId)
             ? null
             : () {
                 updateState(() {
                   _activeHandle = null;
                 });
               },
-        onPanUpdate: (element.isLocked || element.id == _editingElementId)
+        onPanUpdate: (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId)
             ? null
             : (details) {
                   updateState(() {

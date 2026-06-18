@@ -23,10 +23,22 @@ extension _ExportPanelsExtension on _DiaryBookExportPageState {
           mainAxisSize: MainAxisSize.min,
           children: [
             // 分类控制区内容展示
-            Container(
-              height: 220,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: _buildActiveTabContent(),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              height: _isPanelExpanded ? 220 : 0,
+              child: ClipRect(
+                child: OverflowBox(
+                  minHeight: 0,
+                  maxHeight: 220,
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    height: 220,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: _buildActiveTabContent(),
+                  ),
+                ),
+              ),
             ),
             // 底部分类 Tab 按钮栏
             Container(
@@ -43,80 +55,85 @@ extension _ExportPanelsExtension on _DiaryBookExportPageState {
                   final inactiveColor = const Color(0xFF9E9185);
 
                   return Stack(
-                    children: [
-                      // 滑动背景滑块
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeOutCubic,
-                        left: _activeTabIndex * tabWidth + 4,
-                        top: 2,
-                        bottom: 2,
-                        width: tabWidth - 8,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF4EFEB),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                      ),
-                      // 选项按钮排布
-                      Row(
-                        children: List.generate(6, (index) {
-                          final isSelected = _activeTabIndex == index;
-                          IconData icon;
-                          String label;
-                          switch (index) {
-                            case 0: icon = Icons.description_outlined; label = '页面'; break;
-                            case 1: icon = Icons.wallpaper_outlined; label = '背景'; break;
-                            case 2: icon = Icons.add_circle_outline_rounded; label = '添加'; break;
-                            case 3: icon = Icons.tune_rounded; label = '属性'; break;
-                            case 4: icon = Icons.layers_outlined; label = '图层'; break;
-                            case 5: icon = Icons.ios_share_rounded; label = '导出'; break;
-                            default: icon = Icons.description_outlined; label = '';
-                          }
+                     children: [
+                       // 滑动背景滑块
+                       AnimatedPositioned(
+                         duration: const Duration(milliseconds: 250),
+                         curve: Curves.easeOutCubic,
+                         left: _activeTabIndex * tabWidth + 4,
+                         top: 2,
+                         bottom: 2,
+                         width: tabWidth - 8,
+                         child: Container(
+                           decoration: BoxDecoration(
+                             color: const Color(0xFFF4EFEB),
+                             borderRadius: BorderRadius.circular(16),
+                           ),
+                         ),
+                       ),
+                       // 选项按钮排布
+                       Row(
+                         children: List.generate(6, (index) {
+                           final isSelected = _activeTabIndex == index;
+                           IconData icon;
+                           String label;
+                           switch (index) {
+                             case 0: icon = Icons.description_outlined; label = '页面'; break;
+                             case 1: icon = Icons.wallpaper_outlined; label = '背景'; break;
+                             case 2: icon = Icons.add_circle_outline_rounded; label = '添加'; break;
+                             case 3: icon = Icons.tune_rounded; label = '属性'; break;
+                             case 4: icon = Icons.layers_outlined; label = '图层'; break;
+                             case 5: icon = Icons.ios_share_rounded; label = '导出'; break;
+                             default: icon = Icons.description_outlined; label = '';
+                           }
 
-                          return Expanded(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                setState(() {
-                                  _activeTabIndex = index;
-                                });
-                              },
-                              child: Container(
-                                color: Colors.transparent,
-                                alignment: Alignment.center,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    AnimatedScale(
-                                      duration: const Duration(milliseconds: 200),
-                                      scale: isSelected ? 1.06 : 1.0,
-                                      child: Icon(
-                                        icon,
-                                        color: isSelected ? activeColor : inactiveColor,
-                                        size: 20,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      label,
-                                      style: TextStyle(
-                                        color: isSelected ? activeColor : inactiveColor,
-                                        fontSize: 10,
-                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                        fontFamily: 'LXGWWenKai',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-                    ],
+                           return Expanded(
+                             child: GestureDetector(
+                               behavior: HitTestBehavior.opaque,
+                               onTap: () {
+                                 setState(() {
+                                   if (_activeTabIndex == index && _isPanelExpanded) {
+                                     _isPanelExpanded = false;
+                                   } else {
+                                     _activeTabIndex = index;
+                                     _isPanelExpanded = true;
+                                   }
+                                 });
+                               },
+                               child: Container(
+                                 color: Colors.transparent,
+                                 alignment: Alignment.center,
+                                 child: Column(
+                                   mainAxisAlignment: MainAxisAlignment.center,
+                                   mainAxisSize: MainAxisSize.min,
+                                   children: [
+                                     AnimatedScale(
+                                       duration: const Duration(milliseconds: 200),
+                                       scale: isSelected ? 1.06 : 1.0,
+                                       child: Icon(
+                                         icon,
+                                         color: isSelected ? activeColor : inactiveColor,
+                                         size: 20,
+                                       ),
+                                     ),
+                                     const SizedBox(height: 3),
+                                     Text(
+                                       label,
+                                       style: TextStyle(
+                                         color: isSelected ? activeColor : inactiveColor,
+                                         fontSize: 10,
+                                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                         fontFamily: 'LXGWWenKai',
+                                       ),
+                                     ),
+                                   ],
+                                 ),
+                               ),
+                             ),
+                           );
+                         }),
+                       ),
+                     ],
                   );
                 },
               ),

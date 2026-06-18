@@ -18,87 +18,92 @@ extension _ExportCanvasExtension on _DiaryBookExportPageState {
         children: [
           // 1. 渲染每一页的背景卡片、背景图、页边距辅助线及页脚信息
           for (int i = 0; i < count; i++) ...[
-            Positioned(
-              left: 0,
-              top: i * (_canvasHeight + pageGap),
-              width: _canvasWidth,
-              height: _canvasHeight,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: _bgSettings.color,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 25,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 10),
+            Builder(
+              builder: (context) {
+                final bg = getBgSettingsForPage(i);
+                return Positioned(
+                  left: 0,
+                  top: i * (_canvasHeight + pageGap),
+                  width: _canvasWidth,
+                  height: _canvasHeight,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: bg.color,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 25,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: ClipRect(
-                  child: Stack(
-                    children: [
-                      // 渲染背景图片，限制在画布区域内，并应用透明度、位移、缩放、裁剪
-                      if (_bgSettings.imagePath != null)
-                        Positioned(
-                          left: _bgSettings.x,
-                          top: _bgSettings.y,
-                          width: _canvasWidth * _bgSettings.scale,
-                          height: _canvasHeight * _bgSettings.scale,
-                          child: Opacity(
-                            opacity: _bgSettings.opacity,
-                            child: AspectRatio(
-                              aspectRatio: _bgSettings.cropRatio == '1:1'
-                                  ? 1.0
-                                  : _bgSettings.cropRatio == '3:4'
-                                      ? 0.75
-                                      : _bgSettings.cropRatio == '4:3'
-                                          ? 4.0 / 3.0
-                                          : _bgSettings.cropRatio == '16:9'
-                                              ? 16.0 / 9.0
-                                              : _canvasWidth / _canvasHeight,
-                              child: _bgSettings.imagePath!.startsWith('http://') || _bgSettings.imagePath!.startsWith('https://')
-                                  ? Image.network(_bgSettings.imagePath!, fit: BoxFit.cover)
-                                  : Image.file(File(_bgSettings.imagePath!), fit: BoxFit.cover),
+                    child: ClipRect(
+                      child: Stack(
+                        children: [
+                          // 渲染背景图片，限制在画布区域内，并应用透明度、位移、缩放、裁剪
+                          if (bg.imagePath != null)
+                            Positioned(
+                              left: bg.x,
+                              top: bg.y,
+                              width: _canvasWidth * bg.scale,
+                              height: _canvasHeight * bg.scale,
+                              child: Opacity(
+                                opacity: bg.opacity,
+                                child: AspectRatio(
+                                  aspectRatio: bg.cropRatio == '1:1'
+                                      ? 1.0
+                                      : bg.cropRatio == '3:4'
+                                          ? 0.75
+                                          : bg.cropRatio == '4:3'
+                                              ? 4.0 / 3.0
+                                              : bg.cropRatio == '16:9'
+                                                  ? 16.0 / 9.0
+                                                  : _canvasWidth / _canvasHeight,
+                                  child: bg.imagePath!.startsWith('http://') || bg.imagePath!.startsWith('https://')
+                                      ? Image.network(bg.imagePath!, fit: BoxFit.cover)
+                                      : Image.file(File(bg.imagePath!), fit: BoxFit.cover),
+                                ),
+                              ),
+                            ),
+                          // 页边距辅助线（仅在选中状态下展示页边距范围提示）
+                          Positioned(
+                            left: _margin.left,
+                            top: _margin.top,
+                            right: _margin.right,
+                            bottom: _margin.bottom,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: const Color(0xFF5A3E28).withValues(alpha: 0.25),
+                                  style: BorderStyle.solid,
+                                  width: 1.5,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      // 页边距辅助线（仅在选中状态下展示页边距范围提示）
-                      Positioned(
-                        left: _margin.left,
-                        top: _margin.top,
-                        right: _margin.right,
-                        bottom: _margin.bottom,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: const Color(0xFF5A3E28).withValues(alpha: 0.25),
-                              style: BorderStyle.solid,
-                              width: 1.5,
+                          // 页脚页码
+                          Positioned(
+                            bottom: 8,
+                            left: 0,
+                            right: 0,
+                            child: Center(
+                              child: Text(
+                                '第 ${i + 1} 页 / 共 $count 页',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: const Color(0xFF5A3E28).withValues(alpha: 0.4),
+                                  fontFamily: 'LXGWWenKai',
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                      // 页脚页码
-                      Positioned(
-                        bottom: 8,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Text(
-                            '第 ${i + 1} 页 / 共 $count 页',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: const Color(0xFF5A3E28).withValues(alpha: 0.4),
-                              fontFamily: 'LXGWWenKai',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              }
             ),
           ],
 
