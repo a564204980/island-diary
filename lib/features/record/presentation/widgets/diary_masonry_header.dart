@@ -45,82 +45,86 @@ class DiaryMasonryHeader extends StatelessWidget {
         child: Row(
           children: [
             // 日期胶囊
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                color: isNight 
-                  ? const Color(0xFF2C2E30) 
-                  : Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
+            GestureDetector(
+              onTap: onCalendarTap,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
                   color: isNight 
-                    ? Colors.white.withValues(alpha: 0.08) 
-                    : const Color(0xFFD4A373).withValues(alpha: 0.22),
-                  width: 1,
-                ),
-                boxShadow: isNight 
-                  ? null 
-                  : [
-                      BoxShadow(
-                        color: const Color(0xFFD4A373).withValues(alpha: 0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.calendar_today_rounded,
-                    size: 14,
-                    color: themeGoldColor,
+                    ? const Color(0xFF2C2E30) 
+                    : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isNight 
+                      ? Colors.white.withValues(alpha: 0.08) 
+                      : const Color(0xFFD4A373).withValues(alpha: 0.22),
+                    width: 1,
                   ),
-                  const SizedBox(width: 7),
-                  Text.rich(
-                    key: ValueKey("${currentDate.year}-${currentDate.month}-${currentDate.day}"),
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: "${currentDate.month}",
-                          style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w900,
-                            color: capsuleTextColor,
-                            fontFamily: 'LXGWWenKai',
-                          ),
-                        ),
-                        TextSpan(
-                          text: "月",
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w900,
-                            color: capsuleTextColor,
-                            fontFamily: 'LXGWWenKai',
-                          ),
-                        ),
-                        TextSpan(
-                          text: "${currentDate.day}",
-                          style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w900,
-                            color: capsuleTextColor,
-                            fontFamily: 'LXGWWenKai',
-                          ),
-                        ),
-                        TextSpan(
-                          text: "日",
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w900,
-                            color: capsuleTextColor,
-                            fontFamily: 'LXGWWenKai',
-                          ),
+                  boxShadow: isNight 
+                    ? null 
+                    : [
+                        BoxShadow(
+                          color: const Color(0xFFD4A373).withValues(alpha: 0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
                         ),
                       ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.calendar_today_rounded,
+                      size: 14,
+                      color: themeGoldColor,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 7),
+                    Text.rich(
+                      key: ValueKey("${currentDate.year}-${currentDate.month}-${currentDate.day}"),
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: "${currentDate.month}",
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w900,
+                              color: capsuleTextColor,
+                              fontFamily: 'LXGWWenKai',
+                            ),
+                          ),
+                          TextSpan(
+                            text: "月",
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w900,
+                              color: capsuleTextColor,
+                              fontFamily: 'LXGWWenKai',
+                            ),
+                          ),
+                          TextSpan(
+                            text: "${currentDate.day}",
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w900,
+                              color: capsuleTextColor,
+                              fontFamily: 'LXGWWenKai',
+                            ),
+                          ),
+                          TextSpan(
+                            text: "日",
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w900,
+                              color: capsuleTextColor,
+                              fontFamily: 'LXGWWenKai',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(width: 12),

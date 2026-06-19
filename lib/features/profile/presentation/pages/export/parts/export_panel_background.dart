@@ -13,15 +13,48 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
     return ListView(
       physics: const BouncingScrollPhysics(),
       children: [
-        const Text('背景纯色', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('背景纯色', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54)),
+            TextButton.icon(
+              icon: const Icon(Icons.copy_all_rounded, size: 14, color: Color(0xFF8A6C5C)),
+              label: const Text(
+                '应用到所有页面',
+                style: TextStyle(fontSize: 11, fontFamily: 'LXGWWenKai', color: Color(0xFF8A6C5C), fontWeight: FontWeight.bold),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: () {
+                _saveToHistory();
+                updateState(() {
+                  final currentBg = _bgSettings;
+                  for (int i = 0; i < _pageCount; i++) {
+                    _pageBgSettings[i] = currentBg.copy();
+                  }
+                });
+                showTopToast(
+                  context,
+                  '已将当前背景应用到所有页面',
+                  icon: Icons.check_circle_outline_rounded,
+                  iconColor: const Color(0xFF5A3E28),
+                );
+              },
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         Row(
           children: [
             GestureDetector(
               onTap: () {
-                _showColorPickerBottomSheet(
-                  _bgSettings.color,
-                  (color) {
+                showCustomColorPickerBottomSheet(
+                  context,
+                  initialColor: _bgSettings.color,
+                  onColorSelected: (color) {
                     _saveToHistory();
                     updateState(() {
                       _bgSettings.color = color;

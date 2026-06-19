@@ -168,6 +168,7 @@ class DecorationController extends ChangeNotifier {
       final item = _availableItems.firstWhere((it) => it.id == id);
       try {
         await FurnitureSprite.precacheItem(item, context);
+        if (!context.mounted) return;
       } catch (e) {
         debugPrint('Preloading error for $id: $e');
       }
@@ -177,10 +178,12 @@ class DecorationController extends ChangeNotifier {
 
       // 给 UI 线程喘息的机会，并稍微拉长节奏，确保进度条和文字能被看清
       await Future.delayed(const Duration(milliseconds: 60));
+      if (!context.mounted) return;
     }
 
     // 额外的平滑延迟，避免加载过快导致的闪烁
     await Future.delayed(const Duration(milliseconds: 400));
+    if (!context.mounted) return;
     // 加载墙面颜色官方推荐色
     wallColorLeft = UserState().wallColorLeft.value;
     wallColorRight = UserState().wallColorRight.value;

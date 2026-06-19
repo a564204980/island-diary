@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
+import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -22,12 +23,14 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/image_group_block.dart';
+import 'package:island_diary/shared/widgets/custom_color_picker_sheet.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:island_diary/shared/widgets/top_toast.dart';
 
 part 'export/parts/export_canvas.dart';
 part 'export/parts/export_canvas_gesture.dart';
@@ -88,6 +91,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   int _activeTabIndex = 0; // 0:页面, 1:背景, 2:添加, 3:属性, 4:图层, 5:导出
   bool _isPanelExpanded = false; // 面板是否展开，默认收起
   int _focusedPageIndex = 0; // 当前选中的/聚焦的页面
+  int _pageTabIdx = 0; // 页面面板子Tab页签：0纸张尺寸，1我的模板
   bool _isZoomScaleInitialized = false; // 是否已经根据容器尺寸初始化了缩放比例
   final TransformationController _transformationController = TransformationController();
 
@@ -244,6 +248,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   @override
   void dispose() {
     _nudgeTimer?.cancel();
+    _transformationController.removeListener(_onViewportChanged);
     _transformationController.dispose();
     _matrixAnimationController?.dispose();
     _textEditorController.dispose();
@@ -252,6 +257,300 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   }
 
 
+
+  // 模板本地持久化状态
+  List<ExportTemplateModel> _savedTemplates = [];
+  bool _isLoadingTemplates = false;
+
+  Future<Directory> get _templatesDir async {
+    final docDir = await getApplicationDocumentsDirectory();
+    final dir = Directory('${docDir.path}/pdf_templates');
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return dir;
+  }
+
+  // 从本地 pdf_templates 目录加载所有模板
+  Future<void> _loadLocalTemplates() async {
+    updateState(() {
+      _isLoadingTemplates = true;
+    });
+    try {
+      final dir = await _templatesDir;
+      final files = dir.listSync();
+      final List<ExportTemplateModel> loaded = [];
+      for (var file in files) {
+        if (file is File && file.path.endsWith('.json')) {
+          final content = await file.readAsString();
+          final Map<String, dynamic> map = json.decode(content) as Map<String, dynamic>;
+          loaded.add(ExportTemplateModel.fromMap(map));
+        }
+      }
+      loaded.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      updateState(() {
+        _savedTemplates = loaded;
+      });
+    } catch (e) {
+      debugPrint('加载本地模板失败: $e');
+    } finally {
+      updateState(() {
+        _isLoadingTemplates = false;
+      });
+    }
+  }
+
+  // 将当前画布快照写入本地 json 文件中
+  Future<bool> _saveCurrentTemplate(String name) async {
+    try {
+      final template = ExportTemplateModel(
+        name: name,
+        pageSize: _pageSize,
+        margin: _margin,
+        pageBgSettings: _pageBgSettings,
+        elements: _elements,
+        createdAt: DateTime.now().toIso8601String(),
+      );
+
+      final dir = await _templatesDir;
+      final file = File('${dir.path}/$name.json');
+      
+      final jsonStr = json.encode(template.toMap());
+      await file.writeAsString(jsonStr);
+      
+      await _loadLocalTemplates();
+      return true;
+    } catch (e) {
+      debugPrint('保存模板失败: $e');
+      return false;
+    }
+  }
+
+  // 删除某个本地模板文件
+  Future<void> _deleteTemplate(ExportTemplateModel template) async {
+    try {
+      final dir = await _templatesDir;
+      final file = File('${dir.path}/${template.name}.json');
+      if (await file.exists()) {
+        await file.delete();
+      }
+      await _loadLocalTemplates();
+    } catch (e) {
+      debugPrint('删除模板失败: $e');
+    }
+  }
+
+  // 套用模板：一键重置当前编辑状态
+  void _applyTemplate(ExportTemplateModel template) {
+    _saveToHistory();
+    updateState(() {
+      _pageSize = template.pageSize;
+      _margin.left = template.margin.left;
+      _margin.right = template.margin.right;
+      _margin.top = template.margin.top;
+      _margin.bottom = template.margin.bottom;
+      
+      _pageBgSettings.clear();
+      template.pageBgSettings.forEach((k, v) {
+        _pageBgSettings[k] = v.copy();
+      });
+
+      _elements = template.elements.map((e) => e.copy()).toList();
+      _selectedElementId = null;
+      _editingElementId = null;
+      
+      _undoStack.clear();
+      _redoStack.clear();
+      
+      _focusedPageIndex = 0;
+    });
+
+    _isZoomScaleInitialized = false;
+    _recenterCanvas();
+
+    showTopToast(
+      context,
+      '已套用模板 "${template.name}"',
+      icon: Icons.check_circle_outline_rounded,
+      iconColor: const Color(0xFF5A3E28),
+    );
+  }
+
+  Future<void> _handleSaveTemplate({bool exitAfterSave = false}) async {
+    final controller = TextEditingController(text: _exportSettings.fileName.isNotEmpty ? _exportSettings.fileName : '我的自定义模板');
+    
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            width: 310,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.black.withValues(alpha: 0.05),
+                width: 0.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 30,
+                  offset: const Offset(0, 15),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 标题
+                const Padding(
+                  padding: EdgeInsets.only(top: 24, left: 24, right: 24),
+                  child: Text(
+                    '保存为模板',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'LXGWWenKai',
+                      color: Color(0xFF2C2C2C),
+                    ),
+                  ),
+                ),
+                
+                // 输入框
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F7F7),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        width: 0.5,
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: TextField(
+                      controller: controller,
+                      autofocus: true,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontFamily: 'LXGWWenKai',
+                        color: Color(0xFF2C2C2C),
+                      ),
+                      decoration: const InputDecoration(
+                        hintText: '请输入模板名称...',
+                        hintStyle: TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'LXGWWenKai',
+                          color: Colors.black38,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 分割线
+                Container(
+                  height: 0.5,
+                  color: Colors.black.withValues(alpha: 0.05),
+                ),
+
+                // 操作按钮
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pop(dialogContext);
+                          if (exitAfterSave) {
+                            Navigator.pop(this.context);
+                          }
+                        },
+                        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20)),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 15),
+                          child: Text(
+                            "取消",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'LXGWWenKai',
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF8E8E93),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 0.5,
+                      height: 48,
+                      color: Colors.black.withValues(alpha: 0.05),
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final name = controller.text.trim();
+                          if (name.isEmpty) return;
+                          Navigator.pop(dialogContext); // 关掉输入弹窗
+                          final success = await _saveCurrentTemplate(name);
+                          if (!mounted) return;
+                          if (success) {
+                            showTopToast(
+                              this.context,
+                              '模板 "$name" 保存成功！',
+                              icon: Icons.check_circle_rounded,
+                              iconColor: const Color(0xFF10B981),
+                            );
+                            if (exitAfterSave) {
+                              Navigator.pop(this.context); // 退出编辑器页面
+                            }
+                          } else {
+                            showTopToast(
+                              this.context,
+                              '模板保存失败，请重试',
+                              icon: Icons.error_outline_rounded,
+                              iconColor: Colors.red,
+                            );
+                          }
+                        },
+                        borderRadius: const BorderRadius.only(bottomRight: Radius.circular(20)),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 15),
+                          child: Text(
+                            "确定",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'LXGWWenKai',
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFA68565),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _saveTemplateAndExit() {
+    _handleSaveTemplate(exitAfterSave: true);
+  }
 
   @override
   void initState() {
@@ -266,6 +565,8 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     });
     _exportSettings.fileName = '${widget.book.name}_导出';
     _initDefaultElements();
+    _transformationController.addListener(_onViewportChanged);
+    _loadLocalTemplates();
   }
 
   // 初始化默认放入一些精美的占位元素，基于用户日记，起点和宽度与页边距联动
@@ -370,7 +671,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
       _adjustTextElementWidth(weekTimeElement);
       _elements.add(weekTimeElement);
 
-      currentY += 80;
+      currentY += 70;
 
       // 4. 将心情、标签、天气、地点作为独立的文本标签元素进行流式排布并计算高度
       final parsed = ParsedTags.parse(diary.tag, diary.moodIndex);
@@ -441,11 +742,9 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
         currentTagX += tempElem.width + 8;
       }
 
-      currentY = tagTexts.isEmpty ? currentY : (currentTagY + 50);
+      currentY = tagTexts.isEmpty ? currentY : (currentTagY + 36);
 
-      final rawContent = diary.content.isNotEmpty
-          ? diary.content
-          : '今天天气晴朗，微风徐徐。小岛的清晨总是如此宁静，蔚蓝的海浪轻轻拍打着沙滩...';
+      final rawContent = diary.content;
 
       final List<String> sentences = splitIntoSentences(rawContent);
 
@@ -491,8 +790,6 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
         isMixedLayout: true,
         isImageGrid: true,
       );
-      
-      currentY += 12;
 
       for (var block in processedBlocks) {
         if (block is ImageBlock) {
@@ -666,7 +963,9 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
               final double leftW = (availableWidth - spacing) * 2 / 3;
               final double rightW = (availableWidth - spacing) / 3;
               final double rightH = (topH - 2 * spacing) / 3;
-              currentY = checkPagination(currentY, topH + spacing + bottomH);
+              
+              currentY = checkPagination(currentY, topH);
+              
               _elements.add(
                 ExportElement(
                   id: 'diary_image_${diary.id}_${chunk[0].id}',
@@ -715,19 +1014,24 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
                   borderRadius: 16.0,
                 ),
               );
+              
+              currentY += topH + spacing;
+              
+              currentY = checkPagination(currentY, bottomH);
+              
               _elements.add(
                 ExportElement(
                   id: 'diary_image_${diary.id}_${chunk[4].id}',
                   type: 'image',
                   x: _margin.left,
-                  y: currentY + topH + spacing,
+                  y: currentY,
                   width: availableWidth,
                   height: bottomH,
                   content: chunk[4].file.path,
                   borderRadius: 16.0,
                 ),
               );
-              currentY += topH + spacing + bottomH;
+              currentY += bottomH;
             }
             index += 5;
             if (index < images.length) {
@@ -835,6 +1139,31 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     return pageIndex * _canvasHeight + clampedYInPage;
   }
 
+  void _onViewportChanged() {
+    final constraints = _lastConstraints;
+    if (constraints == null) return;
+
+    final matrix = _transformationController.value;
+    final double scale = matrix.getMaxScaleOnAxis();
+    if (scale <= 0) return;
+    
+    final double translationY = matrix.getTranslation().y;
+    final double screenCenterY = constraints.maxHeight / 2;
+    final double layoutCenterY = (screenCenterY - translationY) / scale;
+    
+    final double pageHeightWithGap = _canvasHeight + pageGap;
+    if (pageHeightWithGap <= 0) return;
+    
+    int newPageIndex = (layoutCenterY / pageHeightWithGap).floor();
+    newPageIndex = newPageIndex.clamp(0, _pageCount - 1);
+    
+    if (newPageIndex != _focusedPageIndex) {
+      updateState(() {
+        _focusedPageIndex = newPageIndex;
+      });
+    }
+  }
+
   // 截图某个预渲染图表，返回临时文件路径
   Future<String?> _captureChart(GlobalKey key) async {
     try {
@@ -873,88 +1202,139 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     element.width = (textPainter.width + 16.0 + paddingOffset).clamp(50.0, _canvasWidth - _margin.left - _margin.right);
   }
 
+  void _handleBackPress() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+                  child: Text(
+                    '是否将本次设计保存为模板？',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF1F2937),
+                      fontFamily: 'LXGWWenKai',
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pop(context); // 关弹窗
+                          Navigator.pop(this.context); // 退出页面
+                        },
+                        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20)),
+                        child: Container(
+                          height: 48,
+                          alignment: Alignment.center,
+                          child: const Text(
+                            '丢弃',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                              fontFamily: 'LXGWWenKai',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 48,
+                      color: const Color(0xFFE5E7EB),
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pop(context); // 关弹窗
+                          _saveTemplateAndExit();
+                        },
+                        borderRadius: const BorderRadius.only(bottomRight: Radius.circular(20)),
+                        child: Container(
+                          height: 48,
+                          alignment: Alignment.center,
+                          child: const Text(
+                            '保存模板',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF8A6C5C),
+                              fontFamily: 'LXGWWenKai',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFEAE7E4),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        shadowColor: Colors.black.withOpacity(0.05),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF5A3E28), size: 18),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'PDF 编辑器',
-          style: TextStyle(
-            color: Color(0xFF5A3E28),
-            fontWeight: FontWeight.bold,
-            fontSize: 17,
-            fontFamily: 'LXGWWenKai',
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBackPress();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFEAE7E4),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0.5,
+          shadowColor: Colors.black.withValues(alpha: 0.05),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF2C2C2C), size: 18),
+            onPressed: _handleBackPress,
           ),
-        ),
-        centerTitle: true,
+          title: const Text(
+            'PDF 编辑器',
+            style: TextStyle(
+              color: Color(0xFF2C2C2C),
+              fontWeight: FontWeight.bold,
+              fontSize: 17,
+              fontFamily: 'LXGWWenKai',
+            ),
+          ),
+          centerTitle: true,
         actions: [
           TextButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('设计模板保存成功！', style: TextStyle(fontFamily: 'LXGWWenKai')),
-                  backgroundColor: Color(0xFF5A3E28),
-                ),
-              );
-            },
+            onPressed: () => _handleSaveTemplate(),
             child: const Text(
               '保存模板',
               style: TextStyle(
-                color: Color(0xFF8A6C5C),
-                fontWeight: FontWeight.w600,
+                color: Color(0xFF2C2C2C),
+                fontWeight: FontWeight.bold,
                 fontSize: 14,
                 fontFamily: 'LXGWWenKai',
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0, left: 4.0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6E5540), Color(0xFF4A3423)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF4A3423).withOpacity(0.15),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _showExportDialog,
-                    borderRadius: BorderRadius.circular(12),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                      child: Text(
-                        '导出 PDF',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          fontFamily: 'LXGWWenKai',
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+
         ],
       ),
       body: Stack(
@@ -1040,6 +1420,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
             ],
           ),
         ],
+      ),
       ),
     );
   }

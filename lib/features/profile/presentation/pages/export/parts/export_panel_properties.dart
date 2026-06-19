@@ -377,9 +377,10 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
               // 自定义背景颜色选择按钮
               GestureDetector(
                 onTap: () {
-                  _showColorPickerBottomSheet(
-                    element.textBackgroundColor ?? Colors.white,
-                    (color) {
+                  showCustomColorPickerBottomSheet(
+                    context,
+                    initialColor: element.textBackgroundColor ?? Colors.white,
+                    onColorSelected: (color) {
                       _saveToHistory();
                       updateState(() {
                         element.textBackgroundColor = color;
@@ -573,6 +574,84 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
             ],
           ),
         ],
+        if (element.type == 'line') ...[
+          // 分割线样式选择 (平铺平滑按钮)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '线条样式',
+                style: TextStyle(fontSize: 10, color: Color(0xFF8A7A6E), fontFamily: 'LXGWWenKai', fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    _buildLineStyleItem(element, 'solid', '实线'),
+                    const SizedBox(width: 8),
+                    _buildLineStyleItem(element, 'dashed', '虚线'),
+                    const SizedBox(width: 8),
+                    _buildLineStyleItem(element, 'dotted', '点线'),
+                    const SizedBox(width: 8),
+                    _buildLineStyleItem(element, 'double', '双线'),
+                    const SizedBox(width: 8),
+                    _buildLineStyleItem(element, 'wavy', '波浪'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // 线段粗细
+          _buildPropertySlider(
+            label: '线条粗细',
+            value: element.height.clamp(1.0, 15.0),
+            min: 1.0,
+            max: 15.0,
+            displayValue: '${element.height.toStringAsFixed(1)}px',
+            onChanged: (val) {
+              _saveToHistory();
+              updateState(() {
+                element.height = val;
+              });
+            },
+          ),
+          const SizedBox(height: 12),
+          
+          // 透明度
+          _buildPropertySlider(
+            label: '透明度',
+            value: element.opacity.clamp(0.0, 1.0),
+            min: 0.0,
+            max: 1.0,
+            displayValue: '${(element.opacity * 100).toInt()}%',
+            onChanged: (val) {
+              _saveToHistory();
+              updateState(() {
+                element.opacity = val;
+              });
+            },
+          ),
+        ],
+        if (element.type == 'shape') ...[
+          // 透明度
+          _buildPropertySlider(
+            label: '不透明度',
+            value: element.opacity.clamp(0.0, 1.0),
+            min: 0.0,
+            max: 1.0,
+            displayValue: '${(element.opacity * 100).toInt()}%',
+            onChanged: (val) {
+              _saveToHistory();
+              updateState(() {
+                element.opacity = val;
+              });
+            },
+          ),
+        ],
         const SizedBox(height: 12),
         // 颜色设置（仅在非图片类型下显示）
         if (element.type != 'image')
@@ -586,9 +665,10 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
               // 自定义颜色选择按钮
               GestureDetector(
                 onTap: () {
-                  _showColorPickerBottomSheet(
-                    element.color ?? Colors.black87,
-                    (color) {
+                  showCustomColorPickerBottomSheet(
+                    context,
+                    initialColor: element.color,
+                    onColorSelected: (color) {
                       _saveToHistory();
                       updateState(() {
                         element.color = color;
@@ -749,6 +829,45 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: const Color(0xFF5A3E28), size: 20),
+      ),
+    );
+  }
+
+  Widget _buildLineStyleItem(ExportElement element, String styleVal, String label) {
+    final currentStyle = element.content.isEmpty ? 'solid' : element.content;
+    final bool isSelected = currentStyle == styleVal;
+    
+    final Color activeColor = const Color(0xFF5A3E28);
+    final Color inactiveColor = const Color(0xFF8A7A6E);
+    final Color activeBg = const Color(0xFFF4EFEB);
+    final Color inactiveBg = const Color(0xFFF7F4F2);
+
+    return GestureDetector(
+      onTap: () {
+        _saveToHistory();
+        updateState(() {
+          element.content = styleVal;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? activeBg : inactiveBg,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? activeColor : const Color(0xFFECE5DF),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? activeColor : inactiveColor,
+            fontFamily: 'LXGWWenKai',
+          ),
+        ),
       ),
     );
   }

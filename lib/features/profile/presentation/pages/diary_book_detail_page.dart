@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:island_diary/features/profile/presentation/pages/diary_book_export_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/diary_book_detail_reader_page.dart';
 import 'package:island_diary/features/profile/presentation/widgets/dashed_line_painter.dart';
+import 'package:island_diary/shared/widgets/top_toast.dart';
 
 class DiaryBookDetailPage extends StatefulWidget {
   final DiaryBook book;
@@ -360,8 +361,6 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                                       reverseTransitionDuration: const Duration(milliseconds: 250),
                                       pageBuilder: (context, animation, secondaryAnimation) =>
                                           DiaryEditorPage(
-                                            moodIndex: 4,
-                                            intensity: 6,
                                             bookId: widget.book.id,
                                           ),
                                       transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -1105,7 +1104,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.6),
-      builder: (context) {
+      builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -1197,7 +1196,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                   children: [
                     Expanded(
                       child: InkWell(
-                        onTap: () => Navigator.pop(context),
+                        onTap: () => Navigator.pop(dialogContext),
                         borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20)),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 15),
@@ -1225,7 +1224,15 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                           final newTitle = controller.text.trim();
                           final updated = entry.copyWith(title: newTitle);
                           await UserState().updateDiary(updated);
-                          if (context.mounted) Navigator.pop(context);
+                          if (context.mounted) {
+                            Navigator.pop(dialogContext);
+                            showTopToast(
+                              context,
+                              '标题修改成功',
+                              icon: Icons.check_circle_rounded,
+                              iconColor: const Color(0xFF10B981),
+                            );
+                          }
                         },
                         borderRadius: const BorderRadius.only(bottomRight: Radius.circular(20)),
                         child: Padding(

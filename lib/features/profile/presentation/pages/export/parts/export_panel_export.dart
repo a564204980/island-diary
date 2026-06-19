@@ -7,29 +7,37 @@ extension _ExportPanelExportExtension on _DiaryBookExportPageState {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 文件名输入框
-        TextField(
-          controller: TextEditingController(text: _exportSettings.fileName),
-          decoration: InputDecoration(
-            labelText: '导出 PDF 文件名',
-            labelStyle: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 10, fontFamily: 'LXGWWenKai', fontWeight: FontWeight.bold),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            filled: true,
-            fillColor: const Color(0xFFF7F4F2),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFECE5DF)),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '导出 PDF 文件名',
+              style: TextStyle(fontSize: 10, color: Color(0xFF8A7A6E), fontFamily: 'LXGWWenKai', fontWeight: FontWeight.bold),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF5A3E28)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: TextEditingController(text: _exportSettings.fileName),
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                filled: true,
+                fillColor: const Color(0xFFF7F4F2),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFECE5DF)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF5A3E28)),
+                ),
+              ),
+              style: const TextStyle(color: Color(0xFF5A3E28), fontSize: 12, fontFamily: 'LXGWWenKai', fontWeight: FontWeight.w600),
+              onSubmitted: (val) {
+                updateState(() {
+                  _exportSettings.fileName = val;
+                });
+              },
             ),
-          ),
-          style: const TextStyle(color: Color(0xFF5A3E28), fontSize: 12, fontFamily: 'LXGWWenKai', fontWeight: FontWeight.w600),
-          onSubmitted: (val) {
-            updateState(() {
-              _exportSettings.fileName = val;
-            });
-          },
+          ],
         ),
         const SizedBox(height: 16),
         Row(
@@ -104,6 +112,51 @@ extension _ExportPanelExportExtension on _DiaryBookExportPageState {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 24),
+        // 开始导出按钮
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF6E5540), Color(0xFF4A3423)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF4A3423).withValues(alpha: 0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _showExportDialog,
+              borderRadius: BorderRadius.circular(16),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 14),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.ios_share_rounded, color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      '开始导出',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        fontFamily: 'LXGWWenKai',
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );

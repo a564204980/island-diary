@@ -269,8 +269,8 @@ class DiaryBlockItem extends StatelessWidget {
                       ),
                     ),
                   Positioned(
-                    top: 0,
-                    right: -8,
+                    top: 14,
+                    right: 6,
                     child: GestureDetector(
                       onTap: startDelete,
                       child: Container(

@@ -167,9 +167,9 @@ extension _ExportCanvasExtension on _DiaryBookExportPageState {
                 size: 30,
               ),
             ),
-            const SizedBox(width: 24),
             
             if (!element.isLocked) ...[
+              const SizedBox(width: 24),
               // 3. 双框加号（复制）
               GestureDetector(
                 onTap: () {

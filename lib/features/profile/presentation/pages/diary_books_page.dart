@@ -470,7 +470,7 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
       barrierLabel: 'DeleteBookConfirm',
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, anim1, anim2) {
+      pageBuilder: (dialogContext, anim1, anim2) {
         return Center(
           child: Dialog(
             backgroundColor: Colors.transparent,
@@ -580,15 +580,21 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
                       Expanded(
                         child: InkWell(
                           onTap: () async {
-                            final navigator = Navigator.of(context);
+                            Navigator.pop(dialogContext);
+                            
+                            // 等待弹窗消失动画完全结束（transitionDuration 是 300ms）
+                            await Future.delayed(const Duration(milliseconds: 300));
+                            
                             await UserState().deleteBook(book.id);
-                            navigator.pop();
-                            showTopToast(
-                              context,
-                              '岁月成书已删除 🍃',
-                              icon: Icons.delete_outline_rounded,
-                              iconColor: const Color(0xFFEF4444),
-                            );
+                            
+                            if (this.context.mounted) {
+                              showTopToast(
+                                this.context,
+                                '《${book.name}》已删除 🍃',
+                                icon: Icons.delete_outline_rounded,
+                                iconColor: const Color(0xFFEF4444),
+                              );
+                            }
                           },
                           borderRadius: const BorderRadius.only(
                             bottomRight: Radius.circular(16),
@@ -682,7 +688,7 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
       context: context,
       backgroundColor: Colors.transparent,
       showDragHandle: false,
-      builder: (context) {
+      builder: (sheetContext) {
         return DiaryBottomSheet(
           paperStyle: 'default',
           showDragHandle: true,
@@ -704,7 +710,7 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
                 isNight: isNight,
                 fontFamily: fontFamily,
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   _showCreateBookDialog(context, editingBook: book);
                 },
               ),
@@ -725,7 +731,7 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
                 isNight: isNight,
                 fontFamily: fontFamily,
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   _showCoverPicker(context, book);
                 },
               ),
@@ -747,7 +753,7 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
                 fontFamily: fontFamily,
                 isDestructive: true,
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   _confirmDeleteBook(context, book);
                 },
               ),
@@ -801,6 +807,57 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
         ? 'SweiFistLeg'
         : 'LXGWWenKai';
 
+    final Color accentColor = const Color(0xFFD4A373);
+    final Color inkColor = isNight ? Colors.white : const Color(0xFF2C2C2C);
+
+    Widget buildSourceButton({
+      required IconData icon,
+      required String label,
+      required VoidCallback onTap,
+    }) {
+      return Container(
+        decoration: BoxDecoration(
+          color: accentColor.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: accentColor.withValues(alpha: 0.1),
+            width: 1.2,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    color: accentColor,
+                    size: 28,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontFamily: fontFamily,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.bold,
+                      color: inkColor.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -811,116 +868,93 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
           showDragHandle: true,
           isDiary: false,
           padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 12,
-            bottom: 12 + MediaQuery.of(context).padding.bottom,
+            left: 24,
+            right: 24,
+            top: 16,
+            bottom: 24 + MediaQuery.of(context).padding.bottom,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Column(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     '设置自定义封面',
-                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
                       fontFamily: fontFamily,
-                      color: isNight
-                          ? Colors.white.withValues(alpha: 0.9)
-                          : const Color(0xFF2C2C2C),
+                      color: inkColor.withValues(alpha: 0.9),
                     ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: inkColor.withValues(alpha: 0.5),
+                      size: 20,
+                    ),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              InkWell(
-                onTap: () async {
-                  Navigator.pop(context);
-                  final List<AssetEntity>? result =
-                      await AssetPicker.pickAssets(
-                        context,
-                        pickerConfig: const AssetPickerConfig(
-                          maxAssets: 1,
-                          requestType: RequestType.image,
-                        ),
-                      );
-                  if (result != null && result.isNotEmpty) {
-                    final file = await result.first.file;
-                    if (file != null) {
-                      final path = await _compressAndSaveCoverHelper(
-                        file.path,
-                        bookId,
-                      );
-                      if (path != null) {
-                        onCoverSaved(path);
-                      }
-                    }
-                  }
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Text(
-                    '从相册挑选',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: fontFamily,
-                      color: isNight
-                          ? Colors.white.withValues(alpha: 0.85)
-                          : const Color(0xFF2C2C2C),
+              Row(
+                children: [
+                  Expanded(
+                    child: buildSourceButton(
+                      icon: Icons.photo_library_rounded,
+                      label: '从相册挑选',
+                      onTap: () async {
+                        Navigator.pop(context);
+                        final List<AssetEntity>? result =
+                            await AssetPicker.pickAssets(
+                              context,
+                              pickerConfig: const AssetPickerConfig(
+                                maxAssets: 1,
+                                requestType: RequestType.image,
+                              ),
+                            );
+                        if (result != null && result.isNotEmpty) {
+                          final file = await result.first.file;
+                          if (file != null) {
+                            final path = await _compressAndSaveCoverHelper(
+                              file.path,
+                              bookId,
+                            );
+                            if (path != null) {
+                              onCoverSaved(path);
+                            }
+                          }
+                        }
+                      },
                     ),
                   ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Divider(
-                  height: 1,
-                  thickness: 0.5,
-                  color: isNight
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.black.withValues(alpha: 0.05),
-                ),
-              ),
-              InkWell(
-                onTap: () async {
-                  Navigator.pop(context);
-                  final ImagePicker picker = ImagePicker();
-                  final XFile? photo = await picker.pickImage(
-                    source: ImageSource.camera,
-                  );
-                  if (photo != null) {
-                    final path = await _compressAndSaveCoverHelper(
-                      photo.path,
-                      bookId,
-                    );
-                    if (path != null) {
-                      onCoverSaved(path);
-                    }
-                  }
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Text(
-                    '拍摄新照片',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: fontFamily,
-                      color: isNight
-                          ? Colors.white.withValues(alpha: 0.85)
-                          : const Color(0xFF2C2C2C),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: buildSourceButton(
+                      icon: Icons.camera_alt_rounded,
+                      label: '拍摄新照片',
+                      onTap: () async {
+                        Navigator.pop(context);
+                        final ImagePicker picker = ImagePicker();
+                        final XFile? photo = await picker.pickImage(
+                          source: ImageSource.camera,
+                        );
+                        if (photo != null) {
+                          final path = await _compressAndSaveCoverHelper(
+                            photo.path,
+                            bookId,
+                          );
+                          if (path != null) {
+                            onCoverSaved(path);
+                          }
+                        }
+                      },
                     ),
                   ),
-                ),
+                ],
               ),
               const SizedBox(height: 8),
             ],
@@ -940,11 +974,6 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
       }
       final updated = book.copyWith(customCoverPath: path);
       await UserState().updateBook(updated);
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('封面设置成功 ✨')));
-      }
     });
   }
 }

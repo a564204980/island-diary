@@ -395,7 +395,7 @@ extension _BentoMoodPalette on _StatisticsPageState {
               : paletteItems;
 
           final int displayActiveCols = (displayItems.length / rowCount).ceil();
-          final int emptyCols = (showCols - displayActiveCols).clamp(0, showCols);
+
 
           contentWidget = SingleChildScrollView(
             scrollDirection: Axis.horizontal,

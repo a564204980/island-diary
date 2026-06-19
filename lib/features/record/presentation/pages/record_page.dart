@@ -17,6 +17,7 @@ import 'package:island_diary/features/record/presentation/widgets/diary_featured
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_card.dart';
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_date_picker_sheet.dart';
 
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
@@ -164,9 +165,113 @@ class _RecordPageState extends State<RecordPage> {
                                           .value
                                           .length, // 暂时用日记数量模拟
                                       currentDate: headerDate,
-                                      onCalendarTap: () => _setLayoutMode(
-                                        DiaryLayoutMode.calendar,
-                                      ),
+                                      onCalendarTap: () {
+                                        // 保存外层稳定的 context，避免 onConfirm 使用底部弹窗的 context（弹窗关闭后会失效）
+                                        final pageContext = context;
+                                        showModalBottomSheet(
+                                          context: pageContext,
+                                          backgroundColor: Colors.transparent,
+                                          isScrollControlled: true,
+                                          showDragHandle: false,
+                                          builder: (sheetContext) => DiaryDatePickerSheet(
+                                            initialDate: headerDate,
+                                            onConfirm: (date) {
+                                              Navigator.pop(sheetContext);
+                                              
+                                              // 延迟 300 毫秒，等待底部选择器完全关闭，避免弹窗关闭动画与长列表滚动冲突
+                                              Future.delayed(const Duration(milliseconds: 300), () {
+                                                if (!mounted) return;
+                                                
+                                                // 获取当前未被日期过滤的日记列表
+                                                final diaries = UserState().savedDiaries.value;
+                                                final filteredForScroll = diaries.where((d) {
+                                                  final matchesSearch = _searchQuery.isEmpty || d.content.contains(_searchQuery);
+                                                  final matchesMood = _filterMoodIndex == null || d.moodIndex == _filterMoodIndex;
+                                                  return matchesSearch && matchesMood;
+                                                }).toList();
+                                                
+                                                // 找到第一个小于等于选择日期的日记
+                                                int targetIndex = filteredForScroll.indexWhere((d) {
+                                                  final dDate = DateTime(d.dateTime.year, d.dateTime.month, d.dateTime.day);
+                                                  final targetDate = DateTime(date.year, date.month, date.day);
+                                                  return dDate.compareTo(targetDate) <= 0;
+                                                });
+                                                
+                                                bool exactMatch = false;
+                                                if (targetIndex != -1) {
+                                                  final matchDate = filteredForScroll[targetIndex].dateTime;
+                                                  if (matchDate.year == date.year && matchDate.month == date.month && matchDate.day == date.day) {
+                                                    exactMatch = true;
+                                                  }
+                                                }
+                                                
+                                                // 如果选了一个比所有日记都早的日期，则定位到最后一条（最老的一条）
+                                                if (targetIndex == -1 && filteredForScroll.isNotEmpty) {
+                                                  targetIndex = filteredForScroll.length - 1;
+                                                }
+                                                
+                                                if (!exactMatch) {
+                                                  ScaffoldMessenger.of(pageContext).showSnackBar(
+                                                    SnackBar(
+                                                      content: const Text('该日期没有记录，已为您定位到最相近的日记'),
+                                                      behavior: SnackBarBehavior.floating,
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                      duration: const Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                                
+                                                if (targetIndex != -1) {
+                                                  double targetOffset = 0;
+                                                  if (isTimeline) {
+                                                    targetOffset = targetIndex * 230.0;
+                                                  } else {
+                                                    final bool showFeatured = filteredForScroll.isNotEmpty && filteredForScroll.first.blocks.any((b) => b['type'] == 'image');
+                                                    final int crossAxisCount = MediaQuery.of(pageContext).size.width > 800 ? 3 : 2;
+                                                    
+                                                    if (showFeatured) {
+                                                      if (targetIndex == 0) {
+                                                        targetOffset = 0;
+                                                      } else {
+                                                        int row = ((targetIndex - 1) / crossAxisCount).floor();
+                                                        targetOffset = 260.0 + row * 220.0;
+                                                      }
+                                                    } else {
+                                                      int row = (targetIndex / crossAxisCount).floor();
+                                                      targetOffset = row * 220.0;
+                                                    }
+                                                  }
+                                                  
+                                                   if (_scrollController.hasClients) {
+                                                      final double currentOffset = _scrollController.offset;
+                                                      final double distance = (targetOffset - currentOffset).abs();
+                                                      
+                                                      // 动态计算滚动时长，距离越远时间越长，让渲染引擎有充足帧数去懒加载卡片，避免硬性卡顿
+                                                      final int durationMs = (300 + (distance / 10).round()).clamp(300, 1200);
+                                                      
+                                                      _scrollController.animateTo(
+                                                        targetOffset,
+                                                        duration: Duration(milliseconds: durationMs),
+                                                        curve: Curves.easeInOutCubic,
+                                                      );
+                                                     
+                                                     // 跳转后更新头部日期
+                                                     WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                       if (mounted && filteredForScroll.isNotEmpty && targetIndex < filteredForScroll.length) {
+                                                         _headerDate.value = filteredForScroll[targetIndex].dateTime;
+                                                       }
+                                                     });
+                                                  }
+                                                }
+                                                
+                                                setState(() {
+                                                  _headerDate.value = date;
+                                                });
+                                              });
+                                            },
+                                          ),
+                                        );
+                                      },
                                       showDecorateIcon: false,
                                     );
                                   },

@@ -6,10 +6,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:island_diary/features/record/domain/models/diary_book.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/shared/widgets/top_toast.dart';
+import 'package:island_diary/shared/widgets/custom_color_picker_sheet.dart';
 
-// 预设书籍封面颜色 (扩展为14个经典的莫兰迪低饱和度高级配色)
+// 预设书籍封面颜色 (扩展为13个经典的莫兰迪低饱和度高级配色)
 final List<int> _presetColors = [
-  0xFFD4A373, // 温暖驼
   0xFF8BA3B5, // 雾霾蓝
   0xFF8F9E8B, // 苔藓绿
   0xFFC0A9BD, // 丁香紫
@@ -26,7 +27,6 @@ final List<int> _presetColors = [
 ];
 
 final List<String> _presetColorNames = [
-  '温暖驼',
   '雾霾蓝',
   '苔藓绿',
   '丁香紫',
@@ -425,10 +425,10 @@ class _DiaryBookEditPageState extends State<DiaryBookEditPage> {
     );
   }
 
-  // 挑选色块 精致呼吸感圆色板 (强制一行7个，两行填满，自动平分空间)
+  // 挑选色块 精致呼吸感圆色板 (一行7个)
   Widget _buildColorSelector(bool isNight, String fontFamily) {
     final List<int> row1Colors = _presetColors.sublist(0, 7);
-    final List<int> row2Colors = _presetColors.sublist(7, 14);
+    final List<int> row2Colors = _presetColors.sublist(7, 13);
 
     Widget buildColorRow(List<int> colors) {
       return Row(
@@ -444,46 +444,50 @@ class _DiaryBookEditPageState extends State<DiaryBookEditPage> {
                 _tempCoverPath = null; // 切换色系自动取消照片封面
               });
             },
-            child: AnimatedScale(
-              scale: isSelected ? 1.05 : 1.0,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutBack,
+            child: Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected
+                      ? (isNight ? Colors.white.withValues(alpha: 0.8) : const Color(0xFFA68565))
+                      : Colors.transparent,
+                  width: 1.5,
+                ),
+              ),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                width: 38,
-                height: 38,
-                padding: const EdgeInsets.all(2.5), // 内部留空，打造空气感 Gap
+                duration: const Duration(milliseconds: 200),
+                width: isSelected ? 26 : 28,
+                height: isSelected ? 26 : 28,
                 decoration: BoxDecoration(
+                  color: displayColor,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSelected
-                        ? (isNight ? Colors.white.withValues(alpha: 0.8) : const Color(0xFFA68565))
+                    color: displayColor.computeLuminance() > 0.9
+                        ? (isNight ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.08))
                         : Colors.transparent,
-                    width: 1.5,
+                    width: 0.5,
                   ),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: displayColor,
-                    shape: BoxShape.circle,
-                    boxShadow: [
+                  boxShadow: [
+                    if (isSelected)
                       BoxShadow(
-                        color: displayColor.withValues(alpha: isSelected ? 0.35 : 0.08),
-                        blurRadius: isSelected ? 6 : 2,
-                        offset: Offset(0, isSelected ? 2.5 : 1),
+                        color: displayColor.withValues(alpha: 0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
                       ),
-                    ],
-                  ),
-                  child: isSelected
-                      ? const Center(
-                          child: Icon(
-                            Icons.check_rounded,
-                            size: 13,
-                            color: Colors.white,
-                          ),
-                        )
-                      : null,
+                  ],
                 ),
+                child: isSelected
+                    ? Center(
+                        child: Icon(
+                          Icons.check_rounded,
+                          size: 13,
+                          color: displayColor.computeLuminance() > 0.5 ? Colors.black87 : Colors.white,
+                        ),
+                      )
+                    : null,
               ),
             ),
           );
@@ -495,8 +499,108 @@ class _DiaryBookEditPageState extends State<DiaryBookEditPage> {
       children: [
         buildColorRow(row1Colors),
         const SizedBox(height: 12),
-        buildColorRow(row2Colors),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ...row2Colors.map((colorVal) {
+              final bool isSelected = _selectedColorValue == colorVal && _tempCoverPath == null;
+              final Color displayColor = Color(colorVal);
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedColorValue = colorVal;
+                    _tempCoverPath = null; // 切换色系自动取消照片封面
+                  });
+                },
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? (isNight ? Colors.white.withValues(alpha: 0.8) : const Color(0xFFA68565))
+                          : Colors.transparent,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: isSelected ? 26 : 28,
+                    height: isSelected ? 26 : 28,
+                    decoration: BoxDecoration(
+                      color: displayColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: displayColor.computeLuminance() > 0.9
+                            ? (isNight ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.08))
+                            : Colors.transparent,
+                        width: 0.5,
+                      ),
+                      boxShadow: [
+                        if (isSelected)
+                          BoxShadow(
+                            color: displayColor.withValues(alpha: 0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                      ],
+                    ),
+                    child: isSelected
+                        ? Center(
+                            child: Icon(
+                              Icons.check_rounded,
+                              size: 13,
+                              color: displayColor.computeLuminance() > 0.5 ? Colors.black87 : Colors.white,
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+              );
+            }),
+            _buildCustomColorItem(isNight),
+          ],
+        ),
       ],
+    );
+  }
+
+  Widget _buildCustomColorItem(bool isNight) {
+    return GestureDetector(
+      onTap: () {
+        showCustomColorPickerBottomSheet(
+          context,
+          initialColor: Color(_selectedColorValue),
+          title: '自定义封面颜色',
+          onColorSelected: (color) {
+            setState(() {
+              _selectedColorValue = color.value;
+              _tempCoverPath = null;
+            });
+          },
+        );
+      },
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isNight ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.03),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isNight ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06),
+            width: 1.0,
+          ),
+        ),
+        child: Icon(
+          Icons.colorize_rounded,
+          color: const Color(0xFFA68565),
+          size: 16,
+        ),
+      ),
     );
   }
 
@@ -590,6 +694,14 @@ class _DiaryBookEditPageState extends State<DiaryBookEditPage> {
       await UserState().updateBook(updated);
     }
     if (!mounted) return;
+    
+    showTopToast(
+      context,
+      widget.editingBook == null ? '日记本创建成功' : '日记本修改成功',
+      icon: Icons.check_circle_rounded,
+      iconColor: const Color(0xFF10B981),
+    );
+    
     Navigator.pop(context);
   }
 }

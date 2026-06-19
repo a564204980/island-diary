@@ -326,7 +326,6 @@ class DiaryBookExportHelper {
                 ? pw.BoxDecoration(
                     color: _toPdfColor(paperColor),
                     borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
-                    border: pw.Border.all(color: _toPdfColor(paperColor.withValues(alpha: 0.15)), width: 0.8),
                   )
                 : null;
 

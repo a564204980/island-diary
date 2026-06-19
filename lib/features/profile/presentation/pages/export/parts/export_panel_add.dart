@@ -11,12 +11,13 @@ extension _ExportPanelAddExtension on _DiaryBookExportPageState {
       children: [
         _buildAddBtn(Icons.text_format, '文本', () {
           _saveToHistory();
+          final double targetY = _focusedPageIndex * _canvasHeight + 150.0;
           final id = 'text_${DateTime.now().millisecondsSinceEpoch}';
           final newElem = ExportElement(
             id: id,
             type: 'text',
             x: 100,
-            y: 150,
+            y: targetY,
             width: 200,
             height: 40,
             content: '双击或点击属性编辑文字',
@@ -36,13 +37,14 @@ extension _ExportPanelAddExtension on _DiaryBookExportPageState {
           if (file == null) return;
 
           _saveToHistory();
+          final double targetY = _focusedPageIndex * _canvasHeight + 150.0;
           final id = 'image_${DateTime.now().millisecondsSinceEpoch}';
           _elements.add(
             ExportElement(
               id: id,
               type: 'image',
               x: 100,
-              y: 150,
+              y: targetY,
               width: 150,
               height: 150,
               content: file.path,
@@ -51,31 +53,18 @@ extension _ExportPanelAddExtension on _DiaryBookExportPageState {
           _selectElement(id);
         }),
         _buildAddBtn(Icons.crop_square, '形状', () {
-          _saveToHistory();
-          final id = 'shape_${DateTime.now().millisecondsSinceEpoch}';
-          _elements.add(
-            ExportElement(
-              id: id,
-              type: 'shape',
-              x: 100,
-              y: 150,
-              width: 100,
-              height: 100,
-              content: 'rectangle',
-              color: const Color(0xFF5A3E28).withValues(alpha: 0.5),
-            ),
-          );
-          _selectElement(id);
+          _showShapeTypeSelection();
         }),
         _buildAddBtn(Icons.horizontal_rule, '分割线', () {
           _saveToHistory();
+          final double targetY = _focusedPageIndex * _canvasHeight + 200.0;
           final id = 'line_${DateTime.now().millisecondsSinceEpoch}';
           _elements.add(
             ExportElement(
               id: id,
               type: 'line',
               x: 50,
-              y: 200,
+              y: targetY,
               width: 300,
               height: 4,
               content: 'solid',
@@ -213,6 +202,7 @@ extension _ExportPanelAddExtension on _DiaryBookExportPageState {
       }
 
       _saveToHistory();
+      final double targetY = _focusedPageIndex * _canvasHeight + 200.0;
       final id = 'chart_${chartType}_${DateTime.now().millisecondsSinceEpoch}';
 
       if (path != null) {
@@ -223,7 +213,7 @@ extension _ExportPanelAddExtension on _DiaryBookExportPageState {
               id: id,
               type: 'image',
               x: 50,
-              y: 200,
+              y: targetY,
               width: 300,
               height: targetHeight,
               content: path,
@@ -239,7 +229,7 @@ extension _ExportPanelAddExtension on _DiaryBookExportPageState {
               id: id,
               type: 'chart',
               x: 50,
-              y: 200,
+              y: targetY,
               width: 300,
               height: targetHeight,
               content: chartType,
@@ -270,6 +260,102 @@ extension _ExportPanelAddExtension on _DiaryBookExportPageState {
           ],
         ),
       ),
+    );
+  }
+
+  void _showShapeTypeSelection() {
+    final shapes = [
+      (icon: Icons.crop_square_rounded, title: '矩形', type: 'rectangle'),
+      (icon: Icons.check_box_outline_blank_rounded, title: '圆角矩形', type: 'rounded_rect'),
+      (icon: Icons.circle_outlined, title: '圆形', type: 'circle'),
+      (icon: Icons.change_history_rounded, title: '三角形', type: 'triangle'),
+      (icon: Icons.star_border_rounded, title: '五角星', type: 'star'),
+      (icon: Icons.favorite_border_rounded, title: '心形', type: 'heart'),
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
+      builder: (sheetContext) {
+        return DiaryBottomSheet(
+          paperStyle: 'default',
+          showDragHandle: true,
+          isDiary: false,
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 12,
+            bottom: 24 + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '选择要插入的形状',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF5A3E28), fontFamily: 'LXGWWenKai'),
+              ),
+              const SizedBox(height: 16),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.3,
+                ),
+                itemCount: shapes.length,
+                itemBuilder: (context, idx) {
+                  final s = shapes[idx];
+                  return InkWell(
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _saveToHistory();
+                      final double targetY = _focusedPageIndex * _canvasHeight + 150.0;
+                      final id = 'shape_${DateTime.now().millisecondsSinceEpoch}';
+                      updateState(() {
+                        _elements.add(
+                          ExportElement(
+                            id: id,
+                            type: 'shape',
+                            x: 100,
+                            y: targetY,
+                            width: 100,
+                            height: 100,
+                            content: s.type,
+                            color: const Color(0xFF5A3E28).withValues(alpha: 0.5),
+                          ),
+                        );
+                      });
+                      _selectElement(id);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F4F2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFECE5DF), width: 1),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(s.icon, color: const Color(0xFF5A3E28), size: 24),
+                          const SizedBox(height: 4),
+                          Text(
+                            s.title,
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF5A3E28), fontFamily: 'LXGWWenKai', fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
