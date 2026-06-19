@@ -37,6 +37,11 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- 禁用 Impeller 以规避 Contents::SetInheritedOpacity 在 BackdropFilter/ShaderMask
+                 场景下的已知断言错误 (Flutter 3.41.3 已知问题) -->
+            <meta-data
+                android:name="io.flutter.embedding.android.EnableImpeller"
+                android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

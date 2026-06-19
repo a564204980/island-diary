@@ -79,67 +79,69 @@ class LayoutQuickSwitcher extends StatelessWidget {
           Icons.calendar_month_rounded,
         ];
 
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              width: 120,
-              height: 36,
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: containerColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: borderColor,
-                  width: 0.8,
+        return RepaintBoundary(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                width: 120,
+                height: 36,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: containerColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: borderColor,
+                    width: 0.8,
+                  ),
                 ),
-              ),
-              child: Stack(
-                children: [
-                  AnimatedAlign(
-                    duration: const Duration(milliseconds: 280),
-                    curve: Curves.easeInOut,
-                    alignment: selectedIndex == 0
-                        ? Alignment.centerLeft
-                        : (selectedIndex == 1
-                            ? Alignment.center
-                            : Alignment.centerRight),
-                    child: FractionallySizedBox(
-                      widthFactor: 0.33,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: activeColor,
-                          shape: BoxShape.circle,
+                child: Stack(
+                  children: [
+                    AnimatedAlign(
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeInOut,
+                      alignment: selectedIndex == 0
+                          ? Alignment.centerLeft
+                          : (selectedIndex == 1
+                              ? Alignment.center
+                              : Alignment.centerRight),
+                      child: FractionallySizedBox(
+                        widthFactor: 0.33,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: activeColor,
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Positioned.fill(
-                    child: Row(
-                      children: List.generate(modes.length, (i) {
-                        final isSelected = i == selectedIndex;
-                        return Expanded(
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              UserState().setDiaryLayoutMode(modes[i].index);
-                            },
-                            child: Center(
-                              child: Icon(
-                                icons[i],
-                                size: 18,
-                                color: isSelected
-                                    ? selectedIconColor
-                                    : unselectedIconColor,
+                    Positioned.fill(
+                      child: Row(
+                        children: List.generate(modes.length, (i) {
+                          final isSelected = i == selectedIndex;
+                          return Expanded(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                UserState().setDiaryLayoutMode(modes[i].index);
+                              },
+                              child: Center(
+                                child: Icon(
+                                  icons[i],
+                                  size: 18,
+                                  color: isSelected
+                                      ? selectedIconColor
+                                      : unselectedIconColor,
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      }),
+                          );
+                        }),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

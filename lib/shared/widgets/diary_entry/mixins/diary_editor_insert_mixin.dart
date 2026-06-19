@@ -223,7 +223,16 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
 
       if (placemarks.isNotEmpty) {
         final p = placemarks.first;
-        final rawAddress = "${p.locality ?? ''}${p.subLocality ?? ''}${p.street ?? ''}";
+        final locality = p.locality ?? '';
+        final subLocality = p.subLocality ?? '';
+        final street = p.street ?? '';
+        
+        String rawAddress = '';
+        if (street.contains(locality) || street.contains(subLocality)) {
+          rawAddress = street;
+        } else {
+          rawAddress = "$locality$subLocality$street";
+        }
         address = rawAddress.trim();
       }
     } catch (e) {

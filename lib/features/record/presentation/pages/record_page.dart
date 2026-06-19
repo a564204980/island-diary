@@ -18,6 +18,8 @@ import 'package:island_diary/features/record/presentation/widgets/diary_history_
 import 'package:island_diary/features/record/presentation/widgets/diary_history_card.dart';
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_date_picker_sheet.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
+
 
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
@@ -176,98 +178,106 @@ class _RecordPageState extends State<RecordPage> {
                                           builder: (sheetContext) => DiaryDatePickerSheet(
                                             initialDate: headerDate,
                                             onConfirm: (date) {
+                                              // 立即关闭底部选择器，零延迟响应，启动收起动画
                                               Navigator.pop(sheetContext);
                                               
-                                              // 延迟 300 毫秒，等待底部选择器完全关闭，避免弹窗关闭动画与长列表滚动冲突
-                                              Future.delayed(const Duration(milliseconds: 300), () {
-                                                if (!mounted) return;
-                                                
-                                                // 获取当前未被日期过滤的日记列表
-                                                final diaries = UserState().savedDiaries.value;
-                                                final filteredForScroll = diaries.where((d) {
-                                                  final matchesSearch = _searchQuery.isEmpty || d.content.contains(_searchQuery);
-                                                  final matchesMood = _filterMoodIndex == null || d.moodIndex == _filterMoodIndex;
-                                                  return matchesSearch && matchesMood;
-                                                }).toList();
-                                                
-                                                // 找到第一个小于等于选择日期的日记
-                                                int targetIndex = filteredForScroll.indexWhere((d) {
+                                              // 1. 获取当前数据及最终 targetOffset (同步计算，耗时极低)
+                                              final diaries = UserState().savedDiaries.value;
+                                              final filteredForScroll = diaries.where((d) {
+                                                final matchesSearch = _searchQuery.isEmpty || d.content.contains(_searchQuery);
+                                                final matchesMood = _filterMoodIndex == null || d.moodIndex == _filterMoodIndex;
+                                                return matchesSearch && matchesMood;
+                                              }).toList();
+                                              
+                                              int targetIndex = -1;
+                                              bool exactMatch = false;
+                                              if (filteredForScroll.isNotEmpty) {
+                                                int minDiff = -1;
+                                                for (int i = 0; i < filteredForScroll.length; i++) {
+                                                  final d = filteredForScroll[i];
                                                   final dDate = DateTime(d.dateTime.year, d.dateTime.month, d.dateTime.day);
                                                   final targetDate = DateTime(date.year, date.month, date.day);
-                                                  return dDate.compareTo(targetDate) <= 0;
-                                                });
-                                                
-                                                bool exactMatch = false;
+                                                  final diffMs = dDate.difference(targetDate).inMilliseconds.abs();
+                                                  if (minDiff == -1 || diffMs < minDiff) {
+                                                    minDiff = diffMs;
+                                                    targetIndex = i;
+                                                  }
+                                                }
                                                 if (targetIndex != -1) {
                                                   final matchDate = filteredForScroll[targetIndex].dateTime;
                                                   if (matchDate.year == date.year && matchDate.month == date.month && matchDate.day == date.day) {
                                                     exactMatch = true;
                                                   }
                                                 }
-                                                
-                                                // 如果选了一个比所有日记都早的日期，则定位到最后一条（最老的一条）
-                                                if (targetIndex == -1 && filteredForScroll.isNotEmpty) {
-                                                  targetIndex = filteredForScroll.length - 1;
-                                                }
-                                                
-                                                if (!exactMatch) {
-                                                  ScaffoldMessenger.of(pageContext).showSnackBar(
-                                                    SnackBar(
-                                                      content: const Text('该日期没有记录，已为您定位到最相近的日记'),
-                                                      behavior: SnackBarBehavior.floating,
-                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                                      duration: const Duration(seconds: 2),
-                                                    ),
-                                                  );
-                                                }
-                                                
-                                                if (targetIndex != -1) {
-                                                  double targetOffset = 0;
-                                                  if (isTimeline) {
-                                                    targetOffset = targetIndex * 230.0;
-                                                  } else {
-                                                    final bool showFeatured = filteredForScroll.isNotEmpty && filteredForScroll.first.blocks.any((b) => b['type'] == 'image');
-                                                    final int crossAxisCount = MediaQuery.of(pageContext).size.width > 800 ? 3 : 2;
-                                                    
-                                                    if (showFeatured) {
-                                                      if (targetIndex == 0) {
-                                                        targetOffset = 0;
-                                                      } else {
-                                                        int row = ((targetIndex - 1) / crossAxisCount).floor();
-                                                        targetOffset = 260.0 + row * 220.0;
-                                                      }
-                                                    } else {
-                                                      int row = (targetIndex / crossAxisCount).floor();
-                                                      targetOffset = row * 220.0;
-                                                    }
-                                                  }
+                                              }
+                                              
+                                              setState(() {
+                                                _selectedDate = date;
+                                                _headerDate.value = date;
+                                              });
+                                              
+                                              if (exactMatch && targetIndex != -1 && _scrollController.hasClients) {
+                                                double targetOffset = 0;
+                                                if (isTimeline) {
+                                                  targetOffset = targetIndex * 230.0;
+                                                } else {
+                                                  final bool showFeatured = filteredForScroll.isNotEmpty && filteredForScroll.first.blocks.any((b) => b['type'] == 'image');
+                                                  final int crossAxisCount = MediaQuery.of(pageContext).size.width > 800 ? 3 : 2;
                                                   
-                                                   if (_scrollController.hasClients) {
-                                                      final double currentOffset = _scrollController.offset;
-                                                      final double distance = (targetOffset - currentOffset).abs();
-                                                      
-                                                      // 动态计算滚动时长，距离越远时间越长，让渲染引擎有充足帧数去懒加载卡片，避免硬性卡顿
-                                                      final int durationMs = (300 + (distance / 10).round()).clamp(300, 1200);
-                                                      
+                                                  if (showFeatured) {
+                                                    if (targetIndex == 0) {
+                                                      targetOffset = 0;
+                                                    } else {
+                                                      int row = ((targetIndex - 1) / crossAxisCount).floor();
+                                                      targetOffset = 260.0 + row * 220.0;
+                                                    }
+                                                  } else {
+                                                    int row = (targetIndex / crossAxisCount).floor();
+                                                    targetOffset = row * 220.0;
+                                                  }
+                                                }
+                                                
+                                                final double currentOffset = _scrollController.offset;
+                                                final double distance = (targetOffset - currentOffset).abs();
+                                                
+                                                if (distance < 1500.0) {
+                                                  _scrollController.animateTo(
+                                                    targetOffset,
+                                                    duration: const Duration(milliseconds: 300),
+                                                    curve: Curves.easeOutCubic,
+                                                  );
+                                                } else {
+                                                  final double fakeTarget = targetOffset > currentOffset
+                                                      ? currentOffset + 200.0
+                                                      : (currentOffset - 200.0).clamp(0.0, _scrollController.position.maxScrollExtent);
+                                                  
+                                                  _scrollController.animateTo(
+                                                    fakeTarget,
+                                                    duration: const Duration(milliseconds: 250),
+                                                    curve: Curves.decelerate,
+                                                  );
+                                                  
+                                                  Future.delayed(const Duration(milliseconds: 250), () {
+                                                    if (!mounted || !_scrollController.hasClients) return;
+                                                    
+                                                     final double maxScroll = _scrollController.position.maxScrollExtent;
+                                                     final double intermediateOffset = (targetOffset > currentOffset
+                                                         ? targetOffset - 1200.0
+                                                         : targetOffset + 1200.0).clamp(0.0, maxScroll);
+                                                     
+                                                     _scrollController.jumpTo(intermediateOffset);
+                                                    
+                                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                      if (!mounted || !_scrollController.hasClients) return;
                                                       _scrollController.animateTo(
                                                         targetOffset,
-                                                        duration: Duration(milliseconds: durationMs),
-                                                        curve: Curves.easeInOutCubic,
+                                                        duration: const Duration(milliseconds: 400),
+                                                        curve: Curves.easeOutCubic,
                                                       );
-                                                     
-                                                     // 跳转后更新头部日期
-                                                     WidgetsBinding.instance.addPostFrameCallback((_) {
-                                                       if (mounted && filteredForScroll.isNotEmpty && targetIndex < filteredForScroll.length) {
-                                                         _headerDate.value = filteredForScroll[targetIndex].dateTime;
-                                                       }
-                                                     });
-                                                  }
+                                                    });
+                                                  });
                                                 }
-                                                
-                                                setState(() {
-                                                  _headerDate.value = date;
-                                                });
-                                              });
+                                              }
                                             },
                                           ),
                                         );
@@ -298,6 +308,27 @@ class _RecordPageState extends State<RecordPage> {
                                     key: const ValueKey('calendar'),
                                     isNight: isNight,
                                     onDateSelected: (date) {
+                                      final diariesList = UserState().savedDiaries.value;
+                                      int targetIndex = -1;
+                                      bool exactMatch = true;
+                                      
+                                      if (diariesList.isNotEmpty) {
+                                        DiaryEntry nearest = diariesList.first;
+                                        int minDiff = (nearest.dateTime.difference(date).inMilliseconds).abs();
+                                        for (var d in diariesList) {
+                                          int diff = (d.dateTime.difference(date).inMilliseconds).abs();
+                                          if (diff < minDiff) {
+                                             minDiff = diff;
+                                             nearest = d;
+                                          }
+                                        }
+                                        targetIndex = diariesList.indexOf(nearest);
+                                        final matchDate = nearest.dateTime;
+                                        if (matchDate.year != date.year || matchDate.month != date.month || matchDate.day != date.day) {
+                                          exactMatch = false;
+                                        }
+                                      }
+
                                       setState(() {
                                         _selectedDate = date;
                                         _headerDate.value = date;
@@ -305,6 +336,13 @@ class _RecordPageState extends State<RecordPage> {
                                           DiaryLayoutMode.timeline,
                                         );
                                       });
+                                       if (exactMatch && targetIndex != -1) {
+                                         WidgetsBinding.instance.addPostFrameCallback((_) {
+                                           if (!mounted || !_scrollController.hasClients) return;
+                                           double targetOffset = targetIndex * 230.0;
+                                           _scrollController.jumpTo(targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent));
+                                         });
+                                       }
                                     },
                                     onShareMonth: _shareCurrentMonth,
                                   );
@@ -330,16 +368,66 @@ class _RecordPageState extends State<RecordPage> {
                                   if (filtered.isEmpty) {
                                     mainContent = Center(
                                       key: const ValueKey('empty'),
-                                      child: Text(
-                                        _searchQuery.isEmpty
-                                            ? "还没有心情记录呢..."
-                                            : "没找到相关记录哦~",
-                                        style: TextStyle(
-                                          color: isNight
-                                              ? Colors.white30
-                                              : Colors.black26,
-                                          fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'ArphicKaiti',
-                                        ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Image.asset(
+                                            'assets/images/sticker/bp_sweet_bunny3.png',
+                                            width: 160,
+                                            height: 160,
+                                          )
+                                          .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                                          .moveY(begin: 0, end: -5, duration: 2000.ms, curve: Curves.easeInOut)
+                                          .animate()
+                                          .fade(duration: 450.ms)
+                                          .scale(
+                                            begin: const Offset(0.75, 0.75),
+                                            end: const Offset(1.0, 1.0),
+                                            duration: 650.ms,
+                                            curve: Curves.elasticOut,
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            _searchQuery.isEmpty
+                                                ? "这一天还没有留下故事呢..."
+                                                : "没找到相关记录哦~",
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: isNight
+                                                  ? Colors.white30
+                                                  : Colors.black38,
+                                              fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'ArphicKaiti',
+                                            ),
+                                          ).animate().fade(delay: 150.ms, duration: 400.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOut),
+                                          if (_searchQuery.isEmpty) ...[
+                                            const SizedBox(height: 28),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                if (_selectedDate != null) ...[
+                                                  _buildEmptyStateBtn(
+                                                    text: "清除筛选",
+                                                    isPrimary: false,
+                                                    isNight: isNight,
+                                                    onTap: () {
+                                                      setState(() {
+                                                        _selectedDate = null;
+                                                        _headerDate.value = DateTime.now();
+                                                      });
+                                                    },
+                                                  ),
+                                                  const SizedBox(width: 16),
+                                                ],
+                                                _buildEmptyStateBtn(
+                                                  text: "去写一篇",
+                                                  isPrimary: true,
+                                                  isNight: isNight,
+                                                  onTap: () => _openDiaryEntry(null, 6.0, preselectedDate: _selectedDate),
+                                                ),
+                                              ],
+                                            ).animate().fade(delay: 280.ms, duration: 450.ms).slideY(begin: 0.12, end: 0, curve: Curves.easeOutBack),
+                                          ],
+                                        ],
                                       ),
                                     );
                                   } else {
@@ -477,30 +565,31 @@ class _RecordPageState extends State<RecordPage> {
                                       );
                                     }
 
-                                    mainContent = ShaderMask(
+                                    mainContent = RepaintBoundary(
                                       key: ValueKey('list_shader_${layoutIndex}'),
-                                      shaderCallback: (Rect bounds) {
-                                        return LinearGradient(
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
-                                          colors: const [
-                                            Colors.white,       // 顶部完全不透明，不加任何遮罩或渐变
-                                            Colors.white,       // 底部 110px 处仍不透明
-                                            Colors.transparent, // 最底端透明过渡淡出
-                                          ],
-                                          stops: [
-                                            0.0,
-                                            (bounds.height - 110.0) / bounds.height,
-                                            1.0,
-                                          ],
-                                        ).createShader(bounds);
-                                      },
-                                      blendMode: BlendMode.dstIn,
-                                      child: listContent,
+                                      child: ShaderMask(
+                                        shaderCallback: (Rect bounds) {
+                                          return LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: const [
+                                              Colors.white,       // 顶部完全不透明，不加任何遮罩或渐变
+                                              Colors.white,       // 底部 110px 处仍不透明
+                                              Colors.transparent, // 最底端透明过渡淡出
+                                            ],
+                                            stops: [
+                                              0.0,
+                                              (bounds.height - 110.0) / bounds.height,
+                                              1.0,
+                                            ],
+                                          ).createShader(bounds);
+                                        },
+                                        blendMode: BlendMode.dstIn,
+                                        child: listContent,
+                                      ),
                                     );
                                   }
                                 }
-
                                 return mainContent;
                               },
                             ),
@@ -613,6 +702,80 @@ class _RecordPageState extends State<RecordPage> {
     );
   }
 
+  Widget _buildEmptyStateBtn({
+    required String text,
+    required bool isPrimary,
+    required bool isNight,
+    required VoidCallback onTap,
+  }) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final String fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+    
+    final decoration = isPrimary
+        ? BoxDecoration(
+            color: isNight
+                ? const Color(0xFFD4A373).withValues(alpha: 0.15)
+                : const Color(0xFFFFF6ED),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isNight
+                  ? const Color(0xFFE1AF78).withValues(alpha: 0.3)
+                  : const Color(0xFFD4A373).withValues(alpha: 0.4),
+              width: 1.0,
+            ),
+          )
+        : BoxDecoration(
+            color: isNight
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.white.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.06),
+              width: 1.0,
+            ),
+          );
+
+    final textColor = isPrimary
+        ? (isNight ? const Color(0xFFE1AF78) : const Color(0xFFD4A373))
+        : (isNight ? Colors.white54 : Colors.black45);
+
+    return BounceScaleWidget(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+        decoration: decoration,
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+            fontFamily: fontFamily,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openDiaryEntry(int? moodIndex, double intensity, {String? tag, DateTime? preselectedDate}) {
+    UserState().isDiarySheetOpen.value = true;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DiaryEditorPage(
+          moodIndex: moodIndex,
+          intensity: intensity,
+          tag: tag,
+          initialDate: preselectedDate,
+        ),
+      ),
+    ).then((result) {
+      UserState().isDiarySheetOpen.value = false;
+    });
+  }
+
   void _showSearch() {
     showModalBottomSheet(
       context: context,
@@ -637,6 +800,7 @@ class _RecordPageState extends State<RecordPage> {
             _searchQuery = "";
             _filterMoodIndex = null;
             _selectedDate = null;
+            _headerDate.value = DateTime.now();
           });
         },
       ),
@@ -682,3 +846,33 @@ class _RecordPageState extends State<RecordPage> {
     }
   }
 }
+
+class BounceScaleWidget extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+  const BounceScaleWidget({super.key, required this.child, required this.onTap});
+
+  @override
+  State<BounceScaleWidget> createState() => _BounceScaleWidgetState();
+}
+
+class _BounceScaleWidgetState extends State<BounceScaleWidget> {
+  double _scale = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _scale = 0.94),
+      onTapUp: (_) => setState(() => _scale = 1.0),
+      onTapCancel: () => setState(() => _scale = 1.0),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOutCubic,
+        child: widget.child,
+      ),
+    );
+  }
+}
+

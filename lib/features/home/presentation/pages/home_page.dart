@@ -384,6 +384,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // 彻底不渲染成就解锁动画，下线成就系统
   }
 
+  /// 带淡入淡出动画的页面切换，保留页面状态
+  Widget _buildAnimatedPage(int pageIndex, Widget child) {
+    // 将导航 index 映射到 pageIndex
+    final int mappedIndex = _currentNavIndex == 4
+        ? 3
+        : (_currentNavIndex == 3
+              ? 2
+              : (_currentNavIndex == 1 ? 1 : 0));
+    final bool isVisible = mappedIndex == pageIndex;
+    return IgnorePointer(
+      ignoring: !isVisible,
+      child: AnimatedOpacity(
+        opacity: isVisible ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+        child: child,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiValueListenableBuilder(
@@ -413,20 +433,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           body: Stack(
             children: [
               Positioned.fill(
-                child: IndexedStack(
-                  index: _currentNavIndex == 4
-                      ? 3
-                      : (_currentNavIndex == 3
-                            ? 2
-                            : (_currentNavIndex == 1 ? 1 : 0)),
+                child: Stack(
                   children: [
-                    _buildHomeContent(isNight, isWide),
-                    const RecordPage(key: ValueKey('RecordPage')),
-                    StatisticsPage(
-                      key: const ValueKey('StatisticsPage'),
-                      isActive: _currentNavIndex == 3,
+                    _buildAnimatedPage(0, _buildHomeContent(isNight, isWide)),
+                    _buildAnimatedPage(1, const RecordPage(key: ValueKey('RecordPage'))),
+                    _buildAnimatedPage(
+                      2,
+                      StatisticsPage(
+                        key: const ValueKey('StatisticsPage'),
+                        isActive: _currentNavIndex == 3,
+                      ),
                     ),
-                    const ProfilePage(key: ValueKey('ProfilePage')),
+                    _buildAnimatedPage(3, const ProfilePage(key: ValueKey('ProfilePage'))),
                   ],
                 ),
               ),
@@ -884,29 +902,31 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               ),
                             ),
                           ),
-                          ShaderMask(
-                            blendMode: BlendMode.srcATop,
-                            shaderCallback: (bounds) {
-                              return RadialGradient(
-                                center: const Alignment(0, 0.85),
-                                radius: 0.6,
-                                colors: [
-                                  _getIslandBottomRockLightColorForCurrentTime(),
-                                  Colors.transparent,
-                                ],
-                                stops: const [0.0, 1.0],
-                              ).createShader(bounds);
-                            },
-                            child: GestureDetector(
-                              onTap: () {
-                                _toggleZoom(context, isWide);
+                          RepaintBoundary(
+                            child: ShaderMask(
+                              blendMode: BlendMode.srcATop,
+                              shaderCallback: (bounds) {
+                                return RadialGradient(
+                                  center: const Alignment(0, 0.85),
+                                  radius: 0.6,
+                                  colors: [
+                                    _getIslandBottomRockLightColorForCurrentTime(),
+                                    Colors.transparent,
+                                  ],
+                                  stops: const [0.0, 1.0],
+                                ).createShader(bounds);
                               },
-                              child: Image.asset(
-                                islandPath,
-                                width: currentScreenWidth <= 600
-                                    ? currentScreenWidth * 0.9
-                                    : 540.0,
-                                fit: BoxFit.contain,
+                              child: GestureDetector(
+                                onTap: () {
+                                  _toggleZoom(context, isWide);
+                                },
+                                child: Image.asset(
+                                  islandPath,
+                                  width: currentScreenWidth <= 600
+                                      ? currentScreenWidth * 0.9
+                                      : 540.0,
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
                           ),
@@ -957,27 +977,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }) {
     return GestureDetector(
           onTap: onTap,
-          child: ClipOval(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isNight
-                      ? Colors.white.withValues(alpha: 0.15)
-                      : Colors.black.withValues(alpha: 0.25),
-                  shape: BoxShape.circle,
-                  border: Border.all(
+          child: RepaintBoundary(
+            child: ClipOval(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
                     color: isNight
-                        ? const Color(0xFFD4A373).withValues(alpha: 0.25)
-                        : Colors.black.withValues(alpha: 0.05),
-                    width: 0.8,
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : Colors.black.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isNight
+                          ? const Color(0xFFD4A373).withValues(alpha: 0.25)
+                          : Colors.black.withValues(alpha: 0.05),
+                      width: 0.8,
+                    ),
                   ),
-                ),
-                child: Icon(
-                  icon,
-                  size: 24,
-                  color: Colors.white.withValues(alpha: 0.95),
+                  child: Icon(
+                    icon,
+                    size: 24,
+                    color: Colors.white.withValues(alpha: 0.95),
+                  ),
                 ),
               ),
             ),

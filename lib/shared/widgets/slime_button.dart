@@ -188,49 +188,51 @@ class _BreathGlowState extends State<_BreathGlow>
     final isCottonCandy = themeId == 'cotton_candy';
 
     return IgnorePointer(
-      child: AnimatedOpacity(
-        opacity: widget.isGlowing ? 1.0 : 0.0,
-        duration: 1500.ms,
-        curve: Curves.easeInOutSine,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: _scaleAnim.value,
-              // 使用 FadeTransition 代替 Opacity 以获得更好的性能
-              child: FadeTransition(opacity: _fadeAnim, child: child),
-            );
-          },
-          child: RepaintBoundary(
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isCottonCandy
-                    ? (widget.isNight
-                          ? const Color(0xFFFFFFFF).withValues(alpha: 0.2)
-                          : const Color(0xFFFFF9F0).withValues(alpha: 0.35))
-                    : Colors.white.withValues(alpha: 0.15),
-                border: Border.all(
+      child: RepaintBoundary(
+        child: AnimatedOpacity(
+          opacity: widget.isGlowing ? 1.0 : 0.0,
+          duration: 1500.ms,
+          curve: Curves.easeInOutSine,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _scaleAnim.value,
+                // 使用 FadeTransition 代替 Opacity 以获得更好的性能
+                child: FadeTransition(opacity: _fadeAnim, child: child),
+              );
+            },
+            child: RepaintBoundary(
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
                   color: isCottonCandy
                       ? (widget.isNight
-                            ? const Color(0xFFFFFFFF).withValues(alpha: 0.6)
-                            : const Color(0xFFFFFFFF).withValues(alpha: 0.9))
-                      : Colors.white.withValues(alpha: 0.8),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
+                            ? const Color(0xFFFFFFFF).withValues(alpha: 0.2)
+                            : const Color(0xFFFFF9F0).withValues(alpha: 0.35))
+                      : Colors.white.withValues(alpha: 0.15),
+                  border: Border.all(
                     color: isCottonCandy
                         ? (widget.isNight
-                              ? const Color(0xFFFFFFFF).withValues(alpha: 0.4)
-                              : const Color(0xFFFFF9F0).withValues(alpha: 0.6))
-                        : const Color(
-                            0xFFFFD97D,
-                          ).withValues(alpha: widget.isNight ? 0.4 : 0.2),
-                    blurRadius: isCottonCandy ? 16 : 12,
-                    spreadRadius: isCottonCandy ? 3 : 2,
+                              ? const Color(0xFFFFFFFF).withValues(alpha: 0.6)
+                              : const Color(0xFFFFFFFF).withValues(alpha: 0.9))
+                        : Colors.white.withValues(alpha: 0.8),
+                    width: 1.5,
                   ),
-                ],
+                  boxShadow: [
+                    BoxShadow(
+                      color: isCottonCandy
+                          ? (widget.isNight
+                                ? const Color(0xFFFFFFFF).withValues(alpha: 0.4)
+                                : const Color(0xFFFFF9F0).withValues(alpha: 0.6))
+                          : const Color(
+                              0xFFFFD97D,
+                            ).withValues(alpha: widget.isNight ? 0.4 : 0.2),
+                      blurRadius: isCottonCandy ? 16 : 12,
+                      spreadRadius: isCottonCandy ? 3 : 2,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

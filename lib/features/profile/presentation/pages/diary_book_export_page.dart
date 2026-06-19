@@ -471,7 +471,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
                         onTap: () {
                           Navigator.pop(dialogContext);
                           if (exitAfterSave) {
-                            Navigator.pop(this.context);
+                            Navigator.pop(context);
                           }
                         },
                         borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20)),
@@ -505,17 +505,17 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
                           if (!mounted) return;
                           if (success) {
                             showTopToast(
-                              this.context,
+                              context,
                               '模板 "$name" 保存成功！',
                               icon: Icons.check_circle_rounded,
                               iconColor: const Color(0xFF10B981),
                             );
                             if (exitAfterSave) {
-                              Navigator.pop(this.context); // 退出编辑器页面
+                              Navigator.pop(context); // 退出编辑器页面
                             }
                           } else {
                             showTopToast(
-                              this.context,
+                              context,
                               '模板保存失败，请重试',
                               icon: Icons.error_outline_rounded,
                               iconColor: Colors.red,

@@ -214,61 +214,63 @@ class _BottomNavBarState extends State<BottomNavBar> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: (widget.isNight || isLanternFestival || isCottonCandy)
-                    ? 15
-                    : 20,
-                sigmaY: (widget.isNight || isLanternFestival || isCottonCandy)
-                    ? 15
-                    : 20,
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: isLanternFestival
-                      ? LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            const Color(0xFF5D2E2E).withValues(alpha: 0.3),
-                            const Color(0xFF3E1A1A).withValues(alpha: 0.45),
-                          ],
-                        )
-                      : (isCottonCandy
-                          ? LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: widget.isNight
-                                  ? [
-                                      const Color(0xFF8676FF).withValues(alpha: 0.45),
-                                      const Color(0xFFB19FFB).withValues(alpha: 0.55),
-                                    ]
-                                  : [
+            child: RepaintBoundary(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: (widget.isNight || isLanternFestival || isCottonCandy)
+                      ? 15
+                      : 20,
+                  sigmaY: (widget.isNight || isLanternFestival || isCottonCandy)
+                      ? 15
+                      : 20,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: isLanternFestival
+                        ? LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              const Color(0xFF5D2E2E).withValues(alpha: 0.3),
+                              const Color(0xFF3E1A1A).withValues(alpha: 0.45),
+                            ],
+                          )
+                        : (isCottonCandy
+                            ? LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: widget.isNight
+                                    ? [
+                                        const Color(0xFF8676FF).withValues(alpha: 0.45),
+                                        const Color(0xFFB19FFB).withValues(alpha: 0.55),
+                                      ]
+                                    : [
+                                        const Color(
+                                          0xFFFFE1E9,
+                                        ).withValues(alpha: 0.5),
+                                        const Color(
+                                          0xFFFFCADB,
+                                        ).withValues(alpha: 0.65),
+                                      ],
+                              )
+                            : (widget.isNight
+                                ? null
+                                : LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
                                       const Color(
-                                        0xFFFFE1E9,
+                                        0xFFB3E5FC,
                                       ).withValues(alpha: 0.5),
                                       const Color(
-                                        0xFFFFCADB,
-                                      ).withValues(alpha: 0.65),
+                                        0xFFE1F5FE,
+                                      ).withValues(alpha: 0.3),
                                     ],
-                            )
-                          : (widget.isNight
-                              ? null
-                              : LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    const Color(
-                                      0xFFB3E5FC,
-                                    ).withValues(alpha: 0.5),
-                                    const Color(
-                                      0xFFE1F5FE,
-                                    ).withValues(alpha: 0.3),
-                                  ],
-                                ))),
-                  color: (widget.isNight && !isLanternFestival && !isCottonCandy)
-                      ? const Color(0xFF736675).withValues(alpha: 0.2)
-                      : null,
+                                  ))),
+                    color: (widget.isNight && !isLanternFestival && !isCottonCandy)
+                        ? const Color(0xFF736675).withValues(alpha: 0.2)
+                        : null,
+                  ),
                 ),
               ),
             ),
@@ -533,16 +535,17 @@ class _NavBarParticlesBgState extends State<_NavBarParticlesBg>
   Widget build(BuildContext context) {
     if (_isGone) return const SizedBox.shrink();
 
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 1000),
-      opacity: _isFadingOut ? 0.0 : 1.0,
-      onEnd: () {
-        if (_isFadingOut) {
-          setState(() {
-            _isGone = true;
-          });
-        }
-      },
+    return RepaintBoundary(
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 1000),
+        opacity: _isFadingOut ? 0.0 : 1.0,
+        onEnd: () {
+          if (_isFadingOut) {
+            setState(() {
+              _isGone = true;
+            });
+          }
+        },
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
@@ -554,82 +557,85 @@ class _NavBarParticlesBgState extends State<_NavBarParticlesBg>
               : Curves.easeOutBack;
           final bgScale = 0.6 + 0.4 * curve.transform(scaleProgress);
 
-          return ShaderMask(
-            shaderCallback: (rect) {
-              return const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black],
-                stops: [0.0, 0.25],
-              ).createShader(rect);
-            },
-            blendMode: BlendMode.dstIn,
-            child: Stack(
-              children: [
-                if (widget.decorationId == 'bg_modules_animation_1')
+          return RepaintBoundary(
+            child: ShaderMask(
+              shaderCallback: (rect) {
+                return const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black],
+                  stops: [0.0, 0.25],
+                ).createShader(rect);
+              },
+              blendMode: BlendMode.dstIn,
+              child: Stack(
+                children: [
+                  if (widget.decorationId == 'bg_modules_animation_1')
+                    Positioned.fill(
+                      child: Opacity(
+                        opacity: bgOpacity,
+                        child: Transform.scale(
+                          scale: bgScale,
+                          alignment: Alignment.bottomCenter,
+                          child: Image.asset(
+                            'assets/images/emoji/modules_animation/1_1.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    )
+                    .animate(
+                      onPlay: (controller) => controller.repeat(reverse: true),
+                    )
+                    .fadeIn(duration: 2500.ms, curve: Curves.easeInOut),
+                  if (widget.decorationId == 'bg_modules_animation_2')
+                    Positioned.fill(
+                      child: Opacity(
+                        opacity: bgOpacity,
+                        child: Transform.scale(
+                          scale: bgScale,
+                          alignment: Alignment.bottomCenter,
+                          child: Image.asset(
+                            'assets/images/emoji/modules_animation/2-2.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    )
+                    .animate()
+                    .moveY(
+                      begin: 40,
+                      end: 0,
+                      duration: 3500.ms,
+                      curve: Curves.easeOutCubic,
+                    ),
                   Positioned.fill(
                     child: Opacity(
                       opacity: bgOpacity,
                       child: Transform.scale(
                         scale: bgScale,
                         alignment: Alignment.bottomCenter,
-                        child: Image.asset(
-                          'assets/images/emoji/modules_animation/1_1.png',
-                          fit: BoxFit.cover,
+                        child: Builder(
+                          builder: (context) {
+                            final img = Image.asset(widget.imagePath, fit: BoxFit.cover);
+                            if (widget.decorationId == 'bg_modules_animation_2') {
+                              return img
+                                  .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                                  .fadeIn(duration: 2500.ms, curve: Curves.easeInOut);
+                            }
+                            return img;
+                          },
                         ),
                       ),
                     ),
-                  )
-                  .animate(
-                    onPlay: (controller) => controller.repeat(reverse: true),
-                  )
-                  .fadeIn(duration: 2500.ms, curve: Curves.easeInOut),
-                if (widget.decorationId == 'bg_modules_animation_2')
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: bgOpacity,
-                      child: Transform.scale(
-                        scale: bgScale,
-                        alignment: Alignment.bottomCenter,
-                        child: Image.asset(
-                          'assets/images/emoji/modules_animation/2-2.png',
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                  )
-                  .animate()
-                  .moveY(
-                    begin: 40,
-                    end: 0,
-                    duration: 3500.ms,
-                    curve: Curves.easeOutCubic,
                   ),
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: bgOpacity,
-                    child: Transform.scale(
-                      scale: bgScale,
-                      alignment: Alignment.bottomCenter,
-                      child: Builder(
-                        builder: (context) {
-                          final img = Image.asset(widget.imagePath, fit: BoxFit.cover);
-                          if (widget.decorationId == 'bg_modules_animation_2') {
-                            return img
-                                .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                                .fadeIn(duration: 2500.ms, curve: Curves.easeInOut);
-                          }
-                          return img;
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
       ),
+    ),
     );
   }
 }
