@@ -240,7 +240,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                                   fontWeight: FontWeight.w500,
                                   color: isNight
                                       ? Colors.white.withValues(alpha: 0.9)
-                                      : const Color(0xFF2C2C2C),
+                                      : const Color(0xFF332F2D),
                                 ),
                               ),
                             ],
@@ -266,7 +266,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                                       fontFamily: fontFamily,
                                       color: isNight
                                           ? Colors.white54
-                                          : const Color(0xFF757575),
+                                          : const Color(0xFF7E7570),
                                     ),
                                   ),
                                   const SizedBox(width: 2),
@@ -277,7 +277,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                                     size: 16,
                                     color: isNight
                                         ? Colors.white54
-                                        : const Color(0xFF757575),
+                                        : const Color(0xFF7E7570),
                                   ),
                                 ],
                               ),
@@ -628,7 +628,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                     letterSpacing: 0.5,
                     color: isNight
                         ? Colors.white.withValues(alpha: 0.95)
-                        : const Color(0xFF2C2C2C),
+                        : const Color(0xFF332F2D),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -642,7 +642,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                       fontSize: 12,
                       height: 1.4,
                       fontFamily: fontFamily,
-                      color: isNight ? Colors.white38 : Colors.black45,
+                      color: isNight ? Colors.white38 : const Color(0xFF7E7570),
                     ),
                   )
                 else
@@ -651,7 +651,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                     style: TextStyle(
                       fontSize: 12,
                       fontFamily: fontFamily,
-                      color: isNight ? Colors.white38 : Colors.black45,
+                      color: isNight ? Colors.white38 : const Color(0xFF7E7570),
                     ),
                   ),
                 const SizedBox(height: 18),
@@ -690,7 +690,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
             fontFamily: 'Inter',
             color: isNight
                 ? Colors.white.withValues(alpha: 0.9)
-                : const Color(0xFF2C2C2C),
+                : const Color(0xFF332F2D),
           ),
         ),
         const SizedBox(width: 2),
@@ -699,7 +699,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w500,
-            color: isNight ? Colors.white38 : Colors.black38,
+            color: isNight ? Colors.white38 : const Color(0xFF7E7570),
           ),
         ),
       ],
@@ -897,7 +897,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                   fontFamily: 'Georgia', // 参考图片中的衬线风格字体
                   color: isNight
                       ? Colors.white.withValues(alpha: 0.9)
-                      : const Color(0xFF2C2C2C),
+                      : const Color(0xFF332F2D),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1012,7 +1012,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                                 fontFamily: fontFamily,
                                 color: isNight
                                     ? Colors.white70
-                                    : const Color(0xFF4A4A4A),
+                                    : const Color(0xFF332F2D),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1029,7 +1029,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                               child: Icon(
                                 Icons.edit_rounded,
                                 size: 16,
-                                color: isNight ? Colors.white38 : Colors.black38,
+                                color: isNight ? Colors.white38 : const Color(0xFF7E7570),
                               ),
                             ),
                           ),

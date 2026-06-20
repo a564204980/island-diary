@@ -357,7 +357,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     return TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.bold,
-      color: isNight ? Colors.white : const Color(0xFF5A3E28),
+      color: isNight ? Colors.white : const Color(0xFF332F2D),
     );
   }
 
@@ -623,7 +623,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                     Text(
                       '心灵气象站',
                       style: TextStyle(
-                        color: isNight ? Colors.white : const Color(0xFF5A3E28),
+                        color: isNight ? Colors.white : const Color(0xFF332F2D),
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.0,
@@ -735,7 +735,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     Color getTextColor() {
       if (isSelected) {
         if (isCottonCandy) return Colors.white;
-        return isNight ? Colors.white : const Color(0xFF5A3E28);
+        return isNight ? Colors.white : const Color(0xFF332F2D);
       } else {
         if (isCottonCandy) return const Color(0xFF9E7777);
         return isNight ? Colors.white54 : Colors.black54;

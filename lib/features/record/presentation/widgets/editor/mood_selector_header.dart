@@ -94,9 +94,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
         ? null
         : (isDark
             ? Colors.white.withValues(alpha: 0.05)
-            : (paperStyle.startsWith('note') || (paperStyle == 'classic' && themeId == 'cotton_candy')
-                ? const Color(0xFFFEF9F0).withValues(alpha: 0.45)
-                : const Color(0xFFFEF9F0)));
+            : const Color(0xFFFEF9F0).withValues(alpha: 0.2)); // 统一增加透明度以隐约呈现底纸纹理
 
     final pillWidget = Padding(
       key: const ValueKey('mood_selector_pill_widget'),
@@ -290,9 +288,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
               ? null
               : (isDark
                   ? Colors.white.withValues(alpha: 0.05)
-                  : (paperStyle.startsWith('note') || (paperStyle == 'classic' && themeId == 'cotton_candy')
-                      ? const Color(0xFFFEF9F0).withValues(alpha: 0.45)
-                      : const Color(0xFFFEF9F0))),
+                  : const Color(0xFFFEF9F0).withValues(alpha: 0.2)),
           gradient: isCottonCandyDark
               ? LinearGradient(
                   begin: Alignment.topLeft,
@@ -399,9 +395,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
               ? null
               : (isDark
                   ? Colors.white.withValues(alpha: 0.05)
-                  : (paperStyle.startsWith('note') || (paperStyle == 'classic' && themeId == 'cotton_candy')
-                      ? const Color(0xFFFEF9F0).withValues(alpha: 0.45)
-                      : const Color(0xFFFEF9F0))),
+                  : const Color(0xFFFEF9F0).withValues(alpha: 0.2)),
           gradient: isCottonCandyDark
               ? LinearGradient(
                   begin: Alignment.topLeft,

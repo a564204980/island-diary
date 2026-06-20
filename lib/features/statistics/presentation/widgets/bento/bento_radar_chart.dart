@@ -306,7 +306,7 @@ extension _BentoRadarChart on _StatisticsPageState {
                                       ? Colors.white70
                                       : (isCottonCandy
                                             ? const Color(0xFF9A7A69)
-                                            : const Color(0xFF5A3E28)),
+                                            : const Color(0xFF332F2D)),
                                   fontFamily: 'LXGWWenKai',
                                   height: 1.2,
                                 ),
@@ -368,7 +368,7 @@ extension _BentoRadarChart on _StatisticsPageState {
                   ? Colors.white60
                   : (isCottonCandy
                       ? const Color(0xFF9A7A69)
-                      : const Color(0xFF5A3E28)),
+                      : const Color(0xFF332F2D)),
             ),
           ),
           const SizedBox(height: 8),

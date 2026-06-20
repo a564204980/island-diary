@@ -49,18 +49,18 @@ class LayoutQuickSwitcher extends StatelessWidget {
               ? Colors.white.withValues(alpha: 0.1)
               : Colors.black.withValues(alpha: 0.08);
         } else {
-          // 默认水蓝色主题
-          activeColor = isNight ? const Color(0xFF00ACC1) : const Color(0xFF83B7C5);
-          selectedIconColor = Colors.white;
+          // 默认主题 (搭配星光计划/夜间琥珀金)
+          activeColor = isNight ? const Color(0xFFD4A373) : const Color(0xFFA68565);
+          selectedIconColor = isNight ? const Color(0xFF1F1F1F) : Colors.white;
           unselectedIconColor = isNight
-              ? Colors.white.withValues(alpha: 0.6)
-              : const Color(0xFF83B7C5);
+              ? Colors.white.withValues(alpha: 0.45)
+              : const Color(0xFFA68565).withValues(alpha: 0.75);
           containerColor = isNight
-              ? const Color(0xFF1B2A4A).withValues(alpha: 0.4)
-              : const Color(0xFFEDF5F7).withValues(alpha: 0.7);
+              ? Colors.black.withValues(alpha: 0.35)
+              : const Color(0xFFFFFDF9).withValues(alpha: 0.85);
           borderColor = isNight
-              ? const Color(0xFF80D8FF).withValues(alpha: 0.25)
-              : const Color(0xFF83B7C5).withValues(alpha: 0.65);
+              ? Colors.white.withValues(alpha: 0.08)
+              : const Color(0xFFE6DEC9).withValues(alpha: 0.8);
         }
 
         final List<DiaryLayoutMode> modes = [

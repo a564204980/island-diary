@@ -405,6 +405,97 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         ? 'SweiFistLeg'
         : 'LXGWWenKai';
     
+    void createNewBook() {
+      final TextEditingController nameController = TextEditingController();
+      showDialog(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog(
+            backgroundColor: isNight ? const Color(0xFF2C2E30) : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              '新建日记本',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isNight ? Colors.white : Colors.black87,
+                fontFamily: fontFamily,
+              ),
+            ),
+            content: TextField(
+              controller: nameController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: '输入日记本名称...',
+                hintStyle: TextStyle(
+                  color: isNight ? Colors.white38 : Colors.black38,
+                  fontSize: 14,
+                  fontFamily: fontFamily,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                    color: isNight ? Colors.white10 : Colors.black12,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFD4A373),
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              style: TextStyle(
+                color: isNight ? Colors.white : Colors.black87,
+                fontFamily: fontFamily,
+                fontSize: 14,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(
+                  '取消',
+                  style: TextStyle(
+                    color: isNight ? Colors.white54 : Colors.black54,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final name = nameController.text.trim();
+                  if (name.isNotEmpty) {
+                    final newBook = DiaryBook(name: name);
+                    await UserState().createBook(newBook);
+                    setState(() {
+                      currentBookId = newBook.id;
+                    });
+                    onBlocksChanged();
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                    }
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  }
+                },
+                child: Text(
+                  '创建',
+                  style: TextStyle(
+                    color: const Color(0xFFD4A373),
+                    fontWeight: FontWeight.bold,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -424,14 +515,42 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                '选择归属的书籍',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isNight ? Colors.white : Colors.black87,
-                  fontFamily: fontFamily,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '选择归属的书籍',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isNight ? Colors.white : Colors.black87,
+                      fontFamily: fontFamily,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: createNewBook,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.add_rounded,
+                          size: 16,
+                          color: Color(0xFFD4A373),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '新建',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFD4A373),
+                            fontFamily: fontFamily,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
@@ -474,6 +593,31 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                   fontSize: 12,
                                   fontFamily: fontFamily,
                                   color: isNight ? Colors.white24 : Colors.black26,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              OutlinedButton.icon(
+                                onPressed: createNewBook,
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Color(0xFFD4A373), width: 1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                ),
+                                icon: const Icon(
+                                  Icons.add_rounded,
+                                  size: 16,
+                                  color: Color(0xFFD4A373),
+                                ),
+                                label: Text(
+                                  '直接在此创建',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontFamily: fontFamily,
+                                    color: const Color(0xFFD4A373),
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
@@ -627,7 +771,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     fontFamily: fontFamily,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 // 智能排版 (开发中)
                 _buildMoreMenuItem(
                   icon: Icons.auto_awesome_motion_rounded,
@@ -667,6 +811,126 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                       ),
                     );
                   },
+                ),
+                const SizedBox(height: 12),
+                
+                // 新增：图片压缩管理卡片
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: accentColor.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.image_aspect_ratio_rounded, color: accentColor, size: 18),
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "上传前自动压缩图片",
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: textColor,
+                                      fontFamily: fontFamily,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    "开启后将有效节省云端空间",
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: textColor.withValues(alpha: 0.5),
+                                      fontFamily: fontFamily,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Transform.scale(
+                            scale: 0.85,
+                            child: Switch(
+                              value: UserState().isImageCompressEnabled.value,
+                              activeColor: accentColor,
+                              onChanged: (val) {
+                                setModalState(() {
+                                  UserState().setImageCompressEnabled(val);
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (UserState().isImageCompressEnabled.value) ...[
+                        const SizedBox(height: 10),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Row(
+                            children: [
+                              Text(
+                                "压缩质量",
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor.withValues(alpha: 0.7),
+                                  fontFamily: fontFamily,
+                                ),
+                              ),
+                              Expanded(
+                                child: SliderTheme(
+                                  data: SliderThemeData(
+                                    trackHeight: 3,
+                                    activeTrackColor: accentColor,
+                                    inactiveTrackColor: accentColor.withValues(alpha: 0.15),
+                                    thumbColor: accentColor,
+                                    overlayColor: accentColor.withValues(alpha: 0.1),
+                                    valueIndicatorColor: accentColor,
+                                    valueIndicatorTextStyle: const TextStyle(color: Colors.white, fontSize: 10),
+                                  ),
+                                  child: Slider(
+                                    value: UserState().imageCompressQuality.value.toDouble(),
+                                    min: 30,
+                                    max: 100,
+                                    divisions: 70, // 30% - 100% 步进为 1%
+                                    label: "${UserState().imageCompressQuality.value}%",
+                                    onChanged: (val) {
+                                      setModalState(() {
+                                        UserState().setImageCompressQuality(val.round());
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                "${UserState().imageCompressQuality.value}%",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: accentColor,
+                                  fontFamily: fontFamily,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -931,7 +1195,10 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            Navigator.pop(context);
+                          },
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                             shape: RoundedRectangleBorder(
@@ -976,6 +1243,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                 currentAnnotations[actualKey] = jsonEncode(data);
                               });
                             }
+                            FocusManager.instance.primaryFocus?.unfocus();
                             Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(

@@ -9,8 +9,8 @@ import '../diary_entry/components/diary_bottom_sheet.dart';
 import 'package:island_diary/shared/utils/toast_utils.dart';
 
 /// 调出道具获得半屏弹窗（针对普通稀有度自动采用纯色简约风格）
-void showPropObtainedPopup(BuildContext context, MascotDecoration decoration, {VoidCallback? onEquip}) {
-  showModalBottomSheet(
+Future<void> showPropObtainedPopup(BuildContext context, MascotDecoration decoration, {VoidCallback? onEquip}) {
+  return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,

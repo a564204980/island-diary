@@ -94,6 +94,8 @@ class _K {
   static const unlockedMascots = 'unlocked_mascot_paths';
 
 
+  static const isImageCompressEnabled = 'is_image_compress_enabled';
+  static const imageCompressQuality = 'image_compress_quality';
   static const diaryLayoutMode = 'diary_layout_mode';
   static const moodTagHistory = 'mood_tag_history';
   static const statsOrderWeek = 'stats_order_week';

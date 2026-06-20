@@ -180,7 +180,12 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     TextBlock? newBottomBlock;
 
     if (isImageGrid && !isMixedLayout) {
-      final imageBlock = ImageBlock(XFile(pickedPath), videoPath: pickedVideoPath);
+      final imageBlock = ImageBlock(
+        XFile(pickedPath),
+        videoPath: pickedVideoPath,
+        localPath: pickedPath,
+        isUploading: true,
+      );
       setState(() {
         blocks.add(imageBlock);
         blockKeys[imageBlock.id] = GlobalKey();
@@ -245,7 +250,12 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       newBottomBlock = TextBlock('', baseColor: currentTextColor);
     }
 
-    final imageBlock = ImageBlock(XFile(pickedPath), videoPath: pickedVideoPath);
+    final imageBlock = ImageBlock(
+      XFile(pickedPath),
+      videoPath: pickedVideoPath,
+      localPath: pickedPath,
+      isUploading: true,
+    );
 
     // 升级为空日记的判断（没有任何图片，且所有文本框文字皆为空）
     final bool isPureEmptyDiary = blocks.whereType<ImageBlock>().isEmpty &&
@@ -292,52 +302,52 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     return newBottomBlock;
   }
 
-  /// 后台上传逻辑
+  /// 后台图片压缩处理逻辑（纯本地处理，不上传云端服务器）
   Future<void> _uploadImageInBackground(ImageBlock block, String localPath) async {
     try {
-      // 在上传前进行背景图片缩放和质量压缩
-      final String compressedPath = await DiaryUtils.compressImage(localPath);
+      // 进行本地背景图片缩放和质量压缩，增加 3 秒安全超时保护，超时则降级使用原图，防止无限转圈
+      String compressedPath;
+      try {
+        compressedPath = await DiaryUtils.compressImage(localPath).timeout(const Duration(seconds: 3));
+      } catch (e) {
+        debugPrint("本地图片压缩超时或失败，直接退回原图路径: $e");
+        compressedPath = localPath;
+      }
       
-      final String? remoteUrl = await _uploadFile(compressedPath);
-      if (remoteUrl != null && mounted) {
+      if (mounted) {
         setState(() {
-          final index = blocks.indexOf(block);
+          final index = blocks.indexWhere((b) => b.id == block.id);
           if (index != -1) {
-            // 替换为远程 URL，ImageBlock 内部会自动识别，本地文件指向压缩后的缓存文件
-            blocks[index] = ImageBlock(XFile(compressedPath), id: block.id, videoPath: block.videoPath);
+            // 压缩成功或超时降级：更新图片路径，并将 isUploading 置为 false
+            blocks[index] = ImageBlock(
+              XFile(compressedPath),
+              id: block.id,
+              videoPath: block.videoPath,
+              localPath: compressedPath,
+              isUploading: false,
+            );
           }
         });
         onBlocksChanged();
       }
     } catch (e) {
-      debugPrint("Upload failed: $e");
-      // 上传失败保留本地路径，至少当前会话可见
-    }
-  }
-
-  Future<String?> _uploadFile(String filePath) async {
-    try {
-      final request = http.MultipartRequest('POST', Uri.parse(ApiConstants.uploadEndpoint));
-      request.files.add(await http.MultipartFile.fromPath('file', filePath));
-      
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 200) {
-        // 假设后端直接返回图片访问地址，或者是一个包含 url 字段的 JSON
-        // 根据 404 的地址推断，后端返回的可能是类似于 "2026-04-13/xxx.jpg" 的相对路径
-        final String responseBody = response.body;
-        if (responseBody.startsWith('http')) {
-          return responseBody;
-        } else {
-          // 如果返回的是相对路径，拼接到 BaseUrl
-          return "${ApiConstants.baseUrl}/api/v1/files/upload/$responseBody";
-        }
+      debugPrint("本地图片压缩处理异常: $e");
+      if (mounted) {
+        setState(() {
+          final index = blocks.indexWhere((b) => b.id == block.id);
+          if (index != -1) {
+            // 失败时回退为原图，重置加载状态，保证日记可编辑和显示
+            blocks[index] = ImageBlock(
+              block.file,
+              id: block.id,
+              videoPath: block.videoPath,
+              localPath: localPath,
+              isUploading: false,
+            );
+          }
+        });
       }
-    } catch (e) {
-      debugPrint("API Error: $e");
     }
-    return null;
   }
 
   void onMusicButtonPressed() async {
@@ -457,7 +467,12 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       final parts = imagePath.split('|');
       final actualImagePath = parts[0];
       final String? videoPath = parts.length > 1 ? parts[1] : null;
-      final imageBlock = ImageBlock(XFile(actualImagePath), videoPath: videoPath);
+      final imageBlock = ImageBlock(
+        XFile(actualImagePath),
+        videoPath: videoPath,
+        localPath: actualImagePath,
+        isUploading: true,
+      );
       setState(() {
         blocks.add(imageBlock);
         blockKeys[imageBlock.id] = GlobalKey();
@@ -520,7 +535,12 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     final actualImagePath = parts[0];
     final String? videoPath = parts.length > 1 ? parts[1] : null;
 
-    final imageBlock = ImageBlock(XFile(actualImagePath), videoPath: videoPath);
+    final imageBlock = ImageBlock(
+      XFile(actualImagePath),
+      videoPath: videoPath,
+      localPath: actualImagePath,
+      isUploading: true,
+    );
 
     setState(() {
       if (blocks.length == 1 && blocks.first is TextBlock && (blocks.first as TextBlock).controller.text.isEmpty) {

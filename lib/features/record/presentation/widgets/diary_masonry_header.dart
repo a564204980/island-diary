@@ -30,7 +30,7 @@ class DiaryMasonryHeader extends StatelessWidget {
     ];
 
     final List<String> dayMessages = [
-      "海风晴朗，适合发呆和记录美好。",
+      "海风晴朗，适合发呆 and 记录美好。",
       "日光倾城，波光粼粼，小岛的午后慢悠悠的。",
       "翻开日记本，海鸥正在云端呢喃。",
       "云朵在蓝天里散步，风里有海盐汽水的味道。",
@@ -69,7 +69,7 @@ class DiaryMasonryHeader extends StatelessWidget {
 
     final Color capsuleTextColor = isNight
         ? const Color(0xFFE1AF78).withValues(alpha: 0.9)
-        : const Color(0xFF5C4E43); // 暖深咖啡褐色，契合图1
+        : const Color(0xFF332F2D); // 暖炭灰色
 
     final subTextColor = isCottonCandy
         ? (isNight ? Colors.white54 : const Color(0xFF6F5E63))
@@ -78,70 +78,70 @@ class DiaryMasonryHeader extends StatelessWidget {
             : Colors.black.withValues(alpha: 0.8));
 
     return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        child: Row(
-          children: [
-            // 日期胶囊
-            JellyDateCapsule(
-              date: currentDate,
-              isNight: isNight,
-              themeGoldColor: themeGoldColor,
-              capsuleTextColor: capsuleTextColor,
-              onTap: onCalendarTap,
-            ),
-            const SizedBox(width: 12),
-            // 天气图标 (根据白天夜晚动态显示太阳与月亮)
-            Icon(
-              isNight ? Icons.nights_stay_rounded : Icons.wb_sunny_rounded,
-              size: 20,
-              color: isNight
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      child: Row(
+        children: [
+          // 日期胶囊
+          JellyDateCapsule(
+            date: currentDate,
+            isNight: isNight,
+            themeGoldColor: themeGoldColor,
+            capsuleTextColor: capsuleTextColor,
+            onTap: onCalendarTap,
+          ),
+          const SizedBox(width: 12),
+          // 天气图标 (根据白天夜晚动态显示太阳与月亮)
+          Icon(
+            isNight ? Icons.nights_stay_rounded : Icons.wb_sunny_rounded,
+            size: 20,
+            color: isNight
                 ? themeGoldColor
                 : (isCottonCandy 
-                  ? const Color(0xFFF3B547)
-                  : const Color(0xFFF9A826)),
+                    ? const Color(0xFFF3B547)
+                    : const Color(0xFFF9A826)),
+          ),
+          const SizedBox(width: 8),
+          // 寄语 (随日期哈希动态变化，彻底告别一成不变)
+          Expanded(
+            child: Text(
+              _getGreetingMessage(currentDate, isNight),
+              style: TextStyle(
+                fontSize: 12, 
+                color: subTextColor,
+                fontFamily: 'LXGWWenKai',
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(width: 8),
-            // 寄语 (随日期哈希动态变化，彻底告别一成不变)
-            Expanded(
-              child: Text(
-                _getGreetingMessage(currentDate, isNight),
-                style: TextStyle(
-                  fontSize: 12, 
-                  color: subTextColor,
-                  fontFamily: 'LXGWWenKai',
+          ),
+          const SizedBox(width: 12),
+          // 装扮按钮
+          if (showDecorateIcon)
+            GestureDetector(
+              onTap: onDecorateTap,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isNight 
+                    ? Colors.white.withValues(alpha: 0.1) 
+                    : Colors.black.withValues(alpha: 0.05),
+                  shape: BoxShape.circle,
                 ),
-                overflow: TextOverflow.ellipsis,
+                child: Icon(
+                  Icons.auto_fix_high_rounded,
+                  size: 20,
+                  color: isNight 
+                    ? Colors.amber.withValues(alpha: 0.8) 
+                    : const Color(0xFFD4A373),
+                ),
               ),
             ),
-            const SizedBox(width: 12),
-            // 装扮按钮
-            if (showDecorateIcon)
-              GestureDetector(
-                onTap: onDecorateTap,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isNight 
-                      ? Colors.white.withValues(alpha: 0.1) 
-                      : Colors.black.withValues(alpha: 0.05),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.auto_fix_high_rounded,
-                    size: 20,
-                    color: isNight 
-                      ? Colors.amber.withValues(alpha: 0.8) 
-                      : const Color(0xFFD4A373),
-                  ),
-                ),
-              ),
-          ],
+        ],
       ),
     );
   }
 }
 
-class JellyDateCapsule extends StatefulWidget {
+class JellyDateCapsule extends StatelessWidget {
   final DateTime date;
   final bool isNight;
   final Color themeGoldColor;
@@ -158,163 +158,87 @@ class JellyDateCapsule extends StatefulWidget {
   });
 
   @override
-  State<JellyDateCapsule> createState() => _JellyDateCapsuleState();
-}
-
-class _JellyDateCapsuleState extends State<JellyDateCapsule> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _scaleAnimation;
-  late final Animation<double> _rotateAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.88, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _rotateAnimation = Tween<double>(begin: -0.04, end: 0.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.decelerate),
-    );
-
-    _controller.forward(from: 0.0);
-  }
-
-  @override
-  void didUpdateWidget(covariant JellyDateCapsule oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.date.day != widget.date.day ||
-        oldWidget.date.month != widget.date.month ||
-        oldWidget.date.year != widget.date.year) {
-      final bool isShuangjian = UserState().selectedMascotType.value.contains('marshmallow4');
-      _controller.duration = Duration(milliseconds: isShuangjian ? 600 : 450);
-      _controller.forward(from: 0.0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<String>(
-      valueListenable: UserState().selectedMascotType,
-      builder: (context, mascotType, _) {
-        final bool isShuangjian = mascotType.contains('marshmallow4');
-
-        final Widget capsuleBody = Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-          decoration: BoxDecoration(
-            color: widget.isNight ? const Color(0xFF2C2E30) : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: widget.isNight
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : const Color(0xFFD4A373).withValues(alpha: 0.22),
-              width: 1,
-            ),
-            boxShadow: widget.isNight
-                ? null
-                : [
-                    BoxShadow(
-                      color: const Color(0xFFD4A373).withValues(alpha: 0.06),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.calendar_today_rounded,
-                size: 14,
-                color: widget.themeGoldColor,
-              ),
-              const SizedBox(width: 7),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: "${widget.date.month}",
-                      style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w900,
-                        color: widget.capsuleTextColor,
-                        fontFamily: 'LXGWWenKai',
-                      ),
-                    ),
-                    TextSpan(
-                      text: "月",
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w900,
-                        color: widget.capsuleTextColor,
-                        fontFamily: 'LXGWWenKai',
-                      ),
-                    ),
-                    TextSpan(
-                      text: "${widget.date.day}",
-                      style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w900,
-                        color: widget.capsuleTextColor,
-                        fontFamily: 'LXGWWenKai',
-                      ),
-                    ),
-                    TextSpan(
-                      text: "日",
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w900,
-                        color: widget.capsuleTextColor,
-                        fontFamily: 'LXGWWenKai',
-                      ),
-                    ),
-                  ],
+    final Widget capsuleBody = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        color: isNight ? const Color(0xFF2C2E30) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isNight
+              ? Colors.white.withValues(alpha: 0.08)
+              : const Color(0xFFD4A373).withValues(alpha: 0.22),
+          width: 1,
+        ),
+        boxShadow: isNight
+            ? null
+            : [
+                BoxShadow(
+                  color: const Color(0xFFD4A373).withValues(alpha: 0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
-              ),
-            ],
+              ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.calendar_today_rounded,
+            size: 14,
+            color: themeGoldColor,
           ),
-        );
-
-        return GestureDetector(
-          onTap: widget.onTap,
-          behavior: HitTestBehavior.opaque,
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              if (isShuangjian) {
-                final double currentScale = 0.96 + 0.04 * CurvedAnimation(
-                  parent: _controller,
-                  curve: Curves.easeInOutCubic,
-                ).value;
-                return Transform.scale(
-                  scale: currentScale,
-                  child: child,
-                );
-              } else {
-                return Transform.scale(
-                  scale: _scaleAnimation.value,
-                  child: Transform.rotate(
-                    angle: _rotateAnimation.value,
-                    child: child,
+          const SizedBox(width: 7),
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "${date.month}",
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w900,
+                    color: capsuleTextColor,
+                    fontFamily: 'LXGWWenKai',
                   ),
-                );
-              }
-            },
-            child: capsuleBody,
+                ),
+                TextSpan(
+                  text: "月",
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w900,
+                    color: capsuleTextColor,
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+                TextSpan(
+                  text: "${date.day}",
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w900,
+                    color: capsuleTextColor,
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+                TextSpan(
+                  text: "日",
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w900,
+                    color: capsuleTextColor,
+                    fontFamily: 'LXGWWenKai',
+                  ),
+                ),
+              ],
+            ),
           ),
-        );
-      },
+        ],
+      ),
+    );
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: capsuleBody,
     );
   }
 }
-

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_date_picker_sheet.dart';
 
 class DiarySearchPanel extends StatefulWidget {
   final Function(String query, int? moodIndex, DateTime? date) onSearch;
@@ -24,6 +26,7 @@ class DiarySearchPanel extends StatefulWidget {
 
 class _DiarySearchPanelState extends State<DiarySearchPanel> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
   int? _selectedMoodIndex;
   DateTime? _selectedDate;
 
@@ -31,6 +34,20 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
   void initState() {
     super.initState();
     _selectedDate = widget.initialDate;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) {
+          _focusNode.requestFocus();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
   }
 
   void _handleSearch() {
@@ -49,105 +66,79 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
         ? const Color(0xFFC0A6FF)
         : const Color(0xFFE1AF78);
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          decoration: BoxDecoration(
-            color: widget.isNight
-                ? const Color(0xFF1B232E).withValues(alpha: 0.85)
-                : Colors.white.withValues(alpha: 0.88),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            border: Border.all(
+    return DiaryBottomSheet(
+      paperStyle: 'default',
+      showDragHandle: true,
+      isDiary: false,
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 搜索输入框
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
               color: widget.isNight
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.05),
-              width: 1.0,
+                  ? Colors.black.withValues(alpha: 0.25)
+                  : Colors.black.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: widget.isNight
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.05),
+              ),
+            ),
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              onSubmitted: (_) => _handleSearch(),
+              textInputAction: TextInputAction.search,
+              onChanged: (_) => setState(() {}),
+              style: TextStyle(color: textColor, fontFamily: 'LXGWWenKai', fontSize: 14.5),
+              decoration: InputDecoration(
+                hintText: "寻找某段回忆...",
+                hintStyle: TextStyle(
+                  color: hintColor,
+                  fontFamily: 'LXGWWenKai',
+                  fontSize: 14.5,
+                ),
+                border: InputBorder.none,
+                icon: Icon(CupertinoIcons.search, color: highlightColor, size: 20),
+                suffixIcon: _controller.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear_rounded,
+                          color: hintColor,
+                          size: 18,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _controller.clear();
+                          });
+                          _handleSearch();
+                        },
+                      )
+                    : null,
+              ),
             ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+
+          const SizedBox(height: 24),
+
+          // 日期筛选
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // 顶部指示条
-              const SizedBox(height: 4),
-              Center(
-                child: Container(
-                  width: 38,
-                  height: 4.5,
-                  decoration: BoxDecoration(
-                    color: textColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+              Text(
+                "按日期筛选",
+                style: TextStyle(
+                  fontSize: 13,
+                  color: textColor.withValues(alpha: 0.6),
+                  fontFamily: 'LXGWWenKai',
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // 搜索输入框
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: widget.isNight
-                      ? Colors.black.withValues(alpha: 0.25)
-                      : Colors.black.withValues(alpha: 0.03),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: widget.isNight
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : Colors.black.withValues(alpha: 0.05),
-                  ),
-                ),
-                child: TextField(
-                  controller: _controller,
-                  onSubmitted: (_) => _handleSearch(),
-                  textInputAction: TextInputAction.search,
-                  onChanged: (_) => setState(() {}),
-                  style: TextStyle(color: textColor, fontFamily: 'LXGWWenKai', fontSize: 14.5),
-                  decoration: InputDecoration(
-                    hintText: "寻找某段回忆...",
-                    hintStyle: TextStyle(
-                      color: hintColor,
-                      fontFamily: 'LXGWWenKai',
-                      fontSize: 14.5,
-                    ),
-                    border: InputBorder.none,
-                    icon: Icon(CupertinoIcons.search, color: highlightColor, size: 20),
-                    suffixIcon: _controller.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear_rounded,
-                              color: hintColor,
-                              size: 18,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _controller.clear();
-                              });
-                              _handleSearch();
-                            },
-                          )
-                        : null,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // 日期筛选
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "按日期筛选",
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: textColor.withValues(alpha: 0.6),
-                      fontFamily: 'LXGWWenKai',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                   if (_selectedDate != null)
                     GestureDetector(
                       onTap: () {
@@ -172,41 +163,21 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
               const SizedBox(height: 12),
 
               GestureDetector(
-                onTap: () async {
-                  final picked = await showDatePicker(
+                onTap: () {
+                  showModalBottomSheet(
                     context: context,
-                    initialDate: _selectedDate ?? DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime.now(),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: ColorScheme.light(
-                            primary: highlightColor,
-                            onPrimary: Colors.white,
-                            surface: widget.isNight
-                                ? const Color(0xFF241E3D)
-                                : Colors.white,
-                            onSurface: widget.isNight
-                                ? Colors.white70
-                                : Colors.black87,
-                          ),
-                          textButtonTheme: TextButtonThemeData(
-                            style: TextButton.styleFrom(
-                              foregroundColor: highlightColor,
-                            ),
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => DiaryDatePickerSheet(
+                      initialDate: _selectedDate ?? DateTime.now(),
+                      onConfirm: (picked) {
+                        setState(() {
+                          _selectedDate = picked;
+                        });
+                        Navigator.pop(context);
+                        _handleSearch();
+                      },
+                    ),
                   );
-                  if (picked != null) {
-                    setState(() {
-                      _selectedDate = picked;
-                    });
-                    _handleSearch();
-                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -247,9 +218,9 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                   ),
                 ),
               ),
-
+ 
               const SizedBox(height: 24),
-
+ 
               // 心情筛选标题
               Text(
                 "按心情筛选",
@@ -260,19 +231,19 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
+ 
               const SizedBox(height: 12),
-
+ 
               // 心情图标列表
-              SizedBox(
-                height: 52,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: kMoods.length,
-                  itemBuilder: (context, index) {
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(kMoods.length, (index) {
                     final mood = kMoods[index];
                     final isSelected = _selectedMoodIndex == index;
-
+ 
                     return GestureDetector(
                       onTap: () {
                         setState(() {
@@ -282,8 +253,8 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                       },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.only(right: 14),
-                        padding: const EdgeInsets.all(8),
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.all(5),
                         transform: isSelected 
                             ? Matrix4.diagonal3Values(1.15, 1.15, 1.0) 
                             : Matrix4.identity(),
@@ -306,19 +277,17 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
                           message: mood.label,
                           child: Image.asset(
                             mood.iconPath ?? 'assets/icons/happy.png',
-                            width: 30,
-                            height: 30,
+                            width: 32,
+                            height: 32,
                           ),
                         ),
                       ),
                     );
-                  },
+                  }),
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
+        );
   }
 }

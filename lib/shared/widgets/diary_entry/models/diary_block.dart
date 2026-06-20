@@ -1264,8 +1264,16 @@ class TextBlock extends DiaryBlock {
 class ImageBlock extends DiaryBlock {
   final XFile file;
   final String? videoPath; // 实况图对应的视频路径
+  final String? localPath; // 编辑时本地缓存或原图路径
+  final bool isUploading; // 是否正在上传
 
-  ImageBlock(this.file, {super.id, this.videoPath});
+  ImageBlock(
+    this.file, {
+    super.id,
+    this.videoPath,
+    this.localPath,
+    this.isUploading = false,
+  });
 
   @override
   Map<String, dynamic> toMap() => {

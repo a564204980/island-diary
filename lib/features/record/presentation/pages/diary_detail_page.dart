@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
+import 'package:island_diary/features/record/domain/models/diary_book.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 // import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
@@ -26,12 +27,14 @@ class DiaryDetailPage extends StatefulWidget {
   final DiaryEntry entry;
   final bool isNight;
   final bool showFloatingActions;
+  final VoidCallback? onBack;
 
   const DiaryDetailPage({
     super.key,
     required this.entry,
     this.isNight = false,
     this.showFloatingActions = true,
+    this.onBack,
   });
 
   @override
@@ -393,7 +396,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                   _buildActionButton(
                     icon: Icons.arrow_back_ios_new_rounded,
                     color: iconColor,
-                    onTap: () => Navigator.pop(context),
+                    onTap: widget.onBack ?? () => Navigator.pop(context),
                     label: "返回",
                     width: 36,
                     iconSize: 22,
@@ -442,6 +445,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       backgroundColor: Colors.transparent,
       builder: (context) => DiaryReplySheet(
         isNight: _effectiveIsNight,
+        paperStyle: _currentEntry.paperStyle,
         onConfirm: _handleReplySubmit,
       ),
     );
@@ -549,6 +553,52 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           spacing: 8,
           runSpacing: 8,
           children: [
+            // 归属书籍标签
+            if (_currentEntry.bookId != null &&
+                _currentEntry.bookId != 'default' &&
+                _currentEntry.bookId!.isNotEmpty)
+              (() {
+                final books = UserState().savedBooks.value;
+                final book = books.firstWhere(
+                  (b) => b.id == _currentEntry.bookId,
+                  orElse: () => DiaryBook(name: ''),
+                );
+                if (book.name.isEmpty) return const SizedBox.shrink();
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4A373).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: const Color(0xFFD4A373).withValues(alpha: 0.3),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.book_rounded,
+                        size: 13,
+                        color: Color(0xFFD4A373),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        book.name,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: !_effectiveIsNight
+                              ? const Color(0xFF8E5A30)
+                              : const Color(0xFFFFCC99),
+                          fontFamily: 'LXGWWenKai',
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              })(),
             // 心情标签
             (() {
               final parsed = ParsedTags.parse(_currentEntry.tag, _currentEntry.moodIndex);
@@ -564,18 +614,19 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xFFF2F2F2)
+                      ? const Color(0xFFF2F2F2).withValues(alpha: 0.2)
                       : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
-                        ? const Color(0xFFD8D8D8)
+                        ? const Color(0xFFD8D8D8).withValues(alpha: 0.8)
                         : Colors.white.withValues(alpha: 0.15),
                     width: 0.8,
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Hero(
                       tag: 'mood_$_currentEntry.id',
@@ -592,14 +643,17 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                             ),
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      moodLabel,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: !_effectiveIsNight
-                            ? const Color(0xFF5C5C5C)
-                            : Colors.white.withValues(alpha: 0.75),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Text(
+                        moodLabel,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: !_effectiveIsNight
+                              ? const Color(0xFF5C5C5C)
+                              : Colors.white.withValues(alpha: 0.75),
+                        ),
                       ),
                     ),
                   ],
@@ -612,12 +666,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xFFF2F2F2)
+                      ? const Color(0xFFF2F2F2).withValues(alpha: 0.2)
                       : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
-                        ? const Color(0xFFD8D8D8)
+                        ? const Color(0xFFD8D8D8).withValues(alpha: 0.8)
                         : Colors.white.withValues(alpha: 0.15),
                     width: 0.8,
                   ),
@@ -643,12 +697,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 ),
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xFFF2F2F2)
+                      ? const Color(0xFFF2F2F2).withValues(alpha: 0.2)
                       : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
-                        ? const Color(0xFFD8D8D8)
+                        ? const Color(0xFFD8D8D8).withValues(alpha: 0.8)
                         : Colors.white.withValues(alpha: 0.15),
                     width: 0.8,
                   ),
@@ -686,12 +740,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 ),
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xFFF2F2F2)
+                      ? const Color(0xFFF2F2F2).withValues(alpha: 0.2)
                       : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
-                        ? const Color(0xFFD8D8D8)
+                        ? const Color(0xFFD8D8D8).withValues(alpha: 0.8)
                         : Colors.white.withValues(alpha: 0.15),
                     width: 0.8,
                   ),
@@ -736,12 +790,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 ),
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xFFF2F2F2)
+                      ? const Color(0xFFF2F2F2).withValues(alpha: 0.2)
                       : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
-                        ? const Color(0xFFD8D8D8)
+                        ? const Color(0xFFD8D8D8).withValues(alpha: 0.8)
                         : Colors.white.withValues(alpha: 0.15),
                     width: 0.8,
                   ),
@@ -779,12 +833,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 ),
                 decoration: BoxDecoration(
                   color: !_effectiveIsNight
-                      ? const Color(0xFFF2F2F2)
+                      ? const Color(0xFFF2F2F2).withValues(alpha: 0.2)
                       : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: !_effectiveIsNight
-                        ? const Color(0xFFD8D8D8)
+                        ? const Color(0xFFD8D8D8).withValues(alpha: 0.8)
                         : Colors.white.withValues(alpha: 0.15),
                     width: 0.8,
                   ),
@@ -1245,7 +1299,10 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            Navigator.pop(context);
+                          },
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                             shape: RoundedRectangleBorder(
@@ -1269,7 +1326,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                             if (text.isNotEmpty) {
                               final newAnnotations = Map<String, String>.from(_currentEntry.annotations);
                               if (!isEdit && blockIndex != null && start != null && end != null) {
-                                // 移除所有与当前选区有重叠的旧批注，防止重复/并存多个气泡
+                                // 移除所有与当前选区有重叠 of 旧批注，防止重复/并存多个气泡
                                 newAnnotations.removeWhere((k, v) {
                                   final parts = k.split('_');
                                   if (parts.length == 3 && int.tryParse(parts[0]) == blockIndex) {
@@ -1294,6 +1351,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                                 _currentEntry = updated;
                               });
                             }
+                            FocusManager.instance.primaryFocus?.unfocus();
                             Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(

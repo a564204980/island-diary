@@ -311,7 +311,7 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
 
     final bool isCottonCandy =
         UserState().selectedIslandThemeId.value == 'cotton_candy';
-    final Color textColor = isNight ? Colors.white : const Color(0xFF5A3E28);
+    final Color textColor = isNight ? Colors.white : const Color(0xFF332F2D);
     final Color subTextColor = isNight
         ? Colors.white60
         : const Color(0xFF8A7462);
@@ -494,7 +494,7 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
             ? null
             : [
                 BoxShadow(
-                  color: const Color(0xFF5A3E28).withValues(alpha: 0.03),
+                  color: const Color(0xFF332F2D).withValues(alpha: 0.03),
                   blurRadius: 6,
                   offset: const Offset(0, 3),
                 ),

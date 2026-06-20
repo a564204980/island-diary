@@ -165,6 +165,14 @@ class DiaryMasonryCard extends StatelessWidget {
         ? themeColorConfig.bgColor
         : (isNight ? const Color(0xFF212831) : themeColorConfig.bgColor.withValues(alpha: 0.60));
 
+    // 获取信纸背景
+    String bgAsset = DiaryUtils.getPaperBackgroundPath(entry.paperStyle, isNight);
+    if (bgAsset.isEmpty) {
+      bgAsset = isNight
+          ? 'assets/images/note/note_night_bg1.png'
+          : 'assets/images/note/note_bg1.png';
+    }
+
     return GestureDetector(
       onTap: isSelectMode
           ? onTap
@@ -203,6 +211,11 @@ class DiaryMasonryCard extends StatelessWidget {
               offset: const Offset(0, 2),
             ),
           ],
+          image: DecorationImage(
+            image: AssetImage(bgAsset),
+            fit: BoxFit.cover,
+            opacity: 0.82, // 降低透明度，让底色心情色微透出来
+          ),
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -402,29 +415,8 @@ class DiaryMasonryCard extends StatelessWidget {
   }
 
   Widget _buildTextOnlyCard() {
-    final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
-    final mood = kMoods[moodIdx];
-    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
-    final themeColorConfig = getMoodThemeColor(moodIdx, mood.label, isNight: isNight, isCottonCandy: isCottonCandy);
-
-    final Color baseBgColor = isNight 
-        ? (isCottonCandy ? themeColorConfig.bgColor : const Color(0xFF212329)) 
-        : themeColorConfig.bgColor;
-
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: (isNight && isCottonCandy) ? baseBgColor : null,
-        gradient: (isNight && isCottonCandy)
-            ? null
-            : LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isNight
-                  ? [const Color(0xFF2C2E35), baseBgColor]
-                  : [themeColorConfig.bgColor.withValues(alpha: 0.30), themeColorConfig.bgColor.withValues(alpha: 0.60)],
-              ),
-      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -519,39 +511,12 @@ class DiaryMasonryCard extends StatelessWidget {
             fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'ArphicKaiti',
           ),
         ),
-        if (entry.weather != null && entry.weather!.isNotEmpty) ...[
-          const SizedBox(width: 6),
-          Icon(Icons.wb_sunny_rounded, size: 12, color: forceWhite ? Colors.amber.withValues(alpha: 0.8) : const Color(0xFFB9A8BD)),
-        ],
       ],
     );
   }
 
   Widget _buildLocation({bool isWhiteText = false}) {
-    if (entry.location == null || entry.location!.isEmpty) return const SizedBox.shrink();
-    final bool forceWhite = isWhiteText || isNight;
-    final Color textColor = forceWhite ? Colors.white54 : const Color(0xFFA798A5);
-    final Color iconColor = forceWhite ? Colors.white54 : const Color(0xFFB9A8BD);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const SizedBox(width: 8),
-        Icon(Icons.location_on_rounded, size: 10, color: iconColor),
-        const SizedBox(width: 2),
-        Flexible(
-          child: Text(
-            entry.location!,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10,
-              color: textColor,
-              fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'ArphicKaiti',
-            ),
-          ),
-        ),
-      ],
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildTagsRow({bool isWhiteText = false}) {
@@ -574,11 +539,6 @@ class DiaryMasonryCard extends StatelessWidget {
       customMoodIconPath: parsed.customMoodIconPath,
     ));
 
-    for (var tag in parsed.tags) {
-      tagWidgets.add(const SizedBox(width: 6));
-      tagWidgets.add(_buildTagPill(tag, isWhiteText: isWhiteText));
-    }
-
     return Wrap(
       spacing: 0,
       runSpacing: 4,
@@ -587,38 +547,29 @@ class DiaryMasonryCard extends StatelessWidget {
   }
 
   Widget _buildTagPill(String text, {required bool isWhiteText, IconData? icon, String? iconPath, String? customMoodIconPath}) {
-    final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
-    final mood = kMoods[moodIdx];
-    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
-    final themeColorConfig = getMoodThemeColor(moodIdx, mood.label, isNight: isNight, isCottonCandy: isCottonCandy);
-    final themeColor = mood.glowColor ?? const Color(0xFFD4A373);
-
     final bool forceWhite = isWhiteText || isNight;
 
     final Color bgColor = forceWhite 
-        ? (isCottonCandy 
-            ? (themeColorConfig.borderColor?.withValues(alpha: 0.15) ?? themeColorConfig.tagColor.withValues(alpha: 0.18)) 
-            : themeColor.withValues(alpha: 0.3)) 
-        : themeColorConfig.tagColor.withValues(alpha: 0.25);
-    final Color textColor = forceWhite 
-        ? (isCottonCandy 
-            ? (themeColorConfig.borderColor ?? themeColorConfig.tagColor) 
-            : Colors.white) 
-        : const Color(0xFF4A3F4F);
-    final Color iconColor = forceWhite 
-        ? (isCottonCandy 
-            ? (themeColorConfig.borderColor ?? themeColorConfig.tagColor) 
-            : Colors.white) 
-        : const Color(0xFFB9A8BD);
+        ? Colors.white.withValues(alpha: 0.08)
+        : const Color(0xFFF2F2F2).withValues(alpha: 0.2);
+
+    final Color borderColor = forceWhite
+        ? Colors.white.withValues(alpha: 0.15)
+        : const Color(0xFFD8D8D8).withValues(alpha: 0.8);
+
+    final Color textColor = forceWhite
+        ? Colors.white.withValues(alpha: 0.75)
+        : const Color(0xFF5C5C5C);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(10),
-        border: isNight && isCottonCandy 
-            ? Border.all(color: themeColorConfig.borderColor?.withValues(alpha: 0.85) ?? themeColorConfig.tagColor.withValues(alpha: 0.25), width: 1.0) 
-            : null,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: borderColor,
+          width: 0.8,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -626,27 +577,28 @@ class DiaryMasonryCard extends StatelessWidget {
           if (customMoodIconPath != null && customMoodIconPath.isNotEmpty) ...[
             Image.file(
               File(customMoodIconPath),
-              width: 12,
-              height: 12,
+              width: 14,
+              height: 14,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 5),
           ] else if (iconPath != null) ...[
             Image.asset(
               iconPath,
-              width: 12,
-              height: 12,
+              width: 14,
+              height: 14,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 5),
           ] else if (icon != null) ...[
-            Icon(icon, size: 10, color: iconColor),
-            const SizedBox(width: 4),
+            Icon(icon, size: 12, color: textColor),
+            const SizedBox(width: 5),
           ],
           Text(
             text,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 11,
               color: textColor,
-              fontWeight: (forceWhite && !isCottonCandy) ? FontWeight.normal : FontWeight.w600,
+              fontWeight: FontWeight.w500,
+              fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai',
             ),
           ),
         ],

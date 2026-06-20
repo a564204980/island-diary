@@ -318,7 +318,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                                 final tp =
                                     TextPainter(
                                       text: layoutSpan,
-                                      maxLines: 3,
+                                      maxLines: 2,
                                       textDirection: TextDirection.ltr,
                                     )..layout(
                                       maxWidth: estimateWidth > 0
@@ -331,12 +331,17 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    RichText(
-                                      maxLines: _isExpanded ? null : 3,
-                                      overflow: _isExpanded
-                                          ? TextOverflow.visible
-                                          : TextOverflow.clip,
-                                      text: displaySpan,
+                                    AnimatedSize(
+                                      duration: const Duration(milliseconds: 250),
+                                      curve: Curves.easeInOut,
+                                      alignment: Alignment.topLeft,
+                                      child: RichText(
+                                        maxLines: _isExpanded ? null : 2,
+                                        overflow: _isExpanded
+                                            ? TextOverflow.visible
+                                            : TextOverflow.clip,
+                                        text: displaySpan,
+                                      ),
                                     ),
                                     if (hasOverflow) ...[
                                       const SizedBox(height: 8),
@@ -365,16 +370,18 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                                                 ),
                                               ),
                                               const SizedBox(width: 4),
-                                              Icon(
-                                                _isExpanded
-                                                    ? Icons.keyboard_arrow_up
-                                                    : Icons.keyboard_arrow_down,
-                                                size: 16,
-                                                color: widget.isNight
-                                                    ? const Color(
-                                                        0xFFD4A373,
-                                                      ).withValues(alpha: 0.8)
-                                                    : const Color(0xFFD4A373),
+                                              AnimatedRotation(
+                                                turns: _isExpanded ? 0.5 : 0.0,
+                                                duration: const Duration(milliseconds: 200),
+                                                child: Icon(
+                                                  Icons.keyboard_arrow_down,
+                                                  size: 16,
+                                                  color: widget.isNight
+                                                      ? const Color(
+                                                          0xFFD4A373,
+                                                        ).withValues(alpha: 0.8)
+                                                      : const Color(0xFFD4A373),
+                                                ),
                                               ),
                                             ],
                                           ),

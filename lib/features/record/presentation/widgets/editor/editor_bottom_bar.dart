@@ -114,51 +114,61 @@ class EditorBottomBar extends StatelessWidget {
             // 工具栏主内容
             Container(
               height: 52,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
-                  // 左侧工具图标组，水平滑动以防小屏溢出
+                  // 左侧工具图标组，利用 LayoutBuilder 动态决定平铺还是滚动
                   Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const ClampingScrollPhysics(),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(width: 4),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final List<Widget> items = [
                           // 1. 笑脸 (表情) 移动至最左侧
                           _buildToolbarIcon(
                             isEmojiOpen ? Icons.keyboard_alt_outlined : Icons.sentiment_satisfied_alt_outlined,
                             onEmojiToggle,
                             iconColor,
                           ),
-                          const SizedBox(width: 4),
                           // 2. A 按钮 (文字样式)
                           _buildTextButton(iconColor),
-                          const SizedBox(width: 4),
                           // 3. 标签按钮（带角标）
                           _buildTagIconWithBadge(context, iconColor),
-                          const SizedBox(width: 4),
                           // 4. 图片
                           _buildToolbarIcon(Icons.image_outlined, onImagePick, iconColor),
-                          const SizedBox(width: 4),
                           // 5. 地点定位
                           _buildToolbarIcon(Icons.location_on_outlined, onLocationClick, iconColor),
-                          const SizedBox(width: 4),
                           // 6. 调色盘 (背景模板)
                           _buildToolbarIcon(Icons.palette_outlined, onBgColorClick, iconColor),
-                          const SizedBox(width: 4),
                           // 7. 太阳 (天气)
                           _buildToolbarIcon(Icons.wb_sunny_outlined, onWeatherClick, iconColor),
-                          const SizedBox(width: 4),
                           // 8. 设置
                           _buildToolbarIcon(Icons.settings_outlined, onMoreClick, iconColor),
-                          const SizedBox(width: 8),
-                        ],
-                      ),
+                        ];
+
+                        // 计算所需宽度：8个图标，每个在 40~44dp 左右（包括 padding），总共约 340dp
+                        // 如果可用宽度大于 340dp，可以直接用 Row 平铺并均匀分配间距，避免用 SingleChildScrollView 导致空旷
+                        if (constraints.maxWidth >= 340) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: items,
+                          );
+                        } else {
+                          // 小屏手机进行横向滚动，使用紧凑间距
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const ClampingScrollPhysics(),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: items.map((w) => Padding(
+                                padding: const EdgeInsets.only(right: 2),
+                                child: w,
+                              )).toList(),
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ),
-                  
+                  const SizedBox(width: 8),
                   // 右侧保存确认按钮
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
@@ -382,6 +392,22 @@ class _AnimatedImagePreviewListState extends State<AnimatedImagePreviewList> {
         );
       }
     }
+
+    // 3. 处理同 ID 元素的字段更新（如 isUploading 状态变化、压缩后路径替换）
+    bool needsRebuild = false;
+    for (int i = 0; i < _localImages.length; i++) {
+      final updated = newImages.firstWhere(
+        (n) => n.id == _localImages[i].id,
+        orElse: () => _localImages[i],
+      );
+      if (!identical(updated, _localImages[i])) {
+        _localImages[i] = updated;
+        needsRebuild = true;
+      }
+    }
+    if (needsRebuild) {
+      setState(() {});
+    }
   }
 
   Widget _buildItem(ImageBlock img, Animation<double> animation) {
@@ -392,66 +418,103 @@ class _AnimatedImagePreviewListState extends State<AnimatedImagePreviewList> {
       child: FadeTransition(
         opacity: animation,
         child: Padding(
-          padding: const EdgeInsets.only(right: 10, top: 4),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: widget.accentColor.withValues(alpha: 0.2)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: DiaryUtils.buildImage(img.file.path, fit: BoxFit.cover),
-                ),
-              ),
-              if (img.videoPath != null)
+          padding: const EdgeInsets.only(right: 6, top: 2), // 缩减预览项之间的右侧间距
+          child: SizedBox(
+            width: 50,
+            height: 50,
+            child: Stack(
+              children: [
+                // 图片 Container，定位在左下角，避让出右上角的 X 按钮
                 Positioned(
-                  left: 3,
-                  bottom: 3,
-                  child: IgnorePointer(
+                  left: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: widget.accentColor.withValues(alpha: 0.15)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          DiaryUtils.buildImage(img.file.path, fit: BoxFit.cover),
+                          // 上传中加载态：加深蒙层并显示精致转圈圈，避免直接显示空白
+                          if (img.isUploading)
+                            Container(
+                              color: Colors.black.withValues(alpha: 0.35),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.8,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                if (img.videoPath != null)
+                  Positioned(
+                    left: 2.5,
+                    bottom: 2.5,
+                    child: IgnorePointer(
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.motion_photos_on,
+                          color: Colors.white,
+                          size: 10,
+                        ),
+                      ),
+                    ),
+                  ),
+                // X 按钮，位置往左下移（即 top: 2, right: 2），使其视觉重心精准压在图片的右上角（一半高度、一半宽度）
+                Positioned(
+                  top: 2,
+                  right: 2,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      final indexInBlocks = widget.blocks.indexOf(img);
+                      if (indexInBlocks != -1) {
+                        widget.onRemoveImage(indexInBlocks);
+                      }
+                    },
                     child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.45),
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: Colors.black,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.motion_photos_on,
+                        Icons.close_rounded,
                         color: Colors.white,
-                        size: 11,
+                        size: 10,
                       ),
                     ),
                   ),
                 ),
-              Positioned(
-                top: -5,
-                right: -5,
-                child: GestureDetector(
-                  onTap: () {
-                    final indexInBlocks = widget.blocks.indexOf(img);
-                    if (indexInBlocks != -1) {
-                      widget.onRemoveImage(indexInBlocks);
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
-                    child: const Icon(Icons.close_rounded, color: Colors.white, size: 10),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -62,16 +62,12 @@ class ProfileHeader extends StatelessWidget {
                           ? Colors.white.withValues(alpha: 0.05)
                           : Colors.white.withValues(alpha: 0.9),
                       border: Border.all(
-                        color: const Color(
-                          0xFF818CF8,
-                        ).withValues(alpha: isNight ? 0.7 : 0.55),
+                        color: _getThemeAccentColor(isNight).withValues(alpha: isNight ? 0.7 : 0.55),
                         width: 4.0,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(
-                            0xFFA855F7,
-                          ).withValues(alpha: isNight ? 0.3 : 0.18),
+                          color: _getThemeAccentColor(isNight).withValues(alpha: isNight ? 0.3 : 0.18),
                           blurRadius: 22,
                           offset: const Offset(0, 8),
                         ),
@@ -80,7 +76,7 @@ class ProfileHeader extends StatelessWidget {
                           ? DecorationImage(
                               image: FileImage(File(path)),
                               fit: BoxFit.cover,
-                            )
+                              )
                           : null,
                     ),
                     child: path == null
@@ -88,13 +84,7 @@ class ProfileHeader extends StatelessWidget {
                             child: Icon(
                               Icons.person_rounded,
                               size: 40,
-                              color: isNight
-                                  ? const Color(
-                                      0xFF818CF8,
-                                    ).withValues(alpha: 0.3)
-                                  : const Color(
-                                      0xFF818CF8,
-                                    ).withValues(alpha: 0.2),
+                              color: _getThemeAccentColor(isNight).withValues(alpha: isNight ? 0.3 : 0.2),
                             ),
                           )
                         : null,
@@ -106,10 +96,14 @@ class ProfileHeader extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [Color(0xFF818CF8), Color(0xFFA855F7)],
+                          colors: isNight
+                              ? const [Color(0xFF818CF8), Color(0xFFA855F7)]
+                              : (UserState().selectedIslandThemeId.value == 'lego'
+                                  ? const [Color(0xFFFDE68A), Color(0xFFD4A373)]
+                                  : const [Color(0xFF818CF8), Color(0xFFA855F7)]),
                         ),
                         shape: BoxShape.circle,
                         border: Border.all(
@@ -120,9 +114,7 @@ class ProfileHeader extends StatelessWidget {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(
-                              0xFFA855F7,
-                            ).withValues(alpha: 0.4),
+                            color: _getThemeAccentColor(isNight).withValues(alpha: 0.4),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -174,7 +166,7 @@ class ProfileHeader extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
-                            color: isNight ? Colors.white : const Color(0xFF1F2937),
+                            color: _getThemeTextColor(isNight),
                             fontFamily: _getFontFamily(),
                             letterSpacing: 1.5,
                           ),
@@ -227,7 +219,7 @@ class ProfileHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 height: 1.5,
-                color: isNight ? Colors.white38 : Colors.black38,
+                color: _getThemeSubTextColor(isNight),
                 fontFamily: _getFontFamily(),
                 letterSpacing: 0.5,
               ),
@@ -303,14 +295,12 @@ class ProfileHeader extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: tier?.cardGradient,
         color: tier == null
-            ? const Color(0xFF818CF8).withValues(alpha: isNight ? 0.12 : 0.08)
+            ? _getThemeAccentColor(isNight).withValues(alpha: isNight ? 0.12 : 0.08)
             : null,
         borderRadius: BorderRadius.circular(16),
         border: tier == null
             ? Border.all(
-                color: const Color(
-                  0xFF818CF8,
-                ).withValues(alpha: isNight ? 0.3 : 0.2),
+                color: _getThemeAccentColor(isNight).withValues(alpha: isNight ? 0.3 : 0.2),
                 width: 0.8,
               )
             : null,
@@ -330,7 +320,7 @@ class ProfileHeader extends StatelessWidget {
           Icon(
             tier?.badge ?? Icons.workspace_premium_rounded,
             size: 13,
-            color: tier != null ? Colors.white : const Color(0xFF818CF8),
+            color: tier != null ? Colors.white : _getThemeAccentColor(isNight),
           ),
           const SizedBox(width: 4),
           Text(
@@ -338,7 +328,7 @@ class ProfileHeader extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: tier != null ? Colors.white : const Color(0xFF818CF8),
+              color: tier != null ? Colors.white : _getThemeAccentColor(isNight),
               fontFamily: _getFontFamily(),
             ),
           ),
@@ -375,7 +365,7 @@ class ProfileHeader extends StatelessWidget {
       } else {
         bgColor = Colors.black.withValues(alpha: 0.03);
         borderColor = Colors.black.withValues(alpha: 0.05);
-        textColor = const Color(0xFF4B5563); // 经典高级岩石灰
+        textColor = const Color(0xFF504845); // 暖炭灰色
       }
     }
 
@@ -543,5 +533,41 @@ class ProfileHeader extends StatelessWidget {
 
   String _getFontFamily() {
     return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+  }
+
+  Color _getThemeTextColor(bool isNight) {
+    if (isNight) return Colors.white;
+    final String themeId = UserState().selectedIslandThemeId.value;
+    if (themeId == 'lego') {
+      return const Color(0xFF4E3629);
+    } else if (themeId == 'cotton_candy') {
+      return const Color(0xFF7C3AED);
+    } else {
+      return const Color(0xFF332F2D);
+    }
+  }
+
+  Color _getThemeSubTextColor(bool isNight) {
+    if (isNight) return Colors.white38;
+    final String themeId = UserState().selectedIslandThemeId.value;
+    if (themeId == 'lego') {
+      return const Color(0xFF8D7A66);
+    } else if (themeId == 'cotton_candy') {
+      return const Color(0xFF9333EA).withValues(alpha: 0.6);
+    } else {
+      return const Color(0xFF7E7570);
+    }
+  }
+
+  Color _getThemeAccentColor(bool isNight) {
+    if (isNight) return const Color(0xFF818CF8);
+    final String themeId = UserState().selectedIslandThemeId.value;
+    if (themeId == 'lego') {
+      return const Color(0xFFB45309);
+    } else if (themeId == 'cotton_candy') {
+      return const Color(0xFF7C3AED);
+    } else {
+      return const Color(0xFF818CF8);
+    }
   }
 }

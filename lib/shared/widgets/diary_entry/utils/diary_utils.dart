@@ -219,7 +219,7 @@ class DiaryUtils {
     final bool isGif = normalizedPath.toLowerCase().endsWith('.gif');
     final int? cacheW = isGif
         ? null
-        : (width != null ? (width * 3).toInt() : 400);
+        : (width != null ? (width * 3).toInt() : null);
 
     if (normalizedPath.startsWith('http') ||
         normalizedPath.startsWith('blob:') ||
@@ -769,9 +769,15 @@ class DiaryUtils {
     );
   }
 
-  /// 压缩图片：将大图片等比例缩放并压缩，保留合理画质不压得太狠（宽限制1200，质量80）
+  /// 压缩图片：将大图片等比例缩放并压缩，根据偏好设置控制开关和压缩质量比例
   static Future<String> compressImage(String originalPath) async {
     try {
+      final bool enabled = UserState().isImageCompressEnabled.value;
+      if (!enabled) {
+        debugPrint("图片压缩功能未开启，跳过压缩");
+        return originalPath;
+      }
+
       final file = io.File(originalPath);
       if (!await file.exists()) return originalPath;
 
@@ -785,17 +791,17 @@ class DiaryUtils {
       }
 
       final bytes = await file.readAsBytes();
-      final image = img.decodeImage(bytes);
-      if (image == null) return originalPath;
-
-      // 等比例缩放：如果宽度大于 1440，则等比缩放到宽度为 1440 以保留高清晰度
-      img.Image resized = image;
-      if (image.width > 1440) {
-        resized = img.copyResize(image, width: 1440);
+      final int quality = UserState().imageCompressQuality.value;
+      
+      // 使用 compute 将 CPU 密集的图片编解码和缩放逻辑分流至后台 Isolate，释放 UI 线程
+      final compressedBytes = await compute(_runImageCompressionWithParams, {
+        'bytes': bytes,
+        'quality': quality,
+      });
+      if (compressedBytes == null) {
+        debugPrint("Isolate 压缩返回为空，回退原路径");
+        return originalPath;
       }
-
-      // 质量压缩：选择 82 以保留非常高品质的视觉效果，不压缩太狠
-      final compressedBytes = img.encodeJpg(resized, quality: 82);
 
       final tempDir = await getTemporaryDirectory();
       final compressedPath =
@@ -803,13 +809,34 @@ class DiaryUtils {
       await io.File(compressedPath).writeAsBytes(compressedBytes);
 
       debugPrint(
-        "图片压缩成功: 原图 ${(sizeInBytes / 1024 / 1024).toStringAsFixed(2)}MB -> 压缩后 ${(compressedBytes.length / 1024).toStringAsFixed(2)}KB",
+        "图片压缩成功 (质量: $quality%): 原图 ${(sizeInBytes / 1024 / 1024).toStringAsFixed(2)}MB -> 压缩后 ${(compressedBytes.length / 1024).toStringAsFixed(2)}KB",
       );
       return compressedPath;
     } catch (e) {
       debugPrint("图片压缩失败: $e");
       return originalPath;
     }
+  }
+}
+
+/// 专供 Isolate 后台执行的图片缩放与编码函数，保持主 UI 线程顺畅
+Uint8List? _runImageCompressionWithParams(Map<String, dynamic> params) {
+  try {
+    final Uint8List bytes = params['bytes'];
+    final int quality = params['quality'] ?? 82;
+    
+    final image = img.decodeImage(bytes);
+    if (image == null) return null;
+
+    img.Image resized = image;
+    if (image.width > 1440) {
+      resized = img.copyResize(image, width: 1440);
+    }
+
+    return img.encodeJpg(resized, quality: quality);
+  } catch (e) {
+    debugPrint("Isolate image compression error: $e");
+    return null;
   }
 }
 

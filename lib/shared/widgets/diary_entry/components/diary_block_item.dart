@@ -220,6 +220,7 @@ class DiaryBlockItem extends StatelessWidget {
       builder: (context, startDelete) {
         return Builder(builder: (context) {
           final bool isWideScreen = MediaQuery.of(context).size.width > 800;
+          final String displayPath = block.localPath ?? block.file.path;
           
           return Center(
             child: Container(
@@ -230,7 +231,7 @@ class DiaryBlockItem extends StatelessWidget {
                 clipBehavior: Clip.none,
                 children: [
                   GestureDetector(
-                    onTap: () => onShowPreview?.call(block),
+                    onTap: block.isUploading ? null : () => onShowPreview?.call(block),
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       // 移除外层装饰和阴影，支持透明背景
@@ -239,17 +240,37 @@ class DiaryBlockItem extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                               child: _LiveImagePlayer(
                                 videoPath: block.videoPath!,
-                                fallbackPath: block.file.path,
+                                fallbackPath: displayPath,
                               ),
                             )
                           : DiaryUtils.buildImage(
-                              block.file.path,
+                              displayPath,
                               fit: BoxFit.contain,
                               borderRadius: BorderRadius.circular(12),
                             ),
                     ),
                   ),
-                  if (block.videoPath != null)
+                  if (block.isUploading)
+                    Positioned.fill(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (block.videoPath != null && !block.isUploading)
                     Positioned(
                       left: 8,
                       bottom: 16,
@@ -268,21 +289,22 @@ class DiaryBlockItem extends StatelessWidget {
                         ),
                       ),
                     ),
-                  Positioned(
-                    top: 14,
-                    right: 6,
-                    child: GestureDetector(
-                      onTap: startDelete,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.black38,
-                          shape: BoxShape.circle,
+                  if (!block.isUploading)
+                    Positioned(
+                      top: 14,
+                      right: 6,
+                      child: GestureDetector(
+                        onTap: startDelete,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.black38,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, color: Colors.white, size: 18),
                         ),
-                        child: const Icon(Icons.close, color: Colors.white, size: 18),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),

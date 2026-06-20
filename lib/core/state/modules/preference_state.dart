@@ -29,7 +29,13 @@ mixin PreferenceMixin on ProfileMixin {
   // 控制是否显示获得道具弹窗
   final ValueNotifier<bool> showPropObtainedPopup = ValueNotifier<bool>(true);
 
+  // 新增图片压缩设置属性
+  final ValueNotifier<bool> isImageCompressEnabled = ValueNotifier<bool>(true);
+  final ValueNotifier<int> imageCompressQuality = ValueNotifier<int>(82);
+
   void loadPreference(SharedPreferences prefs) {
+    isImageCompressEnabled.value = prefs.getBool(UserState().n(_K.isImageCompressEnabled)) ?? true;
+    imageCompressQuality.value = prefs.getInt(UserState().n(_K.imageCompressQuality)) ?? 82;
 
     diaryLayoutMode.value = prefs.getInt(UserState().n(_K.diaryLayoutMode)) ?? 0;
     moodTagHistory.value = prefs.getStringList(UserState().n(_K.moodTagHistory)) ?? [];
@@ -263,5 +269,17 @@ mixin PreferenceMixin on ProfileMixin {
     showPropObtainedPopup.value = value;
     final p = await SharedPreferences.getInstance();
     await p.setBool(UserState().n(_K.showPropObtainedPopup), value);
+  }
+
+  Future<void> setImageCompressEnabled(bool value) async {
+    isImageCompressEnabled.value = value;
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(UserState().n(_K.isImageCompressEnabled), value);
+  }
+
+  Future<void> setImageCompressQuality(int value) async {
+    imageCompressQuality.value = value;
+    final p = await SharedPreferences.getInstance();
+    await p.setInt(UserState().n(_K.imageCompressQuality), value);
   }
 }

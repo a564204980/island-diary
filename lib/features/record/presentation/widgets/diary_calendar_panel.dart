@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lunar/lunar.dart';
@@ -366,6 +367,12 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
     // 提取日记中的照片列表
     final images = entry.blocks.where((b) => b['type'] == 'image').toList();
+    String bgAsset = DiaryUtils.getPaperBackgroundPath(entry.paperStyle, isNight);
+    if (bgAsset.isEmpty) {
+      bgAsset = isNight
+          ? 'assets/images/note/note_night_bg1.png'
+          : 'assets/images/note/note_bg1.png';
+    }
 
     // 日记内容提取逻辑
     final String plainContent = DiaryUtils.getFilteredContent(entry.content).trim();
@@ -400,6 +407,11 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                 ? Colors.white.withValues(alpha: 0.05)
                 : Colors.black.withValues(alpha: 0.03),
             width: 0.5,
+          ),
+          image: DecorationImage(
+            image: AssetImage(bgAsset),
+            fit: BoxFit.cover,
+            opacity: isNight ? 0.40 : 0.82,
           ),
         ),
         child: Row(
@@ -452,34 +464,73 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                   const SizedBox(height: 8),
                   
                   // 心情状态药丸 (含心情表情图)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: badgeColor.withValues(alpha: isNight ? 0.15 : 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (mood.iconPath != null) ...[
-                          Image.asset(
-                            mood.iconPath!,
-                            width: 13,
-                            height: 13,
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                        Text(
-                          mood.label,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: badgeColor.withValues(alpha: isNight ? 0.85 : 0.95),
-                            fontFamily: fontFamily,
+                  Builder(
+                    builder: (context) {
+                      final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+                      final String moodLabel = parsed.customMood ?? mood.label;
+                      final String iconPath = parsed.customMood != null
+                          ? (entry.moodIndex >= 0 && entry.moodIndex <= 23
+                              ? 'assets/icons/custom${entry.moodIndex + 1}.png'
+                              : 'assets/images/icons/custom.png')
+                          : (mood.iconPath ?? 'assets/icons/happy.png');
+                      final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+                        decoration: BoxDecoration(
+                          color: isNight
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : const Color(0xFFF2F2F2).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isNight
+                                ? Colors.white.withValues(alpha: 0.15)
+                                : const Color(0xFFD8D8D8).withValues(alpha: 0.8),
+                            width: 0.8,
                           ),
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            hasCustomIcon
+                                ? Image.file(
+                                    File(parsed.customMoodIconPath!),
+                                    width: 14,
+                                    height: 14,
+                                    errorBuilder: (c, e, s) => Icon(
+                                      Icons.mood,
+                                      size: 14,
+                                      color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
+                                    ),
+                                  )
+                                : Image.asset(
+                                    iconPath,
+                                    width: 14,
+                                    height: 14,
+                                    errorBuilder: (c, e, s) => Icon(
+                                      Icons.mood,
+                                      size: 14,
+                                      color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
+                                    ),
+                                  ),
+                            const SizedBox(width: 5),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 1),
+                              child: Text(
+                                moodLabel,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                                  fontFamily: fontFamily,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

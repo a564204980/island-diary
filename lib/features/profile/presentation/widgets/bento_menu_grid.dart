@@ -241,7 +241,7 @@ class BentoMenuGrid extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: isNight ? Colors.white70 : Colors.black87,
+                color: isNight ? Colors.white.withValues(alpha: 0.8) : _getThemeTextColor(isNight).withValues(alpha: 0.85),
                 fontFamily: _getFontFamily(),
               ),
             ),
@@ -285,11 +285,11 @@ class BentoMenuGrid extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '\u4eba\u751f\u7ebf',
+                    '人生线',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: isNight ? Colors.white70 : Colors.black87,
+                      color: isNight ? Colors.white.withValues(alpha: 0.8) : _getThemeTextColor(isNight).withValues(alpha: 0.85),
                       fontFamily: _getFontFamily(),
                     ),
                   ),
@@ -301,15 +301,15 @@ class BentoMenuGrid extends StatelessWidget {
                         (p) => p.id == id,
                         orElse: () => LifeLineProfile(
                           id: 'default',
-                          name: '\u6d77\u5c9b\u65b0\u5c45\u6c11',
+                          name: '海岛新居民',
                           createdAt: 0,
                         ),
                       );
                       return Text(
-                        '\u5f53\u524d: ${current.name}',
+                        '当前: ${current.name}',
                         style: TextStyle(
                           fontSize: 10,
-                          color: isNight ? Colors.white38 : Colors.black38,
+                          color: _getThemeSubTextColor(isNight),
                         ),
                       );
                     },
@@ -362,7 +362,7 @@ class BentoMenuGrid extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: isNight ? Colors.white70 : Colors.black87,
+                      color: isNight ? Colors.white.withValues(alpha: 0.8) : _getThemeTextColor(isNight).withValues(alpha: 0.85),
                       fontFamily: _getFontFamily(),
                     ),
                   ),
@@ -393,6 +393,30 @@ class BentoMenuGrid extends StatelessWidget {
 
   String _getFontFamily() {
     return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+  }
+
+  Color _getThemeTextColor(bool isNight) {
+    if (isNight) return Colors.white;
+    final String themeId = UserState().selectedIslandThemeId.value;
+    if (themeId == 'lego') {
+      return const Color(0xFF4E3629);
+    } else if (themeId == 'cotton_candy') {
+      return const Color(0xFF7C3AED);
+    } else {
+      return const Color(0xFF332F2D);
+    }
+  }
+
+  Color _getThemeSubTextColor(bool isNight) {
+    if (isNight) return Colors.white38;
+    final String themeId = UserState().selectedIslandThemeId.value;
+    if (themeId == 'lego') {
+      return const Color(0xFF8D7A66);
+    } else if (themeId == 'cotton_candy') {
+      return const Color(0xFF9333EA).withValues(alpha: 0.6);
+    } else {
+      return const Color(0xFF7E7570);
+    }
   }
 }
 
@@ -440,13 +464,17 @@ class _ThemeOptionsWidget extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                '\u4e3b\u9898\u6a21\u5f0f',
+                '主题模式',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                  color: isNight
+                      ? Colors.white.withValues(alpha: 0.8)
+                      : (UserState().selectedIslandThemeId.value == 'lego'
+                          ? const Color(0xFF4E3629).withValues(alpha: 0.85)
+                          : (UserState().selectedIslandThemeId.value == 'cotton_candy'
+                              ? const Color(0xFF7C3AED).withValues(alpha: 0.85)
+                              : const Color(0xFF332F2D).withValues(alpha: 0.8))),
                   fontFamily: _getFontFamily(),
                 ),
               ),

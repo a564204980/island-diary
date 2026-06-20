@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
 
 /// 全局顶置卡片式通知召唤方法
-void showTopToast(
+OverlayEntry showTopToast(
   BuildContext context,
   String message, {
   IconData icon = Icons.info_outline_rounded,
@@ -29,6 +29,7 @@ void showTopToast(
   );
   
   overlayState.insert(overlayEntry);
+  return overlayEntry;
 }
 
 /// 顶部胶囊通知公共组件，支持高度自定义

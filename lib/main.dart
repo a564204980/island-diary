@@ -73,11 +73,11 @@ class IslandDiaryApp extends StatelessWidget {
               brightness: Brightness.dark,
             ),
             useMaterial3: true,
-            scaffoldBackgroundColor: const Color(0xFF0D1B2A),
+            scaffoldBackgroundColor: const Color(0xFF1E1E1F),
             fontFamily: darkFont,
             bottomSheetTheme: const BottomSheetThemeData(
               showDragHandle: false,
-              backgroundColor: Color(0xFF1A1A1A),
+              backgroundColor: Color(0xFF1F1F1F),
               surfaceTintColor: Colors.transparent,
               elevation: 0,
               shape: RoundedRectangleBorder(

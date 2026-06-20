@@ -82,7 +82,7 @@ extension _BentoMoodPalette on _StatisticsPageState {
                               fontWeight: FontWeight.bold,
                               color: isNight
                                   ? Colors.white.withValues(alpha: 0.9)
-                                  : (isCottonCandy ? const Color(0xFF5A3E28) : const Color(0xFF5A3E28)),
+                                  : (isCottonCandy ? const Color(0xFF332F2D) : const Color(0xFF332F2D)),
                               fontFamily: 'LXGWWenKai',
                             ),
                           ),

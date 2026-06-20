@@ -144,7 +144,7 @@ extension _BentoMemoriesToday on _StatisticsPageState {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isNight ? Colors.white : const Color(0xFF5A3E28),
+                  color: isNight ? Colors.white : const Color(0xFF332F2D),
                 ),
               ),
             ],
@@ -227,7 +227,7 @@ extension _BentoMemoriesToday on _StatisticsPageState {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: isNight ? Colors.white : const Color(0xFF5A3E28),
+                        color: isNight ? Colors.white : const Color(0xFF332F2D),
                       ),
                     ),
                   ],

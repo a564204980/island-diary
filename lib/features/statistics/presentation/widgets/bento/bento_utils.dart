@@ -201,7 +201,7 @@ extension _BentoUtils on _StatisticsPageState {
     return TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.bold,
-      color: isNight ? Colors.white : const Color(0xFF5A3E28),
+      color: isNight ? Colors.white : const Color(0xFF332F2D),
       letterSpacing: 0.5,
     );
   }
@@ -259,7 +259,7 @@ extension _BentoUtils on _StatisticsPageState {
                                   fontWeight: FontWeight.bold,
                                   color: isNight
                                       ? Colors.white
-                                      : const Color(0xFF5A3E28),
+                                      : const Color(0xFF332F2D),
                                 ),
                               ),
                               GestureDetector(

@@ -26,6 +26,7 @@ import 'package:island_diary/features/home/presentation/widgets/backup_reminder_
 import 'package:island_diary/features/home/presentation/widgets/restore_overlays.dart';
 import 'package:island_diary/features/home/presentation/widgets/layout_quick_switcher.dart';
 import 'package:island_diary/features/home/presentation/widgets/mood_barrage_layer.dart';
+import 'package:island_diary/features/home/presentation/widgets/random_memory_overlay.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -552,8 +553,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           Row(
                             children: [
                               if (_currentNavIndex == 0) ...[
-                                 _buildTopIconButton(
-                                   icon: Icons.auto_fix_high_rounded,
+                                _buildTopIconButton(
+                                  icon: Icons.auto_fix_high_rounded,
                                    isNight: isNight,
                                    onTap: () {
                                      showModalBottomSheet(
@@ -652,6 +653,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
+              // 侧边右侧沙漏按钮：仅在首页显示
+              if (_currentNavIndex == 0 && !_isLandscape)
+                Positioned(
+                  right: 24,
+                  top: MediaQuery.of(context).size.height * 0.45,
+                  child: _buildTopIconButton(
+                    icon: Icons.hourglass_empty_rounded,
+                    isNight: isNight,
+                    animate: false,
+                    onTap: () => RandomMemoryOverlay.show(context, isNight: isNight),
+                  ),
+                ),
+
               if (_isRestoring)
                 RestoreLoadingOverlay(
                   text: "正在还原备份数据，请稍候...",
@@ -974,8 +988,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     required IconData icon,
     required bool isNight,
     required VoidCallback onTap,
+    bool animate = true,
   }) {
-    return GestureDetector(
+    final button = GestureDetector(
           onTap: onTap,
           child: RepaintBoundary(
             child: ClipOval(
@@ -1004,7 +1019,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             ),
           ),
-        )
+        );
+    if (!animate) return button;
+    return button
         .animate(onPlay: (controller) => controller.repeat(reverse: true))
         .scale(
           begin: const Offset(1, 1),

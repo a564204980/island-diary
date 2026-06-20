@@ -40,7 +40,7 @@ class DiaryBottomSheet extends StatelessWidget {
       if (isNight) {
         bgColor = themeId == 'cotton_candy' 
             ? const Color(0xFF1E1B2E)
-            : (themeId == 'lego' ? const Color(0xFF18181B) : const Color(0xFF162537));
+            : (themeId == 'lego' ? const Color(0xFF18181B) : const Color(0xFF1F1F1F));
         inkColor = Colors.white;
       } else {
         bgColor = themeId == 'cotton_candy' 
@@ -57,7 +57,7 @@ class DiaryBottomSheet extends StatelessWidget {
         left: 20,
         right: 20,
         top: showDragHandle ? 12 : 20,
-        bottom: 24 + MediaQuery.of(context).padding.bottom + MediaQuery.of(context).viewInsets.bottom,
+        bottom: 24 + MediaQuery.of(context).padding.bottom,
       ),
       margin: isLego ? const EdgeInsets.only(bottom: 6) : null,
       decoration: DiaryUtils.getPopupDecoration(paperStyle, isNight, customBgColor: bgColor),
@@ -85,13 +85,16 @@ class DiaryBottomSheet extends StatelessWidget {
         ],
       ),
     );
-
+ 
     return BackdropFilter(
       filter: ImageFilter.blur(
         sigmaX: isNight ? 15 : 0,
         sigmaY: isNight ? 15 : 0,
       ),
-      child: content,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: content,
+      ),
     );
   }
 }

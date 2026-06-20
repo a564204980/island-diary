@@ -235,9 +235,6 @@ class _DiaryFeaturedCardState extends State<DiaryFeaturedCard> {
                             );
                           }
                         ),
-                        ...ParsedTags.parse(entry.tag, entry.moodIndex).tags.map((tag) {
-                          return _buildTag(tag, isOverlay: true);
-                        }),
                       ],
                     ),
                     ],

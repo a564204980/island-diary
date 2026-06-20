@@ -194,6 +194,83 @@ class SettingsPage extends StatelessWidget {
                             },
                           ),
                           _buildDivider(isNight),
+                          ListenableBuilder(
+                            listenable: Listenable.merge([
+                              UserState().isImageCompressEnabled,
+                              UserState().imageCompressQuality,
+                            ]),
+                            builder: (context, _) {
+                              final enabled = UserState().isImageCompressEnabled.value;
+                              final quality = UserState().imageCompressQuality.value;
+                              return Column(
+                                children: [
+                                  _SettingsTile(
+                                    title: '上传前自动压缩图片',
+                                    icon: Icons.image_aspect_ratio_rounded,
+                                    accentColor: const Color(0xFF6366F1),
+                                    isNight: isNight,
+                                    trailing: Switch(
+                                      value: enabled,
+                                      activeThumbColor: isNight ? const Color(0xFF818CF8) : const Color(0xFF7E57C2),
+                                      onChanged: (val) {
+                                        UserState().setImageCompressEnabled(val);
+                                      },
+                                    ),
+                                    onTap: () {
+                                      UserState().setImageCompressEnabled(!enabled);
+                                    },
+                                  ),
+                                  if (enabled) ...[
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(68, 4, 20, 12),
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            '压缩质量比例: ',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isNight ? Colors.white38 : Colors.black45,
+                                              fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai',
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: SliderTheme(
+                                              data: SliderThemeData(
+                                                trackHeight: 2,
+                                                activeTrackColor: isNight ? const Color(0xFF818CF8) : const Color(0xFF7E57C2),
+                                                inactiveTrackColor: (isNight ? const Color(0xFF818CF8) : const Color(0xFF7E57C2)).withValues(alpha: 0.15),
+                                                thumbColor: isNight ? const Color(0xFF818CF8) : const Color(0xFF7E57C2),
+                                                overlayColor: (isNight ? const Color(0xFF818CF8) : const Color(0xFF7E57C2)).withValues(alpha: 0.1),
+                                              ),
+                                              child: Slider(
+                                                value: quality.toDouble(),
+                                                min: 30,
+                                                max: 100,
+                                                divisions: 70,
+                                                onChanged: (val) {
+                                                  UserState().setImageCompressQuality(val.round());
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                          Text(
+                                            '$quality%',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: isNight ? const Color(0xFF818CF8) : const Color(0xFF7E57C2),
+                                              fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai',
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              );
+                            },
+                          ),
+                          _buildDivider(isNight),
                           _SettingsTile(
                             title: '调试：触发获得道具弹窗',
                             icon: Icons.animation_rounded,
