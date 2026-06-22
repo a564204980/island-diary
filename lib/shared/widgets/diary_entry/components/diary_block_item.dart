@@ -382,7 +382,7 @@ class DiaryBlockItem extends StatelessWidget {
                           ),
                         ),
                       ),
-                    if (!block.isUploading && (isFloating || onWrapImageBlock != null))
+                    if (!block.isUploading && isFloating)
                       Positioned(
                         top: 14,
                         left: 6,

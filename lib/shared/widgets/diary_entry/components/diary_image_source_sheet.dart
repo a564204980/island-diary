@@ -234,10 +234,6 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
                           onTap: () {
                             setState(() {
                               _localImageGrid = false;
-                              if (_localTextWrap) {
-                                _localTextWrap = false;
-                                widget.onTextWrapChanged?.call(false);
-                              }
                             });
                             widget.onImageGridChanged?.call(false);
                           },
@@ -278,8 +274,8 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
                             label: '开启环绕',
                             isSelected: _localTextWrap,
                             onTap: () {
-                              if (!_localMixedLayout || !_localImageGrid) {
-                                showTopToast(context, '开启环绕需启用混排和智能拼图');
+                              if (!_localMixedLayout) {
+                                showTopToast(context, '开启环绕需启用图文混排');
                                 return;
                               }
                               setState(() {
