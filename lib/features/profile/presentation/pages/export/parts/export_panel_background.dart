@@ -166,17 +166,17 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: _bgSettings.imagePath != null ? const Color(0xFF5A3E28) : Colors.transparent,
+                      color: _bgSettings.imagePath != null && !_bgSettings.imagePath!.startsWith('assets/') ? const Color(0xFF5A3E28) : Colors.transparent,
                       width: 2,
                     ),
-                    image: _bgSettings.imagePath != null
+                    image: _bgSettings.imagePath != null && !_bgSettings.imagePath!.startsWith('assets/')
                         ? DecorationImage(
                             image: FileImage(File(_bgSettings.imagePath!)),
                             fit: BoxFit.cover,
                           )
                         : null,
                   ),
-                  child: _bgSettings.imagePath == null
+                  child: _bgSettings.imagePath == null || _bgSettings.imagePath!.startsWith('assets/')
                       ? const Center(
                           child: Icon(
                             Icons.add_photo_alternate_outlined,
@@ -187,6 +187,43 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                       : null,
                 ),
               ),
+              // 信纸背景选项
+              for (int n = 1; n <= 9; n++) ...[
+                Builder(
+                  builder: (context) {
+                    final String paperStyle = 'note$n';
+                    final String paperBg = DiaryUtils.getPaperBackgroundPath(paperStyle, false);
+                    final Color paperColor = DiaryUtils.getPaperBaseColor(paperStyle, false);
+                    final bool isSelected = _bgSettings.imagePath == paperBg;
+                    return GestureDetector(
+                      onTap: () {
+                        _saveToHistory();
+                        updateState(() {
+                          _bgSettings.imagePath = paperBg;
+                          _bgSettings.color = paperColor;
+                        });
+                      },
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        margin: const EdgeInsets.only(right: 10),
+                        decoration: BoxDecoration(
+                          color: paperColor,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF5A3E28) : Colors.transparent,
+                            width: 2,
+                          ),
+                          image: DecorationImage(
+                            image: AssetImage(paperBg),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                ),
+              ],
             ],
           ),
         ),

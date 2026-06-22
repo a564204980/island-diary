@@ -6,21 +6,27 @@ import '../utils/diary_utils.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/island_vip_guard_dialog.dart';
 
+import 'package:island_diary/shared/widgets/top_toast.dart';
+
 class DiaryImageSourceSheet extends StatefulWidget {
   final String paperStyle;
   final bool? isMixedLayout;
   final bool? isImageGrid;
+  final bool? isTextWrap;
   final Function(bool)? onMixedLayoutChanged;
   final Function(bool)? onImageGridChanged;
+  final Function(bool)? onTextWrapChanged;
 
   const DiaryImageSourceSheet({
-    super.key,
+    key,
     this.paperStyle = 'standard',
     this.isMixedLayout,
     this.isImageGrid,
+    this.isTextWrap,
     this.onMixedLayoutChanged,
     this.onImageGridChanged,
-  });
+    this.onTextWrapChanged,
+  }) : super(key: key);
 
   @override
   State<DiaryImageSourceSheet> createState() => _DiaryImageSourceSheetState();
@@ -29,12 +35,14 @@ class DiaryImageSourceSheet extends StatefulWidget {
 class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
   late bool _localMixedLayout;
   late bool _localImageGrid;
+  late bool _localTextWrap;
 
   @override
   void initState() {
     super.initState();
     _localMixedLayout = widget.isMixedLayout ?? false;
     _localImageGrid = widget.isImageGrid ?? false;
+    _localTextWrap = widget.isTextWrap ?? false;
   }
 
   @override
@@ -163,6 +171,10 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
                           onTap: () {
                             setState(() {
                               _localMixedLayout = false;
+                              if (_localTextWrap) {
+                                _localTextWrap = false;
+                                widget.onTextWrapChanged?.call(false);
+                              }
                             });
                             widget.onMixedLayoutChanged?.call(false);
                           },
@@ -222,6 +234,10 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
                           onTap: () {
                             setState(() {
                               _localImageGrid = false;
+                              if (_localTextWrap) {
+                                _localTextWrap = false;
+                                widget.onTextWrapChanged?.call(false);
+                              }
                             });
                             widget.onImageGridChanged?.call(false);
                           },
@@ -235,6 +251,67 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
                   ),
                 ],
               ),
+              if (widget.onTextWrapChanged != null) ...[
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '文字环绕',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: fontFamily,
+                        color: inkColor.withValues(alpha: 0.75),
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      padding: const EdgeInsets.all(2.5),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildSegmentButton(
+                            label: '开启环绕',
+                            isSelected: _localTextWrap,
+                            onTap: () {
+                              if (!_localMixedLayout || !_localImageGrid) {
+                                showTopToast(context, '开启环绕需启用混排和智能拼图');
+                                return;
+                              }
+                              setState(() {
+                                _localTextWrap = true;
+                              });
+                              widget.onTextWrapChanged?.call(true);
+                            },
+                            accentColor: accentColor,
+                            inkColor: inkColor,
+                            fontFamily: fontFamily,
+                            isNight: isNight,
+                          ),
+                          _buildSegmentButton(
+                            label: '独占整行',
+                            isSelected: !_localTextWrap,
+                            onTap: () {
+                              setState(() {
+                                _localTextWrap = false;
+                              });
+                              widget.onTextWrapChanged?.call(false);
+                            },
+                            accentColor: accentColor,
+                            inkColor: inkColor,
+                            fontFamily: fontFamily,
+                            isNight: isNight,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
             const SizedBox(height: 8),
           ],

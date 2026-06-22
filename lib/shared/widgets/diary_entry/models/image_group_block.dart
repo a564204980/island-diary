@@ -27,9 +27,20 @@ class ImageGroupBlock extends DiaryBlock {
 
     for (final block in originalBlocks) {
       if (block is ImageBlock) {
-        // 遇到图片，直接忽略图片前面的空文本块，让图片保持连续合并
-        pendingEmptyTextBlocks.clear();
-        tempImages.add(block);
+        if (block.isFloating) {
+          // 遇到开启环绕的图片，不进行合并，先结算之前的图片组和空文本块
+          if (tempImages.isNotEmpty) {
+            result.add(ImageGroupBlock(List.from(tempImages)));
+            tempImages.clear();
+          }
+          result.addAll(pendingEmptyTextBlocks);
+          pendingEmptyTextBlocks.clear();
+          result.add(block);
+        } else {
+          // 遇到图片，直接忽略图片前面的空文本块，让图片保持连续合并
+          pendingEmptyTextBlocks.clear();
+          tempImages.add(block);
+        }
       } else if (block is TextBlock && block.controller.text.trim().isEmpty) {
         // 暂存空文本块，不立刻打断图片连续性
         pendingEmptyTextBlocks.add(block);

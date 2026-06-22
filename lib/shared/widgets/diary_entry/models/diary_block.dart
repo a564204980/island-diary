@@ -45,7 +45,15 @@ abstract class DiaryBlock {
       final path = map['path'];
       if (path != null && path.toString().isNotEmpty) {
         final videoPath = map['videoPath']?.toString();
-        return ImageBlock(XFile(path.toString()), id: id, videoPath: videoPath);
+        final isFloating = map['isFloating'] as bool? ?? false;
+        final floatAlignment = map['floatAlignment']?.toString() ?? 'left';
+        return ImageBlock(
+          XFile(path.toString()),
+          id: id,
+          videoPath: videoPath,
+          isFloating: isFloating,
+          floatAlignment: floatAlignment,
+        );
       }
       return TextBlock('');
     } else if (type == 'audio') {
@@ -240,7 +248,43 @@ class DiaryTextEditingController extends TextEditingController {
     final double fontSize = rectHeight / 1.8;
     final double y = fontSize * 1.6;
 
-    if (style == 'wavy') {
+    if (style == 'circle') {
+      paint.strokeWidth = 1.6;
+      paint.strokeCap = StrokeCap.round;
+      
+      final double startY = rectHeight * 0.12;
+      final double endY = rectHeight * 0.94;
+      final double midY = startY + (endY - startY) / 2;
+      
+      final path = Path();
+      // 使用贝塞尔曲线画一个稍带手绘抖动感的封闭椭圆
+      path.moveTo(1.2, midY - 1);
+      path.quadraticBezierTo(2.0, startY + 0.5, 7.0, startY);
+      path.quadraticBezierTo(13.5, startY + 0.2, 13.5, midY + 0.8);
+      path.quadraticBezierTo(13.2, endY - 0.5, 7.0, endY);
+      path.quadraticBezierTo(1.0, endY - 0.2, 1.2, midY - 1);
+      path.close();
+      
+      canvas.drawPath(path, paint);
+
+      final picture = recorder.endRecording();
+      final width = 14;
+      final height = rectHeight.clamp(1.0, 1000.0).toInt();
+      final img = picture.toImageSync(width, height);
+      final shader = ImageShader(
+        img,
+        TileMode.repeated,
+        TileMode.repeated,
+        Float64List.fromList([
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]),
+      );
+      _shaderCache[key] = shader;
+      return shader;
+    } else if (style == 'wavy') {
       paint.strokeWidth = 2.6; // 从 1.8 加粗到 2.6
       paint.strokeCap = StrokeCap.round;
       final path = Path();
@@ -479,6 +523,7 @@ class DiaryTextEditingController extends TextEditingController {
   late List<TextAttribute> attributes;
   Map<String, String>? annotations;
   void Function(String key)? onAnnotationTap;
+  int blockIndex = 0; // 记录当前的 blockIndex
 
   DiaryTextEditingController({
     super.text,
@@ -488,6 +533,7 @@ class DiaryTextEditingController extends TextEditingController {
     List<TextAttribute>? attributes,
     this.annotations,
     this.onAnnotationTap,
+    this.blockIndex = 0,
   }) : baseColor =
            baseColor ??
            (UserState().isNight
@@ -706,6 +752,7 @@ class DiaryTextEditingController extends TextEditingController {
     final textContent = trimTrailing ? text.trimRight() : text;
     if (textContent.isEmpty) return TextSpan(style: style, text: textContent);
 
+    final int effectiveBlockIndex = blockIndex != 0 ? blockIndex : this.blockIndex;
     final List<Map<String, dynamic>> blockAnnotations = [];
     final effectiveAnnotations = annotations ?? this.annotations;
     final effectiveOnAnnotationTap = onAnnotationTap ?? this.onAnnotationTap;
@@ -713,7 +760,7 @@ class DiaryTextEditingController extends TextEditingController {
     if (effectiveAnnotations != null) {
       effectiveAnnotations.forEach((key, value) {
         final parts = key.split('_');
-        if (parts.length == 3 && int.tryParse(parts[0]) == blockIndex) {
+        if (parts.length == 3 && int.tryParse(parts[0]) == effectiveBlockIndex) {
           final startVal = int.tryParse(parts[1]);
           final endVal = int.tryParse(parts[2]);
           if (startVal != null && endVal != null) {
@@ -1040,6 +1087,13 @@ class DiaryTextEditingController extends TextEditingController {
                 const double lh = 1.8;
                 final double rectHeight = fs * lh;
                 final String style = attr.underlineStyle ?? 'solid';
+                if (style.startsWith('circle')) {
+                  return TextStyle(
+                    color: attr.color ?? baseColor,
+                    fontSize: attr.fontSize,
+                    height: 1.8,
+                  );
+                }
                 final lineColor = attr.color ?? () {
                   switch (style) {
                     case 'solid': return const Color(0xFF4A90E2);
@@ -1266,6 +1320,8 @@ class ImageBlock extends DiaryBlock {
   final String? videoPath; // 实况图对应的视频路径
   final String? localPath; // 编辑时本地缓存或原图路径
   final bool isUploading; // 是否正在上传
+  bool isFloating;
+  String floatAlignment; // 'left' or 'right'
 
   ImageBlock(
     this.file, {
@@ -1273,6 +1329,8 @@ class ImageBlock extends DiaryBlock {
     this.videoPath,
     this.localPath,
     this.isUploading = false,
+    this.isFloating = false,
+    this.floatAlignment = 'left',
   });
 
   @override
@@ -1281,6 +1339,8 @@ class ImageBlock extends DiaryBlock {
     'type': 'image',
     'path': file.path,
     if (videoPath != null) 'videoPath': videoPath,
+    'isFloating': isFloating,
+    'floatAlignment': floatAlignment,
   };
 }
 
@@ -1361,4 +1421,20 @@ class _CommentBubblePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class TextWrapGroupBlock extends DiaryBlock {
+  final ImageBlock imageBlock;
+  final TextBlock textBlock;
+  final String alignment; // 'left' or 'right'
+
+  TextWrapGroupBlock({
+    required this.imageBlock,
+    required this.textBlock,
+    required this.alignment,
+    super.id,
+  });
+
+  @override
+  Map<String, dynamic> toMap() => {};
 }

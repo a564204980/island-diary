@@ -109,6 +109,21 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   // 临时挂载的待截图图表组件
   Widget? _capturingChartWidget;
 
+  String _initialCanvasStateJson = '';
+
+  String _getCanvasStateJson() {
+    final elementsMap = _elements.map((e) => e.toMap()).toList();
+    final bgSettingsMap = _pageBgSettings.map((k, v) => MapEntry(k.toString(), v.toMap()));
+    final state = {
+      'pageSize': _pageSize.toMap(),
+      'isLandscape': _isLandscape,
+      'margin': _margin.toMap(),
+      'pageBgSettings': bgSettingsMap,
+      'elements': elementsMap,
+    };
+    return json.encode(state);
+  }
+
   AnimationController? _matrixAnimationController;
   Animation<Matrix4>? _matrixAnimation;
   BoxConstraints? _lastConstraints;
@@ -565,6 +580,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     });
     _exportSettings.fileName = '${widget.book.name}_导出';
     _initDefaultElements();
+    _initialCanvasStateJson = _getCanvasStateJson();
     _transformationController.addListener(_onViewportChanged);
     _loadLocalTemplates();
   }
@@ -572,6 +588,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   // 初始化默认放入一些精美的占位元素，基于用户日记，起点和宽度与页边距联动
   void _initDefaultElements() {
     _elements = [];
+    _pageBgSettings.clear();
     if (widget.diaries.isEmpty) return;
 
     double currentY = _margin.top;
@@ -618,6 +635,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
         int currentPageIndex = (currentY / _canvasHeight).floor();
         currentY = (currentPageIndex + 1) * _canvasHeight + _margin.top;
       }
+      final int startPageIndex = (currentY / _canvasHeight).floor();
 
       // 1. 日期天数元素 (Georgia 68)
       final dayElement = ExportElement(
@@ -679,7 +697,61 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
       final String moodLabel = parsed.customMood ?? mood.label;
       
       final List<String> tagTexts = [];
-      tagTexts.add("😊 $moodLabel");
+      final String mascotPath = UserState().selectedMascotType.value;
+      String categoryId = '云织';
+      if (mascotPath.contains('marshmallow2')) {
+        categoryId = '笃守';
+      } else if (mascotPath.contains('marshmallow3')) {
+        categoryId = '灵犀';
+      } else if (mascotPath.contains('marshmallow4')) {
+        categoryId = '霜见';
+      }
+
+      final moodMap = const {
+        '低落': ['低落', '呜呜', '大哭', '委屈'],
+        '烦躁': ['烦躁', '生气', '叹气'],
+        '疲惫': ['疲惫', '困', '叹气'],
+        '惊喜': ['惊喜', '惊讶', '震惊'],
+        '平静': ['平静', '好的', '发呆'],
+        '焦虑': ['焦虑', '委屈', '生气'],
+        '无聊': ['无聊', '无语', '发呆'],
+        '期待': ['期待', '比心', '星星', '喜欢'],
+      };
+
+      int? matchedPua;
+      final category = EmojiMapping.categories.firstWhere((c) => c['id'] == categoryId, orElse: () => EmojiMapping.categories.first);
+      final emojis = category['emojis'] as List;
+
+      for (var e in emojis) {
+        if (e['name'] == moodLabel) {
+          matchedPua = e['pua'] as int;
+          break;
+        }
+      }
+
+      if (matchedPua == null && moodMap.containsKey(moodLabel)) {
+        for (var altName in moodMap[moodLabel]!) {
+          for (var e in emojis) {
+            if (e['name'] == altName) {
+              matchedPua = e['pua'] as int;
+              break;
+            }
+          }
+          if (matchedPua != null) break;
+        }
+      }
+
+      if (matchedPua == null) {
+        for (var e in emojis) {
+          if (e['name'] == '开心') {
+            matchedPua = e['pua'] as int;
+            break;
+          }
+        }
+      }
+
+      final String moodEmoji = matchedPua != null ? String.fromCharCode(matchedPua) : '😊';
+      tagTexts.add("$moodEmoji $moodLabel");
       for (var t in parsed.tags) {
         tagTexts.add("#$t");
       }
@@ -707,11 +779,12 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
           content: text,
           fontSize: 11,
           fontWeight: 'bold',
+          textAlign: 'center',
           color: const Color(0xFF5E6C6D),
-          textBackgroundColor: const Color(0xFFFFFDF9),
+          textBackgroundColor: const Color(0xFF000000),
           textBackgroundBorderRadius: 12.0,
           textBackgroundPadding: 6.0,
-          textBackgroundOpacity: 1.0,
+          textBackgroundOpacity: 0.04,
         );
         _adjustTextElementWidth(tempElem);
         
@@ -731,11 +804,12 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
             content: text,
             fontSize: 11,
             fontWeight: 'bold',
+            textAlign: 'center',
             color: const Color(0xFF5E6C6D),
-            textBackgroundColor: const Color(0xFFFFFDF9),
+            textBackgroundColor: const Color(0xFF000000),
             textBackgroundBorderRadius: 12.0,
             textBackgroundPadding: 6.0,
-            textBackgroundOpacity: 1.0,
+            textBackgroundOpacity: 0.04,
           ),
         );
 
@@ -1041,6 +1115,24 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
           currentY += 8.0;
         }
       }
+
+      final int endPageIndex = (currentY / _canvasHeight).floor();
+      for (int pIdx = startPageIndex; pIdx <= endPageIndex; pIdx++) {
+        final String paperBg = DiaryUtils.getPaperBackgroundPath(diary.paperStyle, false);
+        final Color paperColor = DiaryUtils.getPaperBaseColor(diary.paperStyle, false);
+        _pageBgSettings.putIfAbsent(
+          pIdx,
+          () => ExportBackgroundSettings(
+            color: paperColor,
+            imagePath: paperBg.isNotEmpty ? paperBg : null,
+            opacity: 1.0,
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+            cropRatio: null,
+          ),
+        );
+      }
     }
 
     // 针对短文本元素自适应测量实际文字宽度以紧贴文本内容
@@ -1203,6 +1295,10 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   }
 
   void _handleBackPress() {
+    if (_initialCanvasStateJson == _getCanvasStateJson()) {
+      Navigator.pop(context);
+      return;
+    }
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -1296,7 +1392,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: _initialCanvasStateJson == _getCanvasStateJson(),
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _handleBackPress();

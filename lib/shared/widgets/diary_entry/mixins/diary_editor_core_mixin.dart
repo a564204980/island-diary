@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -57,6 +58,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   String currentPaperStyle = 'classic';
   bool isMixedLayout = true; // 是否开启图文混排
   bool isImageGrid = false; // 是否开启图片九宫格
+  bool isTextWrap = false; // 是否开启文字环绕图片
   String currentBookId = 'default'; // 当前选择的日记本ID
 
   String get fixedQuote => _fixedQuote ?? '';
@@ -112,6 +114,15 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     }
     _isInitializing = false;
     isModified = false;
+    initialEditorStateJson = getEditorStateJson();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && blocks.isNotEmpty) {
+        final firstText = blocks.whereType<TextBlock>().firstOrNull;
+        if (firstText != null) {
+          firstText.focusNode.requestFocus();
+        }
+      }
+    });
   }
 
   void updateMoodQuote() {
@@ -611,5 +622,51 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     
     // 同步当前默认文字颜色，用于后续新生成的块
     currentTextColor = targetColor;
+  }
+
+  String initialEditorStateJson = '';
+
+  String getEditorStateJson() {
+    final blockMaps = blocks.map((b) {
+      if (b is TextBlock) {
+        return {
+          'type': 'text',
+          'text': b.controller.text,
+          'attributes': (b.controller is DiaryTextEditingController)
+              ? (b.controller as DiaryTextEditingController).attributes.map((a) => a.toMap()).toList()
+              : [],
+        };
+      } else if (b is ImageBlock) {
+        return {
+          'type': 'image',
+          'path': b.file.path,
+        };
+      } else if (b is AudioBlock) {
+        return {
+          'type': 'audio',
+          'path': b.path,
+          'name': b.name,
+        };
+      }
+      return b.toMap();
+    }).toList();
+
+    final state = {
+      'blocks': blockMaps,
+      'moodIndex': currentMoodIndex,
+      'intensity': currentIntensity,
+      'tag': currentTag,
+      'weather': weather,
+      'temp': temp,
+      'location': location,
+      'customDate': customDate,
+      'customTime': customTime,
+      'paperStyle': currentPaperStyle,
+      'isImageGrid': isImageGrid,
+      'isMixedLayout': isMixedLayout,
+      'isTextWrap': isTextWrap,
+      'bookId': currentBookId,
+    };
+    return json.encode(state);
   }
 }

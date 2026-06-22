@@ -111,6 +111,14 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     final timeStr =
         "${widget.entry.dateTime.hour.toString().padLeft(2, '0')}:${widget.entry.dateTime.minute.toString().padLeft(2, '0')}";
 
+    String bgAsset = DiaryUtils.getPaperBackgroundPath(widget.entry.paperStyle, widget.isNight);
+    if (bgAsset.isEmpty) {
+      bgAsset = widget.isNight
+          ? 'assets/images/note/note_night_bg1.png'
+          : 'assets/images/note/note_bg1.png';
+    }
+    precacheImage(AssetImage(bgAsset), context);
+
     final textStyle = TextStyle(
       fontSize: 15.5,
       color: widget.isNight ? Colors.white70 : Colors.black.withValues(alpha: 0.75),
@@ -255,6 +263,11 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                               offset: const Offset(0, 4),
                             ),
                           ],
+                          image: DecorationImage(
+                            image: AssetImage(bgAsset),
+                            fit: BoxFit.cover,
+                            opacity: widget.isNight ? 0.40 : 0.82,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -587,10 +600,8 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     final mood = kMoods[moodIdx];
     final Color badgeColor = mood.glowColor ?? const Color(0xFFC4B69E);
     final String moodLabel = parsed.customMood ?? mood.label;
-    final String iconPath = parsed.customMood != null
-        ? (moodIndex >= 0 && moodIndex <= 23
-            ? 'assets/icons/custom${moodIndex + 1}.png'
-            : 'assets/images/icons/custom.png')
+    final String iconPath = (moodIndex >= 0 && moodIndex <= 23)
+        ? 'assets/icons/custom${moodIndex + 1}.png'
         : (mood.iconPath ?? 'assets/icons/happy.png');
 
     final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
@@ -606,12 +617,12 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           decoration: BoxDecoration(
             color: isNight
                 ? Colors.white.withValues(alpha: 0.08)
-                : const Color(0xFFF2F2F2),
+                : Colors.black.withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isNight
                   ? Colors.white.withValues(alpha: 0.15)
-                  : const Color(0xFFD8D8D8),
+                  : Colors.black.withValues(alpha: 0.08),
               width: 0.8,
             ),
           ),
@@ -660,12 +671,12 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
             decoration: BoxDecoration(
               color: isNight
                   ? Colors.white.withValues(alpha: 0.08)
-                  : const Color(0xFFF2F2F2),
+                  : Colors.black.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isNight
                     ? Colors.white.withValues(alpha: 0.15)
-                    : const Color(0xFFD8D8D8),
+                    : Colors.black.withValues(alpha: 0.08),
                 width: 0.8,
               ),
             ),
@@ -687,12 +698,12 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
             decoration: BoxDecoration(
               color: isNight
                   ? Colors.white.withValues(alpha: 0.08)
-                  : const Color(0xFFF2F2F2),
+                  : Colors.black.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isNight
                     ? Colors.white.withValues(alpha: 0.15)
-                    : const Color(0xFFD8D8D8),
+                    : Colors.black.withValues(alpha: 0.08),
                 width: 0.8,
               ),
             ),
@@ -729,12 +740,12 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
               decoration: BoxDecoration(
                 color: isNight
                     ? Colors.white.withValues(alpha: 0.08)
-                    : const Color(0xFFF2F2F2),
+                    : Colors.black.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isNight
                       ? Colors.white.withValues(alpha: 0.15)
-                      : const Color(0xFFD8D8D8),
+                      : Colors.black.withValues(alpha: 0.08),
                   width: 0.8,
                 ),
               ),

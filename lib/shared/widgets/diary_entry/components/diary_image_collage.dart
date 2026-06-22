@@ -8,6 +8,7 @@ class DiaryImageCollage extends StatelessWidget {
   final double borderRadius;
   final Function(int)? onTapImage;
   final Function(int)? onDeleteImage;
+  final Widget Function(int index, Widget child)? imageWrapper;
 
   const DiaryImageCollage({
     super.key,
@@ -16,6 +17,7 @@ class DiaryImageCollage extends StatelessWidget {
     this.borderRadius = 12.0,
     this.onTapImage,
     this.onDeleteImage,
+    this.imageWrapper,
   });
 
   @override
@@ -41,7 +43,7 @@ class DiaryImageCollage extends StatelessWidget {
 
   Widget _buildImageItem(int index) {
     final path = imagePaths[index];
-    return AnimatedDeleteWrapper(
+    final Widget rawItem = AnimatedDeleteWrapper(
       onDelete: () => onDeleteImage?.call(index),
       builder: (context, startDelete) {
         return Stack(
@@ -78,6 +80,10 @@ class DiaryImageCollage extends StatelessWidget {
         );
       },
     );
+    if (imageWrapper != null) {
+      return imageWrapper!(index, rawItem);
+    }
+    return rawItem;
   }
 
   // 1 张图片：大图展示 (比例 3:2)

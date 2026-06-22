@@ -21,6 +21,7 @@ import '../widgets/diary_reply_sheet.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_image_collage.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 import 'package:island_diary/shared/widgets/top_toast.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_block_item.dart';
 
 
 class DiaryDetailPage extends StatefulWidget {
@@ -585,7 +586,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        book.name,
+                        '收纳至：${book.name}',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -603,10 +604,8 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             (() {
               final parsed = ParsedTags.parse(_currentEntry.tag, _currentEntry.moodIndex);
               final String moodLabel = parsed.customMood ?? mood.label;
-              final String iconPath = parsed.customMood != null
-                  ? (_currentEntry.moodIndex >= 0 && _currentEntry.moodIndex <= 23
-                      ? 'assets/icons/custom${_currentEntry.moodIndex + 1}.png'
-                      : 'assets/images/icons/custom.png')
+              final String iconPath = (_currentEntry.moodIndex >= 0 && _currentEntry.moodIndex <= 23)
+                  ? 'assets/icons/custom${_currentEntry.moodIndex + 1}.png'
                   : (mood.iconPath ?? 'assets/icons/happy.png');
               final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 
@@ -943,7 +942,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           list.add(
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
-              child: _buildSelectableRichText(span, currentBlockIndex, textStyle),
+              child: _buildSelectableRichText(span, currentBlockIndex, textStyle, controller: tc),
             ),
           );
           isFirst = false;
@@ -1054,40 +1053,65 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       onAnnotationTap: (key) => _showAnnotationSheet(key: key),
     );
 
-    return _buildSelectableRichText(span, 0, textStyle)
+    return _buildSelectableRichText(span, 0, textStyle, controller: controller)
         .animate()
         .fadeIn(delay: 300.ms, duration: 800.ms);
   }
 
-  Widget _buildSelectableRichText(TextSpan span, int blockIndex, TextStyle textStyle) {
-    return SelectableText.rich(
-      span,
-      style: textStyle,
-      contextMenuBuilder: (context, editableTextState) {
-        return DiaryTextContextMenu(
-          editableTextState: editableTextState,
-          blockIndex: blockIndex,
-          annotations: _currentEntry.annotations,
-          onAddAnnotation: ({key, required blockIndex, required start, required end, required selectedText}) {
-            _showAnnotationSheet(
-              key: key,
+  Widget _buildSelectableRichText(TextSpan span, int blockIndex, TextStyle textStyle, {DiaryTextEditingController? controller}) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        if (controller != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: controller,
+                builder: (builderContext, value, child) {
+                  return CustomPaint(
+                    painter: DiaryCirclePainter(
+                      context: builderContext,
+                      controller: controller,
+                      inkColor: textStyle.color ?? Colors.black,
+                      blockIndex: blockIndex,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        SelectableText.rich(
+          span,
+          style: textStyle,
+          selectionHeightStyle: BoxHeightStyle.tight,
+          selectionWidthStyle: BoxWidthStyle.tight,
+          contextMenuBuilder: (context, editableTextState) {
+            return DiaryTextContextMenu(
+              editableTextState: editableTextState,
               blockIndex: blockIndex,
-              start: start,
-              end: end,
-              selectedText: selectedText,
+              annotations: _currentEntry.annotations,
+              onAddAnnotation: ({key, required blockIndex, required start, required end, required selectedText}) {
+                _showAnnotationSheet(
+                  key: key,
+                  blockIndex: blockIndex,
+                  start: start,
+                  end: end,
+                  selectedText: selectedText,
+                );
+              },
+              onDeleteAnnotation: (key) {
+                final newAnnotations = Map<String, String>.from(_currentEntry.annotations);
+                newAnnotations.remove(key);
+                final updated = _currentEntry.copyWith(annotations: newAnnotations);
+                UserState().updateDiary(updated);
+                setState(() {
+                  _currentEntry = updated;
+                });
+              },
             );
           },
-          onDeleteAnnotation: (key) {
-            final newAnnotations = Map<String, String>.from(_currentEntry.annotations);
-            newAnnotations.remove(key);
-            final updated = _currentEntry.copyWith(annotations: newAnnotations);
-            UserState().updateDiary(updated);
-            setState(() {
-              _currentEntry = updated;
-            });
-          },
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -1136,11 +1160,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             return DiaryBottomSheet(
               paperStyle: _currentEntry.paperStyle,
               showDragHandle: true,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: Column(
+              child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -1166,46 +1186,41 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     if (actualSelectedText.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                         decoration: BoxDecoration(
-                          color: isNight ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF9F6EE),
-                          borderRadius: BorderRadius.circular(12),
+                          color: isNight ? Colors.white.withValues(alpha: 0.02) : const Color(0xFFF7F5F0),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border(
                             left: BorderSide(
                               color: Color(int.parse(selectedColorHex.replaceFirst('#', '0xFF'))),
-                              width: 4.5,
+                              width: 3.0,
                             ),
                           ),
                         ),
                         child: Text(
                           "“$actualSelectedText”",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 14,
-                            color: inkColor.withValues(alpha: 0.65),
+                            fontSize: 13.5,
+                            color: inkColor.withValues(alpha: 0.6),
                             fontStyle: FontStyle.italic,
                             fontFamily: 'LXGWWenKai',
-                            height: 1.5,
+                            height: 1.6,
                           ),
                         ),
                       ),
                     ],
                     const SizedBox(height: 16),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
                       decoration: BoxDecoration(
-                        color: isNight ? Colors.white.withValues(alpha: 0.04) : Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        color: isNight ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFFCFAF2),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Color(int.parse(selectedColorHex.replaceFirst('#', '0xFF'))).withValues(alpha: 0.8),
-                          width: 1.5,
+                          color: isNight ? Colors.white12 : const Color(0xFFE5DDD5),
+                          width: 1.0,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(int.parse(selectedColorHex.replaceFirst('#', '0xFF'))).withValues(alpha: isNight ? 0.05 : 0.15),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
                       ),
                       child: TextField(
                         controller: textController,
@@ -1214,20 +1229,21 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                         maxLength: 200,
                         style: TextStyle(
                           color: inkColor,
-                          fontSize: 16,
+                          fontSize: 15,
                           fontFamily: 'LXGWWenKai',
                         ),
                         decoration: InputDecoration(
                           hintText: "写下关于这一段的感悟或注解...",
                           hintStyle: TextStyle(
-                            color: inkColor.withValues(alpha: 0.4),
-                            fontSize: 15,
+                            color: inkColor.withValues(alpha: 0.35),
+                            fontSize: 14.5,
                             fontFamily: 'LXGWWenKai',
                           ),
                           border: InputBorder.none,
                           counterStyle: TextStyle(
-                            color: inkColor.withValues(alpha: 0.5),
+                            color: inkColor.withValues(alpha: 0.4),
                             fontFamily: 'LXGWWenKai',
+                            fontSize: 11,
                           ),
                         ),
                       ),
@@ -1355,12 +1371,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                             Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(int.parse(selectedColorHex.replaceFirst('#', '0xFF'))),
-                            foregroundColor: const Color(0xFF333333),
+                            backgroundColor: const Color(0xFFA68565),
+                            foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(24),
                             ),
                           ),
                           child: Text(
@@ -1376,7 +1392,6 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                     ),
                   ],
                 ),
-              ),
             );
           },
         );

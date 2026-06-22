@@ -327,7 +327,7 @@ class EditorBottomBar extends StatelessWidget {
 
     return Container(
       height: 60,
-      margin: const EdgeInsets.only(left: 14, right: 12, top: 8, bottom: 0),
+      margin: const EdgeInsets.only(left: 14, right: 12, top: 4, bottom: 0),
       child: AnimatedImagePreviewList(
         blocks: blocks,
         accentColor: accentColor,
@@ -373,11 +373,16 @@ class _AnimatedImagePreviewListState extends State<AnimatedImagePreviewList> {
       final img = _localImages[i];
       if (!newImages.any((n) => n.id == img.id)) {
         _localImages.removeAt(i);
-        _listKey.currentState?.removeItem(
-          i,
-          (context, animation) => _buildItem(img, animation),
-          duration: const Duration(milliseconds: 250),
-        );
+        final int indexToRemove = i;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _listKey.currentState?.removeItem(
+              indexToRemove,
+              (context, animation) => _buildItem(img, animation),
+              duration: const Duration(milliseconds: 250),
+            );
+          }
+        });
       }
     }
 
@@ -386,10 +391,15 @@ class _AnimatedImagePreviewListState extends State<AnimatedImagePreviewList> {
       final img = newImages[i];
       if (!_localImages.any((l) => l.id == img.id)) {
         _localImages.insert(i, img);
-        _listKey.currentState?.insertItem(
-          i,
-          duration: const Duration(milliseconds: 250),
-        );
+        final int indexToInsert = i;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _listKey.currentState?.insertItem(
+              indexToInsert,
+              duration: const Duration(milliseconds: 250),
+            );
+          }
+        });
       }
     }
 
@@ -573,11 +583,16 @@ class _AnimatedTagListState extends State<AnimatedTagList> {
       final t = _localTags[i];
       if (!newTags.contains(t)) {
         _localTags.removeAt(i);
-        _listKey.currentState?.removeItem(
-          i,
-          (context, animation) => _buildItem(t, animation),
-          duration: const Duration(milliseconds: 250),
-        );
+        final int indexToRemove = i;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _listKey.currentState?.removeItem(
+              indexToRemove,
+              (context, animation) => _buildItem(t, animation),
+              duration: const Duration(milliseconds: 250),
+            );
+          }
+        });
       }
     }
 
@@ -586,10 +601,15 @@ class _AnimatedTagListState extends State<AnimatedTagList> {
       final t = newTags[i];
       if (!_localTags.contains(t)) {
         _localTags.insert(i, t);
-        _listKey.currentState?.insertItem(
-          i,
-          duration: const Duration(milliseconds: 250),
-        );
+        final int indexToInsert = i;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _listKey.currentState?.insertItem(
+              indexToInsert,
+              duration: const Duration(milliseconds: 250),
+            );
+          }
+        });
       }
     }
   }
@@ -620,7 +640,7 @@ class _AnimatedTagListState extends State<AnimatedTagList> {
     // 外层保留相同高度和边距，确保布局稳定性
     return Container(
       height: 26,
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 2),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 2),
       child: AnimatedList(
         key: _listKey,
         scrollDirection: Axis.horizontal,

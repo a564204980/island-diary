@@ -95,7 +95,7 @@ class UnderlinePickerSheet extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isNight 
                         ? (isSelected ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.02))
-                        : (isSelected ? Colors.white : Colors.white.withValues(alpha: 0.5)),
+                        : (isSelected ? indexColor.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.03)),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected ? indexColor : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
@@ -116,26 +116,49 @@ class UnderlinePickerSheet extends StatelessWidget {
                       ),
                       const SizedBox(width: 2),
                       // Underlined text preview
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            previewText,
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.bold,
-                              color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xDE000000),
-                              fontFamily: 'LXGWWenKai',
+                      val.startsWith('circle')
+                          ? Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                                  child: Text(
+                                    previewText,
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xDE000000),
+                                      fontFamily: 'LXGWWenKai',
+                                    ),
+                                  ),
+                                ),
+                                Positioned.fill(
+                                  child: CustomPaint(
+                                    painter: _CirclePreviewPainter(val, indexColor),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  previewText,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xDE000000),
+                                    fontFamily: 'LXGWWenKai',
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                CustomPaint(
+                                  size: const Size(69, 6),
+                                  painter: _UnderlinePreviewPainter(val, indexColor),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          CustomPaint(
-                            size: const Size(69, 6),
-                            painter: _UnderlinePreviewPainter(val, indexColor),
-                          ),
-                        ],
-                      ),
                       const Spacer(),
                       if (isSelected)
                         Icon(
@@ -169,7 +192,41 @@ class _UnderlinePreviewPainter extends CustomPainter {
 
     final double y = size.height / 2;
 
-    if (style == 'wavy') {
+    if (style.startsWith('circle')) {
+      paint.strokeWidth = 1.2;
+      paint.style = PaintingStyle.stroke;
+      final double w = size.width;
+      final double h = size.height;
+      
+      if (style == 'circle_double') {
+        // 双椭圆圈预览
+        canvas.drawOval(Rect.fromLTRB(1, 1, w - 1, h - 1), paint);
+        canvas.drawOval(Rect.fromLTRB(4, 2.5, w - 4, h - 2.5), paint);
+      } else if (style == 'circle_dashed') {
+        // 虚线椭圆圈预览
+        final mainPath = Path()..addOval(Rect.fromLTRB(1, 1, w - 1, h - 1));
+        final dashPath = Path();
+        for (final metric in mainPath.computeMetrics()) {
+          double distance = 0.0;
+          bool draw = true;
+          while (distance < metric.length) {
+            final double len = draw ? 4.5 : 3.0;
+            if (draw) {
+              dashPath.addPath(
+                metric.extractPath(distance, (distance + len).clamp(0.0, metric.length)),
+                Offset.zero,
+              );
+            }
+            distance += len;
+            draw = !draw;
+          }
+        }
+        canvas.drawPath(dashPath, paint);
+      } else {
+        // 单线椭圆圈预览
+        canvas.drawOval(Rect.fromLTRB(1, 1, w - 1, h - 1), paint);
+      }
+    } else if (style == 'wavy') {
       paint.strokeWidth = 1.8;
       paint.strokeCap = StrokeCap.round;
       final path = Path();
@@ -240,6 +297,61 @@ class _UnderlinePreviewPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _UnderlinePreviewPainter oldDelegate) {
+    return oldDelegate.style != style || oldDelegate.color != color;
+  }
+}
+
+class _CirclePreviewPainter extends CustomPainter {
+  final String style;
+  final Color color;
+
+  _CirclePreviewPainter(this.style, this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3
+      ..strokeCap = StrokeCap.round;
+
+    final double w = size.width;
+    final double h = size.height;
+
+    // 留出 1 像素的缓冲防止抗锯齿边缘裁切
+    final rect = Rect.fromLTRB(1.0, 1.0, w - 1.0, h - 1.0);
+
+    if (style == 'circle_double') {
+      canvas.drawOval(rect, paint);
+      final innerRect = Rect.fromLTRB(3.5, 3.0, w - 3.5, h - 3.0);
+      canvas.drawOval(innerRect, paint);
+    } else if (style == 'circle_dashed') {
+      final mainPath = Path()..addOval(rect);
+      final dashPath = Path();
+      for (final metric in mainPath.computeMetrics()) {
+        double distance = 0.0;
+        bool draw = true;
+        while (distance < metric.length) {
+          final double len = draw ? 4.5 : 3.0;
+          if (draw) {
+            dashPath.addPath(
+              metric.extractPath(distance, (distance + len).clamp(0.0, metric.length)),
+              Offset.zero,
+            );
+          }
+          distance += len;
+          draw = !draw;
+        }
+      }
+      canvas.drawPath(dashPath, paint);
+    } else {
+      // 默认单线圈
+      canvas.drawOval(rect, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CirclePreviewPainter oldDelegate) {
     return oldDelegate.style != style || oldDelegate.color != color;
   }
 }

@@ -34,7 +34,9 @@ class DiaryBottomSheet extends StatelessWidget {
 
     if (isDiary) {
       inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
-      bgColor = DiaryUtils.getPopupBackgroundColor(paperStyle, isNight);
+      bgColor = isNight
+          ? DiaryUtils.getPopupBackgroundColor(paperStyle, isNight)
+          : Colors.white;
     } else {
       // 非日记相关页面：使用符合当前主题的纯色/中性配色，而非纸张材质色
       if (isNight) {
@@ -50,15 +52,20 @@ class DiaryBottomSheet extends StatelessWidget {
       }
     }
 
+    final double resolvedTopPadding = showDragHandle ? 12.0 : (padding is EdgeInsets ? (padding as EdgeInsets).top : 20.0);
+    final double extraContentTopPadding = showDragHandle && (padding is EdgeInsets) ? (padding as EdgeInsets).top : 0.0;
+
+    final resolvedPadding = EdgeInsets.only(
+      left: padding is EdgeInsets ? (padding as EdgeInsets).left : 20,
+      right: padding is EdgeInsets ? (padding as EdgeInsets).right : 20,
+      top: resolvedTopPadding,
+      bottom: padding is EdgeInsets ? (padding as EdgeInsets).bottom : (24 + MediaQuery.of(context).padding.bottom),
+    );
+
     Widget content = Container(
       height: height,
       clipBehavior: clipBehavior,
-      padding: padding ?? EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: showDragHandle ? 12 : 20,
-        bottom: 24 + MediaQuery.of(context).padding.bottom,
-      ),
+      padding: resolvedPadding,
       margin: isLego ? const EdgeInsets.only(bottom: 6) : null,
       decoration: DiaryUtils.getPopupDecoration(paperStyle, isNight, customBgColor: bgColor),
       child: Column(
@@ -81,6 +88,7 @@ class DiaryBottomSheet extends StatelessWidget {
             ),
             const SizedBox(height: 18),
           ],
+          if (extraContentTopPadding > 0) SizedBox(height: extraContentTopPadding),
           if (height != null) Expanded(child: child) else child,
         ],
       ),

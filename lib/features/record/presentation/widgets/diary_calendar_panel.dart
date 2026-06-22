@@ -6,6 +6,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
+import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_detail_page.dart';
 
 /// 日历网格面板：单月视图带记录列表版
@@ -68,7 +69,18 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
         final month = _focusedMonth.month;
 
         // 当前月份所有日记
-        final monthDiaries = allDiaries.where((d) => d.dateTime.year == year && d.dateTime.month == month).toList();
+        final monthDiaries = allDiaries.where((d) => d.dateTime.toLocal().year == year && d.dateTime.toLocal().month == month).toList();
+
+        // 预加载当前月份所有日记的背景信纸图，防止卡片首次渲染时出现白屏闪烁
+        for (var entry in monthDiaries) {
+          String bgAsset = DiaryUtils.getPaperBackgroundPath(entry.paperStyle, widget.isNight);
+          if (bgAsset.isEmpty) {
+            bgAsset = widget.isNight
+                ? 'assets/images/note/note_night_bg1.png'
+                : 'assets/images/note/note_bg1.png';
+          }
+          precacheImage(AssetImage(bgAsset), context);
+        }
 
         // 阴历/节假日数据计算
         final int daysInMonth = DateTime(year, month + 1, 0).day;
@@ -78,7 +90,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
         // 整理当前月份每天的日记映射
         final Map<int, List<DiaryEntry>> dayMap = {};
         for (var entry in monthDiaries) {
-          final d = entry.dateTime.day;
+          final d = entry.dateTime.toLocal().day;
           dayMap.putIfAbsent(d, () => []).add(entry);
         }
 
@@ -449,18 +461,35 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    plainContent.isNotEmpty ? plainContent : "无文字内容",
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                  Builder(builder: (context) {
+                    final textStyle = TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: valueColor,
                       fontFamily: fontFamily,
                       height: 1.35,
-                    ),
-                  ),
+                    );
+                    if (plainContent.isEmpty) {
+                      return Text("无文字内容", style: textStyle);
+                    }
+                    final spans = EmojiMapping.parseText(plainContent).map((chunk) {
+                      if (chunk.isEmoji) {
+                        return WidgetSpan(
+                          alignment: PlaceholderAlignment.middle,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 1),
+                            child: Image.asset(chunk.emojiPath!, width: 16, height: 16),
+                          ),
+                        );
+                      }
+                      return TextSpan(text: chunk.text, style: textStyle);
+                    }).toList();
+                    return RichText(
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      text: TextSpan(children: spans),
+                    );
+                  }),
                   const SizedBox(height: 8),
                   
                   // 心情状态药丸 (含心情表情图)
@@ -468,10 +497,8 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                     builder: (context) {
                       final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
                       final String moodLabel = parsed.customMood ?? mood.label;
-                      final String iconPath = parsed.customMood != null
-                          ? (entry.moodIndex >= 0 && entry.moodIndex <= 23
-                              ? 'assets/icons/custom${entry.moodIndex + 1}.png'
-                              : 'assets/images/icons/custom.png')
+                      final String iconPath = (entry.moodIndex >= 0 && entry.moodIndex <= 23)
+                          ? 'assets/icons/custom${entry.moodIndex + 1}.png'
                           : (mood.iconPath ?? 'assets/icons/happy.png');
                       final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 
@@ -680,6 +707,8 @@ class _CalendarDayCell extends StatelessWidget {
     // 收集当天所有日记里的所有图片
     final List<String> allImages = [];
     int? moodIdx;
+    String? customMoodIconPath;
+    String? customMoodIconAsset;
     
     if (hasEntry) {
       for (var entry in entries!) {
@@ -691,7 +720,15 @@ class _CalendarDayCell extends StatelessWidget {
       }
       // 如果没有图片，则取最后一条日记的心情图标
       if (allImages.isEmpty) {
-        moodIdx = entries!.last.moodIndex;
+        final lastEntry = entries!.last;
+        moodIdx = lastEntry.moodIndex;
+        final parsed = ParsedTags.parse(lastEntry.tag, lastEntry.moodIndex);
+        if (parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty) {
+          customMoodIconPath = parsed.customMoodIconPath;
+        }
+        if (lastEntry.moodIndex >= 0 && lastEntry.moodIndex <= 23) {
+          customMoodIconAsset = 'assets/icons/custom${lastEntry.moodIndex + 1}.png';
+        }
       }
     }
 
@@ -783,20 +820,7 @@ class _CalendarDayCell extends StatelessWidget {
                 child: _buildGridImages(allImages),
               ),
 
-            if (allImages.isEmpty && moodIdx != null)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: Image.asset(
-                    kMoods[moodIdx.clamp(0, kMoods.length - 1)].iconPath!,
-                    width: 32,
-                    height: 32,
-                    opacity: const AlwaysStoppedAnimation(0.8),
-                  ),
-                ),
-              ),
-
-            // 日期数字
+            // 日期数字 + 心情图标（整合为同一列，避免图标被文字遮挡）
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -805,6 +829,14 @@ class _CalendarDayCell extends StatelessWidget {
                   if (!hasEntry) ...[
                     const SizedBox(height: 1),
                     Text(lunarStr, style: lunarStyle),
+                  ] else if (allImages.isEmpty && (moodIdx != null || customMoodIconPath != null)) ...[
+                    const SizedBox(height: 2),
+                    _buildMoodIcon(
+                      moodIdx: moodIdx,
+                      customMoodIconPath: customMoodIconPath,
+                      customMoodIconAsset: customMoodIconAsset,
+                      isNight: isNight,
+                    ),
                   ],
                 ],
               ),
@@ -828,7 +860,48 @@ class _CalendarDayCell extends StatelessWidget {
     );
   }
 
+  Widget _buildMoodIcon({
+    required int? moodIdx,
+    required String? customMoodIconPath,
+    required String? customMoodIconAsset,
+    required bool isNight,
+  }) {
+    const double size = 20;
+    final fallbackIcon = Icon(Icons.mood, size: size, color: isNight ? Colors.white54 : const Color(0xFF5C5C5C));
+
+    Widget img;
+    if (customMoodIconPath != null) {
+      img = Image.file(
+        File(customMoodIconPath),
+        width: size, height: size,
+        errorBuilder: (c, e, s) => customMoodIconAsset != null
+            ? Image.asset(customMoodIconAsset, width: size, height: size,
+                errorBuilder: (c2, e2, s2) => fallbackIcon)
+            : fallbackIcon,
+      );
+    } else if (customMoodIconAsset != null) {
+      img = Image.asset(
+        customMoodIconAsset,
+        width: size, height: size,
+        errorBuilder: (c, e, s) => fallbackIcon,
+      );
+    } else if (moodIdx != null) {
+      final iconPath = kMoods[moodIdx.clamp(0, kMoods.length - 1)].iconPath;
+      if (iconPath != null) {
+        img = Image.asset(iconPath, width: size, height: size);
+      } else {
+        return fallbackIcon;
+      }
+    } else {
+      return fallbackIcon;
+    }
+
+    return Opacity(opacity: 0.9, child: img);
+  }
+
+
   // 构建拼图宫格逻辑
+
   Widget _buildGridImages(List<String> images) {
     // 用 SizedBox.expand 确保图片在 Expanded 内始终铺满
     Widget tile(String path) => SizedBox.expand(

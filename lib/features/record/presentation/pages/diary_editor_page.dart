@@ -92,7 +92,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         final double safeArea = MediaQuery.paddingOf(context).bottom;
         final double tagsHeight = currentTags.where((t) => !t.startsWith('mood:')).isNotEmpty ? 40.0 : 0.0;
         final double imagesHeight = !isMixedLayout && blocks.any((b) => b is ImageBlock) ? 68.0 : 0.0;
-        final double bottomOffset = keyboardHeight + 98.0 + safeArea + tagsHeight + imagesHeight;
+        final double bottomOffset = keyboardHeight + 86.0 + safeArea + tagsHeight + imagesHeight;
 
         return PopScope(
           canPop: false,
@@ -174,7 +174,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               isNight: isNight,
                               paperStyle: currentPaperStyle,
                               accentColor: accentColor,
-                              bottomPadding: 16,
+                              bottomPadding: 8,
                               currentMoodIndex: currentMoodIndex,
                               currentTag: currentTag,
                               weather: weather,
@@ -208,6 +208,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               onRemoveImage: removeImage,
                               onDeleteAtStart: handleBackspaceAtStart,
                               onShowPreview: showImagePreview,
+                              onWrapImage: handleWrapImage,
+                              onUnwrapImage: handleUnwrapImage,
                               onMoodSelected: (index) {
                                 setState(() {
                                   currentMoodIndex = index;
@@ -1054,11 +1056,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
             return DiaryBottomSheet(
               paperStyle: currentPaperStyle,
               showDragHandle: true,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: Column(
+              child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -1084,48 +1082,66 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     if (actualSelectedText.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                         decoration: BoxDecoration(
-                          color: isNight ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF9F6EE),
-                          borderRadius: BorderRadius.circular(12),
+                          color: isNight ? Colors.white.withValues(alpha: 0.02) : const Color(0xFFF7F5F0),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border(
                             left: BorderSide(
                               color: Color(int.parse(selectedColorHex.replaceFirst('#', '0xFF'))),
-                              width: 4.5,
+                              width: 3.0,
                             ),
                           ),
                         ),
                         child: Text(
                           "“$actualSelectedText”",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 14,
-                            color: inkColor.withValues(alpha: 0.65),
+                            fontSize: 13.5,
+                            color: inkColor.withValues(alpha: 0.6),
                             fontStyle: FontStyle.italic,
                             fontFamily: 'LXGWWenKai',
-                            height: 1.5,
+                            height: 1.6,
                           ),
                         ),
                       ),
                     ],
                     const SizedBox(height: 16),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
                       decoration: BoxDecoration(
-                        color: isNight ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.015),
+                        color: isNight ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFFCFAF2),
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isNight ? Colors.white12 : const Color(0xFFE5DDD5),
+                          width: 1.0,
+                        ),
                       ),
                       child: TextField(
                         controller: textController,
-                        maxLines: 3,
-                        minLines: 1,
-                        style: TextStyle(color: inkColor, fontSize: 15, fontFamily: 'LXGWWenKai'),
-                        decoration: InputDecoration(
-                          hintText: "写下关于这段文字的所思所想...",
-                          hintStyle: TextStyle(color: inkColor.withValues(alpha: 0.35)),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
                         autofocus: true,
+                        maxLines: 3,
+                        maxLength: 200,
+                        style: TextStyle(
+                          color: inkColor,
+                          fontSize: 15,
+                          fontFamily: 'LXGWWenKai',
+                        ),
+                        decoration: InputDecoration(
+                          hintText: "写下关于这一段的感悟或注解...",
+                          hintStyle: TextStyle(
+                            color: inkColor.withValues(alpha: 0.35),
+                            fontSize: 14.5,
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                          border: InputBorder.none,
+                          counterStyle: TextStyle(
+                            color: inkColor.withValues(alpha: 0.4),
+                            fontFamily: 'LXGWWenKai',
+                            fontSize: 11,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -1247,12 +1263,12 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(int.parse(selectedColorHex.replaceFirst('#', '0xFF'))),
-                            foregroundColor: const Color(0xFF333333),
+                            backgroundColor: const Color(0xFFA68565),
+                            foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(24),
                             ),
                           ),
                           child: Text(
@@ -1268,7 +1284,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     ),
                   ],
                 ),
-              ),
             );
           },
         );
@@ -1277,17 +1292,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
   }
 
   void _handleBack(BuildContext context) async {
-    final content = blocks.whereType<TextBlock>().map((b) => b.controller.text).join('\n');
-    final bool hasContent = content.trim().isNotEmpty || 
-        blocks.whereType<ImageBlock>().isNotEmpty || 
-        blocks.whereType<AudioBlock>().isNotEmpty ||
-        currentMoodIndex != null ||
-        currentTag != null ||
-        weather != null;
+    final bool isActuallyModified = initialEditorStateJson != getEditorStateJson();
 
-    final bool shouldPrompt = widget.entry == null ? hasContent : isModified;
-
-    if (!shouldPrompt) {
+    if (!isActuallyModified) {
       Navigator.of(context).pop(false);
       return;
     }

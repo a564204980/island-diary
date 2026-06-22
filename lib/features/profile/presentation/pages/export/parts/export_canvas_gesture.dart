@@ -168,10 +168,10 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
             Padding(
               padding: const EdgeInsets.only(left: handlePadding, right: handlePadding, top: handlePadding, bottom: handlePadding + 50.0),
               child: Container(
-                width: element.width,
+                width: element.width + 8.0,
                 height: (element.type == 'text' || element.type == 'diary_header')
                     ? null
-                    : (element.type == 'line' ? (element.height < 30.0 ? 30.0 : element.height) : element.height),
+                    : ((element.type == 'line' ? (element.height < 30.0 ? 30.0 : element.height) : element.height) + 8.0),
                 alignment: element.type == 'line' ? Alignment.center : null,
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(

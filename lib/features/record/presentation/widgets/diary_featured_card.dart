@@ -220,10 +220,8 @@ class _DiaryFeaturedCardState extends State<DiaryFeaturedCard> {
                             final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
                             final String moodLabel = parsed.customMood ?? mood.label;
                             final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
-                            final String iconPath = parsed.customMood != null
-                                ? (entry.moodIndex >= 0 && entry.moodIndex <= 23
-                                    ? 'assets/icons/custom${entry.moodIndex + 1}.png'
-                                    : 'assets/images/icons/custom.png')
+                            final String iconPath = (entry.moodIndex >= 0 && entry.moodIndex <= 23)
+                                ? 'assets/icons/custom${entry.moodIndex + 1}.png'
                                 : (mood.iconPath ?? 'assets/icons/happy.png');
 
                             return _buildTag(

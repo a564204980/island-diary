@@ -538,7 +538,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                 style: TextStyle(
                                                   color: isCottonCandy
                                                       ? (isNight ? Colors.white54 : const Color(0xFF8D7A84))
-                                                      : (isNight ? Colors.white54 : const Color(0xFF8B7E74)),
+                                                      : (isNight ? Colors.white54 : const Color(0xFF7E7570)),
                                                   fontSize: 12,
                                                   fontFamily: headerFont,
                                                   fontWeight: FontWeight.bold,

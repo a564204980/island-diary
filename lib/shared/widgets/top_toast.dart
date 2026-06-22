@@ -5,7 +5,7 @@ import 'package:island_diary/core/state/user_state.dart';
 OverlayEntry showTopToast(
   BuildContext context,
   String message, {
-  IconData icon = Icons.info_outline_rounded,
+  IconData icon = Icons.info_rounded,
   Color? iconColor,
   Duration duration = const Duration(milliseconds: 2500),
 }) {
@@ -43,7 +43,7 @@ class TopToast extends StatefulWidget {
   const TopToast({
     super.key,
     required this.message,
-    this.icon = Icons.info_outline_rounded,
+    this.icon = Icons.info_rounded,
     this.iconColor,
     this.duration = const Duration(milliseconds: 2500),
     required this.onDismiss,

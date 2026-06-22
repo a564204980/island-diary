@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 import 'underline_picker_sheet.dart';
 import 'color_picker_sheet.dart';
+import 'circle_picker_sheet.dart';
 
 class DiaryTextContextMenu extends StatelessWidget {
   final EditableTextState editableTextState;
@@ -250,6 +251,50 @@ class DiaryTextContextMenu extends StatelessWidget {
                                 underlineStyle: style,
                               );
                             }
+                          },
+                        ),
+                      );
+                    }
+                  }, false),
+                  const SizedBox(width: 4),
+                  _buildToolbarButton("圈线", () {
+                    final controller = editableTextState.widget.controller;
+                    if (controller is DiaryTextEditingController) {
+                      String? currentStyle;
+                      Color? currentColor;
+                      for (var attr in controller.attributes) {
+                        if (attr.underlineStyle != null &&
+                            attr.underlineStyle!.startsWith('circle') &&
+                            attr.start <= selection.start &&
+                            attr.end >= selection.end) {
+                          currentStyle = attr.underlineStyle;
+                          currentColor = attr.color;
+                          break;
+                        }
+                      }
+                      
+                      editableTextState.hideToolbar();
+
+                      showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        isScrollControlled: true,
+                        builder: (ctx) => CirclePickerSheet(
+                          currentStyle: currentStyle,
+                          currentColor: currentColor,
+                          paperStyle: paperStyle ?? 'classic',
+                          onApply: (style, color) {
+                            controller.applyAttributeToSelection(
+                              selection,
+                              underlineStyle: style,
+                              color: color,
+                            );
+                          },
+                          onClear: () {
+                            controller.applyAttributeToSelection(
+                              selection,
+                              clearUnderline: true,
+                            );
                           },
                         ),
                       );

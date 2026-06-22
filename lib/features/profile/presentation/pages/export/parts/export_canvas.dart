@@ -62,7 +62,9 @@ extension _ExportCanvasExtension on _DiaryBookExportPageState {
                                                   : _canvasWidth / _canvasHeight,
                                   child: bg.imagePath!.startsWith('http://') || bg.imagePath!.startsWith('https://')
                                       ? Image.network(bg.imagePath!, fit: BoxFit.cover)
-                                      : Image.file(File(bg.imagePath!), fit: BoxFit.cover),
+                                      : bg.imagePath!.startsWith('assets/')
+                                          ? Image.asset(bg.imagePath!, fit: BoxFit.cover)
+                                          : Image.file(File(bg.imagePath!), fit: BoxFit.cover),
                                 ),
                               ),
                             ),
