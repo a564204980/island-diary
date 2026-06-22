@@ -716,15 +716,6 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       
       int oldIdx = blocks.indexOf(imageBlock);
       
-      bool isAlreadySplit = false;
-      if (oldIdx > 0 && oldIdx < blocks.length - 1) {
-        if (blocks[oldIdx - 1] is TextBlock && blocks[oldIdx + 1] == targetTextBlock) {
-          isAlreadySplit = true;
-        }
-      }
-      if (isAlreadySplit) {
-        return;
-      }
 
       int? finalSplitOffset = splitOffset;
       TextBlock finalTargetTextBlock = targetTextBlock;

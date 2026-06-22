@@ -41,6 +41,7 @@ class DiaryBlockItem extends StatelessWidget {
   final Function(String key)? onDeleteAnnotation;
   final bool isFirstTextBlock;
   final bool? isFloatingOverride;
+  final double? floatingHeight;
 
   const DiaryBlockItem({
     super.key,
@@ -63,6 +64,7 @@ class DiaryBlockItem extends StatelessWidget {
     this.onDeleteAnnotation,
     this.isFirstTextBlock = false,
     this.isFloatingOverride,
+    this.floatingHeight,
   });
 
   @override
@@ -257,6 +259,8 @@ class DiaryBlockItem extends StatelessWidget {
           builder: (context) {
             final bool isWideScreen = MediaQuery.of(context).size.width > 800;
             final String displayPath = block.localPath ?? block.file.path;
+            final double displayHeight = floatingHeight ?? 136;
+            final double livePlayerHeight = floatingHeight != null ? floatingHeight! - 4 : 132;
 
             return Center(
               child: Container(
@@ -272,24 +276,24 @@ class DiaryBlockItem extends StatelessWidget {
                           : () => onShowPreview?.call(block),
                       child: Container(
                         margin: EdgeInsets.only(
-                          top: isFloating ? 12 : 8,
+                          top: isFloating ? 8 : 8,
                           bottom: 8,
                         ),
                         width: isFloating ? 140 : null,
-                        height: isFloating ? 128 : null,
+                        height: isFloating ? displayHeight : null,
                         child: isFloating
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: SizedBox(
                                   width: 140,
-                                  height: 128,
+                                  height: displayHeight,
                                   child: FittedBox(
                                     fit: BoxFit.cover,
                                     clipBehavior: Clip.hardEdge,
                                     child: block.videoPath != null
                                         ? SizedBox(
                                             width: 140,
-                                            height: 128,
+                                            height: livePlayerHeight,
                                             child: _LiveImagePlayer(
                                               videoPath: block.videoPath!,
                                               fallbackPath: displayPath,

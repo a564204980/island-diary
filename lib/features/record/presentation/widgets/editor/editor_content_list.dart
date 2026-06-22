@@ -96,6 +96,9 @@ class _EditorContentListState extends State<EditorContentList> {
   int? hoveringSplitOffset;
   String? draggingImageBlockId;
 
+  Rect? _originalBlockRect;
+  String? _cachedBlockId;
+
   @override
   Widget build(BuildContext context) {
     final processedBlocks = ImageGroupBlock.preprocess(
@@ -328,6 +331,11 @@ class _EditorContentListState extends State<EditorContentList> {
         blockIndex: blockIndex,
         onAnnotationTap: onAnnotationTap,
       );
+      // 全部文字都在窄列旁边，计算实际总高度供图片对齐
+      double narrowTextHeightValue = 0;
+      for (var line in lines) {
+        narrowTextHeightValue += line.height;
+      }
       return {
         'narrowSpan': span,
         'remainingSpan': null,
@@ -338,6 +346,7 @@ class _EditorContentListState extends State<EditorContentList> {
         'fittingLines': fittingLines,
         'endChar': endChar,
         'textLength': text.length,
+        'narrowTextHeight': narrowTextHeightValue,
       };
     }
 
@@ -444,6 +453,8 @@ class _EditorContentListState extends State<EditorContentList> {
       'fittingLines': fittingLines,
       'endChar': endChar,
       'textLength': text.length,
+      // 已拆分时，narrow 列密地展示 fittingLines 行，高度即 targetHeight
+      'narrowTextHeight': targetHeight,
     };
   }
 
@@ -469,6 +480,7 @@ class _EditorContentListState extends State<EditorContentList> {
           builder: (context, constraints) {
             final double totalWidth = constraints.maxWidth;
             final double narrowWidth = totalWidth - 140 - 12;
+            // 文字行高 = fontSize(20) × height(1.8) = 36dp，4行 = 144dp，与图片底部精确对齐
             final double targetHeight = 144.0;
 
             final textStyle = TextStyle(
@@ -506,6 +518,10 @@ class _EditorContentListState extends State<EditorContentList> {
             final remainingText = splitResult['remainingText'] as String? ?? '';
             final narrowController = splitResult['narrowController'] as DiaryTextEditingController?;
             final remainingController = splitResult['remainingController'] as DiaryTextEditingController?;
+            // 图片高度动态对齐：SizedBox.height = narrowTextHeight + 8
+            // margin.top(12) + 内容(narrowTextHeight-12) + margin.bottom(8) 内容占习精确与文字底部对齐
+            final double narrowTextHeight = (splitResult['narrowTextHeight'] as double?) ?? targetHeight;
+            final double imageSizedBoxHeight = narrowTextHeight;
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -516,7 +532,13 @@ class _EditorContentListState extends State<EditorContentList> {
                     if (alignment == 'left') ...[
                       SizedBox(
                         width: 140,
-                        child: _buildBlockItem(imageBlock, imageIndex, forceFloating: true),
+                        height: imageSizedBoxHeight,
+                        child: _buildBlockItem(
+                          imageBlock,
+                          imageIndex,
+                          forceFloating: true,
+                          floatingHeight: narrowTextHeight - 16,
+                        ),
                       ),
                       const SizedBox(width: 12),
                     ],
@@ -560,7 +582,13 @@ class _EditorContentListState extends State<EditorContentList> {
                       const SizedBox(width: 12),
                       SizedBox(
                         width: 140,
-                        child: _buildBlockItem(imageBlock, imageIndex, forceFloating: true),
+                        height: imageSizedBoxHeight,
+                        child: _buildBlockItem(
+                          imageBlock,
+                          imageIndex,
+                          forceFloating: true,
+                          floatingHeight: narrowTextHeight - 16,
+                        ),
                       ),
                     ],
                   ],
@@ -617,11 +645,19 @@ class _EditorContentListState extends State<EditorContentList> {
           onMove: (details) {
             final RenderBox? renderBox = targetContext.findRenderObject() as RenderBox?;
             if (renderBox != null) {
-              final localOffset = renderBox.globalToLocal(details.offset);
-              final String alignment = localOffset.dx < renderBox.size.width / 2 ? 'left' : 'right';
-              double targetLocalY = localOffset.dy - 30;
+              if (_cachedBlockId != textBlock.id || _originalBlockRect == null) {
+                _cachedBlockId = textBlock.id;
+                final position = renderBox.localToGlobal(Offset.zero);
+                _originalBlockRect = position & renderBox.size;
+              }
+
+              final String alignment = (details.offset.dx - _originalBlockRect!.left) < _originalBlockRect!.width / 2 ? 'left' : 'right';
+              double targetLocalY = details.offset.dy - _originalBlockRect!.top - 30;
               if (targetLocalY < 0) targetLocalY = 0;
-              final int? splitOffset = _getCharacterOffsetAtLocalY(targetContext, textBlock, targetLocalY, renderBox.size.width);
+              if (targetLocalY > _originalBlockRect!.height) targetLocalY = _originalBlockRect!.height;
+
+              // 直接用锁定的原始 Y 坐标查询字符位置，与 _getCharacterOffsetAtLocalY 使用的全宽排版完全匹配
+              final int? splitOffset = _getCharacterOffsetAtLocalY(targetContext, textBlock, targetLocalY, _originalBlockRect!.width);
               if (hoveringTextBlockId != textBlock.id || hoveringAlignment != alignment || hoveringSplitOffset != splitOffset) {
                 setState(() {
                   hoveringTextBlockId = textBlock.id;
@@ -637,6 +673,8 @@ class _EditorContentListState extends State<EditorContentList> {
               hoveringAlignment = null;
               hoveringSplitOffset = null;
             });
+            _cachedBlockId = null;
+            _originalBlockRect = null;
           },
           onAcceptWithDetails: (details) {
             final String alignment = hoveringAlignment ?? 'left';
@@ -646,6 +684,8 @@ class _EditorContentListState extends State<EditorContentList> {
               hoveringAlignment = null;
               hoveringSplitOffset = null;
             });
+            _cachedBlockId = null;
+            _originalBlockRect = null;
             widget.onWrapImage?.call(details.data, textBlock, alignment, splitOffset: splitOffset);
             textBlock.focusNode.unfocus();
             FocusScope.of(targetContext).unfocus();
@@ -696,7 +736,7 @@ class _EditorContentListState extends State<EditorContentList> {
     return 0;
   }
 
-  Widget _buildBlockItem(DiaryBlock block, int index, {bool? forceFloating, bool disableDraggable = false}) {
+  Widget _buildBlockItem(DiaryBlock block, int index, {bool? forceFloating, bool disableDraggable = false, double? floatingHeight}) {
     final key = widget.blockKeys[block.id];
     final bool isFirstTextBlock = block == widget.blocks.whereType<TextBlock>().firstOrNull;
     
@@ -737,6 +777,7 @@ class _EditorContentListState extends State<EditorContentList> {
       onDeleteAnnotation: widget.onDeleteAnnotation,
       isFirstTextBlock: isFirstTextBlock,
       isFloatingOverride: forceFloating,
+      floatingHeight: floatingHeight,
     );
 
     if (block is ImageBlock && widget.isMixedLayout && !disableDraggable) {
@@ -806,6 +847,7 @@ class _EditorContentListState extends State<EditorContentList> {
           builder: (context, constraints) {
             final double totalWidth = constraints.maxWidth;
             final double narrowWidth = totalWidth - 140 - 12;
+            // 文字行高 = fontSize(20) × height(1.8) = 36dp，4行 = 144dp，与图片底部精确对齐
             final double targetHeight = 144.0;
 
             final textStyle = TextStyle(
@@ -934,12 +976,16 @@ class _EditorContentListState extends State<EditorContentList> {
             final remainingText = splitResult['remainingText'] as String? ?? '';
             final narrowController = splitResult['narrowController'] as DiaryTextEditingController?;
             final remainingController = splitResult['remainingController'] as DiaryTextEditingController?;
+            // 图片高度动态对齐，与放置后保持一致
+            final double narrowTextHeight = (splitResult['narrowTextHeight'] as double?) ?? targetHeight;
+            final double imageSizedBoxHeight = narrowTextHeight + 8;
 
             Widget buildPlaceholder() {
               return Container(
                 margin: const EdgeInsets.only(top: 12, bottom: 8),
                 width: 140,
-                height: 128,
+                // 高度 = imageSizedBoxHeight - margin.top(12) - margin.bottom(8)，与文字底部精确对齐
+                height: (imageSizedBoxHeight - 20).clamp(36.0, 200.0),
                 decoration: BoxDecoration(
                   color: widget.accentColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
@@ -957,6 +1003,7 @@ class _EditorContentListState extends State<EditorContentList> {
                 ),
               );
             }
+
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1081,12 +1128,20 @@ class _EditorContentListState extends State<EditorContentList> {
         onMove: (details) {
           final RenderBox? renderBox = key?.currentContext?.findRenderObject() as RenderBox?;
           if (renderBox != null) {
-            final localOffset = renderBox.globalToLocal(details.offset);
-            final String alignment = localOffset.dx < renderBox.size.width / 2 ? 'left' : 'right';
+            if (_cachedBlockId != block.id || _originalBlockRect == null) {
+              _cachedBlockId = block.id;
+              final position = renderBox.localToGlobal(Offset.zero);
+              _originalBlockRect = position & renderBox.size;
+            }
+
+            final String alignment = (details.offset.dx - _originalBlockRect!.left) < _originalBlockRect!.width / 2 ? 'left' : 'right';
             // 将定位基准从手指向上微调 30 像素（避开手指遮挡），以更精准地与拖拽图片位置对齐
-            double targetLocalY = localOffset.dy - 30;
+            double targetLocalY = details.offset.dy - _originalBlockRect!.top - 30;
             if (targetLocalY < 0) targetLocalY = 0;
-            final int? splitOffset = _getCharacterOffsetAtLocalY(context, block, targetLocalY, renderBox.size.width);
+            if (targetLocalY > _originalBlockRect!.height) targetLocalY = _originalBlockRect!.height;
+
+            // 直接用锁定的原始 Y 坐标查询字符位置，与 _getCharacterOffsetAtLocalY 使用的全宽排版完全匹配
+            final int? splitOffset = _getCharacterOffsetAtLocalY(context, block, targetLocalY, _originalBlockRect!.width);
             if (hoveringTextBlockId != block.id || hoveringAlignment != alignment || hoveringSplitOffset != splitOffset) {
               setState(() {
                 hoveringTextBlockId = block.id;
@@ -1102,6 +1157,8 @@ class _EditorContentListState extends State<EditorContentList> {
             hoveringAlignment = null;
             hoveringSplitOffset = null;
           });
+          _cachedBlockId = null;
+          _originalBlockRect = null;
         },
         onAcceptWithDetails: (details) {
           final String alignment = hoveringAlignment ?? 'left';
@@ -1111,6 +1168,8 @@ class _EditorContentListState extends State<EditorContentList> {
             hoveringAlignment = null;
             hoveringSplitOffset = null;
           });
+          _cachedBlockId = null;
+          _originalBlockRect = null;
           widget.onWrapImage?.call(details.data, block, alignment, splitOffset: splitOffset);
           // 拖放完成后主动取消焦点，让文字进入绕排阅读模式
           block.focusNode.unfocus();
