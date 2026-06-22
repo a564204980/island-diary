@@ -291,7 +291,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             orElse: () => DiaryBook(id: 'default', name: '未分类'),
                           );
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
+                            padding: const EdgeInsets.only(bottom: 2.0),
                             child: GestureDetector(
                               onTap: _showBookSelector,
                               child: Container(

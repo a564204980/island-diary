@@ -30,7 +30,11 @@ class ImageGroupBlock extends DiaryBlock {
         if (block.isFloating) {
           // 遇到开启环绕的图片，不进行合并，先结算之前的图片组和空文本块
           if (tempImages.isNotEmpty) {
-            result.add(ImageGroupBlock(List.from(tempImages)));
+            if (tempImages.length == 1) {
+              result.add(tempImages.first);
+            } else {
+              result.add(ImageGroupBlock(List.from(tempImages)));
+            }
             tempImages.clear();
           }
           result.addAll(pendingEmptyTextBlocks);
@@ -47,7 +51,11 @@ class ImageGroupBlock extends DiaryBlock {
       } else {
         // 遇到有实义内容的块，打断连续性，恢复图片组和积压的空文本块
         if (tempImages.isNotEmpty) {
-          result.add(ImageGroupBlock(List.from(tempImages)));
+          if (tempImages.length == 1) {
+            result.add(tempImages.first);
+          } else {
+            result.add(ImageGroupBlock(List.from(tempImages)));
+          }
           tempImages.clear();
         }
         result.addAll(pendingEmptyTextBlocks);
@@ -57,7 +65,11 @@ class ImageGroupBlock extends DiaryBlock {
     }
 
     if (tempImages.isNotEmpty) {
-      result.add(ImageGroupBlock(List.from(tempImages)));
+      if (tempImages.length == 1) {
+        result.add(tempImages.first);
+      } else {
+        result.add(ImageGroupBlock(List.from(tempImages)));
+      }
     }
     result.addAll(pendingEmptyTextBlocks);
 

@@ -47,12 +47,14 @@ abstract class DiaryBlock {
         final videoPath = map['videoPath']?.toString();
         final isFloating = map['isFloating'] as bool? ?? false;
         final floatAlignment = map['floatAlignment']?.toString() ?? 'left';
+        final floatSplitOffset = map['floatSplitOffset'] as int?;
         return ImageBlock(
           XFile(path.toString()),
           id: id,
           videoPath: videoPath,
           isFloating: isFloating,
           floatAlignment: floatAlignment,
+          floatSplitOffset: floatSplitOffset,
         );
       }
       return TextBlock('');
@@ -1322,6 +1324,7 @@ class ImageBlock extends DiaryBlock {
   final bool isUploading; // 是否正在上传
   bool isFloating;
   String floatAlignment; // 'left' or 'right'
+  int? floatSplitOffset;
 
   ImageBlock(
     this.file, {
@@ -1331,6 +1334,7 @@ class ImageBlock extends DiaryBlock {
     this.isUploading = false,
     this.isFloating = false,
     this.floatAlignment = 'left',
+    this.floatSplitOffset,
   });
 
   @override
@@ -1341,6 +1345,7 @@ class ImageBlock extends DiaryBlock {
     if (videoPath != null) 'videoPath': videoPath,
     'isFloating': isFloating,
     'floatAlignment': floatAlignment,
+    if (floatSplitOffset != null) 'floatSplitOffset': floatSplitOffset,
   };
 }
 

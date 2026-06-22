@@ -22,6 +22,7 @@ class DiaryBlockItem extends StatelessWidget {
   final VoidCallback? onRemoveImage;
   final Function(ImageBlock)? onRemoveImageBlock;
   final Function(ImageBlock)? onUnwrapImageBlock;
+  final Function(ImageBlock)? onWrapImageBlock;
   final VoidCallback? onDeleteAtStart; // 新增：在行首按下回退键的回调
   final Function(ImageBlock)? onShowPreview;
   final bool? isNightOverride;
@@ -50,6 +51,7 @@ class DiaryBlockItem extends StatelessWidget {
     this.onRemoveImage,
     this.onRemoveImageBlock,
     this.onUnwrapImageBlock,
+    this.onWrapImageBlock,
     this.onDeleteAtStart,
     this.onShowPreview,
     this.isNightOverride,
@@ -376,20 +378,28 @@ class DiaryBlockItem extends StatelessWidget {
                           ),
                         ),
                       ),
-                    if (!block.isUploading && isFloating)
+                    if (!block.isUploading && (isFloating || onWrapImageBlock != null))
                       Positioned(
                         top: 14,
                         left: 6,
                         child: GestureDetector(
-                          onTap: () => onUnwrapImageBlock?.call(block),
+                          onTap: () {
+                            if (isFloating) {
+                              onUnwrapImageBlock?.call(block);
+                            } else {
+                              onWrapImageBlock?.call(block);
+                            }
+                          },
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: const BoxDecoration(
                               color: Colors.black38,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
-                              Icons.fullscreen_rounded,
+                            child: Icon(
+                              isFloating
+                                  ? Icons.fullscreen_rounded
+                                  : Icons.fullscreen_exit_rounded,
                               color: Colors.white,
                               size: 18,
                             ),

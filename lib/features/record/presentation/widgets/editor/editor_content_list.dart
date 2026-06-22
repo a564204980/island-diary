@@ -459,7 +459,7 @@ class _EditorContentListState extends State<EditorContentList> {
       key: ValueKey(wrapBlock.id),
       animation: textBlock.focusNode,
       builder: (context, child) {
-        if (hoveringTextBlockId == textBlock.id) {
+        if (hoveringTextBlockId == textBlock.id || textBlock.focusNode.hasFocus) {
           return _buildBlockItem(textBlock, textIndex);
         }
 
@@ -700,6 +700,12 @@ class _EditorContentListState extends State<EditorContentList> {
     final key = widget.blockKeys[block.id];
     final bool isFirstTextBlock = block == widget.blocks.whereType<TextBlock>().firstOrNull;
     
+    final int blockIndex = widget.blocks.indexOf(block);
+    final bool canWrap = block is ImageBlock &&
+        blockIndex != -1 &&
+        blockIndex < widget.blocks.length - 1 &&
+        widget.blocks[blockIndex + 1] is TextBlock;
+
     Widget item = DiaryBlockItem(
       key: ValueKey(block.id),
       block: block,
@@ -714,6 +720,12 @@ class _EditorContentListState extends State<EditorContentList> {
         }
       },
       onUnwrapImageBlock: widget.onUnwrapImage,
+      onWrapImageBlock: canWrap
+          ? (imgBlock) {
+              final nextBlock = widget.blocks[blockIndex + 1] as TextBlock;
+              widget.onWrapImage?.call(imgBlock, nextBlock, imgBlock.floatAlignment, splitOffset: imgBlock.floatSplitOffset);
+            }
+          : null,
       onDeleteAtStart: () => widget.onDeleteAtStart(index),
       onShowPreview: widget.onShowPreview,
       isNightOverride: widget.isNight,
@@ -929,8 +941,19 @@ class _EditorContentListState extends State<EditorContentList> {
                 width: 140,
                 height: 128,
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  color: widget.accentColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: widget.accentColor.withValues(alpha: 0.35),
+                    width: 1.5,
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.add_photo_alternate_rounded,
+                    size: 32,
+                    color: widget.accentColor.withValues(alpha: 0.5),
+                  ),
                 ),
               );
             }
