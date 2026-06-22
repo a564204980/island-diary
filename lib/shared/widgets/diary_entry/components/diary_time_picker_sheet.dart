@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -35,7 +34,6 @@ class _DiaryTimePickerSheetState extends State<DiaryTimePickerSheet> {
   Widget build(BuildContext context) {
     final bool isNight = UserState().isNight;
     final Color accentColor = DiaryUtils.getAccentColor(widget.paperStyle, isNight);
-    final Color bgColor = DiaryUtils.getPopupBackgroundColor(widget.paperStyle, isNight);
     final Color inkColor = DiaryUtils.getInkColor(widget.paperStyle, isNight);
 
     // CupertinoDatePicker uses DateTime, so we convert TimeOfDay

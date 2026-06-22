@@ -11,8 +11,6 @@ import 'package:island_diary/features/record/presentation/pages/diary_editor_pag
 import '../../island_vip_guard_dialog.dart';
 import './diary_editor_core_mixin.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:http/http.dart' as http;
-import 'package:island_diary/core/constants/api_constants.dart';
 import '../components/diary_image_source_sheet.dart';
 import '../components/redbook_asset_picker.dart';
 import '../utils/diary_utils.dart';
@@ -715,13 +713,62 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       imageBlock.isFloating = true;
       imageBlock.floatAlignment = alignment;
       
-      blocks.remove(imageBlock);
-      final targetIdx = blocks.indexOf(targetTextBlock);
+      int oldIdx = blocks.indexOf(imageBlock);
+      int? finalSplitOffset = splitOffset;
+      TextBlock finalTargetTextBlock = targetTextBlock;
+
+      if (oldIdx != -1) {
+        if (oldIdx > 0 && oldIdx < blocks.length - 1) {
+          final prevBlock = blocks[oldIdx - 1];
+          final nextBlock = blocks[oldIdx + 1];
+          if (prevBlock is TextBlock && nextBlock is TextBlock) {
+            final prevController = prevBlock.controller as DiaryTextEditingController;
+            final nextController = nextBlock.controller as DiaryTextEditingController;
+            final String originalPrevText = prevController.text;
+            final String newText = originalPrevText + nextController.text;
+
+            // 合并文字属性并做相应的偏移
+            final List<TextAttribute> mergedAttrs = List.from(prevController.attributes);
+            final int offset = originalPrevText.length;
+            for (var attr in nextController.attributes) {
+              mergedAttrs.add(TextAttribute(
+                start: attr.start + offset,
+                end: attr.end + offset,
+                color: attr.color,
+                backgroundColor: attr.backgroundColor,
+                fontSize: attr.fontSize,
+                underline: attr.underline,
+                underlineStyle: attr.underlineStyle,
+              ));
+            }
+
+            // 更新前一个文本块的内容与样式
+            prevController.text = newText;
+            prevController.attributes.clear();
+            prevController.attributes.addAll(mergedAttrs);
+
+            // 如果拖动的目标文本块正好是后半段，需要更正目标为合并后的前一段并修正偏移量
+            if (targetTextBlock == nextBlock) {
+              finalTargetTextBlock = prevBlock;
+              if (finalSplitOffset != null) {
+                finalSplitOffset = finalSplitOffset + offset;
+              }
+            }
+
+            // 移除后半截文本块
+            blocks.remove(nextBlock);
+            blockKeys.remove(nextBlock.id);
+          }
+        }
+        blocks.remove(imageBlock);
+      }
+
+      final targetIdx = blocks.indexOf(finalTargetTextBlock);
       if (targetIdx != -1) {
-        final text = targetTextBlock.controller.text;
-        if (splitOffset != null && splitOffset > 0 && splitOffset < text.length) {
-          var beforeText = text.substring(0, splitOffset);
-          var afterText = text.substring(splitOffset);
+        final text = finalTargetTextBlock.controller.text;
+        if (finalSplitOffset != null && finalSplitOffset > 0 && finalSplitOffset < text.length) {
+          var beforeText = text.substring(0, finalSplitOffset);
+          var afterText = text.substring(finalSplitOffset);
           
           // 去除 beforeText 尾部的换行符，防止拖动后上方出现空行
           while (beforeText.endsWith('\n') || beforeText.endsWith('\r')) {
@@ -730,7 +777,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
 
           // 去除 afterText 头部的换行符，避免放置后绕排顶部和下方出现空行
           int afterTrimCount = 0;
-          final String rawAfterText = text.substring(splitOffset);
+          final String rawAfterText = text.substring(finalSplitOffset);
           while (afterTrimCount < rawAfterText.length && 
                  (rawAfterText[afterTrimCount] == '\n' || rawAfterText[afterTrimCount] == '\r')) {
             afterTrimCount++;
@@ -738,15 +785,15 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
           afterText = rawAfterText.substring(afterTrimCount);
 
           // 复制并偏移属性，避免样式丢失
-          final List<TextAttribute> origAttrs = (targetTextBlock.controller as DiaryTextEditingController).attributes;
+          final List<TextAttribute> origAttrs = (finalTargetTextBlock.controller as DiaryTextEditingController).attributes;
           final List<TextAttribute> afterAttrs = [];
-          final int finalSplitOffset = splitOffset + afterTrimCount;
+          final int finalOffsetVal = finalSplitOffset + afterTrimCount;
           for (var attr in origAttrs) {
-            if (attr.end > finalSplitOffset) {
+            if (attr.end > finalOffsetVal) {
               afterAttrs.add(
                 TextAttribute(
-                  start: (attr.start - finalSplitOffset).clamp(0, afterText.length),
-                  end: (attr.end - finalSplitOffset).clamp(0, afterText.length),
+                  start: (attr.start - finalOffsetVal).clamp(0, afterText.length),
+                  end: (attr.end - finalOffsetVal).clamp(0, afterText.length),
                   color: attr.color,
                   backgroundColor: attr.backgroundColor,
                   fontSize: attr.fontSize,
@@ -757,7 +804,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
             }
           }
 
-          targetTextBlock.controller.text = beforeText;
+          finalTargetTextBlock.controller.text = beforeText;
           final afterBlock = TextBlock(
             afterText,
             attributes: afterAttrs,

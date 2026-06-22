@@ -95,7 +95,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
         }
 
         // 当前选中的日记列表
-        final selectedDayDiaries = _selectedDay != null && _selectedDay!.year == year && _selectedDay!.month == month
+        final selectedDayDiaries = _selectedDay?.year == year && _selectedDay?.month == month
             ? (dayMap[_selectedDay!.day] ?? [])
             : <DiaryEntry>[];
 
@@ -375,8 +375,6 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
-    final badgeColor = mood.glowColor ?? const Color(0xFFD4A373);
-
     // 提取日记中的照片列表
     final images = entry.blocks.where((b) => b['type'] == 'image').toList();
     String bgAsset = DiaryUtils.getPaperBackgroundPath(entry.paperStyle, isNight);
@@ -702,7 +700,7 @@ class _CalendarDayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool hasEntry = entries != null && entries!.isNotEmpty;
+    final bool hasEntry = entries?.isNotEmpty ?? false;
     
     // 收集当天所有日记里的所有图片
     final List<String> allImages = [];

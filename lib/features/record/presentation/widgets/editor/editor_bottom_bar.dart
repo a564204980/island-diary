@@ -1,6 +1,4 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 
@@ -83,10 +81,6 @@ class EditorBottomBar extends StatelessWidget {
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool isWide = screenWidth > 800;
     final double toolbarMaxWidth = isWide ? 800.0 : double.infinity;
-
-    final themeId = UserState().selectedIslandThemeId.value;
-    final bool hasPaper = paperStyle.startsWith('note') || 
-        (paperStyle == 'classic' && themeId == 'cotton_candy');
 
     final Color barBgColor = Colors.transparent;
 

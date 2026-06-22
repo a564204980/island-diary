@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 class DiaryMasonryHeader extends StatelessWidget {
   final bool isNight;

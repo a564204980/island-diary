@@ -598,7 +598,6 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     final parsed = ParsedTags.parse(tag, moodIndex);
     final moodIdx = moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
-    final Color badgeColor = mood.glowColor ?? const Color(0xFFC4B69E);
     final String moodLabel = parsed.customMood ?? mood.label;
     final String iconPath = (moodIndex >= 0 && moodIndex <= 23)
         ? 'assets/icons/custom${moodIndex + 1}.png'

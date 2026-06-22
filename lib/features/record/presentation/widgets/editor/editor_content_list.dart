@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'dart:ui' as ui;
-import 'dart:io' as io;
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_block_item.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/image_group_block.dart';
@@ -283,7 +281,6 @@ class _EditorContentListState extends State<EditorContentList> {
     textPainter.layout(maxWidth: narrowWidth - 8);
 
     final lines = textPainter.computeLineMetrics();
-    final int linesLength = lines.length;
     int endChar = 0;
     int fittingLines = 0;
 
@@ -368,7 +365,7 @@ class _EditorContentListState extends State<EditorContentList> {
     }
     final remainingText = text.substring(trimStartOffset);
 
-    final List<TextAttribute> origAttrs = (tc as DiaryTextEditingController).attributes;
+    final List<TextAttribute> origAttrs = tc.attributes;
     final List<TextAttribute> narrowAttrs = [];
     final List<TextAttribute> remainingAttrs = [];
 
@@ -462,7 +459,7 @@ class _EditorContentListState extends State<EditorContentList> {
       key: ValueKey(wrapBlock.id),
       animation: textBlock.focusNode,
       builder: (context, child) {
-        if (hoveringTextBlockId == textBlock.id && draggingImageBlockId != imageBlock.id) {
+        if (hoveringTextBlockId == textBlock.id) {
           return _buildBlockItem(textBlock, textIndex);
         }
 
@@ -622,9 +619,9 @@ class _EditorContentListState extends State<EditorContentList> {
             if (renderBox != null) {
               final localOffset = renderBox.globalToLocal(details.offset);
               final String alignment = localOffset.dx < renderBox.size.width / 2 ? 'left' : 'right';
-              double targetLocalY = localOffset.dy - 110;
+              double targetLocalY = localOffset.dy - 30;
               if (targetLocalY < 0) targetLocalY = 0;
-              final int? splitOffset = _getCharacterOffsetAtLocalY(textBlock, targetLocalY, renderBox.size.width);
+              final int? splitOffset = _getCharacterOffsetAtLocalY(targetContext, textBlock, targetLocalY, renderBox.size.width);
               if (hoveringTextBlockId != textBlock.id || hoveringAlignment != alignment || hoveringSplitOffset != splitOffset) {
                 setState(() {
                   hoveringTextBlockId = textBlock.id;
@@ -661,7 +658,7 @@ class _EditorContentListState extends State<EditorContentList> {
     );
   }
 
-  int? _getCharacterOffsetAtLocalY(TextBlock textBlock, double localY, double totalWidth) {
+  int? _getCharacterOffsetAtLocalY(BuildContext context, TextBlock textBlock, double localY, double totalWidth) {
     final String text = textBlock.controller.text;
     if (text.isEmpty) return 0;
 
@@ -676,8 +673,9 @@ class _EditorContentListState extends State<EditorContentList> {
     final textPainter = TextPainter(
       text: TextSpan(text: text, style: textStyle),
       textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
     );
-    textPainter.layout(maxWidth: totalWidth);
+    textPainter.layout(maxWidth: totalWidth - 8);
 
     final lines = textPainter.computeLineMetrics();
     double accumulatedHeight = 0;
@@ -772,9 +770,13 @@ class _EditorContentListState extends State<EditorContentList> {
             ),
           ),
         ),
-        childWhenDragging: Opacity(
-          opacity: 0.25,
-          child: item,
+        childWhenDragging: Container(
+          width: (forceFloating ?? block.isFloating) ? 140 : double.infinity,
+          height: (forceFloating ?? block.isFloating) ? 128 : 200,
+          decoration: BoxDecoration(
+            color: Colors.red.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         child: item,
       );
@@ -813,10 +815,8 @@ class _EditorContentListState extends State<EditorContentList> {
                 : fullText;
 
             // 去除 topText 尾部的换行符，防止拖拽点上方出现空行
-            int topTrimCount = 0;
             while (topText.endsWith('\n') || topText.endsWith('\r')) {
               topText = topText.substring(0, topText.length - 1);
-              topTrimCount++;
             }
 
             // 去除 bottomText 头部的换行符，避免绕排顶部和下方出现空行
@@ -928,7 +928,10 @@ class _EditorContentListState extends State<EditorContentList> {
                 margin: const EdgeInsets.only(top: 12, bottom: 8),
                 width: 140,
                 height: 128,
-                color: Colors.red.withValues(alpha: 0.3),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               );
             }
 
@@ -1057,10 +1060,10 @@ class _EditorContentListState extends State<EditorContentList> {
           if (renderBox != null) {
             final localOffset = renderBox.globalToLocal(details.offset);
             final String alignment = localOffset.dx < renderBox.size.width / 2 ? 'left' : 'right';
-            // 将定位基准从手指（图片中心）向上偏移 110 像素（契合 120 像素高度反馈图的顶部边缘及触控偏移），对齐到图片顶部边缘
-            double targetLocalY = localOffset.dy - 110;
+            // 将定位基准从手指向上微调 30 像素（避开手指遮挡），以更精准地与拖拽图片位置对齐
+            double targetLocalY = localOffset.dy - 30;
             if (targetLocalY < 0) targetLocalY = 0;
-            final int? splitOffset = _getCharacterOffsetAtLocalY(block, targetLocalY, renderBox.size.width);
+            final int? splitOffset = _getCharacterOffsetAtLocalY(context, block, targetLocalY, renderBox.size.width);
             if (hoveringTextBlockId != block.id || hoveringAlignment != alignment || hoveringSplitOffset != splitOffset) {
               setState(() {
                 hoveringTextBlockId = block.id;

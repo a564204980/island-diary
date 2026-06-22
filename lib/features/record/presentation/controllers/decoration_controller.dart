@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import '../../domain/models/furniture_item.dart';
@@ -131,6 +130,7 @@ class DecorationController extends ChangeNotifier {
     floorPattern = FloorPattern.values[UserState().floorPattern.value.clamp(0, FloorPattern.values.length - 1)];
 
     // 预加载必需资源
+    if (!context.mounted) return;
     await _preloadAssets(context);
   }
 
