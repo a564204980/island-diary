@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_block_item.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_text_context_menu.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/image_group_block.dart';
 import 'package:island_diary/features/record/presentation/widgets/editor/mood_selector_header.dart';
@@ -41,7 +42,7 @@ class EditorContentList extends StatefulWidget {
   final Function(String key)? onDeleteAnnotation;
 
   final Function(ImageBlock imageBlock, TextBlock targetTextBlock, String alignment, {int? splitOffset})? onWrapImage;
-  final Function(ImageBlock imageBlock)? onUnwrapImage;
+  final Function(ImageBlock imageBlock, {bool? isFloating})? onUnwrapImage;
 
   final String? weather;
   final String? temp;
@@ -455,6 +456,7 @@ class _EditorContentListState extends State<EditorContentList> {
       'textLength': text.length,
       // 已拆分时，narrow 列密地展示 fittingLines 行，高度即 targetHeight
       'narrowTextHeight': targetHeight,
+      'trimStartOffset': trimStartOffset,
     };
   }
 
@@ -518,6 +520,7 @@ class _EditorContentListState extends State<EditorContentList> {
             final remainingText = splitResult['remainingText'] as String? ?? '';
             final narrowController = splitResult['narrowController'] as DiaryTextEditingController?;
             final remainingController = splitResult['remainingController'] as DiaryTextEditingController?;
+            final int trimStartOffset = (splitResult['trimStartOffset'] as int?) ?? 0;
             // 图片高度动态对齐：SizedBox.height = narrowTextHeight + 8
             // margin.top(12) + 内容(narrowTextHeight-12) + margin.bottom(8) 内容占习精确与文字底部对齐
             final double narrowTextHeight = (splitResult['narrowTextHeight'] as double?) ?? targetHeight;
@@ -573,6 +576,24 @@ class _EditorContentListState extends State<EditorContentList> {
                               style: textStyle,
                               selectionHeightStyle: ui.BoxHeightStyle.tight,
                               selectionWidthStyle: ui.BoxWidthStyle.tight,
+                              contextMenuBuilder: (context, editableTextState) {
+                                if (widget.onAddAnnotation == null) return const SizedBox.shrink();
+                                return DiaryTextContextMenu(
+                                  editableTextState: editableTextState,
+                                  blockIndex: textIndex,
+                                  annotations: widget.annotations ?? const {},
+                                  onAddAnnotation: widget.onAddAnnotation!,
+                                  onDeleteAnnotation: widget.onDeleteAnnotation,
+                                  showAnnotation: false,
+                                  showUnderline: true,
+                                  paperStyle: widget.paperStyle,
+                                  controllerOverride: textBlock.controller as DiaryTextEditingController,
+                                  selectionOffset: 0,
+                                  onAttributeApplied: () {
+                                    setState(() {});
+                                  },
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -625,6 +646,24 @@ class _EditorContentListState extends State<EditorContentList> {
                           style: textStyle,
                           selectionHeightStyle: ui.BoxHeightStyle.tight,
                           selectionWidthStyle: ui.BoxWidthStyle.tight,
+                          contextMenuBuilder: (context, editableTextState) {
+                            if (widget.onAddAnnotation == null) return const SizedBox.shrink();
+                            return DiaryTextContextMenu(
+                              editableTextState: editableTextState,
+                              blockIndex: textIndex,
+                              annotations: widget.annotations ?? const {},
+                              onAddAnnotation: widget.onAddAnnotation!,
+                              onDeleteAnnotation: widget.onDeleteAnnotation,
+                              showAnnotation: false,
+                              showUnderline: true,
+                              paperStyle: widget.paperStyle,
+                              controllerOverride: textBlock.controller as DiaryTextEditingController,
+                              selectionOffset: trimStartOffset,
+                              onAttributeApplied: () {
+                                setState(() {});
+                              },
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -762,8 +801,14 @@ class _EditorContentListState extends State<EditorContentList> {
       onUnwrapImageBlock: widget.onUnwrapImage,
       onWrapImageBlock: canWrap
           ? (imgBlock) {
-              final nextBlock = widget.blocks[blockIndex + 1] as TextBlock;
-              widget.onWrapImage?.call(imgBlock, nextBlock, imgBlock.floatAlignment, splitOffset: imgBlock.floatSplitOffset);
+              if (blockIndex > 0 &&
+                  widget.blocks[blockIndex - 1] is TextBlock &&
+                  widget.blocks[blockIndex + 1] is TextBlock) {
+                widget.onUnwrapImage?.call(imgBlock, isFloating: true);
+              } else {
+                final nextBlock = widget.blocks[blockIndex + 1] as TextBlock;
+                widget.onWrapImage?.call(imgBlock, nextBlock, imgBlock.floatAlignment, splitOffset: imgBlock.floatSplitOffset);
+              }
             }
           : null,
       onDeleteAtStart: () => widget.onDeleteAtStart(index),

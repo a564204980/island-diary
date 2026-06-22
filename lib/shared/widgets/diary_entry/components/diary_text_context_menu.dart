@@ -19,6 +19,9 @@ class DiaryTextContextMenu extends StatelessWidget {
   final bool showAnnotation;
   final bool showUnderline;
   final String? paperStyle;
+  final DiaryTextEditingController? controllerOverride;
+  final int? selectionOffset;
+  final VoidCallback? onAttributeApplied;
 
   const DiaryTextContextMenu({
     super.key,
@@ -30,6 +33,9 @@ class DiaryTextContextMenu extends StatelessWidget {
     this.showAnnotation = true,
     this.showUnderline = false,
     this.paperStyle,
+    this.controllerOverride,
+    this.selectionOffset,
+    this.onAttributeApplied,
   });
 
   @override
@@ -135,12 +141,18 @@ class DiaryTextContextMenu extends StatelessWidget {
                 if (showUnderline) ...[
                   const SizedBox(width: 4),
                   _buildToolbarButton("颜色", () {
-                    final controller = editableTextState.widget.controller;
+                    final controller = controllerOverride ?? editableTextState.widget.controller;
                     if (controller is DiaryTextEditingController) {
+                      final targetSelection = selectionOffset != null && selectionOffset! > 0
+                          ? TextSelection(
+                              baseOffset: selection.baseOffset + selectionOffset!,
+                              extentOffset: selection.extentOffset + selectionOffset!,
+                            )
+                          : selection;
                       Color currentTextColor = controller.baseColor;
                       Color currentBgColor = Colors.transparent;
                       for (var attr in controller.attributes) {
-                        if (attr.start <= selection.start && attr.end >= selection.end) {
+                        if (attr.start <= targetSelection.start && attr.end >= targetSelection.end) {
                           if (attr.color != null) currentTextColor = attr.color!;
                           if (attr.backgroundColor != null) currentBgColor = attr.backgroundColor!;
                         }
@@ -156,19 +168,21 @@ class DiaryTextContextMenu extends StatelessWidget {
                           initialIsBackground: false,
                           onApplyColor: (color, isBg) {
                             if (isBg) {
-                              controller.applyAttributeToSelection(selection, bgColor: color);
+                              controller.applyAttributeToSelection(targetSelection, bgColor: color);
                             } else {
-                              controller.applyAttributeToSelection(selection, color: color);
+                              controller.applyAttributeToSelection(targetSelection, color: color);
                             }
                             Navigator.pop(ctx);
+                            onAttributeApplied?.call();
                           },
                           onClear: (isBg) {
                             if (isBg) {
-                              controller.applyAttributeToSelection(selection, clearBgColor: true);
+                              controller.applyAttributeToSelection(targetSelection, clearBgColor: true);
                             } else {
-                              controller.applyAttributeToSelection(selection, clearColor: true);
+                              controller.applyAttributeToSelection(targetSelection, clearColor: true);
                             }
                             Navigator.pop(ctx);
+                            onAttributeApplied?.call();
                           },
                         ),
                       );
@@ -176,12 +190,18 @@ class DiaryTextContextMenu extends StatelessWidget {
                   }, false),
                   const SizedBox(width: 4),
                   _buildToolbarButton("背景", () {
-                    final controller = editableTextState.widget.controller;
+                    final controller = controllerOverride ?? editableTextState.widget.controller;
                     if (controller is DiaryTextEditingController) {
+                      final targetSelection = selectionOffset != null && selectionOffset! > 0
+                          ? TextSelection(
+                              baseOffset: selection.baseOffset + selectionOffset!,
+                              extentOffset: selection.extentOffset + selectionOffset!,
+                            )
+                          : selection;
                       Color currentTextColor = controller.baseColor;
                       Color currentBgColor = Colors.transparent;
                       for (var attr in controller.attributes) {
-                        if (attr.start <= selection.start && attr.end >= selection.end) {
+                        if (attr.start <= targetSelection.start && attr.end >= targetSelection.end) {
                           if (attr.color != null) currentTextColor = attr.color!;
                           if (attr.backgroundColor != null) currentBgColor = attr.backgroundColor!;
                         }
@@ -197,19 +217,21 @@ class DiaryTextContextMenu extends StatelessWidget {
                           initialIsBackground: true,
                           onApplyColor: (color, isBg) {
                             if (isBg) {
-                              controller.applyAttributeToSelection(selection, bgColor: color);
+                              controller.applyAttributeToSelection(targetSelection, bgColor: color);
                             } else {
-                              controller.applyAttributeToSelection(selection, color: color);
+                              controller.applyAttributeToSelection(targetSelection, color: color);
                             }
                             Navigator.pop(ctx);
+                            onAttributeApplied?.call();
                           },
                           onClear: (isBg) {
                             if (isBg) {
-                              controller.applyAttributeToSelection(selection, clearBgColor: true);
+                              controller.applyAttributeToSelection(targetSelection, clearBgColor: true);
                             } else {
-                              controller.applyAttributeToSelection(selection, clearColor: true);
+                              controller.applyAttributeToSelection(targetSelection, clearColor: true);
                             }
                             Navigator.pop(ctx);
+                            onAttributeApplied?.call();
                           },
                         ),
                       );
@@ -217,13 +239,19 @@ class DiaryTextContextMenu extends StatelessWidget {
                   }, false),
                   const SizedBox(width: 4),
                   _buildToolbarButton("划线", () {
-                    final controller = editableTextState.widget.controller;
+                    final controller = controllerOverride ?? editableTextState.widget.controller;
                     if (controller is DiaryTextEditingController) {
+                      final targetSelection = selectionOffset != null && selectionOffset! > 0
+                          ? TextSelection(
+                              baseOffset: selection.baseOffset + selectionOffset!,
+                              extentOffset: selection.extentOffset + selectionOffset!,
+                            )
+                          : selection;
                       String? currentStyle;
                       for (var attr in controller.attributes) {
                         if ((attr.underline == true || attr.underlineStyle != null) &&
-                            attr.start <= selection.start &&
-                            attr.end >= selection.end) {
+                            attr.start <= targetSelection.start &&
+                            attr.end >= targetSelection.end) {
                           currentStyle = attr.underlineStyle ?? 'solid';
                           break;
                         }
@@ -242,15 +270,16 @@ class DiaryTextContextMenu extends StatelessWidget {
                           onSelectStyle: (style) {
                             if (style == null) {
                               controller.applyAttributeToSelection(
-                                selection,
+                                targetSelection,
                                 clearUnderline: true,
                               );
                             } else {
                               controller.applyAttributeToSelection(
-                                selection,
+                                targetSelection,
                                 underlineStyle: style,
                               );
                             }
+                            onAttributeApplied?.call();
                           },
                         ),
                       );
@@ -258,15 +287,21 @@ class DiaryTextContextMenu extends StatelessWidget {
                   }, false),
                   const SizedBox(width: 4),
                   _buildToolbarButton("圈线", () {
-                    final controller = editableTextState.widget.controller;
+                    final controller = controllerOverride ?? editableTextState.widget.controller;
                     if (controller is DiaryTextEditingController) {
+                      final targetSelection = selectionOffset != null && selectionOffset! > 0
+                          ? TextSelection(
+                              baseOffset: selection.baseOffset + selectionOffset!,
+                              extentOffset: selection.extentOffset + selectionOffset!,
+                            )
+                          : selection;
                       String? currentStyle;
                       Color? currentColor;
                       for (var attr in controller.attributes) {
                         if (attr.underlineStyle != null &&
                             attr.underlineStyle!.startsWith('circle') &&
-                            attr.start <= selection.start &&
-                            attr.end >= selection.end) {
+                            attr.start <= targetSelection.start &&
+                            attr.end >= targetSelection.end) {
                           currentStyle = attr.underlineStyle;
                           currentColor = attr.color;
                           break;
@@ -274,7 +309,7 @@ class DiaryTextContextMenu extends StatelessWidget {
                       }
                       
                       editableTextState.hideToolbar();
-
+ 
                       showModalBottomSheet(
                         context: context,
                         backgroundColor: Colors.transparent,
@@ -285,16 +320,18 @@ class DiaryTextContextMenu extends StatelessWidget {
                           paperStyle: paperStyle ?? 'classic',
                           onApply: (style, color) {
                             controller.applyAttributeToSelection(
-                              selection,
+                              targetSelection,
                               underlineStyle: style,
                               color: color,
                             );
+                            onAttributeApplied?.call();
                           },
                           onClear: () {
                             controller.applyAttributeToSelection(
-                              selection,
+                              targetSelection,
                               clearUnderline: true,
                             );
+                            onAttributeApplied?.call();
                           },
                         ),
                       );

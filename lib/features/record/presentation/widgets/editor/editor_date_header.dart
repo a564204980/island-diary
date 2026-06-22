@@ -19,16 +19,16 @@ class EditorDateHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
-    final String dayStr = dateTime.day.toString().padLeft(2, '0');
-    final String yearMonthStr = DateFormat('yyyy年M月').format(dateTime);
+    final String dayStr = dateTime.day.toString();
+    final String yearMonthStr = "${dateTime.year}年${dateTime.month}月";
     final String weekTimeStr = "${_getChineseWeekDay(dateTime.weekday)}  ${DateFormat('HH:mm').format(dateTime)}";
 
     return GestureDetector(
       onTap: onDateTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        margin: const EdgeInsets.only(top: 2, bottom: 12),
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        margin: const EdgeInsets.only(top: 2, bottom: 8),
+        padding: const EdgeInsets.only(top: 4, bottom: 0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -36,14 +36,14 @@ class EditorDateHeader extends StatelessWidget {
             Text(
               dayStr,
               style: TextStyle(
-                fontSize: 38,
-                fontWeight: FontWeight.bold,
-                color: isNight ? Colors.white.withValues(alpha: 0.9) : inkColor.withValues(alpha: 0.95),
-                fontFamily: 'LXGWWenKai',
+                fontSize: 68,
+                fontWeight: FontWeight.w500,
+                color: DiaryUtils.getInkColor(paperStyle, isNight),
+                fontFamily: 'Georgia',
                 height: 1.0,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             // 右侧两行小字日期时间
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,13 +52,13 @@ class EditorDateHeader extends StatelessWidget {
                 Text(
                   yearMonthStr,
                   style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.bold,
-                    color: isNight ? Colors.white70 : inkColor.withValues(alpha: 0.75),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: DiaryUtils.getInkColor(paperStyle, isNight).withValues(alpha: 0.6),
                     fontFamily: 'LXGWWenKai',
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -66,15 +66,16 @@ class EditorDateHeader extends StatelessWidget {
                     Text(
                       weekTimeStr,
                       style: TextStyle(
-                        fontSize: 11,
-                        color: isNight ? Colors.white60 : inkColor.withValues(alpha: 0.55),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: DiaryUtils.getInkColor(paperStyle, isNight).withValues(alpha: 0.8),
                         fontFamily: 'LXGWWenKai',
                       ),
                     ),
-                    const SizedBox(width: 3),
+                    const SizedBox(width: 4),
                     Icon(
                       Icons.keyboard_arrow_down_rounded,
-                      size: 13,
+                      size: 18,
                       color: isNight ? Colors.white30 : inkColor.withValues(alpha: 0.4),
                     ),
                   ],

@@ -832,9 +832,9 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     onBlocksChanged();
   }
 
-  void handleUnwrapImage(ImageBlock imageBlock) {
+  void handleUnwrapImage(ImageBlock imageBlock, {bool? isFloating}) {
     setState(() {
-      imageBlock.isFloating = false;
+      imageBlock.isFloating = isFloating ?? false;
     });
     onBlocksChanged();
   }
