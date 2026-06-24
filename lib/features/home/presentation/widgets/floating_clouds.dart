@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart'; // 用于 Ticker 定义
 import 'dart:math' as math;
 import 'package:island_diary/core/state/user_state.dart'; // 导入 UserState
+import 'package:island_diary/features/home/presentation/widgets/random_memory_overlay.dart';
 
 class FloatingClouds extends StatelessWidget {
   final bool isNight;
@@ -43,22 +44,20 @@ class FloatingClouds extends StatelessWidget {
 
     final configs = isForeground ? fgConfigs : bgConfigs;
 
-    return IgnorePointer(
-      child: Stack(
-        children: configs.map((config) {
-          return _SingleCloud(
-            isNight: isNight,
-            isForeground: isForeground,
-            scale: config['scale'],
-            duration: Duration(seconds: config['duration']),
-            initialTop: config['initialTop'],
-            shouldAnimate: shouldAnimate,
-            themeId: themeId,
-            // 背景层由组件内部随机，不再使用固定索引
-            forcedIndex: null,
-          );
-        }).toList(),
-      ),
+    return Stack(
+      children: configs.map((config) {
+        return _SingleCloud(
+          isNight: isNight,
+          isForeground: isForeground,
+          scale: config['scale'],
+          duration: Duration(seconds: config['duration']),
+          initialTop: config['initialTop'],
+          shouldAnimate: shouldAnimate,
+          themeId: themeId,
+          // 背景层由组件内部随机，不再使用固定索引
+          forcedIndex: null,
+        );
+      }).toList(),
     );
   }
 }
@@ -88,12 +87,26 @@ class _SingleCloud extends StatefulWidget {
   State<_SingleCloud> createState() => _SingleCloudState();
 }
 
+class CloudRegistry {
+  static final Map<Key, Rect> activeClouds = {};
+
+  static bool hitTestClouds(Offset localPosition) {
+    for (final rect in activeClouds.values) {
+      if (rect.contains(localPosition)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
 class _SingleCloudState extends State<_SingleCloud>
     with SingleTickerProviderStateMixin {
   late Ticker _ticker;
   late double _currentTop;
   late int _currentIndex;
   final math.Random _random = math.Random();
+  final UniqueKey _cloudKey = UniqueKey();
 
   // 当前云朵在 1.0 倍速下走完一圈所需时长
   late Duration _currentBaseDuration;
@@ -220,6 +233,7 @@ class _SingleCloudState extends State<_SingleCloud>
     UserState().cloudSpeedMultiplier.removeListener(_onSpeedMultiplierChanged);
     _animationNotifier.dispose();
     _ticker.dispose();
+    CloudRegistry.activeClouds.remove(_cloudKey);
     super.dispose();
   }
 
@@ -246,19 +260,44 @@ class _SingleCloudState extends State<_SingleCloud>
       builder: (context, animValue, child) {
         final double xPos = screenWidth - (animValue * (screenWidth + cloudWidth));
         
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final renderBox = context.findRenderObject() as RenderBox?;
+          if (renderBox != null && renderBox.hasSize) {
+            final position = renderBox.localToGlobal(Offset.zero);
+            final size = renderBox.size;
+            final double scaledWidth = size.width * widget.scale;
+            final double scaledHeight = size.height * widget.scale;
+            final double visualLeft = position.dx + (size.width - scaledWidth) / 2;
+            final double visualTop = position.dy + (size.height - scaledHeight) / 2;
+            CloudRegistry.activeClouds[_cloudKey] = Rect.fromLTWH(
+              visualLeft,
+              visualTop,
+              scaledWidth,
+              scaledHeight,
+            );
+          }
+        });
+
         return Positioned(
           top: screenHeight * _currentTop,
           left: xPos,
-          child: Transform.scale(
-            scale: widget.scale,
-            child: Image.asset(
-              '${basePath}clouds$_currentIndex$suffix.png',
-              width: cloudWidth,
-              fit: BoxFit.contain,
-              color: Colors.white.withValues(
-                alpha: widget.isForeground ? 0.85 : 0.65,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              RandomMemoryOverlay.show(context, isNight: widget.isNight);
+            },
+            child: Transform.scale(
+              scale: widget.scale,
+              child: Image.asset(
+                '${basePath}clouds$_currentIndex$suffix.png',
+                width: cloudWidth,
+                fit: BoxFit.contain,
+                color: Colors.white.withValues(
+                  alpha: widget.isForeground ? 0.85 : 0.65,
+                ),
+                colorBlendMode: BlendMode.modulate,
               ),
-              colorBlendMode: BlendMode.modulate,
             ),
           ),
         );

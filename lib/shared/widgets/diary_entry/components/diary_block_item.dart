@@ -21,8 +21,6 @@ class DiaryBlockItem extends StatelessWidget {
   final GlobalKey? blockKey;
   final VoidCallback? onRemoveImage;
   final Function(ImageBlock)? onRemoveImageBlock;
-  final Function(ImageBlock)? onUnwrapImageBlock;
-  final Function(ImageBlock)? onWrapImageBlock;
   final VoidCallback? onDeleteAtStart; // 新增：在行首按下回退键的回调
   final Function(ImageBlock)? onShowPreview;
   final bool? isNightOverride;
@@ -40,8 +38,6 @@ class DiaryBlockItem extends StatelessWidget {
   onAddAnnotation;
   final Function(String key)? onDeleteAnnotation;
   final bool isFirstTextBlock;
-  final bool? isFloatingOverride;
-  final double? floatingHeight;
 
   const DiaryBlockItem({
     super.key,
@@ -51,8 +47,6 @@ class DiaryBlockItem extends StatelessWidget {
     this.blockKey,
     this.onRemoveImage,
     this.onRemoveImageBlock,
-    this.onUnwrapImageBlock,
-    this.onWrapImageBlock,
     this.onDeleteAtStart,
     this.onShowPreview,
     this.isNightOverride,
@@ -63,8 +57,6 @@ class DiaryBlockItem extends StatelessWidget {
     this.onAddAnnotation,
     this.onDeleteAnnotation,
     this.isFirstTextBlock = false,
-    this.isFloatingOverride,
-    this.floatingHeight,
   });
 
   @override
@@ -201,6 +193,7 @@ class DiaryBlockItem extends StatelessWidget {
               readOnly: false,
               showCursor: true,
               cursorColor: inkColor,
+              cursorHeight: 22, // 强制光标高度，避免随行高(height: 1.8)拉长
               selectionHeightStyle: ui.BoxHeightStyle.tight,
               selectionWidthStyle: ui.BoxWidthStyle.tight,
               style: TextStyle(
@@ -245,7 +238,6 @@ class DiaryBlockItem extends StatelessWidget {
   }
 
   Widget _buildImageBlock(ImageBlock block) {
-    final bool isFloating = isFloatingOverride ?? block.isFloating;
     return AnimatedDeleteWrapper(
       onDelete: () {
         if (onRemoveImageBlock != null) {
@@ -259,8 +251,6 @@ class DiaryBlockItem extends StatelessWidget {
           builder: (context) {
             final bool isWideScreen = MediaQuery.of(context).size.width > 800;
             final String displayPath = block.localPath ?? block.file.path;
-            final double displayHeight = floatingHeight ?? 136;
-            final double livePlayerHeight = floatingHeight != null ? floatingHeight! - 4 : 132;
 
             return Center(
               child: Container(
@@ -275,50 +265,23 @@ class DiaryBlockItem extends StatelessWidget {
                           ? null
                           : () => onShowPreview?.call(block),
                       child: Container(
-                        margin: EdgeInsets.only(
-                          top: isFloating ? 8 : 8,
+                        margin: const EdgeInsets.only(
+                          top: 8,
                           bottom: 8,
                         ),
-                        width: isFloating ? 140 : null,
-                        height: isFloating ? displayHeight : null,
-                        child: isFloating
+                        child: block.videoPath != null
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
-                                child: SizedBox(
-                                  width: 140,
-                                  height: displayHeight,
-                                  child: FittedBox(
-                                    fit: BoxFit.cover,
-                                    clipBehavior: Clip.hardEdge,
-                                    child: block.videoPath != null
-                                        ? SizedBox(
-                                            width: 140,
-                                            height: livePlayerHeight,
-                                            child: _LiveImagePlayer(
-                                              videoPath: block.videoPath!,
-                                              fallbackPath: displayPath,
-                                            ),
-                                          )
-                                        : DiaryUtils.buildImage(
-                                            displayPath,
-                                            fit: BoxFit.cover,
-                                          ),
-                                  ),
+                                child: _LiveImagePlayer(
+                                  videoPath: block.videoPath!,
+                                  fallbackPath: displayPath,
                                 ),
                               )
-                            : (block.videoPath != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: _LiveImagePlayer(
-                                      videoPath: block.videoPath!,
-                                      fallbackPath: displayPath,
-                                    ),
-                                  )
-                                : DiaryUtils.buildImage(
-                                    displayPath,
-                                    fit: BoxFit.contain,
-                                    borderRadius: BorderRadius.circular(12),
-                                  )),
+                            : DiaryUtils.buildImage(
+                                displayPath,
+                                fit: BoxFit.contain,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                       ),
                     ),
                     if (block.isUploading)
@@ -362,7 +325,7 @@ class DiaryBlockItem extends StatelessWidget {
                           ),
                         ),
                       ),
-                    if (!block.isUploading)
+                    if (!block.isUploading && (onRemoveImageBlock != null || onRemoveImage != null))
                       Positioned(
                         top: 14,
                         right: 6,
@@ -376,34 +339,6 @@ class DiaryBlockItem extends StatelessWidget {
                             ),
                             child: const Icon(
                               Icons.close,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (!block.isUploading && isFloating)
-                      Positioned(
-                        top: 14,
-                        left: 6,
-                        child: GestureDetector(
-                          onTap: () {
-                            if (isFloating) {
-                              onUnwrapImageBlock?.call(block);
-                            } else {
-                              onWrapImageBlock?.call(block);
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.black38,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              isFloating
-                                  ? Icons.fullscreen_rounded
-                                  : Icons.fullscreen_exit_rounded,
                               color: Colors.white,
                               size: 18,
                             ),

@@ -45,16 +45,10 @@ abstract class DiaryBlock {
       final path = map['path'];
       if (path != null && path.toString().isNotEmpty) {
         final videoPath = map['videoPath']?.toString();
-        final isFloating = map['isFloating'] as bool? ?? false;
-        final floatAlignment = map['floatAlignment']?.toString() ?? 'left';
-        final floatSplitOffset = map['floatSplitOffset'] as int?;
         return ImageBlock(
           XFile(path.toString()),
           id: id,
           videoPath: videoPath,
-          isFloating: isFloating,
-          floatAlignment: floatAlignment,
-          floatSplitOffset: floatSplitOffset,
         );
       }
       return TextBlock('');
@@ -1322,9 +1316,6 @@ class ImageBlock extends DiaryBlock {
   final String? videoPath; // 实况图对应的视频路径
   final String? localPath; // 编辑时本地缓存或原图路径
   final bool isUploading; // 是否正在上传
-  bool isFloating;
-  String floatAlignment; // 'left' or 'right'
-  int? floatSplitOffset;
 
   ImageBlock(
     this.file, {
@@ -1332,9 +1323,6 @@ class ImageBlock extends DiaryBlock {
     this.videoPath,
     this.localPath,
     this.isUploading = false,
-    this.isFloating = false,
-    this.floatAlignment = 'left',
-    this.floatSplitOffset,
   });
 
   @override
@@ -1343,9 +1331,6 @@ class ImageBlock extends DiaryBlock {
     'type': 'image',
     'path': file.path,
     if (videoPath != null) 'videoPath': videoPath,
-    'isFloating': isFloating,
-    'floatAlignment': floatAlignment,
-    if (floatSplitOffset != null) 'floatSplitOffset': floatSplitOffset,
   };
 }
 
@@ -1428,18 +1413,4 @@ class _CommentBubblePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class TextWrapGroupBlock extends DiaryBlock {
-  final ImageBlock imageBlock;
-  final TextBlock textBlock;
-  final String alignment; // 'left' or 'right'
 
-  TextWrapGroupBlock({
-    required this.imageBlock,
-    required this.textBlock,
-    required this.alignment,
-    super.id,
-  });
-
-  @override
-  Map<String, dynamic> toMap() => {};
-}

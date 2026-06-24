@@ -51,6 +51,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Timer? _thoughtTimer;
   bool _isRestoring = false;
 
+  Offset? _pointerDownPos;
+  DateTime? _pointerDownTime;
+
   // 弹幕相关
   List<Map<DateTime, List<DiaryEntry>>> _groupedEntries = [];
 
@@ -431,11 +434,37 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ? const Color(0xFF0D1B2A)
               : const Color(0xFFE6F3F5),
           resizeToAvoidBottomInset: false,
-          body: Stack(
-            children: [
-              Positioned.fill(
-                child: Stack(
-                  children: [
+          body: Listener(
+            onPointerDown: (event) {
+              _pointerDownPos = event.position;
+              _pointerDownTime = DateTime.now();
+            },
+            onPointerUp: (event) {
+              if (_pointerDownPos != null && _pointerDownTime != null) {
+                final diff = event.position - _pointerDownPos!;
+                final duration = DateTime.now().difference(_pointerDownTime!);
+                if (diff.distance < 15 && duration.inMilliseconds < 300) {
+                  debugPrint('Tap detected at ${event.position}. Active clouds:');
+                  for (final entry in CloudRegistry.activeClouds.entries) {
+                    debugPrint('  Cloud ${entry.key}: ${entry.value}');
+                  }
+                  if (_currentNavIndex == 0 &&
+                      UserState().homeDisplayMode.value == 'island') {
+                    if (CloudRegistry.hitTestClouds(event.position)) {
+                      debugPrint('Cloud HIT!');
+                      RandomMemoryOverlay.show(context, isNight: _isNight);
+                    } else {
+                      debugPrint('Cloud MISS');
+                    }
+                  }
+                }
+              }
+            },
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Stack(
+                    children: [
                     _buildAnimatedPage(0, _buildHomeContent(isNight, isWide)),
                     _buildAnimatedPage(1, const RecordPage(key: ValueKey('RecordPage'))),
                     _buildAnimatedPage(
@@ -674,7 +703,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
             ],
           ),
-        );
+        ),
+      );
       },
     );
   }

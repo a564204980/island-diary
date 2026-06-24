@@ -609,12 +609,13 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   Widget _buildHeader(bool isNight, List<DiaryEntry> filtered) {
     final String themeId = UserState().selectedIslandThemeId.value;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
@@ -624,7 +625,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                       '心灵气象站',
                       style: TextStyle(
                         color: isNight ? Colors.white : const Color(0xFF332F2D),
-                        fontSize: 28,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.0,
                         fontFamily: 'LXGWWenKai',

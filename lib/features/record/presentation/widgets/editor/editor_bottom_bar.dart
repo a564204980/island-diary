@@ -108,7 +108,7 @@ class EditorBottomBar extends StatelessWidget {
             // 工具栏主内容
             Container(
               height: 52,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Row(
                 children: [
                   // 左侧工具图标组，利用 LayoutBuilder 动态决定平铺还是滚动

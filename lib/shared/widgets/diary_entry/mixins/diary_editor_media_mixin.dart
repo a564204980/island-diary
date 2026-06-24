@@ -50,7 +50,6 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
         paperStyle: currentPaperStyle,
         isMixedLayout: isMixedLayout,
         isImageGrid: isImageGrid,
-        isTextWrap: isTextWrap,
         onMixedLayoutChanged: (val) {
           setState(() {
             isMixedLayout = val;
@@ -60,17 +59,6 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
         onImageGridChanged: (val) {
           setState(() {
             isImageGrid = val;
-          });
-          onBlocksChanged();
-        },
-        onTextWrapChanged: (val) {
-          setState(() {
-            isTextWrap = val;
-            for (var block in blocks) {
-              if (block is ImageBlock) {
-                block.isFloating = val;
-              }
-            }
           });
           onBlocksChanged();
         },
@@ -265,7 +253,6 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       videoPath: pickedVideoPath,
       localPath: pickedPath,
       isUploading: true,
-      isFloating: isTextWrap,
     );
 
     // 升级为空日记的判断（没有任何图片，且所有文本框文字皆为空）
@@ -336,8 +323,6 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
               videoPath: block.videoPath,
               localPath: compressedPath,
               isUploading: false,
-              isFloating: block.isFloating,
-              floatAlignment: block.floatAlignment,
             );
           }
         });
@@ -356,8 +341,6 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
               videoPath: block.videoPath,
               localPath: localPath,
               isUploading: false,
-              isFloating: block.isFloating,
-              floatAlignment: block.floatAlignment,
             );
           }
         });
@@ -597,7 +580,6 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       videoPath: videoPath,
       localPath: actualImagePath,
       isUploading: true,
-      isFloating: isTextWrap,
     );
 
     setState(() {
@@ -708,134 +690,5 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     return null;
   }
 
-  void handleWrapImage(ImageBlock imageBlock, TextBlock targetTextBlock, String alignment, {int? splitOffset}) {
-    setState(() {
-      imageBlock.isFloating = true;
-      imageBlock.floatAlignment = alignment;
-      imageBlock.floatSplitOffset = splitOffset;
-      
-      int oldIdx = blocks.indexOf(imageBlock);
-      
 
-      int? finalSplitOffset = splitOffset;
-      TextBlock finalTargetTextBlock = targetTextBlock;
-
-      if (oldIdx != -1) {
-        if (oldIdx > 0 && oldIdx < blocks.length - 1) {
-          final prevBlock = blocks[oldIdx - 1];
-          final nextBlock = blocks[oldIdx + 1];
-          if (prevBlock is TextBlock && nextBlock is TextBlock) {
-            final prevController = prevBlock.controller as DiaryTextEditingController;
-            final nextController = nextBlock.controller as DiaryTextEditingController;
-            final String originalPrevText = prevController.text;
-            final String newText = originalPrevText + nextController.text;
-
-            // 合并文字属性并做相应的偏移
-            final List<TextAttribute> mergedAttrs = List.from(prevController.attributes);
-            final int offset = originalPrevText.length;
-            for (var attr in nextController.attributes) {
-              mergedAttrs.add(TextAttribute(
-                start: attr.start + offset,
-                end: attr.end + offset,
-                color: attr.color,
-                backgroundColor: attr.backgroundColor,
-                fontSize: attr.fontSize,
-                underline: attr.underline,
-                underlineStyle: attr.underlineStyle,
-              ));
-            }
-
-            // 更新前一个文本块的内容与样式
-            prevController.text = newText;
-            prevController.attributes.clear();
-            prevController.attributes.addAll(mergedAttrs);
-
-            // 如果拖动的目标文本块正好是后半段，需要更正目标为合并后的前一段并修正偏移量
-            if (targetTextBlock == nextBlock) {
-              finalTargetTextBlock = prevBlock;
-              if (finalSplitOffset != null) {
-                finalSplitOffset = finalSplitOffset + offset;
-              }
-            }
-
-            // 移除后半截文本块
-            blocks.remove(nextBlock);
-            blockKeys.remove(nextBlock.id);
-          }
-        }
-        blocks.remove(imageBlock);
-      }
-
-      final targetIdx = blocks.indexOf(finalTargetTextBlock);
-      if (targetIdx != -1) {
-        final text = finalTargetTextBlock.controller.text;
-        if (finalSplitOffset != null && finalSplitOffset > 0 && finalSplitOffset < text.length) {
-          var beforeText = text.substring(0, finalSplitOffset);
-          var afterText = text.substring(finalSplitOffset);
-          
-          // 去除 beforeText 尾部的换行符，防止拖动后上方出现空行
-          while (beforeText.endsWith('\n') || beforeText.endsWith('\r')) {
-            beforeText = beforeText.substring(0, beforeText.length - 1);
-          }
-
-          // 去除 afterText 头部的换行符，避免放置后绕排顶部和下方出现空行
-          int afterTrimCount = 0;
-          final String rawAfterText = text.substring(finalSplitOffset);
-          while (afterTrimCount < rawAfterText.length && 
-                 (rawAfterText[afterTrimCount] == '\n' || rawAfterText[afterTrimCount] == '\r')) {
-            afterTrimCount++;
-          }
-          afterText = rawAfterText.substring(afterTrimCount);
-
-          // 复制并偏移属性，避免样式丢失
-          final List<TextAttribute> origAttrs = (finalTargetTextBlock.controller as DiaryTextEditingController).attributes;
-          final List<TextAttribute> afterAttrs = [];
-          final int finalOffsetVal = finalSplitOffset + afterTrimCount;
-          for (var attr in origAttrs) {
-            if (attr.end > finalOffsetVal) {
-              afterAttrs.add(
-                TextAttribute(
-                  start: (attr.start - finalOffsetVal).clamp(0, afterText.length),
-                  end: (attr.end - finalOffsetVal).clamp(0, afterText.length),
-                  color: attr.color,
-                  backgroundColor: attr.backgroundColor,
-                  fontSize: attr.fontSize,
-                  underline: attr.underline,
-                  underlineStyle: attr.underlineStyle,
-                ),
-              );
-            }
-          }
-
-          finalTargetTextBlock.controller.text = beforeText;
-          final afterBlock = TextBlock(
-            afterText,
-            attributes: afterAttrs,
-            baseColor: currentTextColor,
-          );
-          
-          // 为了与 hover 预览时的绕排逻辑一致：
-          // targetTextBlock (前段 topText) 作为独立块在上方。
-          // imageBlock 插入在 targetTextBlock 后面，紧跟着是 afterBlock (后段 bottomText)。
-          // 这样 displayBlocks 预处理时，imageBlock 将与后方的 afterBlock 组合为 TextWrapGroupBlock，
-          // 而 targetTextBlock (topText) 则保持在上方，布局完全对齐预览。
-          blocks.insert(targetIdx + 1, imageBlock);
-          blocks.insert(targetIdx + 2, afterBlock);
-          
-          blockKeys[afterBlock.id] = GlobalKey();
-          addFocusListener(afterBlock);
-        } else {
-          blocks.insert(targetIdx, imageBlock);
-        }
-      }
-    });
-    onBlocksChanged();
-  }
-
-  void handleUnwrapImage(ImageBlock imageBlock, {bool? isFloating}) {
-    setState(() {
-      imageBlock.isFloating = isFloating ?? false;
-    });
-    onBlocksChanged();
-  }
 }

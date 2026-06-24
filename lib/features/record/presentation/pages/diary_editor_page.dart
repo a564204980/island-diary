@@ -143,7 +143,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   top: MediaQuery.paddingOf(context).top + 56,
                   left: 0,
                   right: 0,
-                  bottom: bottomOffset,
+                  bottom: 0, 
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
@@ -208,8 +208,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               onRemoveImage: removeImage,
                               onDeleteAtStart: handleBackspaceAtStart,
                               onShowPreview: showImagePreview,
-                              onWrapImage: handleWrapImage,
-                              onUnwrapImage: handleUnwrapImage,
                               onMoodSelected: (index) {
                                 setState(() {
                                   currentMoodIndex = index;
@@ -243,7 +241,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             // 底部留白
                             const SliverToBoxAdapter(
                               child: SizedBox(
-                                height: 40,
+                                height: 100, // 恢复合理的底部安全余量留白，确保最后一行能滚动到视口之上
                               ),
                             ),
                           ],
@@ -284,7 +282,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ValueListenableBuilder<List<DiaryBook>>(
-                        valueListenable: UserState().savedBooks,
+                          valueListenable: UserState().savedBooks,
                         builder: (context, books, _) {
                           final currentBook = books.firstWhere(
                             (b) => b.id == currentBookId,
@@ -1414,20 +1412,79 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
 /// 这是页面中**唯一**读取 viewInsets 的 widget，因此键盘动画的每一帧
 /// 只有此 widget 重建（仅更新一个 Positioned 的 bottom 值），
 /// 其 child（EditorBottomBar）作为外部传入，不会随之重建，彻底消除卡顿。
-class _KeyboardFollower extends StatelessWidget {
+class _KeyboardFollower extends StatefulWidget {
   final Widget child;
   const _KeyboardFollower({required this.child});
 
   @override
+  State<_KeyboardFollower> createState() => _KeyboardFollowerState();
+}
+
+class _KeyboardFollowerState extends State<_KeyboardFollower> {
+  double _maxKeyboardHeight = 320; 
+  double _lastInset = 0;
+  bool _isOpening = false;
+  int _durationMs = 120;
+
+  @override
   Widget build(BuildContext context) {
-    final double keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 80), // 控制底部菜单跟随键盘速度的
-      curve: Curves.easeOutCubic,
-      bottom: keyboardHeight,
+    final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    
+    if (bottomInset > _maxKeyboardHeight) {
+      _maxKeyboardHeight = bottomInset;
+    }
+
+    final double jump = bottomInset - _lastInset;
+
+    // 状态机：精准识别正常动画 vs 被打断的闪现(Snap)
+    if (jump > 5) {
+      if (!_isOpening) {
+        _isOpening = true;
+        // 核心解法：如果是非0起步（说明中途被打断），或者单帧跳跃极大（说明系统放弃了动画直接弹），
+        // 那么我们也直接放弃动画，时间设为0，实现瞬间物理级贴合！
+        if (_lastInset > 0 || jump > _maxKeyboardHeight * 0.6) {
+          _durationMs = 0;
+        } else {
+          _durationMs = 120; // 正常超前动画
+        }
+      }
+    } else if (jump < -5) {
+      if (_isOpening) {
+        _isOpening = false;
+        // 收起时同理，如果被打断或跳变极大，直接归零
+        if (_lastInset < _maxKeyboardHeight * 0.9 || jump < -(_maxKeyboardHeight * 0.6)) {
+          _durationMs = 0;
+        } else {
+          _durationMs = 120;
+        }
+      }
+    }
+
+    if (bottomInset == 0) {
+      _isOpening = false;
+      _durationMs = 0;
+    }
+
+    _lastInset = bottomInset;
+    final double targetHeight = _isOpening ? _maxKeyboardHeight : 0;
+
+    return Positioned(
+      bottom: 0,
       left: 0,
       right: 0,
-      child: child,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(end: targetHeight),
+        duration: Duration(milliseconds: _durationMs),
+        curve: Curves.easeOutCubic,
+        builder: (context, animatedValue, child) {
+          final double actualBottom = bottomInset > animatedValue ? bottomInset : animatedValue;
+          return Padding(
+            padding: EdgeInsets.only(bottom: actualBottom),
+            child: child,
+          );
+        },
+        child: widget.child,
+      ),
     );
   }
 }

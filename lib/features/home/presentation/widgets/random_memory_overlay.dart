@@ -14,6 +14,7 @@ import 'package:island_diary/shared/widgets/prop_obtained/prop_obtained_popup.da
 import 'package:island_diary/features/record/presentation/pages/diary_detail_page.dart';
 
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
+import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 
 /// 随机回忆 · 轮播卡片弹出层
 /// 参考：豆瓣 App 卡片轮播 / Apple TV Up Next 3D carousel
@@ -22,7 +23,10 @@ class RandomMemoryOverlay extends StatefulWidget {
 
   const RandomMemoryOverlay({super.key, required this.isNight});
 
+  static bool _isShowing = false;
+
   static void show(BuildContext context, {required bool isNight}) {
+    if (_isShowing) return;
     final diaries = UserState().savedDiaries.value;
     if (diaries.isEmpty) {
       showTopToast(
@@ -33,6 +37,7 @@ class RandomMemoryOverlay extends StatefulWidget {
       return;
     }
 
+    _isShowing = true;
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -41,7 +46,9 @@ class RandomMemoryOverlay extends StatefulWidget {
       transitionDuration: Duration.zero,
       pageBuilder: (ctx, a1, a2) =>
           RandomMemoryOverlay(isNight: isNight),
-    );
+    ).then((_) {
+      _isShowing = false;
+    });
   }
 
   @override
@@ -117,8 +124,30 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
       final months = ['一月','二月','三月','四月','五月','六月',
                       '七月','八月','九月','十月','十一月','十二月'];
       final dateStr = '${dt.year}  ${months[dt.month - 1]}  ${dt.day}日';
-      final rawContent = entry.content.trim();
+      final rawContent = DiaryUtils.getFilteredContent(entry.content).trim();
       final preview = rawContent.isNotEmpty ? rawContent : '（这天只有画面，没有文字）';
+      final previewStyle = TextStyle(
+        fontSize: 14.5,
+        height: 1.7,
+        letterSpacing: 0.8,
+        color: imageUrl != null && imageUrl.isNotEmpty
+            ? Colors.white.withValues(alpha: 0.95)
+            : (widget.isNight ? Colors.white70 : const Color(0xFF4E3D30)),
+        fontFamilyFallback: const ['LXGWWenKai'],
+        fontWeight: FontWeight.w500,
+      );
+      final previewController = DiaryTextEditingController(
+        text: preview,
+        baseColor: previewStyle.color ?? Colors.black,
+        baseFontFamily: previewStyle.fontFamily ?? 'LXGWWenKai',
+        baseFontSize: previewStyle.fontSize ?? 14.5,
+      );
+      final previewSpan = previewController.buildTextSpan(
+        context: context,
+        style: previewStyle,
+        withComposing: false,
+        hideMarkdownSymbols: true,
+      );
 
       _cardConfigs[i] = _CardRenderConfig(
         entry: entry,
@@ -128,6 +157,7 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
         bgWidget: bgWidget,
         dateStr: dateStr,
         preview: preview,
+        previewSpan: previewSpan,
       );
     }
 
@@ -170,6 +200,7 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
       parent: _expandCtrl,
       curve: Curves.fastOutSlowIn,
     );
+    UserState().savedDiaries.addListener(_onDiariesChanged);
   }
 
   void _checkGiftEgg() {
@@ -290,8 +321,90 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
     });
   }
 
+  void _onDiariesChanged() {
+    if (!mounted) return;
+    setState(() {
+      final latestDiaries = UserState().savedDiaries.value;
+      for (int i = 0; i < _entries.length; i++) {
+        final entry = _entries[i];
+        final latestIndex = latestDiaries.indexWhere((e) => e.id == entry.id);
+        if (latestIndex != -1) {
+          final latestEntry = latestDiaries[latestIndex];
+          _entries[i] = latestEntry;
+          
+          final mood = (latestEntry.moodIndex >= 0 && latestEntry.moodIndex < kMoods.length)
+              ? kMoods[latestEntry.moodIndex]
+              : null;
+          final moodColor = mood?.glowColor ?? const Color(0xFFD4A373);
+          
+          String? imageUrl;
+          for (final block in latestEntry.blocks) {
+            if (block['type'] == 'image' && block['path'] != null) {
+              imageUrl = block['path'].toString();
+              break;
+            }
+          }
+
+          final Widget bgWidget;
+          if (imageUrl != null && imageUrl.isNotEmpty) {
+            bgWidget = DiaryUtils.buildImage(imageUrl, fit: BoxFit.cover);
+          } else {
+            String bgAsset = DiaryUtils.getPaperBackgroundPath(latestEntry.paperStyle, widget.isNight);
+            if (bgAsset.isEmpty) {
+              bgAsset = widget.isNight
+                  ? 'assets/images/note/note_night_bg1.png'
+                  : 'assets/images/note/note_bg1.png';
+            }
+            bgWidget = Image.asset(bgAsset, fit: BoxFit.cover);
+          }
+
+          final dt = latestEntry.dateTime;
+          final months = ['一月','二月','三月','四月','五月','六月',
+                          '七月','八月','九月','十月','十一月','十二月'];
+          final dateStr = '${dt.year}  ${months[dt.month - 1]}  ${dt.day}日';
+          final rawContent = DiaryUtils.getFilteredContent(latestEntry.content).trim();
+          final preview = rawContent.isNotEmpty ? rawContent : '（这天只有画面, 没有文字）';
+          final previewStyle = TextStyle(
+            fontSize: 14.5,
+            height: 1.7,
+            letterSpacing: 0.8,
+            color: imageUrl != null && imageUrl.isNotEmpty
+                ? Colors.white.withValues(alpha: 0.95)
+                : (widget.isNight ? Colors.white70 : const Color(0xFF4E3D30)),
+            fontFamilyFallback: const ['LXGWWenKai'],
+            fontWeight: FontWeight.w500,
+          );
+          final previewController = DiaryTextEditingController(
+            text: preview,
+            baseColor: previewStyle.color ?? Colors.black,
+            baseFontFamily: previewStyle.fontFamily ?? 'LXGWWenKai',
+            baseFontSize: previewStyle.fontSize ?? 14.5,
+          );
+          final previewSpan = previewController.buildTextSpan(
+            context: context,
+            style: previewStyle,
+            withComposing: false,
+            hideMarkdownSymbols: true,
+          );
+
+          _cardConfigs[i] = _CardRenderConfig(
+            entry: latestEntry,
+            mood: mood,
+            moodColor: moodColor,
+            imageUrl: imageUrl,
+            bgWidget: bgWidget,
+            dateStr: dateStr,
+            preview: preview,
+            previewSpan: previewSpan,
+          );
+        }
+      }
+    });
+  }
+
   @override
   void dispose() {
+    UserState().savedDiaries.removeListener(_onDiariesChanged);
     _pageCtrl.dispose();
     _enterCtrl.dispose();
     _expandCtrl.dispose();
@@ -315,23 +428,19 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
               children: [
                 // ── 磨砂遮罩
                 Positioned.fill(
-                  child: Opacity(
-                    opacity: _enterFade.value,
-                    child: ClipRect(
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(
-                          sigmaX: _enterBlur.value,
-                          sigmaY: _enterBlur.value,
-                        ),
-                        child: Container(
-                          color: Colors.black.withValues(
-                              alpha: widget.isNight ? 0.62 : 0.40),
-                        ),
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(
+                        sigmaX: _enterBlur.value,
+                        sigmaY: _enterBlur.value,
+                      ),
+                      child: Container(
+                        color: Colors.black.withValues(
+                            alpha: (widget.isNight ? 0.62 : 0.40) * _enterFade.value),
                       ),
                     ),
                   ),
                 ),
-
                 // ── 顶部标题
                 Positioned(
                   top: size.height * 0.11,
@@ -488,6 +597,7 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
                             bgWidget: const SizedBox.shrink(),
                             dateStr: '',
                             preview: '',
+                            previewSpan: const TextSpan(),
                           ),
                         );
 
@@ -668,6 +778,34 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
                           ),
                         ),
 
+                        // ── 正文文字内容预览
+                        Positioned(
+                          top: 72,
+                          left: 20,
+                          right: 20,
+                          bottom: 72,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                              decoration: config.imageUrl != null && config.imageUrl!.isNotEmpty
+                                  ? BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.35),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(alpha: 0.15),
+                                      ),
+                                    )
+                                  : null,
+                              child: Text.rich(
+                                config.previewSpan,
+                                maxLines: 6,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ),
+
                         // ── 顶部标签
                         Positioned(
                           top: 18, left: 18,
@@ -722,102 +860,54 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
                                   ),
                                 ),
                                 const Spacer(),
-                                // 地点 / 心情标签行
-                                Flexible(
-                                  child: Wrap(
-                                    spacing: 6,
-                                    runSpacing: 6,
-                                    alignment: WrapAlignment.end,
-                                    crossAxisAlignment: WrapCrossAlignment.center,
-                                    children: [
-                                      if (entry.location != null)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withValues(alpha: 0.12),
-                                            borderRadius: BorderRadius.circular(15),
-                                            border: Border.all(
-                                              color: Colors.white.withValues(alpha: 0.20),
-                                              width: 0.8,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            crossAxisAlignment: CrossAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                Icons.location_on_outlined,
-                                                size: 13,
-                                                color: Colors.white.withValues(alpha: 0.7),
+                                // 心情标签
+                                if (mood != null || ParsedTags.parse(entry.tag, entry.moodIndex).customMood != null) (() {
+                                  final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+                                  final String moodLabel = parsed.customMood ?? mood?.label ?? '未知心情';
+                                  final String iconPath = (entry.moodIndex >= 0 && entry.moodIndex <= 23)
+                                      ? 'assets/icons/custom${entry.moodIndex + 1}.png'
+                                      : (mood?.iconPath ?? 'assets/icons/happy.png');
+                                  final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(15),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(alpha: 0.20),
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        hasCustomIcon
+                                            ? Image.file(
+                                                File(parsed.customMoodIconPath!),
+                                                width: 14,
+                                                height: 14,
+                                              )
+                                            : Image.asset(
+                                                iconPath,
+                                                width: 14,
+                                                height: 14,
                                               ),
-                                              const SizedBox(width: 4),
-                                              Flexible(
-                                                child: Text(
-                                                  entry.location!,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: Colors.white.withValues(alpha: 0.85),
-                                                    fontFamily: 'LXGWWenKai',
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          moodLabel,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.white.withValues(alpha: 0.85),
+                                            fontFamily: 'LXGWWenKai',
                                           ),
                                         ),
-                                      if (mood != null) (() {
-                                        final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
-                                        final String moodLabel = parsed.customMood ?? mood.label;
-                                        final String iconPath = parsed.customMood != null
-                                            ? (entry.moodIndex >= 0 && entry.moodIndex <= 23
-                                                ? 'assets/icons/custom${entry.moodIndex + 1}.png'
-                                                : 'assets/images/icons/custom.png')
-                                            : (mood.iconPath ?? 'assets/icons/happy.png');
-                                        final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
-
-                                        return Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withValues(alpha: 0.12),
-                                            borderRadius: BorderRadius.circular(15),
-                                            border: Border.all(
-                                              color: Colors.white.withValues(alpha: 0.20),
-                                              width: 0.8,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            crossAxisAlignment: CrossAxisAlignment.center,
-                                            children: [
-                                              hasCustomIcon
-                                                  ? Image.file(
-                                                      File(parsed.customMoodIconPath!),
-                                                      width: 14,
-                                                      height: 14,
-                                                    )
-                                                  : Image.asset(
-                                                      iconPath,
-                                                      width: 14,
-                                                      height: 14,
-                                                    ),
-                                              const SizedBox(width: 5),
-                                              Text(
-                                                moodLabel,
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: Colors.white.withValues(alpha: 0.85),
-                                                  fontFamily: 'LXGWWenKai',
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      })(),
-                                    ],
-                                  ),
-                                ),
+                                      ],
+                                    ),
+                                  );
+                                })(),
                               ],
                             ),
                           ),
@@ -885,6 +975,35 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
                 ),
               ),
             ),
+
+            // ── 正文文字内容预览
+            Positioned(
+              top: 72,
+              left: 20,
+              right: 20,
+              bottom: 72,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  decoration: config.imageUrl != null && config.imageUrl!.isNotEmpty
+                      ? BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.15),
+                          ),
+                        )
+                      : null,
+                  child: Text.rich(
+                    config.previewSpan,
+                    maxLines: 6,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+
             Positioned(
               top: 18, left: 18,
               child: Container(
@@ -934,101 +1053,54 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
                       ),
                     ),
                     const Spacer(),
-                    Flexible(
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        alignment: WrapAlignment.end,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          if (entry.location != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(15),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.20),
-                                  width: 0.8,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.location_on_outlined,
-                                    size: 13,
-                                    color: Colors.white.withValues(alpha: 0.7),
+                    // 心情标签
+                    if (mood != null || ParsedTags.parse(entry.tag, entry.moodIndex).customMood != null) (() {
+                      final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+                      final String moodLabel = parsed.customMood ?? mood?.label ?? '未知心情';
+                      final String iconPath = (entry.moodIndex >= 0 && entry.moodIndex <= 23)
+                          ? 'assets/icons/custom${entry.moodIndex + 1}.png'
+                          : (mood?.iconPath ?? 'assets/icons/happy.png');
+                      final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.20),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            hasCustomIcon
+                                ? Image.file(
+                                    File(parsed.customMoodIconPath!),
+                                    width: 14,
+                                    height: 14,
+                                  )
+                                : Image.asset(
+                                    iconPath,
+                                    width: 14,
+                                    height: 14,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      entry.location!,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.white.withValues(alpha: 0.85),
-                                        fontFamily: 'LXGWWenKai',
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            const SizedBox(width: 5),
+                            Text(
+                              moodLabel,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontFamily: 'LXGWWenKai',
                               ),
                             ),
-                          if (mood != null) (() {
-                            final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
-                            final String moodLabel = parsed.customMood ?? mood.label;
-                            final String iconPath = parsed.customMood != null
-                                ? (entry.moodIndex >= 0 && entry.moodIndex <= 23
-                                    ? 'assets/icons/custom${entry.moodIndex + 1}.png'
-                                    : 'assets/images/icons/custom.png')
-                                : (mood.iconPath ?? 'assets/icons/happy.png');
-                            final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
-
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(15),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.20),
-                                  width: 0.8,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  hasCustomIcon
-                                      ? Image.file(
-                                          File(parsed.customMoodIconPath!),
-                                          width: 14,
-                                          height: 14,
-                                        )
-                                      : Image.asset(
-                                          iconPath,
-                                          width: 14,
-                                          height: 14,
-                                        ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    moodLabel,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.white.withValues(alpha: 0.85),
-                                      fontFamily: 'LXGWWenKai',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          })(),
-                        ],
-                      ),
-                    ),
+                          ],
+                        ),
+                      );
+                    })(),
                   ],
                 ),
               ),
@@ -1129,7 +1201,8 @@ class _CardRenderConfig {
   final Widget bgWidget;
   final String dateStr;
   final String preview;
-
+  final TextSpan previewSpan;
+ 
   _CardRenderConfig({
     required this.entry,
     required this.mood,
@@ -1138,5 +1211,6 @@ class _CardRenderConfig {
     required this.bgWidget,
     required this.dateStr,
     required this.preview,
+    required this.previewSpan,
   });
 }

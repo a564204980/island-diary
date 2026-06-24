@@ -58,7 +58,6 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   String currentPaperStyle = 'classic';
   bool isMixedLayout = true; // 是否开启图文混排
   bool isImageGrid = false; // 是否开启图片九宫格
-  bool isTextWrap = false; // 是否开启文字环绕图片
   String currentBookId = 'default'; // 当前选择的日记本ID
 
   String get fixedQuote => _fixedQuote ?? '';
@@ -664,7 +663,6 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       'paperStyle': currentPaperStyle,
       'isImageGrid': isImageGrid,
       'isMixedLayout': isMixedLayout,
-      'isTextWrap': isTextWrap,
       'bookId': currentBookId,
     };
     return json.encode(state);
