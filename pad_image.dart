@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:image/image.dart' as img;
 
 void main() {
@@ -19,5 +18,5 @@ void main() {
   img.compositeImage(padded, original, dstX: x, dstY: y);
   
   File('assets/launch_screen_title_padded.png').writeAsBytesSync(img.encodePng(padded));
-  print('Padded image generated successfully.');
+  stdout.writeln('Padded image generated successfully.');
 }

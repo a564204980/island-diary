@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 class EditorBottomBar extends StatelessWidget {
   final bool isEmojiOpen;
@@ -319,9 +320,12 @@ class EditorBottomBar extends StatelessWidget {
     final imageBlocks = blocks.whereType<ImageBlock>().toList();
     if (imageBlocks.isEmpty) return const SizedBox.shrink();
 
+    // 如果同时存在标签和图片，上边距缩小，避免两者间距过大
+    final double topMargin = currentTags.isNotEmpty ? 2.0 : 12.0;
+
     return Container(
-      height: 60,
-      margin: const EdgeInsets.only(left: 14, right: 12, top: 4, bottom: 0),
+      height: 50,
+      margin: EdgeInsets.fromLTRB(14, topMargin, 12, 2),
       child: AnimatedImagePreviewList(
         blocks: blocks,
         accentColor: accentColor,
@@ -634,7 +638,7 @@ class _AnimatedTagListState extends State<AnimatedTagList> {
     // 外层保留相同高度和边距，确保布局稳定性
     return Container(
       height: 26,
-      margin: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 2),
       child: AnimatedList(
         key: _listKey,
         scrollDirection: Axis.horizontal,

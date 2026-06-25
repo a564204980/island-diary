@@ -139,12 +139,26 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                 ),
 
                 // 2. 主编辑区 (文字与图片块)
-                Positioned(
-                  top: MediaQuery.paddingOf(context).top + 56,
-                  left: 0,
-                  right: 0,
-                  bottom: 0, 
-                  child: GestureDetector(
+                Builder(
+                  builder: (context) {
+                    final bool hasTags = currentTags.where((t) => !t.startsWith('mood:')).isNotEmpty;
+                    final bool hasImages = !isMixedLayout && blocks.whereType<ImageBlock>().isNotEmpty;
+                    
+                    double baseBottomBarHeight = 52.0 + 32.0; // 52.0 是工具栏高度，32.0 是“收纳至”指示栏高度
+                    if (hasTags) baseBottomBarHeight += 26.0;
+                    if (hasImages) baseBottomBarHeight += 50.0;
+                    
+                    final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+                    final double totalBottomPadding = (isEmojiOpen || isColorPickerOpen || isImagePickerOpen)
+                        ? keyboardHeight + baseBottomBarHeight
+                        : bottomInset + baseBottomBarHeight + MediaQuery.paddingOf(context).bottom;
+
+                    return Positioned(
+                      top: MediaQuery.paddingOf(context).top + 56,
+                      left: 0,
+                      right: 0,
+                      bottom: totalBottomPadding, 
+                      child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
                       FocusScope.of(context).unfocus();
@@ -154,6 +168,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 800),
                         child: CustomScrollView(
+                          clipBehavior: Clip.hardEdge,
                           controller: scrollController,
                           physics: const BouncingScrollPhysics(),
                           slivers: [
@@ -249,7 +264,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                       ),
                     ),
                   ),
-                ),
+                );
+              },
+            ),
 
                  // 2.5 固定页头层
                  Positioned(
@@ -413,6 +430,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
           return AlertDialog(
             backgroundColor: isNight ? const Color(0xFF2C2E30) : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            alignment: const Alignment(0, -0.3),
             title: Text(
               '新建日记本',
               style: TextStyle(

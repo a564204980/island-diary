@@ -14,6 +14,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import '../components/diary_image_source_sheet.dart';
 import '../components/redbook_asset_picker.dart';
 import '../utils/diary_utils.dart';
+import 'package:island_diary/features/record/presentation/pages/custom_camera_page.dart';
 
 mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
   void onImageButtonPressed() async {
@@ -144,21 +145,23 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       setState(() => isImagePickerOpen = false);
       return;
     } else {
-      // 相机拍摄单张处理
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.camera);
+      // 相机拍摄单张处理（使用自定义拍照界面）
+      final String? imagePath = await Navigator.push<String>(
+        context,
+        MaterialPageRoute(builder: (context) => const CustomCameraPage()),
+      );
       if (!mounted) {
         setState(() => isImagePickerOpen = false);
         return;
       }
-      if (image == null) {
+      if (imagePath == null) {
         setState(() => isImagePickerOpen = false);
         return;
       }
 
       setState(() => isImagePickerOpen = false);
       _insertSingleImageBlock(
-        pickedPath: image.path,
+        pickedPath: imagePath,
         isVip: isVip,
         activeBlock: activeBlock,
         savedSelection: savedSelection,
@@ -645,8 +648,12 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       final file = await result.first.originFile;
       return file?.path;
     } else {
-      final XFile? image = await ImagePicker().pickImage(source: ImageSource.camera);
-      return image?.path;
+      if (!mounted) return null;
+      final String? imagePath = await Navigator.push<String>(
+        context,
+        MaterialPageRoute(builder: (context) => const CustomCameraPage()),
+      );
+      return imagePath;
     }
   }
 

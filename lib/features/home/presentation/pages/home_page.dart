@@ -53,6 +53,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Offset? _pointerDownPos;
   DateTime? _pointerDownTime;
+  final GlobalKey _islandKey = GlobalKey();
 
   // 弹幕相关
   List<Map<DateTime, List<DiaryEntry>>> _groupedEntries = [];
@@ -444,6 +445,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 final diff = event.position - _pointerDownPos!;
                 final duration = DateTime.now().difference(_pointerDownTime!);
                 if (diff.distance < 15 && duration.inMilliseconds < 300) {
+                  final screenHeight = MediaQuery.sizeOf(context).height;
+                  if (event.position.dy < 120 || event.position.dy > screenHeight - 120) {
+                    return;
+                  }
+                  // 检查是否点击在小岛核心实体区域内（使用圆形区域判定，避免巨大的图片矩形边框阻挡周围的云层点击）
+                  final screenWidth = MediaQuery.sizeOf(context).width;
+                  final Offset islandCenter = Offset(
+                    screenWidth / 2,
+                    screenHeight / 2 + 15, // 结合浮动与小岛微调偏移
+                  );
+                  final double distance = (event.position - islandCenter).distance;
+                  final double blockRadius = screenWidth > 600 ? 180 : 130;
+                  if (distance < blockRadius) {
+                    return; // 忽略小岛实体范围内的点击
+                  }
                   debugPrint('Tap detected at ${event.position}. Active clouds:');
                   for (final entry in CloudRegistry.activeClouds.entries) {
                     debugPrint('  Cloud ${entry.key}: ${entry.value}');
@@ -682,18 +698,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-              // 侧边右侧沙漏按钮：仅在首页显示
-              if (_currentNavIndex == 0 && !_isLandscape)
-                Positioned(
-                  right: 24,
-                  top: MediaQuery.of(context).size.height * 0.45,
-                  child: _buildTopIconButton(
-                    icon: Icons.hourglass_empty_rounded,
-                    isNight: isNight,
-                    animate: false,
-                    onTap: () => RandomMemoryOverlay.show(context, isNight: isNight),
-                  ),
-                ),
+
 
               if (_isRestoring)
                 RestoreLoadingOverlay(
@@ -961,6 +966,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 ).createShader(bounds);
                               },
                               child: GestureDetector(
+                                key: _islandKey,
                                 onTap: () {
                                   _toggleZoom(context, isWide);
                                 },

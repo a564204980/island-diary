@@ -64,6 +64,10 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
   late Animation<double> _enterFade;
   late Animation<double> _enterScale;
 
+  late AnimationController _mistCtrl;
+  late Animation<double> _mistScale;
+  late Animation<double> _mistOpacity;
+
   double _currentPage = 0;
   int _lastTriggeredPage = 0;
   bool _hasTriggeredGift = false;
@@ -180,17 +184,36 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
 
     // 入场动画
     _enterCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 480));
+        vsync: this, duration: const Duration(milliseconds: 700));
     _enterBlur = Tween<double>(begin: 0, end: 12).animate(
       CurvedAnimation(parent: _enterCtrl,
           curve: const Interval(0, 0.6, curve: Curves.easeOut)),
     );
     _enterFade = CurvedAnimation(parent: _enterCtrl,
-        curve: const Interval(0, 0.5, curve: Curves.easeOut));
-    _enterScale = Tween<double>(begin: 0.90, end: 1.0).animate(
-      CurvedAnimation(parent: _enterCtrl, curve: Curves.easeOutBack),
+        curve: const Interval(0.25, 1.0, curve: Curves.easeOut));
+    _enterScale = Tween<double>(begin: 0.65, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _enterCtrl,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeOutBack),
+      ),
     );
     _enterCtrl.forward();
+
+    // 穿雾转场动画
+    _mistCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 750),
+    );
+    _mistScale = Tween<double>(begin: 0.8, end: 3.5).animate(
+      CurvedAnimation(parent: _mistCtrl, curve: Curves.easeOutCubic),
+    );
+    _mistOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.85), weight: 25),
+      TweenSequenceItem(tween: Tween<double>(begin: 0.85, end: 0.0), weight: 75),
+    ]).animate(
+      CurvedAnimation(parent: _mistCtrl, curve: Curves.easeOut),
+    );
+    _mistCtrl.forward();
 
     _expandCtrl = AnimationController(
       vsync: this,
@@ -408,8 +431,81 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
     _pageCtrl.dispose();
     _enterCtrl.dispose();
     _expandCtrl.dispose();
+    _mistCtrl.dispose();
     _confettiCtrl?.dispose();
     super.dispose();
+  }
+
+  Widget _buildTransitionMist(double screenWidth, double screenHeight) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    String basePath = 'assets/images/icons/';
+    String suffix = widget.isNight ? '_night' : '';
+    if (themeId == 'cotton_candy') {
+      basePath = 'assets/images/theme/miamhuadao/clouds/';
+    }
+    
+    return AnimatedBuilder(
+      animation: _mistCtrl,
+      builder: (context, child) {
+        if (_mistOpacity.value <= 0.0) return const SizedBox.shrink();
+        
+        final double scale = _mistScale.value;
+        final double opacity = _mistOpacity.value;
+        
+        return IgnorePointer(
+          child: Stack(
+            children: [
+              // Center cloud
+              Center(
+                child: Transform.scale(
+                  scale: scale * 1.5,
+                  child: Opacity(
+                    opacity: opacity,
+                    child: Image.asset(
+                      '${basePath}clouds2$suffix.png',
+                      width: 320,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+              // Left cloud
+              Positioned(
+                left: -120,
+                top: screenHeight * 0.15,
+                child: Transform.scale(
+                  scale: scale * 1.2,
+                  child: Opacity(
+                    opacity: opacity * 0.8,
+                    child: Image.asset(
+                      '${basePath}clouds1$suffix.png',
+                      width: 280,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+              // Right cloud
+              Positioned(
+                right: -120,
+                bottom: screenHeight * 0.15,
+                child: Transform.scale(
+                  scale: scale * 1.3,
+                  child: Opacity(
+                    opacity: opacity * 0.8,
+                    child: Image.asset(
+                      '${basePath}clouds3$suffix.png',
+                      width: 280,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -441,6 +537,9 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
                     ),
                   ),
                 ),
+                
+                // ── 穿梭云海过渡动效层
+                _buildTransitionMist(size.width, size.height),
                 // ── 顶部标题
                 Positioned(
                   top: size.height * 0.11,

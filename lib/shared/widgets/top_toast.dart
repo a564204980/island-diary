@@ -175,6 +175,12 @@ class _TopToastState extends State<TopToast> with SingleTickerProviderStateMixin
                             ),
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.pets,
+                          color: Color(0xFFD4A373),
+                          size: 14,
+                        ),
                       ],
                     ),
                   ),

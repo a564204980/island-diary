@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_block_item.dart';
-import 'package:island_diary/shared/widgets/diary_entry/components/diary_text_context_menu.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/image_group_block.dart';
 import 'package:island_diary/features/record/presentation/widgets/editor/mood_selector_header.dart';
 import 'package:island_diary/features/record/presentation/widgets/editor/editor_date_header.dart';
-import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 
 class EditorContentList extends StatefulWidget {
   final List<DiaryBlock> blocks;
