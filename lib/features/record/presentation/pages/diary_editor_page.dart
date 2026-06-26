@@ -89,10 +89,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   ? const Color(0xFFFBF3E9)
                   : const Color(0xFFFAF8F5));
 
-        final double safeArea = MediaQuery.paddingOf(context).bottom;
-        final double tagsHeight = currentTags.where((t) => !t.startsWith('mood:')).isNotEmpty ? 40.0 : 0.0;
-        final double imagesHeight = !isMixedLayout && blocks.any((b) => b is ImageBlock) ? 68.0 : 0.0;
-        final double bottomOffset = keyboardHeight + 86.0 + safeArea + tagsHeight + imagesHeight;
+
+
 
         return PopScope(
           canPop: false,
@@ -223,6 +221,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               onRemoveImage: removeImage,
                               onDeleteAtStart: handleBackspaceAtStart,
                               onShowPreview: showImagePreview,
+                              onEditImageBlock: editImageBlock,
                               onMoodSelected: (index) {
                                 setState(() {
                                   currentMoodIndex = index;
@@ -494,7 +493,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     if (ctx.mounted) {
                       Navigator.pop(ctx);
                     }
-                    if (context.mounted) {
+                    if (mounted) {
                       Navigator.pop(context);
                     }
                   }
@@ -884,7 +883,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             scale: 0.85,
                             child: Switch(
                               value: UserState().isImageCompressEnabled.value,
-                              activeColor: accentColor,
+                              activeThumbColor: accentColor,
                               onChanged: (val) {
                                 setModalState(() {
                                   UserState().setImageCompressEnabled(val);

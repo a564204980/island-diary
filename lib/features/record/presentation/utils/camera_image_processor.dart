@@ -6,7 +6,38 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:island_diary/core/state/user_state.dart';
 
+class ContourPoint {
+  final double x;
+  final double y;
+  final double nx; // 法线 x
+  final double ny; // 法线 y
+  ContourPoint({
+    required this.x,
+    required this.y,
+    required this.nx,
+    required this.ny,
+  });
+}
+
 class CameraImageProcessor {
+  static ui.ColorFilter _createThresholdFilter(Color color, {double threshold = 0.16}) {
+    // 阈值说明：
+    //   高斯模糊后，原图边缘外 1σ 处的 alpha ≈ Q(1) ≈ 0.16。
+    //   threshold = 0.5 只在原始边缘处截断，等于什么都没扩展。
+    //   threshold = 0.16 使截断位置恰好在 1σ（= sigma = 目标扩展距离）处。
+    final double r = color.red / 255.0;
+    final double g = color.green / 255.0;
+    final double b = color.blue / 255.0;
+    const double s = 100.0;
+    final double t = -100.0 * threshold;
+    return ui.ColorFilter.matrix([
+      0, 0, 0, 0, r,
+      0, 0, 0, 0, g,
+      0, 0, 0, 0, b,
+      0, 0, 0, s, t,
+    ]);
+  }
+
   /// 加载图片字节数据为 ui.Image
   static Future<ui.Image> _loadUiImage(Uint8List bytes) async {
     final ui.Codec codec = await ui.instantiateImageCodec(bytes);
@@ -45,6 +76,8 @@ class CameraImageProcessor {
     double strokeWidth = 0.0,
     Color strokeColor = Colors.white,
     String strokeStyle = 'solid',
+    double strokeDistance = 6.0,
+    Rect? normalizedCropRect,
   }) async {
     final file = io.File(imagePath);
     if (!await file.exists()) {
@@ -57,40 +90,51 @@ class CameraImageProcessor {
     final int srcW = uiImage.width;
     final int srcH = uiImage.height;
 
-    // 1. 计算裁剪尺寸与坐标
-    double targetRatio = 1.0;
-    if (ratio == '4:3') {
-      targetRatio = 4 / 3;
-    } else if (ratio == '16:9') {
-      targetRatio = 16 / 9;
-    }
-
     double dstW = srcW.toDouble();
     double dstH = srcH.toDouble();
     double offsetX = 0.0;
     double offsetY = 0.0;
 
-    // 因为通常拍照是竖屏，宽 < 高，所以按竖屏比例计算，但也要兼顾横屏
-    if (srcW < srcH) {
-      // 竖屏拍照：目标比例应该倒数，例如 1:1, 3:4, 9:16
-      double verticalRatio = 1 / targetRatio;
-      if (srcW / srcH > verticalRatio) {
-        // 宽度相对过剩，以高度为基准裁剪宽度
-        dstW = srcH * verticalRatio;
-        offsetX = (srcW - dstW) / 2;
-      } else {
-        // 高度相对过剩，以宽度为基准裁剪高度
-        dstH = srcW / verticalRatio;
-        offsetY = (srcH - dstH) / 2;
-      }
+    if (normalizedCropRect != null) {
+      offsetX = normalizedCropRect.left * srcW;
+      offsetY = normalizedCropRect.top * srcH;
+      dstW = normalizedCropRect.width * srcW;
+      dstH = normalizedCropRect.height * srcH;
     } else {
-      // 横屏拍照
-      if (srcW / srcH > targetRatio) {
-        dstW = srcH * targetRatio;
-        offsetX = (srcW - dstW) / 2;
+      // 1. 计算裁剪尺寸与坐标
+      double targetRatio = 1.0;
+      if (ratio == '4:3') {
+        targetRatio = 4 / 3;
+      } else if (ratio == '16:9') {
+        targetRatio = 16 / 9;
+      } else if (ratio == '3:4') {
+        targetRatio = 3 / 4;
+      } else if (ratio == '9:16') {
+        targetRatio = 9 / 16;
+      }
+
+      // 因为通常拍照是竖屏，宽 < 高，所以按竖屏比例计算，但也要兼顾横屏
+      if (srcW < srcH) {
+        // 竖屏拍照：目标比例应该倒数，例如 1:1, 3:4, 9:16
+        double verticalRatio = 1 / targetRatio;
+        if (srcW / srcH > verticalRatio) {
+          // 宽度相对过剩，以高度为基准裁剪宽度
+          dstW = srcH * verticalRatio;
+          offsetX = (srcW - dstW) / 2;
+        } else {
+          // 高度相对过剩，以宽度为基准裁剪高度
+          dstH = srcW / verticalRatio;
+          offsetY = (srcH - dstH) / 2;
+        }
       } else {
-        dstH = srcW / targetRatio;
-        offsetY = (srcH - dstH) / 2;
+        // 横屏拍照
+        if (srcW / srcH > targetRatio) {
+          dstW = srcH * targetRatio;
+          offsetX = (srcW - dstW) / 2;
+        } else {
+          dstH = srcW / targetRatio;
+          offsetY = (srcH - dstH) / 2;
+        }
       }
     }
 
@@ -151,108 +195,94 @@ class CameraImageProcessor {
       canvas.drawImageRect(uiImage, srcRect, fgRect, paintImg);
     } else {
       if (strokeWidth > 0) {
+        final double scaleFactor = fgRect.width / 360.0;
+        final double scaledStrokeWidth = strokeWidth * scaleFactor;
+        final double scaledStrokeDistance = strokeDistance * scaleFactor;
+
         if (strokeStyle == 'solid') {
-          final strokePaint = Paint()
-            ..colorFilter = ui.ColorFilter.mode(strokeColor, BlendMode.srcIn);
+          canvas.saveLayer(fgRect, Paint());
 
-          final double step = strokeWidth;
-          final offsets = [
-            Offset(-step, 0),
-            Offset(step, 0),
-            Offset(0, -step),
-            Offset(0, step),
-            Offset(-step, -step),
-            Offset(-step, step),
-            Offset(step, -step),
-            Offset(step, step),
-          ];
+          // 正确顺序：外层 colorFilter（阈值化），内层 imageFilter（模糊）
+          final double outerSigma = math.max(0.5, scaledStrokeWidth + scaledStrokeDistance);
+          canvas.saveLayer(fgRect, Paint()..colorFilter = _createThresholdFilter(strokeColor));
+          canvas.saveLayer(fgRect, Paint()..imageFilter = ui.ImageFilter.blur(sigmaX: outerSigma, sigmaY: outerSigma));
+          canvas.drawImageRect(uiImage, srcRect, fgRect, Paint());
+          canvas.restore(); // 应用模糊
+          canvas.restore(); // 应用阈值化
 
-          for (final offset in offsets) {
-            canvas.save();
-            canvas.translate(offset.dx, offset.dy);
-            canvas.drawImageRect(uiImage, srcRect, fgRect, strokePaint);
+          if (scaledStrokeDistance > 0) {
+            final double innerSigma = math.max(0.5, scaledStrokeDistance);
+            canvas.saveLayer(fgRect, Paint()
+              ..colorFilter = _createThresholdFilter(Colors.white)
+              ..blendMode = BlendMode.dstOut);
+            canvas.saveLayer(fgRect, Paint()..imageFilter = ui.ImageFilter.blur(sigmaX: innerSigma, sigmaY: innerSigma));
+            canvas.drawImageRect(uiImage, srcRect, fgRect, Paint());
+            canvas.restore();
             canvas.restore();
           }
+          canvas.restore();
         } else if (strokeStyle == 'glow') {
           canvas.saveLayer(fgRect, Paint());
-          final glowPaint = Paint()
-            ..colorFilter = ui.ColorFilter.mode(strokeColor, BlendMode.srcIn)
-            ..imageFilter = ui.ImageFilter.blur(sigmaX: strokeWidth, sigmaY: strokeWidth);
-          canvas.drawImageRect(uiImage, srcRect, fgRect, glowPaint);
+
+          // 正确顺序：外层 colorFilter（颜色），内层 imageFilter（模糊）
+          final double totalSigma = math.max(0.5, scaledStrokeWidth + scaledStrokeDistance);
+          canvas.saveLayer(fgRect, Paint()..colorFilter = ui.ColorFilter.mode(strokeColor, BlendMode.srcIn));
+          canvas.saveLayer(fgRect, Paint()..imageFilter = ui.ImageFilter.blur(sigmaX: totalSigma, sigmaY: totalSigma));
+          canvas.drawImageRect(uiImage, srcRect, fgRect, Paint());
           canvas.restore();
-        } else if (strokeStyle == 'stars') {
-          canvas.saveLayer(fgRect, Paint());
+          canvas.restore();
 
-          // 1. 绘制描边底作为遮罩
-          final maskPaint = Paint()
-            ..colorFilter = ui.ColorFilter.mode(strokeColor, BlendMode.srcIn);
-          
-          final double step = strokeWidth;
-          final offsets = [
-            Offset(-step, 0),
-            Offset(step, 0),
-            Offset(0, -step),
-            Offset(0, step),
-            Offset(-step, -step),
-            Offset(-step, step),
-            Offset(step, -step),
-            Offset(step, step),
-          ];
-
-          for (final offset in offsets) {
-            canvas.save();
-            canvas.translate(offset.dx, offset.dy);
-            canvas.drawImageRect(uiImage, srcRect, fgRect, maskPaint);
+          if (scaledStrokeDistance > 0) {
+            final double innerSigma = math.max(0.5, scaledStrokeDistance);
+            canvas.saveLayer(fgRect, Paint()
+              ..colorFilter = _createThresholdFilter(Colors.white)
+              ..blendMode = BlendMode.dstOut);
+            canvas.saveLayer(fgRect, Paint()..imageFilter = ui.ImageFilter.blur(sigmaX: innerSigma, sigmaY: innerSigma));
+            canvas.drawImageRect(uiImage, srcRect, fgRect, Paint());
+            canvas.restore();
             canvas.restore();
           }
+          canvas.restore();
+        } else if (strokeStyle == 'stars') {
+          // 1. 提取原图的边缘轮廓点 (返回 ContourPoint)
+          final List<ContourPoint> rawContourPoints = await extractContourPoints(uiImage);
+          
+          // 2. 计算缩放因子 (用于外推距离、间距和星星大小等比放大)
+          final double scaleFactor = fgRect.width / 360.0;
 
-          // 2. 剪切：仅在遮罩不透明的区域绘制小星星
-          final starPaint = Paint()
-            ..color = Colors.white
-            ..blendMode = BlendMode.srcIn;
+          // 3. 将轮廓点沿法线方向外推，并映射到画布的前景 rect 上 (裁切和缩放)
+          final List<Offset> mappedPoints = [];
+          for (final p in rawContourPoints) {
+            final double rx = (p.x - offsetX) / dstW;
+            final double ry = (p.y - offsetY) / dstH;
+            final double basePX = rx * fgRect.width + fgRect.left;
+            final double basePY = ry * fgRect.height + fgRect.top;
 
-          // 3. 绘制确定性伪随机星星（网格法）
-          const double gridStep = 18.0;
-          final int cols = (fgRect.width / gridStep).ceil();
-          final int rows = (fgRect.height / gridStep).ceil();
+            // 沿着法线方向进行外推 (外推像素距离需按 scaleFactor 进行等比放大)
+            final double px = basePX + p.nx * (strokeDistance * scaleFactor);
+            final double py = basePY + p.ny * (strokeDistance * scaleFactor);
 
-          for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-              final double x = fgRect.left + c * gridStep;
-              final double y = fgRect.top + r * gridStep;
-              
-              final double hash = (math.sin(x * 12.9898 + y * 78.233) * 43758.5453).abs() % 1.0;
-              if (hash < 0.22) {
-                final double dx = (hash * 100) % gridStep;
-                final double dy = ((hash * 1000) % gridStep);
-                
-                final double px = x + dx;
-                final double py = y + dy;
-
-                final double scaleFactor = fgRect.width / 360.0;
-                final double starSize = (4.0 + (hash * 4.0)) * scaleFactor.clamp(1.0, 5.0);
-                
-                canvas.save();
-                canvas.translate(px, py);
-                canvas.rotate(hash * 2.0 * math.pi);
-                
-                final Path path = Path();
-                final double rx = starSize / 2;
-                final double ry = starSize / 2;
-                path.moveTo(0, -ry);
-                path.quadraticBezierTo(0, 0, rx, 0);
-                path.quadraticBezierTo(0, 0, 0, ry);
-                path.quadraticBezierTo(0, 0, -rx, 0);
-                path.quadraticBezierTo(0, 0, 0, -ry);
-                path.close();
-                
-                canvas.drawPath(path, starPaint);
-                canvas.restore();
-              }
-            }
+            mappedPoints.add(Offset(px, py));
           }
 
-          canvas.restore();
+          // 4. 计算间距和星星大小 (加粗只放大星星，不增加数量)
+          final double spacing = 11.0 * scaleFactor;
+          final double starSize = (6.0 + strokeWidth * 0.8) * scaleFactor;
+
+          // 4. 进行等距线性过滤
+          final List<Offset> starPoints = filterMappedPoints(mappedPoints, spacing);
+
+          // 5. 绘制圆润的五角星
+          final starPaint = Paint()..color = strokeColor;
+          for (int i = 0; i < starPoints.length; i++) {
+            final p = starPoints[i];
+            canvas.save();
+            final double hash = (math.sin(i * 12.9898) * 43758.5453).abs() % 1.0;
+            canvas.translate(p.dx, p.dy);
+            canvas.rotate(hash * 2.0 * math.pi);
+            drawRoundedFivePointStar(canvas, Offset.zero, starSize / 2, starPaint);
+            canvas.restore();
+          }
         }
       }
       canvas.drawImageRect(uiImage, srcRect, fgRect, paintImg);
@@ -601,7 +631,7 @@ class CameraImageProcessor {
     if (watermarkStyle != 'none') {
       // 绘制手账风格装饰线与时间标签
       final paintLine = Paint()
-        ..color = const Color(0xFFD4A373).withOpacity(0.3)
+        ..color = const Color(0xFFD4A373).withValues(alpha: 0.3)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0;
       
@@ -775,6 +805,146 @@ class CameraImageProcessor {
           ..style = PaintingStyle.fill,
       );
     }
+  }
+
+  /// 快速提取透明/抠图图片的边缘轮廓点 (每 2 像素采样以兼顾性能与精度，同时计算边缘法向)
+  static Future<List<ContourPoint>> extractContourPoints(ui.Image image) async {
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (byteData == null) return [];
+    final bytes = byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
+    final int width = image.width;
+    final int height = image.height;
+    
+    final List<ContourPoint> points = [];
+    const int step = 2;
+    for (int y = step; y < height - step; y += step) {
+      for (int x = step; x < width - step; x += step) {
+        final int idx = (y * width + x) * 4;
+        final int alpha = bytes[idx + 3];
+        if (alpha > 30) {
+          // 精确检查上下左右相邻 1 像素的 Alpha，确保不漏掉任何过渡边缘
+          final int leftAlpha = bytes[(y * width + (x - 1)) * 4 + 3];
+          final int rightAlpha = bytes[(y * width + (x + 1)) * 4 + 3];
+          final int topAlpha = bytes[((y - 1) * width + x) * 4 + 3];
+          final int bottomAlpha = bytes[((y + 1) * width + x) * 4 + 3];
+          
+          if (leftAlpha < 150 || rightAlpha < 150 || topAlpha < 150 || bottomAlpha < 150) {
+            // 计算 3x3 范围的简易 Alpha 梯度作为法线方向
+            // 在图像处理中，梯度指向 Alpha 增加的方向（即朝向不透明的前景物体内部）
+            // 我们希望描边往外偏移（指向 Alpha 减小的背景区），所以法线取负梯度方向
+            final int xLeft = (x - 2).clamp(0, width - 1);
+            final int xRight = (x + 2).clamp(0, width - 1);
+            final int yTop = (y - 2).clamp(0, height - 1);
+            final int yBottom = (y + 2).clamp(0, height - 1);
+
+            final double alphaLeft = bytes[(y * width + xLeft) * 4 + 3].toDouble();
+            final double alphaRight = bytes[(y * width + xRight) * 4 + 3].toDouble();
+            final double alphaTop = bytes[(yTop * width + x) * 4 + 3].toDouble();
+            final double alphaBottom = bytes[(yBottom * width + x) * 4 + 3].toDouble();
+
+            final double gx = alphaRight - alphaLeft;
+            final double gy = alphaBottom - alphaTop;
+
+            double nx = 0.0;
+            double ny = 0.0;
+            final double len = math.sqrt(gx * gx + gy * gy);
+            if (len > 0) {
+              // 归一化并反转方向以指向前景物体的外部
+              nx = -gx / len;
+              ny = -gy / len;
+            } else {
+              // 兜底朝外：基于中心位置猜测外推方向
+              final double centerX = width / 2.0;
+              final double centerY = height / 2.0;
+              final double dx = x - centerX;
+              final double dy = y - centerY;
+              final double dLen = math.sqrt(dx * dx + dy * dy);
+              if (dLen > 0) {
+                nx = dx / dLen;
+                ny = dy / dLen;
+              }
+            }
+
+            points.add(ContourPoint(
+              x: x.toDouble(),
+              y: y.toDouble(),
+              nx: nx,
+              ny: ny,
+            ));
+          }
+        }
+      }
+    }
+    return points;
+  }
+
+  /// 使用网格化算法进行 O(N) 线性过滤，确保点与点之间的距离不小于 spacing
+  static List<Offset> filterMappedPoints(List<Offset> mappedPoints, double spacing) {
+    if (mappedPoints.isEmpty) return [];
+    final List<Offset> result = [];
+    final double cellSize = spacing;
+    final Map<String, Offset> grid = {};
+    
+    for (final p in mappedPoints) {
+      final int gridX = (p.dx / cellSize).floor();
+      final int gridY = (p.dy / cellSize).floor();
+      
+      bool tooClose = false;
+      for (int dx = -1; dx <= 1; dx++) {
+        for (int dy = -1; dy <= 1; dy++) {
+          final key = "${gridX + dx},${gridY + dy}";
+          final neighbor = grid[key];
+          if (neighbor != null) {
+            final distSq = (p.dx - neighbor.dx) * (p.dx - neighbor.dx) +
+                           (p.dy - neighbor.dy) * (p.dy - neighbor.dy);
+            if (distSq < spacing * spacing) {
+              tooClose = true;
+              break;
+            }
+          }
+        }
+        if (tooClose) break;
+      }
+      
+      if (!tooClose) {
+        grid["$gridX,$gridY"] = p;
+        result.add(p);
+      }
+    }
+    return result;
+  }
+
+  /// 绘制圆润可爱的五角星 (tips 和 valleys 均使用二次贝塞尔圆滑化处理)
+  static void drawRoundedFivePointStar(Canvas canvas, Offset center, double radius, Paint paint) {
+    final Path path = Path();
+    final double R = radius;
+    final double r = radius * 0.40; // 0.40 时五角星最圆润敦实
+    final double angle = math.pi / 5;
+    
+    final List<Offset> vertices = [];
+    for (int i = 0; i < 10; i++) {
+      final double currRadius = i.isEven ? R : r;
+      final double theta = i * angle - math.pi / 2;
+      final double x = center.dx + currRadius * math.cos(theta);
+      final double y = center.dy + currRadius * math.sin(theta);
+      vertices.add(Offset(x, y));
+    }
+    
+    final List<Offset> midpoints = [];
+    for (int i = 0; i < 10; i++) {
+      final p1 = vertices[i];
+      final p2 = vertices[(i + 1) % 10];
+      midpoints.add(Offset((p1.dx + p2.dx) / 2, (p1.dy + p2.dy) / 2));
+    }
+    
+    path.moveTo(midpoints[0].dx, midpoints[0].dy);
+    for (int i = 0; i < 10; i++) {
+      final controlPoint = vertices[(i + 1) % 10];
+      final endPoint = midpoints[(i + 1) % 10];
+      path.quadraticBezierTo(controlPoint.dx, controlPoint.dy, endPoint.dx, endPoint.dy);
+    }
+    path.close();
+    canvas.drawPath(path, paint);
   }
 }
 

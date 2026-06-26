@@ -45,10 +45,14 @@ abstract class DiaryBlock {
       final path = map['path'];
       if (path != null && path.toString().isNotEmpty) {
         final videoPath = map['videoPath']?.toString();
+        final localPath = map['localPath']?.toString();
+        final mattedPath = map['mattedPath']?.toString();
         return ImageBlock(
           XFile(path.toString()),
           id: id,
           videoPath: videoPath,
+          localPath: localPath,
+          mattedPath: mattedPath,
         );
       }
       return TextBlock('');
@@ -1315,6 +1319,7 @@ class ImageBlock extends DiaryBlock {
   final XFile file;
   final String? videoPath; // 实况图对应的视频路径
   final String? localPath; // 编辑时本地缓存或原图路径
+  final String? mattedPath; // 缓存完全干净的无描边抠图路径
   final bool isUploading; // 是否正在上传
 
   ImageBlock(
@@ -1322,6 +1327,7 @@ class ImageBlock extends DiaryBlock {
     super.id,
     this.videoPath,
     this.localPath,
+    this.mattedPath,
     this.isUploading = false,
   });
 
@@ -1331,6 +1337,8 @@ class ImageBlock extends DiaryBlock {
     'type': 'image',
     'path': file.path,
     if (videoPath != null) 'videoPath': videoPath,
+    if (localPath != null) 'localPath': localPath,
+    if (mattedPath != null) 'mattedPath': mattedPath,
   };
 }
 

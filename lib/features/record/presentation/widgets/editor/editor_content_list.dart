@@ -25,6 +25,7 @@ class EditorContentList extends StatefulWidget {
   final Function(int) onRemoveImage;
   final Function(int) onDeleteAtStart;
   final Function(ImageBlock) onShowPreview;
+  final Function(ImageBlock)? onEditImageBlock;
   final Function(int) onMoodSelected;
   final VoidCallback onCustomTap;
   final Function(String)? onRemoveTag;
@@ -71,6 +72,7 @@ class EditorContentList extends StatefulWidget {
     required this.onRemoveImage,
     required this.onDeleteAtStart,
     required this.onShowPreview,
+    this.onEditImageBlock,
     required this.onMoodSelected,
     required this.onCustomTap,
     this.onRemoveTag,
@@ -210,6 +212,7 @@ class _EditorContentListState extends State<EditorContentList> {
       },
       onDeleteAtStart: () => widget.onDeleteAtStart(index),
       onShowPreview: widget.onShowPreview,
+      onEditImageBlock: widget.onEditImageBlock,
       isNightOverride: widget.isNight,
       isNoteBackground: widget.paperStyle.startsWith('note'),
       paperStyle: widget.paperStyle,

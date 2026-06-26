@@ -14,6 +14,8 @@ import 'diary_image_collage.dart';
 import 'package:flutter/rendering.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_text_context_menu.dart';
 
+OverlayEntry? _activeImageToolbarEntry;
+
 class DiaryBlockItem extends StatelessWidget {
   final DiaryBlock block;
   final int index;
@@ -23,6 +25,7 @@ class DiaryBlockItem extends StatelessWidget {
   final Function(ImageBlock)? onRemoveImageBlock;
   final VoidCallback? onDeleteAtStart; // 新增：在行首按下回退键的回调
   final Function(ImageBlock)? onShowPreview;
+  final Function(ImageBlock)? onEditImageBlock;
   final bool? isNightOverride;
   final bool isNoteBackground;
   final Color? accentColor;
@@ -49,6 +52,7 @@ class DiaryBlockItem extends StatelessWidget {
     this.onRemoveImageBlock,
     this.onDeleteAtStart,
     this.onShowPreview,
+    this.onEditImageBlock,
     this.isNightOverride,
     this.isNoteBackground = false,
     this.accentColor,
@@ -263,7 +267,17 @@ class DiaryBlockItem extends StatelessWidget {
                     GestureDetector(
                       onTap: block.isUploading
                           ? null
-                          : () => onShowPreview?.call(block),
+                          : () {
+                              final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+                              if (renderBox != null) {
+                                final size = renderBox.size;
+                                final globalOffset = renderBox.localToGlobal(Offset.zero);
+                                // 计算图片顶部正中间的全局坐标点
+                                final double centerX = globalOffset.dx + size.width / 2;
+                                final double topY = globalOffset.dy;
+                                _showImageMenu(context, Offset(centerX, topY), block);
+                              }
+                            },
                       child: Container(
                         margin: const EdgeInsets.only(
                           top: 8,
@@ -409,6 +423,127 @@ class DiaryBlockItem extends StatelessWidget {
               : null,
         ),
       ),
+    );
+  }
+
+  void _showImageMenu(BuildContext context, Offset topCenterPos, ImageBlock block) {
+    // 自动清理之前的气泡，确保页面唯一性
+    _activeImageToolbarEntry?.remove();
+    _activeImageToolbarEntry = null;
+
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    
+    // 胶囊气泡的假定宽高 (横向排列)
+    final double toolbarW = 160.0;
+    final double toolbarH = 42.0;
+    
+    // 居中左右定位，并进行屏幕安全边距限制 (16dp)
+    double left = topCenterPos.dx - toolbarW / 2;
+    if (left < 16) left = 16;
+    if (left + toolbarW > overlay.size.width - 16) {
+      left = overlay.size.width - toolbarW - 16;
+    }
+    
+    // 始终弹在图片顶部正上方的 10 像素处
+    double top = topCenterPos.dy - toolbarH - 10;
+    if (top < 60) {
+      // 如果位置太靠屏幕顶端，则弹在图片顶部边缘下方 10 像素处
+      top = topCenterPos.dy + 10;
+    }
+
+    _activeImageToolbarEntry = OverlayEntry(
+      builder: (ctx) {
+        return Stack(
+          children: [
+            // 全屏点击劫持层：点击气泡外任何地方，均会隐式销毁当前浮动气泡
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                _activeImageToolbarEntry?.remove();
+                _activeImageToolbarEntry = null;
+              },
+              child: const SizedBox.expand(),
+            ),
+            Positioned(
+              left: left,
+              top: top,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2F2F2F), // 完美匹配文字选区气泡颜色
+                    borderRadius: BorderRadius.circular(20), // 胶囊圆角
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildToolbarItem("编辑", () {
+                        _activeImageToolbarEntry?.remove();
+                        _activeImageToolbarEntry = null;
+                        onEditImageBlock?.call(block);
+                      }),
+                      _buildToolbarDivider(),
+                      _buildToolbarItem("预览", () {
+                        _activeImageToolbarEntry?.remove();
+                        _activeImageToolbarEntry = null;
+                        onShowPreview?.call(block);
+                      }),
+                      _buildToolbarDivider(),
+                      _buildToolbarItem("删除", () {
+                        _activeImageToolbarEntry?.remove();
+                        _activeImageToolbarEntry = null;
+                        if (onRemoveImageBlock != null) {
+                          onRemoveImageBlock!(block);
+                        } else {
+                          onRemoveImage?.call();
+                        }
+                      }, isDanger: true),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_activeImageToolbarEntry!);
+  }
+
+  Widget _buildToolbarItem(String text, VoidCallback onTap, {bool isDanger = false}) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: isDanger ? Colors.redAccent : Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'LXGWWenKai',
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolbarDivider() {
+    return Container(
+      width: 1,
+      height: 12,
+      color: Colors.white24,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
     );
   }
 

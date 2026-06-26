@@ -88,6 +88,39 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
         return;
       }
 
+      if (result.length == 1) {
+        final file = await result.first.originFile;
+        if (file != null && mounted) {
+          setState(() => isImagePickerOpen = false);
+          final dynamic routeResult = await Navigator.push<dynamic>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CustomCameraPage(initialImagePath: file.path),
+            ),
+          );
+          if (routeResult != null && mounted) {
+            String? editedPath;
+            String? newMattedPath;
+            if (routeResult is Map) {
+              editedPath = routeResult['editedPath'] as String?;
+              newMattedPath = routeResult['mattedPath'] as String?;
+            } else if (routeResult is String) {
+              editedPath = routeResult;
+            }
+            if (editedPath != null) {
+              _insertSingleImageBlock(
+                pickedPath: editedPath,
+                mattedPath: newMattedPath,
+                isVip: isVip,
+                activeBlock: activeBlock,
+                savedSelection: savedSelection,
+              );
+            }
+          }
+          return;
+        }
+      }
+
       TextBlock? currentActiveBlock = activeBlock;
       TextSelection? currentSelection = savedSelection;
 
@@ -169,10 +202,51 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     }
   }
 
-  /// 内部辅助方法：往编辑器中插入单个图片 Block 并自动处理文本框拆分或置底
+  /// 针对已插入日记中的图片进行再次编辑跳转
+  Future<void> editImageBlock(ImageBlock block) async {
+    final String initialPath = block.localPath ?? block.file.path;
+    
+    final dynamic result = await Navigator.push<dynamic>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CustomCameraPage(
+          initialImagePath: initialPath,
+          initialMattedPath: block.mattedPath,
+        ),
+      ),
+    );
+    if (result == null) return;
+
+    String? editedPath;
+    String? newMattedPath;
+    if (result is Map) {
+      editedPath = result['editedPath'] as String?;
+      newMattedPath = result['mattedPath'] as String?;
+    } else if (result is String) {
+      editedPath = result;
+    }
+
+    if (editedPath != null && mounted) {
+      setState(() {
+        final index = blocks.indexOf(block);
+        if (index != -1) {
+          blocks[index] = ImageBlock(
+            XFile(editedPath!),
+            videoPath: block.videoPath,
+            localPath: block.localPath ?? block.file.path,
+            mattedPath: newMattedPath,
+            isUploading: false,
+          );
+        }
+      });
+      onBlocksChanged();
+    }
+  }
+
   TextBlock? _insertSingleImageBlock({
     required String pickedPath,
     String? pickedVideoPath,
+    String? mattedPath,
     required bool isVip,
     TextBlock? activeBlock,
     TextSelection? savedSelection,
@@ -185,6 +259,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
         XFile(pickedPath),
         videoPath: pickedVideoPath,
         localPath: pickedPath,
+        mattedPath: mattedPath,
         isUploading: true,
       );
       setState(() {
@@ -255,6 +330,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       XFile(pickedPath),
       videoPath: pickedVideoPath,
       localPath: pickedPath,
+      mattedPath: mattedPath,
       isUploading: true,
     );
 

@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -26,7 +25,6 @@ class ExportBentoWrapper extends StatelessWidget {
     final bool isLego = themeId == 'lego';
 
     final Color? cardBg = isCottonCandy ? const Color(0xFFFFF4EF) : null;
-    final Color headerIconColor = isCottonCandy ? const Color(0xFFAE9584) : (isNight ? Colors.yellow : const Color(0xFFD4A373));
 
     final titleStyle = TextStyle(
       fontSize: 14,
@@ -35,6 +33,8 @@ class ExportBentoWrapper extends StatelessWidget {
       letterSpacing: 0.5,
       fontFamily: 'LXGWWenKai',
     );
+
+    final action = rightAction;
 
     Widget cardContent = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,11 +53,12 @@ class ExportBentoWrapper extends StatelessWidget {
                   size: 14,
                   color: isNight
                       ? Colors.white24
-                      : Colors.black.withOpacity(0.2),
+                      : Colors.black.withValues(alpha: 0.2),
                 ),
               ],
             ),
-            if (rightAction != null) rightAction!,
+            // ignore: use_null_aware_elements
+            if (action != null) action,
           ],
         ),
         const SizedBox(height: 12),
@@ -72,13 +73,13 @@ class ExportBentoWrapper extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isNight
-                ? Colors.white.withOpacity(0.05)
-                : Colors.black.withOpacity(0.05),
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: isNight ? Colors.black38 : Colors.black.withOpacity(0.04),
+              color: isNight ? Colors.black38 : Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -140,16 +141,16 @@ class _ExportLegoStudPainter extends CustomPainter {
         if (factor <= 0.0) continue;
 
         final Color currentStudColor = isNight
-            ? const Color(0xFF2C2F36).withOpacity(0.12 * factor)
-            : const Color(0xFFF9F9FB).withOpacity(0.15 * factor);
+            ? const Color(0xFF2C2F36).withValues(alpha: 0.12 * factor)
+            : const Color(0xFFF9F9FB).withValues(alpha: 0.15 * factor);
 
         final Paint paint = Paint()..color = currentStudColor;
         canvas.drawCircle(Offset(cx, cy), radius, paint);
 
         final Paint highlightPaint = Paint()
           ..color = isNight
-              ? Colors.white.withOpacity(0.01 * factor)
-              : Colors.white.withOpacity(0.2 * factor)
+              ? Colors.white.withValues(alpha: 0.01 * factor)
+              : Colors.white.withValues(alpha: 0.2 * factor)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.8;
         canvas.drawArc(
@@ -162,8 +163,8 @@ class _ExportLegoStudPainter extends CustomPainter {
 
         final Paint shadowPaint = Paint()
           ..color = isNight
-              ? Colors.black.withOpacity(0.08 * factor)
-              : Colors.black.withOpacity(0.04 * factor)
+              ? Colors.black.withValues(alpha: 0.08 * factor)
+              : Colors.black.withValues(alpha: 0.04 * factor)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.8;
         canvas.drawArc(
