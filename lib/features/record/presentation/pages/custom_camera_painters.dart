@@ -62,8 +62,8 @@ class StrokePreviewPainter extends CustomPainter {
   final double animationProgress;
   final List<ContourPoint> contourPoints;
   final double strokeDistance;
-  final Rect normalizedCropRect;
-  final Rect activeCropBoxRect;
+  final Rect Function() getNormalizedCropRect;
+  final Rect Function() getActiveCropBoxRect;
   final bool isRatioMode;
 
   StrokePreviewPainter({
@@ -74,10 +74,11 @@ class StrokePreviewPainter extends CustomPainter {
     required this.animationProgress,
     required this.contourPoints,
     required this.strokeDistance,
-    this.normalizedCropRect = const Rect.fromLTWH(0, 0, 1, 1),
-    this.activeCropBoxRect = const Rect.fromLTWH(0, 0, 1, 1),
+    required this.getNormalizedCropRect,
+    required this.getActiveCropBoxRect,
     this.isRatioMode = false,
-  });
+    Listenable? repaint,
+  }) : super(repaint: repaint);
 
   ui.ColorFilter _createThresholdFilter(Color color, {double threshold = 0.16}) {
     // 阈值说明：
@@ -105,6 +106,12 @@ class StrokePreviewPainter extends CustomPainter {
     final double srcH = image.height.toDouble();
     if (srcW <= 0 || srcH <= 0) return;
     
+    final Rect normalizedCropRect = getNormalizedCropRect();
+    final Rect activeCropBoxRect = getActiveCropBoxRect();
+
+    // Debug logging to diagnose sync issue
+    // print("StrokePreviewPainter: isRatioMode=$isRatioMode, activeCropBoxRect=$activeCropBoxRect, normalizedCropRect=$normalizedCropRect");
+
     if (normalizedCropRect.width <= 0 || normalizedCropRect.height <= 0 ||
         normalizedCropRect.left.isNaN || normalizedCropRect.top.isNaN ||
         normalizedCropRect.width.isNaN || normalizedCropRect.height.isNaN) {
@@ -273,16 +280,7 @@ class StrokePreviewPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant StrokePreviewPainter oldDelegate) {
-    return oldDelegate.image != image ||
-           oldDelegate.strokeWidth != strokeWidth ||
-           oldDelegate.strokeColor != strokeColor ||
-           oldDelegate.strokeStyle != strokeStyle ||
-           oldDelegate.animationProgress != animationProgress ||
-           oldDelegate.contourPoints != contourPoints ||
-           oldDelegate.strokeDistance != strokeDistance ||
-           oldDelegate.normalizedCropRect != normalizedCropRect ||
-           oldDelegate.activeCropBoxRect != activeCropBoxRect ||
-           oldDelegate.isRatioMode != isRatioMode;
+    return true;
   }
 }
 

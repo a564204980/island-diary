@@ -6,7 +6,7 @@ import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../utils/camera_matting_processor.dart';
 import 'package:island_diary/shared/widgets/top_toast.dart';
-import 'camera_edit_overlay.dart';
+import 'camera_edit/camera_edit_overlay.dart';
 import '../widgets/camera_top_bar.dart';
 import '../widgets/camera_bottom_controls.dart';
 import '../widgets/camera_viewfinder.dart';
