@@ -22,13 +22,14 @@ class InteractiveCropOverlay extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<InteractiveCropOverlay> createState() => _InteractiveCropOverlayState();
+  State<InteractiveCropOverlay> createState() => InteractiveCropOverlayState();
 }
 
-class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
+class InteractiveCropOverlayState extends State<InteractiveCropOverlay>
     with SingleTickerProviderStateMixin {
   static const double edgePadding = 24.0;
   late Rect _physicalRect;
+  late Rect _currentNormalizedRect;
   CropHandle _activeHandle = CropHandle.none;
   Offset _dragStartOffset = Offset.zero;
   Rect _dragStartRect = Rect.zero;
@@ -46,9 +47,10 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
   void initState() {
     super.initState();
     _initPhysicalRect();
+    _currentNormalizedRect = widget.initialCropRect;
     _resetController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 500),
     );
     _resetController.addListener(() {
       if (_rectAnimation != null && _rectAnimation!.value != null) {
@@ -57,20 +59,21 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
         });
       }
       if (_normalizedRectAnimation != null &&
-          _normalizedRectAnimation!.value != null &&
-          _rectAnimation != null &&
-          _rectAnimation!.value != null) {
-        final cropBoxNormalized = Rect.fromLTWH(
-          _rectAnimation!.value!.left / widget.width,
-          _rectAnimation!.value!.top / widget.height,
-          _rectAnimation!.value!.width / widget.width,
-          _rectAnimation!.value!.height / widget.height,
-        );
-        widget.onCropRectChanged(
-          cropBoxNormalized,
-          _normalizedRectAnimation!.value!,
-          isFinished: false,
-        );
+          _normalizedRectAnimation!.value != null) {
+        _currentNormalizedRect = _normalizedRectAnimation!.value!;
+        if (_rectAnimation != null && _rectAnimation!.value != null) {
+          final cropBoxNormalized = Rect.fromLTWH(
+            _rectAnimation!.value!.left / widget.width,
+            _rectAnimation!.value!.top / widget.height,
+            _rectAnimation!.value!.width / widget.width,
+            _rectAnimation!.value!.height / widget.height,
+          );
+          widget.onCropRectChanged(
+            cropBoxNormalized,
+            _currentNormalizedRect,
+            isFinished: false,
+          );
+        }
       }
     });
     _resetController.addStatusListener((status) {
@@ -174,6 +177,9 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
         oldWidget.ratio != widget.ratio ||
         oldWidget.imgAspect != widget.imgAspect ||
         oldWidget.initialCropRect != widget.initialCropRect) {
+      if (oldWidget.initialCropRect != widget.initialCropRect) {
+        _currentNormalizedRect = widget.initialCropRect;
+      }
       if (!_isDragging) {
         if (_resetController.isAnimating) {
           // If already animating, only interrupt and restart if the target ratio changed
@@ -187,28 +193,24 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
         if (oldWidget.ratio != widget.ratio) {
           debugPrint("InteractiveCropOverlay: Ratio changed, starting animation");
           _startRatioTransitionAnimation(oldWidget, widget);
-        } else {
-          // If only initialCropRect changed externally (e.g. reset), snap to target rect directly.
-          // The only external reset that doesn't change ratio is when it is reset to full image (const Rect.fromLTWH(0, 0, 1, 1)).
-          if (widget.initialCropRect == const Rect.fromLTWH(0, 0, 1, 1)) {
-            debugPrint("InteractiveCropOverlay: Snapping to full size on Reset");
-            setState(() {
-              _initPhysicalRect();
-            });
-          }
         }
       }
     }
   }
 
-  void _startRatioTransitionAnimation(covariant InteractiveCropOverlay oldWidget, covariant InteractiveCropOverlay widget) {
+  void triggerResetAnimation() {
+    _startRatioTransitionAnimation(widget, widget, forceResetToFull: true);
+  }
+
+  void _startRatioTransitionAnimation(covariant InteractiveCropOverlay oldWidget, covariant InteractiveCropOverlay widget, {bool forceResetToFull = false}) {
     // 计算目标值
-    final targetNormalized = oldWidget.ratio != widget.ratio
-        ? _calculateTargetNormalizedRect(widget.ratio)
+    final targetNormalized = (oldWidget.ratio != widget.ratio || forceResetToFull)
+        ? _calculateTargetNormalizedRect(forceResetToFull ? 'free' : widget.ratio)
         : widget.initialCropRect;
 
     final Rect targetRect;
-    if (widget.ratio == 'free') {
+    final String targetRatio = forceResetToFull ? 'free' : widget.ratio;
+    if (targetRatio == 'free') {
       final double containerAspect = widget.width / widget.height;
       double w = widget.width;
       double h = widget.height;
@@ -223,70 +225,41 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
       final double y = (widget.height - h) / 2;
       targetRect = Rect.fromLTWH(x, y, w, h);
     } else {
-      targetRect = _calculateTargetPhysicalRect(widget.ratio);
+      targetRect = _calculateTargetPhysicalRect(targetRatio);
     }
 
-    debugPrint("InteractiveCropOverlay: targetNormalized=$targetNormalized, targetRect=$targetRect");
+    final currentNormalized = _normalizedRectAnimation?.value ?? oldWidget.initialCropRect;
+    final currentPhysical = _physicalRect;
 
-    // 最新目标存入 pending，供回调使用（仅在 idle 分支用到）
     _pendingTargetRect = targetRect;
     _pendingTargetNormalized = targetNormalized;
 
-    if (_resetController.isAnimating) {
-      // ── 动画进行中 ──
-      // 直接用当前 _physicalRect 作 begin 重建 tween，然后 forward(from:0.0)
-      // 使用 easeOut（无 ease-in），感觉更连贯；
-      // 必须通过 postFrame 调 forward，避免 setState-during-build
-      final currentNormalized = _normalizedRectAnimation?.value ?? widget.initialCropRect;
-      final curvedAnim = CurvedAnimation(
-        parent: _resetController,
-        curve: Curves.easeInOutCubic,
-      );
-      _rectAnimation = RectTween(
-        begin: _physicalRect,
-        end: targetRect,
-      ).animate(curvedAnim);
-      _normalizedRectAnimation = SynchronizedCropRectTween(
-        beginNormalized: currentNormalized,
-        endNormalized: targetNormalized,
-        beginPhysical: _physicalRect,
-        endPhysical: targetRect,
-      ).animate(curvedAnim);
-      _pendingTargetRect = null;
-      _pendingTargetNormalized = null;
-      if (!_pendingAnimation) {
-        _pendingAnimation = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _pendingAnimation = false;
-          if (mounted) _resetController.forward(from: 0.0);
-        });
-      }
-    } else if (!_pendingAnimation) {
-      // ── 无动画且无待处理回调 ──
-      // postFrame 延迟一帧启动（规避 setState-during-build）
+    if (!_pendingAnimation) {
       _pendingAnimation = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _pendingAnimation = false;
         final targetR = _pendingTargetRect;
         final targetN = _pendingTargetNormalized;
         if (!mounted || targetR == null || targetN == null) return;
+        
         _pendingTargetRect = null;
         _pendingTargetNormalized = null;
-        final currentNormalized = _normalizedRectAnimation?.value ?? widget.initialCropRect;
+
         final curvedAnim = CurvedAnimation(
           parent: _resetController,
-          curve: Curves.easeInOutCubic,
+          curve: Curves.easeOutCubic,
         );
         _rectAnimation = RectTween(
-          begin: _physicalRect,
+          begin: currentPhysical,
           end: targetR,
         ).animate(curvedAnim);
         _normalizedRectAnimation = SynchronizedCropRectTween(
           beginNormalized: currentNormalized,
           endNormalized: targetN,
-          beginPhysical: _physicalRect,
+          beginPhysical: currentPhysical,
           endPhysical: targetR,
         ).animate(curvedAnim);
+        
         _resetController.forward(from: 0.0);
       });
     }
@@ -415,9 +388,9 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
     return CropHandle.none;
   }
 
-  void _onPanStart(DragStartDetails details) {
+  void _onScaleStart(ScaleStartDetails details) {
     final localOffset =
-        details.localPosition - const Offset(edgePadding, edgePadding);
+        details.localFocalPoint - const Offset(edgePadding, edgePadding);
     final handle = _hitTest(localOffset);
     if (handle != CropHandle.none) {
       _resetController.stop();
@@ -426,12 +399,12 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
         _activeHandle = handle;
         _dragStartOffset = localOffset;
         _dragStartRect = _physicalRect;
-        _dragStartNormalizedRect = widget.initialCropRect;
+        _dragStartNormalizedRect = _currentNormalizedRect;
       });
     }
   }
 
-  void _onPanUpdate(DragUpdateDetails details) {
+  void _onScaleUpdate(ScaleUpdateDetails details) {
     if (_activeHandle == CropHandle.none) return;
     if (widget.width <= 0 ||
         widget.height <= 0 ||
@@ -440,7 +413,7 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
       return;
 
     final Offset currentOffset =
-        details.localPosition - const Offset(edgePadding, edgePadding);
+        details.localFocalPoint - const Offset(edgePadding, edgePadding);
     final Offset totalDelta = currentOffset - _dragStartOffset;
 
     double left = _dragStartRect.left;
@@ -457,33 +430,64 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
       double rx = totalDelta.dx / widget.width;
       double ry = totalDelta.dy / widget.height;
 
-      double rawLeft = _dragStartNormalizedRect.left - rx;
-      double rawTop = _dragStartNormalizedRect.top - ry;
+      // 双指放大和缩小处理
+      double currentScale = details.scale.clamp(0.2, 5.0);
+      double newNormalizedWidth = _dragStartNormalizedRect.width / currentScale;
+      double newNormalizedHeight = _dragStartNormalizedRect.height / currentScale;
 
-      double maxLeft = 1.0 - _dragStartNormalizedRect.width;
-      double newLeft = rawLeft;
-      if (rawLeft < 0.0) {
-        newLeft = rawLeft * 0.70;
-      } else if (rawLeft > maxLeft) {
-        newLeft = maxLeft + (rawLeft - maxLeft) * 0.70;
+      newNormalizedWidth = newNormalizedWidth.clamp(0.05, 1.0);
+      newNormalizedHeight = newNormalizedHeight.clamp(0.05, 1.0);
+
+      // 非自由模式保持裁剪框比例
+      if (widget.ratio != 'free') {
+        final double normalizedAspect = _dragStartNormalizedRect.width / _dragStartNormalizedRect.height;
+        if (newNormalizedWidth > 1.0 || newNormalizedHeight > 1.0) {
+          if (newNormalizedWidth > 1.0) {
+            newNormalizedWidth = 1.0;
+            newNormalizedHeight = 1.0 / normalizedAspect;
+          }
+          if (newNormalizedHeight > 1.0) {
+            newNormalizedHeight = 1.0;
+            newNormalizedWidth = 1.0 * normalizedAspect;
+          }
+        }
       }
 
-      double maxTop = 1.0 - _dragStartNormalizedRect.height;
-      double newTop = rawTop;
-      if (rawTop < 0.0) {
-        newTop = rawTop * 0.70;
-      } else if (rawTop > maxTop) {
-        newTop = maxTop + (rawTop - maxTop) * 0.70;
+      // 移动位置与缩放中心点计算
+      double cx = _dragStartNormalizedRect.center.dx - totalDelta.dx * (_dragStartNormalizedRect.width / _dragStartRect.width);
+      double cy = _dragStartNormalizedRect.center.dy - totalDelta.dy * (_dragStartNormalizedRect.height / _dragStartRect.height);
+
+      double leftBound = 0.0;
+      double topBound = 0.0;
+      double rightBound = 1.0 - newNormalizedWidth;
+      double bottomBound = 1.0 - newNormalizedHeight;
+
+      double finalLeft = cx - newNormalizedWidth / 2;
+      double finalTop = cy - newNormalizedHeight / 2;
+
+      // 边缘阻尼弹性处理
+      if (finalLeft < leftBound) {
+        finalLeft = leftBound + (finalLeft - leftBound) * 0.70;
+      } else if (finalLeft > rightBound) {
+        finalLeft = rightBound + (finalLeft - rightBound) * 0.70;
       }
+
+      if (finalTop < topBound) {
+        finalTop = topBound + (finalTop - topBound) * 0.70;
+      } else if (finalTop > bottomBound) {
+        finalTop = bottomBound + (finalTop - bottomBound) * 0.70;
+      }
+
+      final normalized = Rect.fromLTWH(
+        finalLeft,
+        finalTop,
+        newNormalizedWidth,
+        newNormalizedHeight,
+      );
+      _currentNormalizedRect = normalized;
 
       _physicalRect = _dragStartRect; // 裁剪框保持静止不动
 
-      final normalized = Rect.fromLTWH(
-        newLeft,
-        newTop,
-        _dragStartNormalizedRect.width,
-        _dragStartNormalizedRect.height,
-      );
       final cropBoxNormalized = Rect.fromLTWH(
         _physicalRect.left / widget.width,
         _physicalRect.top / widget.height,
@@ -716,24 +720,43 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
     }
 
     setState(() {});
+
+    final double iwStart = _dragStartRect.width / _dragStartNormalizedRect.width;
+    final double ihStart = _dragStartRect.height / _dragStartNormalizedRect.height;
+    final double icxStart = _dragStartRect.center.dx - _dragStartNormalizedRect.center.dx * iwStart;
+    final double icyStart = _dragStartRect.center.dy - _dragStartNormalizedRect.center.dy * ihStart;
+
+    final double newNormalizedWidth = _physicalRect.width / iwStart;
+    final double newNormalizedHeight = _physicalRect.height / ihStart;
+    final double newNormalizedCx = (_physicalRect.center.dx - icxStart) / iwStart;
+    final double newNormalizedCy = (_physicalRect.center.dy - icyStart) / ihStart;
+
+    final newNormalized = Rect.fromCenter(
+      center: Offset(newNormalizedCx, newNormalizedCy),
+      width: newNormalizedWidth,
+      height: newNormalizedHeight,
+    );
+    _currentNormalizedRect = newNormalized;
+
     final cropBoxNormalized = Rect.fromLTWH(
       _physicalRect.left / widget.width,
       _physicalRect.top / widget.height,
       _physicalRect.width / widget.width,
       _physicalRect.height / widget.height,
     );
-    widget.onCropRectChanged(cropBoxNormalized, _dragStartNormalizedRect, isFinished: false);
+    widget.onCropRectChanged(cropBoxNormalized, newNormalized, isFinished: false);
   }
 
-  void _onPanEnd(DragEndDetails details) {
+  void _onScaleEnd(ScaleEndDetails details) {
+    final CropHandle handle = _activeHandle;
     setState(() {
       _activeHandle = CropHandle.none;
       _isDragging = false;
     });
-    _startResetAnimation();
+    _startResetAnimation(handle);
   }
 
-  void _startResetAnimation() {
+  void _startResetAnimation(CropHandle handle) {
     if (_physicalRect.width <= 0 ||
         _physicalRect.height <= 0 ||
         _dragStartRect.width <= 0 ||
@@ -750,13 +773,27 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
     final double rw = _physicalRect.width / _dragStartRect.width;
     final double rh = _physicalRect.height / _dragStartRect.height;
 
-    double newLeft =
-        (_dragStartNormalizedRect.left + rx * _dragStartNormalizedRect.width);
-    double newTop =
-        (_dragStartNormalizedRect.top + ry * _dragStartNormalizedRect.height);
-    double newWidth = (rw * _dragStartNormalizedRect.width).clamp(0.0, 1.0);
-    double newHeight = (rh * _dragStartNormalizedRect.height).clamp(0.0, 1.0);
+    double newLeft;
+    double newTop;
+    double newWidth;
+    double newHeight;
 
+    if (handle == CropHandle.inside) {
+      newLeft = _currentNormalizedRect.left;
+      newTop = _currentNormalizedRect.top;
+      newWidth = _currentNormalizedRect.width;
+      newHeight = _currentNormalizedRect.height;
+    } else {
+      newLeft =
+          (_dragStartNormalizedRect.left + rx * _dragStartNormalizedRect.width);
+      newTop =
+          (_dragStartNormalizedRect.top + ry * _dragStartNormalizedRect.height);
+      newWidth = rw * _dragStartNormalizedRect.width;
+      newHeight = rh * _dragStartNormalizedRect.height;
+    }
+
+    newWidth = newWidth.clamp(0.0, 1.0);
+    newHeight = newHeight.clamp(0.0, 1.0);
     newLeft = newLeft.clamp(0.0, 1.0 - newWidth);
     newTop = newTop.clamp(0.0, 1.0 - newHeight);
 
@@ -794,12 +831,12 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
     // 3. Set up the animations for both the crop box and the image crop region
     final curvedAnim = CurvedAnimation(
       parent: _resetController,
-      curve: Curves.easeInOut,
+      curve: Curves.easeOutCubic,
     );
     _rectAnimation = RectTween(begin: _physicalRect, end: targetRect).animate(curvedAnim);
 
     _normalizedRectAnimation =
-        RectTween(begin: widget.initialCropRect, end: finalNormalized).animate(curvedAnim);
+        RectTween(begin: _currentNormalizedRect, end: finalNormalized).animate(curvedAnim);
 
     _resetController.forward(from: 0.0);
   }
@@ -808,9 +845,9 @@ class _InteractiveCropOverlayState extends State<InteractiveCropOverlay>
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onPanStart: _onPanStart,
-      onPanUpdate: _onPanUpdate,
-      onPanEnd: _onPanEnd,
+      onScaleStart: _onScaleStart,
+      onScaleUpdate: _onScaleUpdate,
+      onScaleEnd: _onScaleEnd,
       child: CustomPaint(
         size: Size(
           widget.width + edgePadding * 2,

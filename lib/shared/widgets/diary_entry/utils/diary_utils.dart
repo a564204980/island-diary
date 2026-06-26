@@ -353,6 +353,8 @@ class DiaryUtils {
     double? height,
     BorderRadius? borderRadius,
   ) {
+    final bool isSmall = (width != null && width <= 45) || (height != null && height <= 45);
+
     return Container(
       width: width,
       height: height,
@@ -360,21 +362,31 @@ class DiaryUtils {
         color: Colors.black.withValues(alpha: 0.05),
         borderRadius: borderRadius,
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            CupertinoIcons.photo,
-            size: 24,
-            color: Colors.black.withValues(alpha: 0.2),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            '图片加载失败',
-            style: TextStyle(fontSize: 10, color: Colors.black45),
-          ),
-        ],
-      ),
+      child: isSmall
+          ? Center(
+              child: Icon(
+                CupertinoIcons.photo,
+                size: (width != null && height != null)
+                    ? (width < height ? width : height) * 0.5
+                    : 18.0,
+                color: Colors.black.withValues(alpha: 0.2),
+              ),
+            )
+          : Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.photo,
+                  size: 24,
+                  color: Colors.black.withValues(alpha: 0.2),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '图片加载失败',
+                  style: TextStyle(fontSize: 10, color: Colors.black45),
+                ),
+              ],
+            ),
     );
   }
 

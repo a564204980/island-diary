@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class SynchronizedCropRectTween extends Tween<Rect?> {
@@ -20,11 +21,11 @@ class SynchronizedCropRectTween extends Tween<Rect?> {
 
     final iwBegin = beginPhysical.width / begin!.width;
     final iwEnd = endPhysical.width / end!.width;
-    final iwNow = ui.lerpDouble(iwBegin, iwEnd, t)!;
+    final iwNow = math.exp(ui.lerpDouble(math.log(iwBegin), math.log(iwEnd), t)!);
 
     final ihBegin = beginPhysical.height / begin!.height;
     final ihEnd = endPhysical.height / end!.height;
-    final ihNow = ui.lerpDouble(ihBegin, ihEnd, t)!;
+    final ihNow = math.exp(ui.lerpDouble(math.log(ihBegin), math.log(ihEnd), t)!);
 
     final nwNow = pNow.width / iwNow;
     final nhNow = pNow.height / ihNow;

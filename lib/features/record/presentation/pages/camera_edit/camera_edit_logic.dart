@@ -45,6 +45,7 @@ extension _CameraEditOverlayLogic on _CameraEditOverlayState {
   }
 
   void _resetAllOptions() {
+    bool needsImageReload = _previewPath != _capturedRawPath;
     _update(() {
       _currentRatio = 'free';
       _watermarkStyle = 'none';
@@ -54,8 +55,6 @@ extension _CameraEditOverlayLogic on _CameraEditOverlayState {
       _strokeColor = Colors.white;
       _strokeStyle = 'solid';
       _strokeDistance = 6.0;
-      _normalizedCropRect = const Rect.fromLTWH(0, 0, 1, 1);
-      _activeCropBoxRect = const Rect.fromLTWH(0, 0, 1, 1);
       
       _adjustParams.forEach((key, value) {
         _adjustParams[key] = 0.0;
@@ -64,7 +63,10 @@ extension _CameraEditOverlayLogic on _CameraEditOverlayState {
       _mattingMode = 'none';
       _previewPath = _capturedRawPath;
     });
-    _loadPreviewUiImage(_capturedRawPath);
+    _cropOverlayKey.currentState?.triggerResetAnimation();
+    if (needsImageReload) {
+      _loadPreviewUiImage(_capturedRawPath);
+    }
   }
 
   Future<bool> _runCloudMattingInPreview() async {

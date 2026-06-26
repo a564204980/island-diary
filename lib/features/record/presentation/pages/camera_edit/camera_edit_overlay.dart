@@ -79,6 +79,7 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
   late Animation<Offset> _slideInAnimation;
   late AnimationController _strokeAnimationController;
   final ValueNotifier<int> _cropRepaintNotifier = ValueNotifier<int>(0);
+  final GlobalKey<InteractiveCropOverlayState> _cropOverlayKey = GlobalKey<InteractiveCropOverlayState>();
 
   final List<Map<String, dynamic>> _adjustItems = [
     {
@@ -568,6 +569,7 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                                     width: fgW + 48.0,
                                     height: fgH + 48.0,
                                     child: InteractiveCropOverlay(
+                                      key: _cropOverlayKey,
                                       width: fgW,
                                       height: fgH,
                                       imgAspect: imgAspect,
