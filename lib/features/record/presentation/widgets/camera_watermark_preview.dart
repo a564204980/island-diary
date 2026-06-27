@@ -135,7 +135,7 @@ class CameraWatermarkPreview extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  "Island Diary ╳ Instant",
+                  "海岛日记 ╳ 拍立得",
                   style: TextStyle(
                     fontFamily: 'WanWeiWei',
                     fontSize: 11.0,
@@ -158,7 +158,7 @@ class CameraWatermarkPreview extends StatelessWidget {
         );
         break;
       case 'blur_border':
-        final double barHeight = displayH * 0.15;
+        final double barHeight = (displayH * 0.15).clamp(36.0, 999.0);
         previewContent = AnimatedPositioned(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
@@ -171,38 +171,44 @@ class CameraWatermarkPreview extends StatelessWidget {
               child: Container(
                 height: barHeight,
                 color: Colors.transparent,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "岛屿日记 x ${UserState().userName.value.isEmpty ? '我' : UserState().userName.value}",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: (displayW * 0.038).clamp(13.0, 28.0),
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 2.0,
-                          fontFamily: 'LXGWWenKai',
-                          shadows: [
-                            Shadow(color: Colors.black.withValues(alpha: 0.4), offset: const Offset(1, 1), blurRadius: 2),
-                          ],
-                        ),
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "岛屿日记 x ${UserState().userName.value.isEmpty ? '我' : UserState().userName.value}",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: (displayW * 0.038).clamp(13.0, 28.0),
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 2.0,
+                              fontFamily: 'LXGWWenKai',
+                              shadows: [
+                                Shadow(color: Colors.black.withValues(alpha: 0.4), offset: const Offset(1, 1), blurRadius: 2),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            "50mm F/1.8  1/125s  ISO 100  •  ${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')} $timeStr",
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              fontSize: (displayW * 0.026).clamp(9.5, 18.0),
+                              fontFamily: 'LXGWWenKai',
+                              shadows: [
+                                Shadow(color: Colors.black.withValues(alpha: 0.3), offset: const Offset(1, 1), blurRadius: 2),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        "50mm F/1.8  1/125s  ISO 100  •  ${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')} $timeStr",
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.75),
-                          fontSize: (displayW * 0.026).clamp(9.5, 18.0),
-                          fontFamily: 'LXGWWenKai',
-                          shadows: [
-                            Shadow(color: Colors.black.withValues(alpha: 0.3), offset: const Offset(1, 1), blurRadius: 2),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),

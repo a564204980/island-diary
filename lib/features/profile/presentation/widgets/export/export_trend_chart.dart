@@ -123,7 +123,7 @@ class ExportTrendChart extends StatelessWidget {
       gradient: LinearGradient(
         colors: isCottonCandy
             ? const [Color(0xFFFF6E8D), Color(0xFFC69DF3), Color(0xFF8DAEFF)]
-            : [themeColor, themeColor.withOpacity(0.5)],
+            : [themeColor, themeColor.withValues(alpha: 0.5)],
       ),
       barWidth: 3,
       isStrokeCapRound: true,
@@ -159,8 +159,8 @@ class ExportTrendChart extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            (isCottonCandy ? const Color(0xFFFFD5DB) : themeColor).withOpacity(0.35),
-            (isCottonCandy ? const Color(0xFFFFD5DB) : themeColor).withOpacity(0.0),
+            (isCottonCandy ? const Color(0xFFFFD5DB) : themeColor).withValues(alpha: 0.35),
+            (isCottonCandy ? const Color(0xFFFFD5DB) : themeColor).withValues(alpha: 0.0),
           ],
         ),
       ),
@@ -171,7 +171,7 @@ class ExportTrendChart extends StatelessWidget {
       rightAction: Icon(
         CupertinoIcons.waveform_path,
         size: 18,
-        color: accentColor.withOpacity(isNight ? 0.72 : 0.8),
+        color: accentColor.withValues(alpha: isNight ? 0.72 : 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,7 +214,7 @@ class ExportTrendChart extends StatelessWidget {
                             child: Icon(
                               CupertinoIcons.cloud_fill,
                               size: 26,
-                              color: (isCottonCandy ? const Color(0xFFFFD5DB) : themeColor).withOpacity(0.3),
+                              color: (isCottonCandy ? const Color(0xFFFFD5DB) : themeColor).withValues(alpha: 0.3),
                             ),
                           ),
                           LineChart(
@@ -229,12 +229,12 @@ class ExportTrendChart extends StatelessWidget {
                                 getDrawingHorizontalLine: (value) {
                                   if (value == 0) {
                                     return FlLine(
-                                      color: isNight ? Colors.white24 : Colors.black.withOpacity(0.08),
+                                      color: isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.08),
                                       strokeWidth: 1.2,
                                     );
                                   }
                                   return FlLine(
-                                    color: isNight ? Colors.white10 : Colors.black.withOpacity(0.02),
+                                    color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.02),
                                     strokeWidth: 0.8,
                                   );
                                 },
@@ -350,7 +350,7 @@ class ExportTrendChart extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 3,
             offset: const Offset(0, 1),
           ),

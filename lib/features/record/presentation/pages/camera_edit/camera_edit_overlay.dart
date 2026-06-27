@@ -335,8 +335,9 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
 
                           final PermissionState ps =
                               await PhotoManager.requestPermissionExtend();
+                          if (!context.mounted) return;
                           if (!ps.isAuth) {
-                            if (mounted) Navigator.pop(context);
+                            Navigator.pop(context);
                             showTopToast(
                               context,
                               '保存失败：未获得相册访问权限',
@@ -346,14 +347,14 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                             return;
                           }
 
-                          final AssetEntity?
-                          asset = await PhotoManager.editor.saveImageWithPath(
+                          final AssetEntity? asset = await PhotoManager.editor.saveImageWithPath(
                             finalResultPath,
                             title:
                                 'diary_cam_${DateTime.now().millisecondsSinceEpoch}.png',
                           );
 
-                          if (mounted) Navigator.pop(context);
+                          if (!context.mounted) return;
+                          Navigator.pop(context);
 
                           if (asset != null) {
                             showTopToast(
@@ -372,7 +373,7 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                           }
                         } catch (e) {
                           debugPrint("保存相册失败: $e");
-                          if (mounted) {
+                          if (context.mounted) {
                             Navigator.pop(context);
                             showTopToast(
                               context,
@@ -761,7 +762,7 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                                   strokeDistance: _strokeDistance,
                                   normalizedCropRect: _normalizedCropRect,
                                 );
-                            if (mounted) {
+                            if (context.mounted) {
                               Navigator.pop(context);
                               widget.onConfirm(
                                 finalResultPath,
@@ -772,7 +773,7 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                             }
                           } catch (e) {
                             debugPrint("图像处理失败: $e");
-                            if (mounted) {
+                            if (context.mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(

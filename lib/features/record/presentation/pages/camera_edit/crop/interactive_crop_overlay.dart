@@ -12,14 +12,14 @@ class InteractiveCropOverlay extends StatefulWidget {
   final Function(Rect cropBoxRect, Rect normalizedCropRect, {bool isFinished}) onCropRectChanged;
 
   const InteractiveCropOverlay({
-    Key? key,
+    super.key,
     required this.width,
     required this.height,
     required this.imgAspect,
     required this.ratio,
     required this.initialCropRect,
     required this.onCropRectChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<InteractiveCropOverlay> createState() => InteractiveCropOverlayState();
@@ -305,31 +305,6 @@ class InteractiveCropOverlayState extends State<InteractiveCropOverlay>
     _physicalRect = Rect.fromLTWH(left, top, width, height);
   }
 
-  Rect _physicalToNormalized(Rect physical) {
-    if (widget.width <= 0 || widget.height <= 0) return const Rect.fromLTWH(0, 0, 1, 1);
-
-    final double containerAspect = widget.width / widget.height;
-    double imgW = widget.width;
-    double imgH = widget.height;
-    if (widget.imgAspect > containerAspect) {
-      imgW = widget.width;
-      imgH = widget.width / widget.imgAspect;
-    } else {
-      imgH = widget.height;
-      imgW = widget.height * widget.imgAspect;
-    }
-    final double imgLeft = (widget.width - imgW) / 2;
-    final double imgTop = (widget.height - imgH) / 2;
-
-    if (imgW <= 0 || imgH <= 0) return const Rect.fromLTWH(0, 0, 1, 1);
-
-    return Rect.fromLTWH(
-      (physical.left - imgLeft) / imgW,
-      (physical.top - imgTop) / imgH,
-      physical.width / imgW,
-      physical.height / imgH,
-    );
-  }
 
   double? _getRatioValue() {
     if (widget.ratio == '1:1') return 1.0;
@@ -344,14 +319,18 @@ class InteractiveCropOverlayState extends State<InteractiveCropOverlay>
     const double handleRadius = 32.0;
 
     // 检测四个角
-    if ((localOffset - _physicalRect.topLeft).distance < handleRadius)
+    if ((localOffset - _physicalRect.topLeft).distance < handleRadius) {
       return CropHandle.topLeft;
-    if ((localOffset - _physicalRect.topRight).distance < handleRadius)
+    }
+    if ((localOffset - _physicalRect.topRight).distance < handleRadius) {
       return CropHandle.topRight;
-    if ((localOffset - _physicalRect.bottomLeft).distance < handleRadius)
+    }
+    if ((localOffset - _physicalRect.bottomLeft).distance < handleRadius) {
       return CropHandle.bottomLeft;
-    if ((localOffset - _physicalRect.bottomRight).distance < handleRadius)
+    }
+    if ((localOffset - _physicalRect.bottomRight).distance < handleRadius) {
       return CropHandle.bottomRight;
+    }
 
     // 检测四条边
     // 上边
@@ -359,31 +338,38 @@ class InteractiveCropOverlayState extends State<InteractiveCropOverlay>
       _physicalRect.left + _physicalRect.width / 2,
       _physicalRect.top,
     );
-    if ((localOffset - topMid).distance < handleRadius) return CropHandle.top;
+    if ((localOffset - topMid).distance < handleRadius) {
+      return CropHandle.top;
+    }
     // 下边
     final bottomMid = Offset(
       _physicalRect.left + _physicalRect.width / 2,
       _physicalRect.bottom,
     );
-    if ((localOffset - bottomMid).distance < handleRadius)
+    if ((localOffset - bottomMid).distance < handleRadius) {
       return CropHandle.bottom;
+    }
     // 左边
     final leftMid = Offset(
       _physicalRect.left,
       _physicalRect.top + _physicalRect.height / 2,
     );
-    if ((localOffset - leftMid).distance < handleRadius)
+    if ((localOffset - leftMid).distance < handleRadius) {
       return CropHandle.left;
+    }
     // 右边
     final rightMid = Offset(
       _physicalRect.right,
       _physicalRect.top + _physicalRect.height / 2,
     );
-    if ((localOffset - rightMid).distance < handleRadius)
+    if ((localOffset - rightMid).distance < handleRadius) {
       return CropHandle.right;
+    }
 
     // 检测内部
-    if (_physicalRect.contains(localOffset)) return CropHandle.inside;
+    if (_physicalRect.contains(localOffset)) {
+      return CropHandle.inside;
+    }
 
     return CropHandle.none;
   }
@@ -427,9 +413,6 @@ class InteractiveCropOverlayState extends State<InteractiveCropOverlay>
 
     if (_activeHandle == CropHandle.inside) {
       // 移动图片内容，框在屏幕上不动。
-      double rx = totalDelta.dx / widget.width;
-      double ry = totalDelta.dy / widget.height;
-
       // 双指放大和缩小处理
       double currentScale = details.scale.clamp(0.2, 5.0);
       double newNormalizedWidth = _dragStartNormalizedRect.width / currentScale;

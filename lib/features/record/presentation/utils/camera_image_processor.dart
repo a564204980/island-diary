@@ -25,9 +25,9 @@ class CameraImageProcessor {
     //   高斯模糊后，原图边缘外 1σ 处的 alpha ≈ Q(1) ≈ 0.16。
     //   threshold = 0.5 只在原始边缘处截断，等于什么都没扩展。
     //   threshold = 0.16 使截断位置恰好在 1σ（= sigma = 目标扩展距离）处。
-    final double r = color.red / 255.0;
-    final double g = color.green / 255.0;
-    final double b = color.blue / 255.0;
+    final double r = color.r;
+    final double g = color.g;
+    final double b = color.b;
     const double s = 100.0;
     final double t = -100.0 * threshold;
     return ui.ColorFilter.matrix([
@@ -455,7 +455,7 @@ class CameraImageProcessor {
       // 拍立得左侧：品牌 / 设备信息 (使用优雅的手写风)
       final brandPainter = TextPainter(
         text: const TextSpan(
-          text: "Island Diary ╳ Instant",
+          text: "海岛日记 ╳ 拍立得",
           style: TextStyle(
             fontFamily: 'WanWeiWei',
             fontSize: 26.0,
@@ -653,7 +653,7 @@ class CameraImageProcessor {
       if (watermarkStyle == 'device_inner') {
         subText = 'ISLAND DIARY ╳ CAMERA';
       } else if (watermarkStyle == 'polaroid') {
-        subText = 'Island Diary ╳ Instant';
+        subText = '海岛日记 ╳ 拍立得';
       }
 
       final timePainter = TextPainter(

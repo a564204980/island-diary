@@ -357,7 +357,7 @@ class FloorPatternPainter {
         canvas.drawPath(
           path, 
           Paint()
-            ..color = Colors.white.withOpacity(0.3)
+            ..color = Colors.white.withValues(alpha: 0.3)
             ..style = PaintingStyle.stroke
             ..strokeWidth = 0.5
         );

@@ -254,7 +254,10 @@ class DiaryBlockItem extends StatelessWidget {
         return Builder(
           builder: (context) {
             final bool isWideScreen = MediaQuery.of(context).size.width > 800;
-            final String displayPath = block.localPath ?? block.file.path;
+            final String displayPath = (block.file.path.isNotEmpty &&
+                    File(block.file.path).existsSync())
+                ? block.file.path
+                : (block.localPath ?? block.file.path);
 
             return Center(
               child: Container(
@@ -372,7 +375,12 @@ class DiaryBlockItem extends StatelessWidget {
   Widget _buildImageGroupBlock(ImageGroupBlock block, BuildContext context) {
     final bool isWideScreen = MediaQuery.of(context).size.width > 800;
     final List<String> paths = block.images
-        .map((img) => img.localPath ?? img.file.path)
+        .map((img) {
+          final String fPath = img.file.path;
+          return (fPath.isNotEmpty && File(fPath).existsSync())
+              ? fPath
+              : (img.localPath ?? fPath);
+        })
         .toList();
 
     return Center(
@@ -399,7 +407,9 @@ class DiaryBlockItem extends StatelessWidget {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: DiaryUtils.buildImage(
-                              imgBlock.localPath ?? imgBlock.file.path,
+                              (imgBlock.file.path.isNotEmpty && File(imgBlock.file.path).existsSync())
+                                  ? imgBlock.file.path
+                                  : (imgBlock.localPath ?? imgBlock.file.path),
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -413,9 +423,20 @@ class DiaryBlockItem extends StatelessWidget {
                     child: child,
                   );
                 },
-          onTapImage: (idx) {
-            if (onShowPreview != null) {
-              onShowPreview!(block.images[idx]);
+          onTapImage: (idx, ctx) {
+            if (onRemoveImageBlock != null) {
+              final RenderBox? renderBox = ctx.findRenderObject() as RenderBox?;
+              if (renderBox != null) {
+                final size = renderBox.size;
+                final globalOffset = renderBox.localToGlobal(Offset.zero);
+                final double centerX = globalOffset.dx + size.width / 2;
+                final double topY = globalOffset.dy;
+                _showImageMenu(ctx, Offset(centerX, topY), block.images[idx]);
+              }
+            } else {
+              if (onShowPreview != null) {
+                onShowPreview!(block.images[idx]);
+              }
             }
           },
           onDeleteImage: onRemoveImageBlock != null

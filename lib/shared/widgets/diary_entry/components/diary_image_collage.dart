@@ -6,7 +6,7 @@ class DiaryImageCollage extends StatelessWidget {
   final List<String> imagePaths;
   final double spacing;
   final double borderRadius;
-  final Function(int)? onTapImage;
+  final Function(int index, BuildContext context)? onTapImage;
   final Function(int)? onDeleteImage;
   final Widget Function(int index, Widget child)? imageWrapper;
 
@@ -50,7 +50,7 @@ class DiaryImageCollage extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             GestureDetector(
-              onTap: () => onTapImage?.call(index),
+              onTap: () => onTapImage?.call(index, context),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(borderRadius),
                 child: DiaryUtils.buildImage(path, fit: BoxFit.cover),

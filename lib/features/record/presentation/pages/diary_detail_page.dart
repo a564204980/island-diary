@@ -958,7 +958,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               constraints: BoxConstraints(
                 maxWidth: isWide
                     ? 520
-                    : MediaQuery.of(context).size.width * 0.85,
+                    : double.infinity,
               ),
               margin: EdgeInsets.only(top: isFirst ? 8 : 12, bottom: 12),
               decoration: BoxDecoration(
@@ -992,12 +992,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               constraints: BoxConstraints(
                 maxWidth: isWide
                     ? 520
-                    : MediaQuery.of(context).size.width * 0.85,
+                    : double.infinity,
               ),
               margin: EdgeInsets.only(top: isFirst ? 8 : 12, bottom: 12),
               child: DiaryImageCollage(
                 imagePaths: paths,
-                onTapImage: (idx) {
+                onTapImage: (idx, _) {
                   _showImagePreviewDialog(block.images[idx].file.path, block.images[idx].id);
                 },
               ),

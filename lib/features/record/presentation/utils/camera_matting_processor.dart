@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class CameraMattingProcessor {
@@ -21,7 +22,7 @@ class CameraMattingProcessor {
     int attempts = 0;
     while (attempts < _apiKeys.length) {
       final String apiKey = _apiKeys[_currentKeyIndex];
-      print("正在尝试使用 Remove.bg 密钥 [索引 $_currentKeyIndex]: $apiKey");
+      debugPrint("正在尝试使用 Remove.bg 密钥 [索引 $_currentKeyIndex]: $apiKey");
 
       try {
         final request = http.MultipartRequest(
@@ -41,20 +42,20 @@ class CameraMattingProcessor {
           return outPath;
         } else {
           final errText = await response.stream.bytesToString();
-          print("Remove.bg 密钥 [$apiKey] 发生错误: Code ${response.statusCode}, Msg: $errText");
+          debugPrint("Remove.bg 密钥 [$apiKey] 发生错误: Code ${response.statusCode}, Msg: $errText");
           
           // 只要响应不是 200 (例如 402 余额不足，403 无效)，即视为当前 Key 失效，自动推移至下一个 Key
           _currentKeyIndex = (_currentKeyIndex + 1) % _apiKeys.length;
           attempts++;
         }
       } catch (e) {
-        print("密钥 [$apiKey] 抠图过程网络异常: $e");
+        debugPrint("密钥 [$apiKey] 抠图过程网络异常: $e");
         _currentKeyIndex = (_currentKeyIndex + 1) % _apiKeys.length;
         attempts++;
       }
     }
 
-    print("所有的 Remove.bg 密钥都已尝试失败");
+    debugPrint("所有的 Remove.bg 密钥都已尝试失败");
     return inputPath;
   }
 }

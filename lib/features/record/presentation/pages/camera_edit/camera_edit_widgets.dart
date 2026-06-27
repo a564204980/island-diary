@@ -5,7 +5,7 @@ extension _CameraEditOverlayWidgets on _CameraEditOverlayState {
     final bool isSelected = panel == 'matting'
         ? (_mattingMode == 'cloud')
         : (_currentSubPanel == panel);
-    return GestureDetector(
+    return BounceScaleWidget(
       onTap: () {
         if (panel == 'matting') {
           _update(() {
@@ -108,7 +108,7 @@ extension _CameraEditOverlayWidgets on _CameraEditOverlayState {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Spacer() /* dummy wrapper to satisfy minSize */,
+              const SizedBox(height: 8),
               SizedBox(
                 height: 36,
                 child: Row(
@@ -614,7 +614,7 @@ extension _CameraEditOverlayWidgets on _CameraEditOverlayState {
 
   Widget _buildRatioButton(String ratio) {
     final bool isSelected = _currentRatio == ratio;
-    return GestureDetector(
+    return BounceScaleWidget(
       onTap: () {
         _update(() {
           _currentRatio = ratio;
@@ -876,7 +876,7 @@ extension _CameraEditOverlayWidgets on _CameraEditOverlayState {
         final double fgH = displayH * imgScale;
         final double bottomAreaTop = margin + fgH;
         final double bottomAreaHeight =
-            (displayH + extraHeight) - bottomAreaTop;
+            ((displayH + extraHeight) - bottomAreaTop).clamp(36.0, 999.0);
 
         return Positioned(
           top: bottomAreaTop,
@@ -884,51 +884,112 @@ extension _CameraEditOverlayWidgets on _CameraEditOverlayState {
           right: 0,
           height: bottomAreaHeight,
           child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "岛屿日记 x ${UserState().userName.value.isEmpty ? '我' : UserState().userName.value}",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: (displayW * 0.038).clamp(10.0, 24.0),
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 2.0,
-                    fontFamily: 'LXGWWenKai',
-                    decoration: TextDecoration.none,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.4),
-                        offset: const Offset(1, 1),
-                        blurRadius: 2,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "岛屿日记 x ${UserState().userName.value.isEmpty ? '我' : UserState().userName.value}",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: (displayW * 0.038).clamp(10.0, 24.0),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 2.0,
+                        fontFamily: 'LXGWWenKai',
+                        decoration: TextDecoration.none,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            offset: const Offset(1, 1),
+                            blurRadius: 2,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  "50mm F/1.8  1/125s  ISO 100  •  ${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')} $timeStr",
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.75),
-                    fontSize: (displayW * 0.026).clamp(7.5, 15.0),
-                    fontFamily: 'LXGWWenKai',
-                    decoration: TextDecoration.none,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        offset: const Offset(1, 1),
-                        blurRadius: 2,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      "50mm F/1.8  1/125s  ISO 100  •  ${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')} $timeStr",
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.75),
+                        fontSize: (displayW * 0.026).clamp(7.5, 15.0),
+                        fontFamily: 'LXGWWenKai',
+                        decoration: TextDecoration.none,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            offset: const Offset(1, 1),
+                            blurRadius: 2,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
       default:
         return const SizedBox.shrink();
     }
+  }
+}
+
+class BounceScaleWidget extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+
+  const BounceScaleWidget({
+    super.key,
+    required this.child,
+    required this.onTap,
+  });
+
+  @override
+  State<BounceScaleWidget> createState() => _BounceScaleWidgetState();
+}
+
+class _BounceScaleWidgetState extends State<BounceScaleWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 80),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.90).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) {
+        _controller.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: widget.child,
+      ),
+    );
   }
 }

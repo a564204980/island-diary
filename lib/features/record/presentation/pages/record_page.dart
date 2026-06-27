@@ -510,63 +510,66 @@ class _RecordPageState extends State<RecordPage> {
                                             index = 0;
                                           }
                                           final targetDate = filtered[index].dateTime;
-                                          if (_headerDate.value.day !=
-                                              targetDate.day) {
+                                          if (_headerDate.value.year != targetDate.year ||
+                                              _headerDate.value.month != targetDate.month ||
+                                              _headerDate.value.day != targetDate.day) {
                                             _headerDate.value = targetDate;
                                           }
                                           return false;
                                         },
-                                        child: CustomScrollView(
-                                          controller: _scrollController,
-                                          slivers: [
-                                            if (showFeatured)
-                                              SliverToBoxAdapter(
-                                                child: DiaryFeaturedCard(
-                                                  entry: filtered.first,
-                                                  isNight: isNight,
-                                                ),
-                                              ),
-                                            SliverPadding(
-                                              padding: const EdgeInsets.fromLTRB(
-                                                16,
-                                                0,
-                                                16,
-                                                120, // 增加底部 Padding，确保最后一张卡片可完全画过渐变淡出区域，清晰可见
-                                              ),
-                                              sliver: SliverMasonryGrid.count(
-                                                crossAxisCount:
-                                                    MediaQuery.of(
-                                                          context,
-                                                        ).size.width >
-                                                        800
-                                                    ? 3
-                                                    : 2,
-                                                crossAxisSpacing: 12,
-                                                mainAxisSpacing: 12,
-                                                childCount: showFeatured
-                                                    ? (filtered.length > 1
-                                                          ? filtered.length - 1
-                                                          : 0)
-                                                    : filtered.length,
-                                                itemBuilder: (context, index) {
-                                                  final actualIndex = showFeatured
-                                                      ? index + 1
-                                                      : index;
-                                                  return DiaryMasonryCard(
-                                                    entry: filtered[actualIndex],
-                                                    isNight: isNight,
-                                                    index: actualIndex,
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          ],
+                                        child: LayoutBuilder(
+                                          builder: (context, constraints) {
+                                            final double screenWidth = constraints.maxWidth;
+                                            return CustomScrollView(
+                                              controller: _scrollController,
+                                              slivers: [
+                                                if (showFeatured)
+                                                  SliverToBoxAdapter(
+                                                    child: DiaryFeaturedCard(
+                                                      entry: filtered.first,
+                                                      isNight: isNight,
+                                                    ),
+                                                  ),
+                                                if (screenWidth <= 0)
+                                                  const SliverToBoxAdapter(child: SizedBox.shrink())
+                                                else
+                                                  SliverPadding(
+                                                    padding: const EdgeInsets.fromLTRB(
+                                                      16,
+                                                      0,
+                                                      16,
+                                                      120, // 增加底部 Padding，确保最后一张卡片可完全画过渐变淡出区域，清晰可见
+                                                    ),
+                                                    sliver: SliverMasonryGrid.count(
+                                                      crossAxisCount: screenWidth > 800 ? 3 : 2,
+                                                      crossAxisSpacing: 12,
+                                                      mainAxisSpacing: 12,
+                                                      childCount: showFeatured
+                                                          ? (filtered.length > 1
+                                                              ? filtered.length - 1
+                                                              : 0)
+                                                          : filtered.length,
+                                                      itemBuilder: (context, index) {
+                                                        final actualIndex = showFeatured
+                                                            ? index + 1
+                                                            : index;
+                                                        return DiaryMasonryCard(
+                                                          entry: filtered[actualIndex],
+                                                          isNight: isNight,
+                                                          index: actualIndex,
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                              ],
+                                            );
+                                          },
                                         ),
                                       );
                                     }
 
                                     mainContent = RepaintBoundary(
-                                      key: ValueKey('list_shader_${layoutIndex}'),
+                                      key: ValueKey('list_shader_$layoutIndex'),
                                       child: ShaderMask(
                                         shaderCallback: (Rect bounds) {
                                           return LinearGradient(
