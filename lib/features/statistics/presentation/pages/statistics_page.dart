@@ -608,14 +608,17 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
 
   Widget _buildHeader(bool isNight, List<DiaryEntry> filtered) {
     final String themeId = UserState().selectedIslandThemeId.value;
+    final bool isLego = themeId == 'lego';
+    final String headerFont = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+      padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 24.0, bottom: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: Column(
@@ -628,7 +631,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.0,
-                        fontFamily: 'LXGWWenKai',
+                        fontFamily: headerFont,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -637,68 +640,67 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                       style: TextStyle(
                         color: isNight ? Colors.white38 : Colors.black38,
                         fontSize: 12,
-                        fontFamily: 'LXGWWenKai',
+                        fontFamily: headerFont,
                       ),
                     ),
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _buildSegmentControl(isNight),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () async {
-                           final rangeStr = _currentRange == StatTimeRange.week ? 'week' 
-                                          : (_currentRange == StatTimeRange.month ? 'month' : 'all');
-                           await UserState().resetStatsOrder(rangeStr);
-                           setState(() {});
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: themeId == 'cotton_candy'
-                                ? Colors.white.withValues(alpha: 0.7)
-                                : (isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05)),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(CupertinoIcons.refresh, size: 14, color: isNight ? Colors.white70 : Colors.black54),
-                              const SizedBox(width: 4),
-                              Text('重置布局', style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black54)),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => _showPosterPreview(context, isNight),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: themeId == 'cotton_candy'
-                                ? Colors.white.withValues(alpha: 0.7)
-                                : (isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05)),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(CupertinoIcons.camera_viewfinder, size: 14, color: isNight ? Colors.white70 : Colors.black54),
-                              const SizedBox(width: 4),
-                              Text('总结海报', style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black54)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              )
+              _buildSegmentControl(isNight),
             ],
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () async {
+                     final rangeStr = _currentRange == StatTimeRange.week ? 'week' 
+                                    : (_currentRange == StatTimeRange.month ? 'month' : 'all');
+                     await UserState().resetStatsOrder(rangeStr);
+                     setState(() {});
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: themeId == 'cotton_candy'
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : (isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(CupertinoIcons.refresh, size: 14, color: isNight ? Colors.white70 : Colors.black54),
+                        const SizedBox(width: 4),
+                        Text('重置布局', style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black54)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _showPosterPreview(context, isNight),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: themeId == 'cotton_candy'
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : (isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(CupertinoIcons.camera_viewfinder, size: 14, color: isNight ? Colors.white70 : Colors.black54),
+                        const SizedBox(width: 4),
+                        Text('总结海报', style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black54)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

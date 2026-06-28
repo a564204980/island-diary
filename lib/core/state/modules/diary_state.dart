@@ -11,6 +11,11 @@ List<DiaryBook> _parseDiaryBooks(String jsonStr) {
   return decoded.map((e) => DiaryBook.fromMap(Map<String, dynamic>.from(e))).toList();
 }
 
+List<DiaryDraft> _parseDiaryDrafts(String jsonStr) {
+  final decoded = jsonDecode(jsonStr) as List;
+  return decoded.map((e) => DiaryDraft.fromMap(Map<String, dynamic>.from(e))).toList();
+}
+
 mixin DiaryMixin on ProfileMixin {
   final ValueNotifier<DiaryDraft?> diaryDraft = ValueNotifier<DiaryDraft?>(null);
   final ValueNotifier<List<DiaryDraft>> savedDrafts = ValueNotifier<List<DiaryDraft>>([]);
@@ -19,12 +24,11 @@ mixin DiaryMixin on ProfileMixin {
   final ValueNotifier<bool> isDiarySheetOpen = ValueNotifier<bool>(false);
 
   Future<void> loadDiaries(SharedPreferences prefs) async {
-    // 1. 加载多草稿列表
+    // 1. 加载多草稿列表 (用 compute 移入后台 isolate)
     final draftsJson = prefs.getString(UserState().n(_K.savedDrafts));
     if (draftsJson != null) {
       try {
-        final List decoded = jsonDecode(draftsJson) as List;
-        savedDrafts.value = decoded.map((e) => DiaryDraft.fromMap(Map<String, dynamic>.from(e))).toList();
+        savedDrafts.value = await compute(_parseDiaryDrafts, draftsJson);
       } catch (e) {
         debugPrint('Error decoding saved drafts: $e');
       }

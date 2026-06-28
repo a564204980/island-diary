@@ -4,6 +4,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/frosted_rainbow.dart';
 import 'package:island_diary/shared/widgets/top_toast.dart';
 
+import 'package:island_diary/shared/widgets/time_warp_overlay.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 
 /// 人生线切换与管理底部弹窗 - 深度视觉优化版
@@ -114,12 +115,35 @@ class LifeLineSwitcherSheet extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (!isCurrent) {
-          Navigator.pop(context);
-          _showSwitchLoading(context, profile);
+          final isLego = UserState().selectedIslandThemeId.value == 'lego';
+
+          if (isLego) {
+            // 乐高主题：播放粒子跃迁特效
+            final overlayState = Overlay.of(context, rootOverlay: true);
+            Navigator.pop(context);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final switchFuture = Future.delayed(
+                const Duration(milliseconds: 900),
+                () => UserState().switchLifeLine(profile.id),
+              );
+              late OverlayEntry entry;
+              entry = OverlayEntry(
+                builder: (ctx) => TimeWarpOverlay(
+                  nextProfile: profile,
+                  switchFuture: switchFuture,
+                  onComplete: () => entry.remove(),
+                ),
+              );
+              overlayState.insert(entry);
+            });
+          } else {
+            // 其他主题：直接切换
+            Navigator.pop(context);
+            UserState().switchLifeLine(profile.id);
+          }
         }
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         decoration: BoxDecoration(
           color: isCurrent 
@@ -219,60 +243,7 @@ class LifeLineSwitcherSheet extends StatelessWidget {
     );
   }
 
-  /// 显示切换时的加载动画（模拟穿梭）
-  void _showSwitchLoading(BuildContext context, LifeLineProfile profile) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        Future.delayed(const Duration(milliseconds: 1500), () async {
-          await UserState().switchLifeLine(profile.id);
-          if (context.mounted) Navigator.pop(context);
-        });
 
-        return Material(
-          color: Colors.black.withValues(alpha: 0.85),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    const FrostedRainbow(
-                      width: 120,
-                      height: 120,
-                    ),
-                    const Center(child: Icon(Icons.auto_awesome, color: Colors.white, size: 48)),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  '正在穿梭至「${profile.name}」的时空...',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: _getFontFamily(),
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '时空波长同步中...',
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 12,
-                    fontFamily: _getFontFamily(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   void _showCreateDialog(BuildContext context) {
     final controller = TextEditingController();

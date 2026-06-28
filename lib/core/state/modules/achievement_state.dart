@@ -1,5 +1,10 @@
 part of '../user_state.dart';
 
+/// 顶层函数：供 compute() 在后台 isolate 解析成就 JSON
+Map<String, String> _parseAchievements(String jsonStr) {
+  return Map<String, String>.from(jsonDecode(jsonStr));
+}
+
 mixin AchievementMixin on ProfileMixin, DiaryMixin, DecorationMixin {
   final ValueNotifier<int> achievementPoints = ValueNotifier<int>(0);
   final ValueNotifier<Map<String, String>> unlockedAchievements =
@@ -10,9 +15,7 @@ mixin AchievementMixin on ProfileMixin, DiaryMixin, DecorationMixin {
     final mapJson = prefs.getString(n(_K.unlockedAchievementsMap));
     if (mapJson != null) {
       try {
-        unlockedAchievements.value = Map<String, String>.from(
-          jsonDecode(mapJson),
-        );
+        unlockedAchievements.value = await compute(_parseAchievements, mapJson);
       } catch (_) {}
     }
   }

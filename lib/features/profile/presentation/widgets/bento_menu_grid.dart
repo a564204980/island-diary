@@ -8,6 +8,8 @@ import 'package:island_diary/features/profile/presentation/pages/cloud_sync_page
 import 'package:island_diary/features/profile/presentation/widgets/bento_box.dart';
 import 'package:island_diary/features/profile/presentation/pages/diary_books_page.dart';
 import 'package:island_diary/features/profile/presentation/widgets/life_line_switcher_sheet.dart';
+import 'package:island_diary/shared/widgets/time_warp_overlay.dart';
+import 'package:island_diary/shared/widgets/top_toast.dart';
 import 'package:island_diary/core/models/life_line_profile.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_drafts_page.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';
@@ -262,6 +264,8 @@ class BentoMenuGrid extends StatelessWidget {
           builder: (context) => const LifeLineSwitcherSheet(),
         );
       },
+      onDoubleTap: () => _triggerTimeWarp(context),
+      onLongPress: () => _triggerTimeWarp(context),
       child: BentoBox(
         isNight: isNight,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -417,6 +421,24 @@ class BentoMenuGrid extends StatelessWidget {
     } else {
       return const Color(0xFF7E7570);
     }
+  }
+
+  void _triggerTimeWarp(BuildContext context) {
+    final userState = UserState();
+    final profiles = userState.lifeLines.value;
+    if (profiles.length <= 1) {
+      showTopToast(context, '✨ 当前只有一个平行时空，请先点击人生线创建一个新时空吧');
+      return;
+    }
+
+    final currentId = userState.currentLifeLineId.value;
+    final currentIndex = profiles.indexWhere((p) => p.id == currentId);
+    if (currentIndex == -1) return;
+
+    final nextIndex = (currentIndex + 1) % profiles.length;
+    final nextProfile = profiles[nextIndex];
+
+    TimeWarpOverlay.show(context, nextProfile);
   }
 }
 
@@ -596,6 +618,8 @@ class _ThemeOptionsWidget extends StatelessWidget {
       ),
     );
   }
+
+
 
   String _getFontFamily() {
     return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';

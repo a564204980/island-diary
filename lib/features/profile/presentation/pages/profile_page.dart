@@ -141,19 +141,21 @@ class _ProfilePageState extends State<ProfilePage> {
 
             SafeArea(
               child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 800),
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 80),
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      ProfileHeader(isNight: isNight, isVip: isVip),
-                      const SizedBox(height: 24),
-                      PremiumBentoCard(isVip: isVip, isNight: isNight),
-                      const SizedBox(height: 24),
-                      BentoMenuGrid(isNight: isNight),
-                      const SizedBox(height: 80),
-                    ],
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 84), // 避开底部悬浮导航栏高度，防止滚动时卡片穿透泄漏
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        ProfileHeader(isNight: isNight, isVip: isVip),
+                        const SizedBox(height: 24),
+                        PremiumBentoCard(isVip: isVip, isNight: isNight),
+                        const SizedBox(height: 24),
+                        BentoMenuGrid(isNight: isNight),
+                      ],
+                    ),
                   ),
                 ),
               ),

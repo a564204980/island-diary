@@ -92,6 +92,7 @@ class _RecordPageState extends State<RecordPage> {
         final bool isNight = _isNight;
 
         return Scaffold(
+          resizeToAvoidBottomInset: false, // 键盘弹出时不要压缩页面布局
           backgroundColor: isNight
               ? const Color(0xFF0D1B2A)
               : const Color(0xFFE6F3F5),

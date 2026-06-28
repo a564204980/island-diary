@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lunar/lunar.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -31,7 +32,10 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
   final ScrollController _scrollController = ScrollController();
   late DateTime _focusedMonth;
   DateTime? _selectedDay;
+  bool _isCollapsed = false;
   bool _slideRightToLeft = true;
+
+  double _lastOffset = 0;
 
   @override
   void initState() {
@@ -56,6 +60,12 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
     return "";
   }
 
+  List<DateTime> _getWeekDaysForSelected() {
+    final baseDay = _selectedDay ?? DateTime.now();
+    final monday = baseDay.subtract(Duration(days: baseDay.weekday - 1));
+    return List.generate(7, (i) => monday.add(Duration(days: i)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeId = UserState().selectedIslandThemeId.value;
@@ -67,6 +77,14 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
       builder: (context, allDiaries, _) {
         final year = _focusedMonth.year;
         final month = _focusedMonth.month;
+
+        final bool isCottonCandy = themeId == 'cotton_candy';
+        final Color mainTextColor = widget.isNight
+            ? Colors.white.withValues(alpha: 0.9)
+            : (isCottonCandy ? const Color(0xFF4E3A46) : const Color(0xFF3B2E25));
+        final Color subTextColor = widget.isNight
+            ? Colors.white38
+            : (isCottonCandy ? const Color(0xFF8D7A84) : const Color(0xFF7E7570));
 
         // 当前月份所有日记
         final monthDiaries = allDiaries.where((d) => d.dateTime.toLocal().year == year && d.dateTime.toLocal().month == month).toList();
@@ -87,264 +105,405 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
         final int firstDayWeekday = DateTime(year, month, 1).weekday;
         final int emptySlotsBefore = firstDayWeekday - 1;
 
-        // 整理当前月份每天的日记映射
-        final Map<int, List<DiaryEntry>> dayMap = {};
-        for (var entry in monthDiaries) {
-          final d = entry.dateTime.toLocal().day;
-          dayMap.putIfAbsent(d, () => []).add(entry);
+        // 构造完整的 35 或 42 天网格日期，以便按周行折叠
+        final List<DateTime> gridDays = [];
+        final prevMonthEnd = DateTime(year, month, 0);
+        for (int i = emptySlotsBefore - 1; i >= 0; i--) {
+          gridDays.add(DateTime(year, month - 1, prevMonthEnd.day - i));
+        }
+        for (int day = 1; day <= daysInMonth; day++) {
+          gridDays.add(DateTime(year, month, day));
+        }
+        int remaining = gridDays.length % 7;
+        if (remaining > 0) {
+          final int nextDaysCount = 7 - remaining;
+          for (int i = 1; i <= nextDaysCount; i++) {
+            gridDays.add(DateTime(year, month + 1, i));
+          }
+        }
+        final List<List<DateTime>> weeks = [];
+        for (int i = 0; i < gridDays.length; i += 7) {
+          weeks.add(gridDays.sublist(i, i + 7));
         }
 
-        // 当前选中的日记列表
-        final selectedDayDiaries = _selectedDay?.year == year && _selectedDay?.month == month
-            ? (dayMap[_selectedDay!.day] ?? [])
+        int selectedWeekIndex = -1;
+        if (_selectedDay != null) {
+          for (int w = 0; w < weeks.length; w++) {
+            if (weeks[w].any((d) => d.year == _selectedDay!.year && d.month == _selectedDay!.month && d.day == _selectedDay!.day)) {
+              selectedWeekIndex = w;
+              break;
+            }
+          }
+        }
+        if (selectedWeekIndex == -1) {
+          final today = DateTime.now();
+          for (int w = 0; w < weeks.length; w++) {
+            if (weeks[w].any((d) => d.year == today.year && d.month == today.month && d.day == today.day)) {
+              selectedWeekIndex = w;
+              break;
+            }
+          }
+        }
+        if (selectedWeekIndex == -1) {
+          selectedWeekIndex = 0;
+        }
+
+        // 当前选中的日记列表（直接从所有日记中过滤，支持跨月选择）
+        final selectedDayDiaries = _selectedDay != null
+            ? allDiaries.where((d) {
+                final local = d.dateTime.toLocal();
+                return local.year == _selectedDay!.year &&
+                    local.month == _selectedDay!.month &&
+                    local.day == _selectedDay!.day;
+              }).toList()
             : <DiaryEntry>[];
 
-        return SingleChildScrollView(
-          controller: _scrollController,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. 日历网格卡片容器
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                decoration: BoxDecoration(
-                  color: widget.isNight ? const Color(0xFF212831) : Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: widget.isNight ? 0.45 : 0.12),
-                      blurRadius: 10,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: widget.isNight
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : Colors.black.withValues(alpha: 0.03),
-                    width: 0.5,
-                  ),
-                ),
+        return Column(
+          children: [
+            // 固定在顶部的日历头部模块
+            GestureDetector(
+              onVerticalDragUpdate: (details) {
+                if (details.primaryDelta != null && details.primaryDelta! > 8) {
+                  if (_isCollapsed) {
+                    setState(() {
+                      _isCollapsed = false;
+                    });
+                  }
+                } else if (details.primaryDelta != null && details.primaryDelta! < -8) {
+                  if (!_isCollapsed && _selectedDay != null) {
+                    setState(() {
+                      _isCollapsed = true;
+                    });
+                  }
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 月份切换栏
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                Icons.chevron_left_rounded,
-                                color: widget.isNight ? Colors.white70 : Colors.black87,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _slideRightToLeft = false;
-                                  _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
-                                  _selectedDay = null; // 切换月份后清空当前选中天
-                                });
-                              },
+                  // 1. 月份切换与功能按钮栏
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              Icons.chevron_left_rounded,
+                              size: 18,
+                              color: mainTextColor.withValues(alpha: 0.8),
                             ),
-                            Text(
-                              "${_focusedMonth.year}.${_focusedMonth.month.toString().padLeft(2, '0')}",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: fontFamily,
-                                color: widget.isNight ? Colors.white : Colors.black87,
-                              ),
+                            style: IconButton.styleFrom(
+                              backgroundColor: subTextColor.withValues(alpha: 0.1),
+                              shape: const CircleBorder(),
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(30, 30),
+                              fixedSize: const Size(30, 30),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.chevron_right_rounded,
-                                color: widget.isNight ? Colors.white70 : Colors.black87,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _slideRightToLeft = true;
-                                  _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
-                                  _selectedDay = null;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        if (widget.onShareMonth != null && monthDiaries.isNotEmpty)
-                          GestureDetector(
-                            onTap: () => widget.onShareMonth!(_focusedMonth),
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: Icon(
-                                Icons.ios_share_rounded,
-                                size: 19,
-                                color: widget.isNight
-                                    ? Colors.white24
-                                    : Colors.black.withValues(alpha: 0.2),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // 星期标头
-                    _buildWeekHeader(widget.isNight, fontFamily),
-                    const SizedBox(height: 12),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      switchInCurve: Curves.easeOutCubic,
-                      switchOutCurve: Curves.easeInCubic,
-                      transitionBuilder: (Widget child, Animation<double> animation) {
-                        final isEntering = child.key == ValueKey<DateTime>(_focusedMonth);
-                        final double dx = _slideRightToLeft ? 1.0 : -1.0;
-                        return SlideTransition(
-                          position: Tween<Offset>(
-                            begin: Offset(isEntering ? dx * 0.25 : -dx * 0.25, 0.0),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          ),
-                        );
-                      },
-                      layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-                        return Stack(
-                          alignment: Alignment.topCenter,
-                          children: <Widget>[
-                            ...previousChildren,
-                            if (currentChild != null) currentChild,
-                          ],
-                        );
-                      },
-                      child: GridView.builder(
-                        key: ValueKey<DateTime>(_focusedMonth),
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 7,
-                          mainAxisSpacing: 10,
-                          crossAxisSpacing: 10,
-                          childAspectRatio: 0.82,
-                        ),
-                        itemCount: daysInMonth + emptySlotsBefore,
-                        itemBuilder: (context, index) {
-                          if (index < emptySlotsBefore) {
-                            return const SizedBox.shrink();
-                          }
-
-                          final int day = index - emptySlotsBefore + 1;
-                          final cellDate = DateTime(year, month, day);
-                          final entries = dayMap[day];
-                          final bool isToday = DateTime.now().year == year &&
-                              DateTime.now().month == month &&
-                              DateTime.now().day == day;
-                          final bool isSelected = _selectedDay != null &&
-                              _selectedDay!.year == year &&
-                              _selectedDay!.month == month &&
-                              _selectedDay!.day == day;
-
-                          return _CalendarDayCell(
-                            date: cellDate,
-                            entries: entries,
-                            isToday: isToday,
-                            isSelected: isSelected,
-                            isNight: widget.isNight,
-                            onTap: () {
+                            onPressed: () {
                               setState(() {
-                                _selectedDay = cellDate;
+                                _slideRightToLeft = false;
+                                _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
+                                _selectedDay = null;
+                                _isCollapsed = false;
                               });
                             },
-                          );
-                        },
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            "${_focusedMonth.year}.${_focusedMonth.month.toString().padLeft(2, '0')}",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: fontFamily,
+                              color: mainTextColor,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton(
+                            icon: Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                              color: mainTextColor.withValues(alpha: 0.8),
+                            ),
+                            style: IconButton.styleFrom(
+                              backgroundColor: subTextColor.withValues(alpha: 0.1),
+                              shape: const CircleBorder(),
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(30, 30),
+                              fixedSize: const Size(30, 30),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _slideRightToLeft = true;
+                                _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
+                                _selectedDay = null;
+                                _isCollapsed = false;
+                              });
+                            },
+                          ),
+                        ],
                       ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              Icons.search_rounded,
+                              size: 19,
+                              color: subTextColor,
+                            ),
+                            style: IconButton.styleFrom(
+                              backgroundColor: subTextColor.withValues(alpha: 0.1),
+                              shape: const CircleBorder(),
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(32, 32),
+                              fixedSize: const Size(32, 32),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('开发中：根据标签或分类筛选日历显示的功能'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                          ),
+                          if (widget.onShareMonth != null && monthDiaries.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: Icon(
+                                  Icons.ios_share_rounded,
+                                  size: 18,
+                                  color: subTextColor,
+                                ),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: subTextColor.withValues(alpha: 0.1),
+                                  shape: const CircleBorder(),
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(32, 32),
+                                  fixedSize: const Size(32, 32),
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                onPressed: () => widget.onShareMonth!(_focusedMonth),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  const SizedBox(height: 12),
+                  // 2. 星期标头
+                  _buildWeekHeader(widget.isNight, fontFamily),
+                  const SizedBox(height: 12),
+                  // 3. 日历网格
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(weeks.length, (wIndex) {
+                        final week = weeks[wIndex];
+                        final bool isTargetWeek = wIndex == selectedWeekIndex;
+                        final bool shouldShow = !_isCollapsed || isTargetWeek;
 
-              const SizedBox(height: 24),
+                        return ClipRect(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOutCubic,
+                            height: shouldShow ? 62 : 0,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: shouldShow ? 1.0 : 0.0,
+                              child: SingleChildScrollView(
+                                physics: const NeverScrollableScrollPhysics(),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: SizedBox(
+                                    height: 52,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: List.generate(7, (dIndex) {
+                                      final cellDate = week[dIndex];
+                                      final bool isCurrentMonth = cellDate.month == month && cellDate.year == year;
 
-              // 2. 月份记录统计信息
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "$month月记录",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: fontFamily,
-                      color: widget.isNight ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
-                    ),
-                  ),
-                  Text(
-                    "${monthDiaries.length}条",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: widget.isNight ? Colors.white38 : Colors.black45,
+                                      final entries = allDiaries.where((d) {
+                                        final local = d.dateTime.toLocal();
+                                        return local.year == cellDate.year &&
+                                            local.month == cellDate.month &&
+                                            local.day == cellDate.day;
+                                      }).toList();
+
+                                      final bool isToday = DateTime.now().year == cellDate.year &&
+                                          DateTime.now().month == cellDate.month &&
+                                          DateTime.now().day == cellDate.day;
+                                      final bool isSelected = _selectedDay != null &&
+                                          _selectedDay!.year == cellDate.year &&
+                                          _selectedDay!.month == cellDate.month &&
+                                          _selectedDay!.day == cellDate.day;
+
+                                      return Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                                          child: Opacity(
+                                            opacity: (!_isCollapsed && !isCurrentMonth) ? 0.3 : 1.0,
+                                            child: _CalendarDayCell(
+                                              date: cellDate,
+                                              entries: entries,
+                                              isToday: isToday,
+                                              isSelected: isSelected,
+                                              isNight: widget.isNight,
+                                              onTap: () {
+                                                setState(() {
+                                                  _selectedDay = cellDate;
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                      }),
                     ),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 16),
-
-              // 3. 选中日期的详细日记记录
-              if (_selectedDay != null)
-                Column(
-                  key: ValueKey(_selectedDay),
+            ),
+          ),
+            Expanded(
+              child: NotificationListener<UserScrollNotification>(
+                onNotification: (notification) {
+                  if (notification.direction == ScrollDirection.forward) {
+                    if (_isCollapsed) {
+                      setState(() {
+                        _isCollapsed = false;
+                      });
+                    }
+                  } else if (notification.direction == ScrollDirection.reverse) {
+                    if (!_isCollapsed && _selectedDay != null) {
+                      setState(() {
+                        _isCollapsed = true;
+                      });
+                    }
+                  }
+                  return false;
+                },
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 4. 月份记录统计信息
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "${_selectedDay!.day} ${_getWeekdayChinese(_selectedDay!.weekday)}",
+                          "$month月记录",
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             fontFamily: fontFamily,
-                            color: widget.isNight ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+                            color: mainTextColor,
                           ),
                         ),
                         Text(
-                          "${selectedDayDiaries.length}条",
+                          "${monthDiaries.length}条",
                           style: TextStyle(
                             fontSize: 14,
-                            color: widget.isNight ? Colors.white38 : Colors.black45,
+                            color: subTextColor,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    if (selectedDayDiaries.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        child: Center(
-                          child: Text(
-                            "这一天没有记录日记哦~",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: widget.isNight ? Colors.white24 : Colors.black26,
-                              fontFamily: fontFamily,
-                            ),
+
+                    const SizedBox(height: 16),
+
+                    // 5. 选中日期的详细日记记录
+                    if (_selectedDay != null)
+                      Column(
+                        key: ValueKey(_selectedDay),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "${_selectedDay!.day} ${_getWeekdayChinese(_selectedDay!.weekday)}",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: fontFamily,
+                                  color: mainTextColor,
+                                ),
+                              ),
+                              Text(
+                                "${selectedDayDiaries.length}条",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: subTextColor,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      )
-                    else
-                      ...selectedDayDiaries.map((entry) => _buildDiaryDetailCard(entry, widget.isNight, fontFamily)),
+                          const SizedBox(height: 8),
+                          if (selectedDayDiaries.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: Text(
+                                  "这一天没有记录日记哦~",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: widget.isNight ? Colors.white24 : Colors.black26,
+                                    fontFamily: fontFamily,
+                                  ),
+                                ),
+                              ),
+                            )
+                          else
+                            ...List.generate(selectedDayDiaries.length, (index) {
+                              return _buildDiaryDetailCard(
+                                selectedDayDiaries[index],
+                                widget.isNight,
+                                fontFamily,
+                                isFirst: index == 0,
+                                isLast: index == selectedDayDiaries.length - 1,
+                              );
+                            }),
+                        ],
+                      ).animate(key: ValueKey(_selectedDay)).fadeIn(duration: 220.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
                   ],
-                ).animate(key: ValueKey(_selectedDay)).fadeIn(duration: 220.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
-            ],
+                ),
+              ),
+            ),
           ),
+          ],
         );
       },
     );
   }
 
   Widget _buildWeekHeader(bool isNight, String fontFamily) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isCottonCandy = themeId == 'cotton_candy';
+    final Color subTextColor = isNight
+        ? Colors.white38
+        : (isCottonCandy ? const Color(0xFF8D7A84) : const Color(0xFF7E7570));
+
     final List<String> weekDays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -357,7 +516,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: isNight ? Colors.white38 : Colors.black.withValues(alpha: 0.35),
+                    color: subTextColor.withValues(alpha: 0.7),
                     fontFamily: fontFamily,
                   ),
                 ),
@@ -368,24 +527,34 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
     );
   }
 
-  Widget _buildDiaryDetailCard(DiaryEntry entry, bool isNight, String fontFamily) {
-    final cardColor = isNight ? const Color(0xFF212831) : Colors.white;
-    final labelColor = isNight ? Colors.white38 : Colors.black45;
-    final valueColor = isNight ? Colors.white70 : Colors.black87;
+  Widget _buildDiaryDetailCard(DiaryEntry entry, bool isNight, String fontFamily, {required bool isFirst, required bool isLast}) {
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isCottonCandy = themeId == 'cotton_candy';
+
+    final Color mainTextColor = isNight
+        ? Colors.white.withValues(alpha: 0.9)
+        : (isCottonCandy ? const Color(0xFF4E3A46) : const Color(0xFF3B2E25));
+
+    final Color subTextColor = isNight
+        ? Colors.white38
+        : (isCottonCandy ? const Color(0xFF8D7A84) : const Color(0xFF7E7570));
 
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
-    // 提取日记中的照片列表
     final images = entry.blocks.where((b) => b['type'] == 'image').toList();
-    String bgAsset = DiaryUtils.getPaperBackgroundPath(entry.paperStyle, isNight);
-    if (bgAsset.isEmpty) {
-      bgAsset = isNight
-          ? 'assets/images/note/note_night_bg1.png'
-          : 'assets/images/note/note_bg1.png';
-    }
 
     // 日记内容提取逻辑
     final String plainContent = DiaryUtils.getFilteredContent(entry.content).trim();
+
+    final timeStr = "${entry.dateTime.toLocal().hour.toString().padLeft(2, '0')}:${entry.dateTime.toLocal().minute.toString().padLeft(2, '0')}";
+
+    // 心情表情图与文本解析
+    final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+    final String moodLabel = parsed.customMood ?? mood.label;
+    final String iconPath = (entry.moodIndex >= 0 && entry.moodIndex <= 23)
+        ? 'assets/icons/custom${entry.moodIndex + 1}.png'
+        : (mood.iconPath ?? 'assets/icons/happy.png');
+    final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 
     return GestureDetector(
       onTap: () {
@@ -399,225 +568,161 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
           ),
         );
       },
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isNight ? 0.35 : 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(
-            color: isNight
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.03),
-            width: 0.5,
-          ),
-          image: DecorationImage(
-            image: AssetImage(bgAsset),
-            fit: BoxFit.cover,
-            opacity: isNight ? 0.40 : 0.82,
-          ),
-        ),
+      child: IntrinsicHeight(
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 左侧：手写笔圆形图标
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: isNight ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFFAF6F0),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.edit_note_rounded,
-                  color: isNight ? Colors.white54 : const Color(0xFF8D827A),
-                  size: 22,
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-
-            // 中间：日记文字与心情状态
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // 左侧时间轴
+            SizedBox(
+              width: 36,
+              child: Stack(
+                alignment: Alignment.topCenter,
                 children: [
-                  Text(
-                    "日记内容",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: labelColor,
-                      fontFamily: fontFamily,
+                  // 竖线
+                  Align(
+                    alignment: Alignment.center,
+                    child: Container(
+                      width: 1.5,
+                      color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.08),
+                      margin: EdgeInsets.only(
+                        top: isFirst ? 22 : 0,
+                        bottom: isLast ? 22 : 0,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Builder(builder: (context) {
-                    final textStyle = TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: valueColor,
-                      fontFamily: fontFamily,
-                      height: 1.35,
-                    );
-                    if (plainContent.isEmpty) {
-                      return Text("无文字内容", style: textStyle);
-                    }
-                    final spans = EmojiMapping.parseText(plainContent).map((chunk) {
-                      if (chunk.isEmoji) {
-                        return WidgetSpan(
-                          alignment: PlaceholderAlignment.middle,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 1),
-                            child: Image.asset(chunk.emojiPath!, width: 16, height: 16),
-                          ),
-                        );
-                      }
-                      return TextSpan(text: chunk.text, style: textStyle);
-                    }).toList();
-                    return RichText(
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      text: TextSpan(children: spans),
-                    );
-                  }),
-                  const SizedBox(height: 8),
-                  
-                  // 心情状态药丸 (含心情表情图)
-                  Builder(
-                    builder: (context) {
-                      final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
-                      final String moodLabel = parsed.customMood ?? mood.label;
-                      final String iconPath = (entry.moodIndex >= 0 && entry.moodIndex <= 23)
-                          ? 'assets/icons/custom${entry.moodIndex + 1}.png'
-                          : (mood.iconPath ?? 'assets/icons/happy.png');
-                      final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
-
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-                        decoration: BoxDecoration(
-                          color: isNight
-                              ? Colors.white.withValues(alpha: 0.08)
-                              : const Color(0xFFF2F2F2).withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isNight
-                                ? Colors.white.withValues(alpha: 0.15)
-                                : const Color(0xFFD8D8D8).withValues(alpha: 0.8),
-                            width: 0.8,
-                          ),
+                  // 时间轴节点（圆形背景 + 心情图标）
+                  Positioned(
+                    top: 10,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: isNight ? const Color(0xFF2C323A) : Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isNight ? Colors.white12 : Colors.black.withValues(alpha: 0.06),
+                          width: 1.5,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            hasCustomIcon
-                                ? Image.file(
-                                    File(parsed.customMoodIconPath!),
-                                    width: 14,
-                                    height: 14,
-                                    errorBuilder: (c, e, s) => Icon(
-                                      Icons.mood,
-                                      size: 14,
-                                      color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
-                                    ),
-                                  )
-                                : Image.asset(
-                                    iconPath,
-                                    width: 14,
-                                    height: 14,
-                                    errorBuilder: (c, e, s) => Icon(
-                                      Icons.mood,
-                                      size: 14,
-                                      color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
-                                    ),
-                                  ),
-                            const SizedBox(width: 5),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 1),
-                              child: Text(
-                                moodLabel,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
-                                  fontFamily: fontFamily,
+                      ),
+                      child: Center(
+                        child: hasCustomIcon
+                            ? Image.file(
+                                File(parsed.customMoodIconPath!),
+                                width: 14,
+                                height: 14,
+                                errorBuilder: (c, e, s) => Icon(
+                                  Icons.mood,
+                                  size: 14,
+                                  color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
+                                ),
+                              )
+                            : Image.asset(
+                                iconPath,
+                                width: 14,
+                                height: 14,
+                                errorBuilder: (c, e, s) => Icon(
+                                  Icons.mood,
+                                  size: 14,
+                                  color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-
-            // 右侧：更多按钮及日记照片预览
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Icon(
-                  Icons.more_horiz_rounded,
-                  size: 18,
-                  color: isNight ? Colors.white30 : Colors.black26,
-                ),
-                if (images.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Stack(
-                    children: [
+            const SizedBox(width: 8),
+            // 右侧内容区
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.only(bottom: 16, right: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 时间 + 心情标签
+                    Row(
+                      children: [
+                        Text(
+                          timeStr,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: mainTextColor,
+                            fontFamily: fontFamily,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          moodLabel,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: subTextColor,
+                            fontFamily: fontFamily,
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          Icons.more_horiz_rounded,
+                          size: 16,
+                          color: subTextColor.withValues(alpha: 0.7),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    // 日记内容文字
+                    Builder(builder: (context) {
+                      final textStyle = TextStyle(
+                        fontSize: 14,
+                        color: mainTextColor.withValues(alpha: 0.85),
+                        fontFamily: fontFamily,
+                        height: 1.4,
+                      );
+                      if (plainContent.isEmpty) {
+                        return Text("无文字内容", style: textStyle);
+                      }
+                      final spans = EmojiMapping.parseText(plainContent).map((chunk) {
+                        if (chunk.isEmoji) {
+                          return WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 1),
+                              child: Image.asset(chunk.emojiPath!, width: 16, height: 16),
+                            ),
+                          );
+                        }
+                        return TextSpan(text: chunk.text, style: textStyle);
+                      }).toList();
+                      return RichText(
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        text: TextSpan(children: spans),
+                      );
+                    }),
+                    // 如果有图片，展示图片预览
+                    if (images.isNotEmpty) ...[
+                      const SizedBox(height: 8),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: DiaryUtils.buildImage(
-                          images.first['path'],
-                          width: 58,
-                          height: 58,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      Positioned(
-                        right: 4,
-                        bottom: 4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.image_outlined,
-                                size: 9,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 2),
-                              Text(
-                                "${images.length}",
-                                style: const TextStyle(
-                                  fontSize: 8,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: images.take(3).map((img) {
+                            return DiaryUtils.buildImage(
+                              img['path'],
+                              width: 64,
+                              height: 64,
+                              fit: BoxFit.cover,
+                            );
+                          }).toList(),
                         ),
                       ),
                     ],
-                  ),
-                ],
-              ],
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -734,16 +839,18 @@ class _CalendarDayCell extends StatelessWidget {
     final lunarStr = lunarData.lunarStr;
     final bool isImportantFest = lunarData.isImportantFest;
 
+    final bool hasPhotos = allImages.isNotEmpty;
+
     final TextStyle dayStyle = TextStyle(
       fontSize: 16,
-      fontWeight: FontWeight.w900,
+      fontWeight: FontWeight.bold,
       fontFamily: 'LXGWWenKai',
-      color: hasEntry
+      color: hasPhotos
           ? Colors.white
           : (isNight
-                ? Colors.white.withValues(alpha: 0.85)
-                : const Color(0xFF2C2E30)),
-      shadows: hasEntry
+                ? Colors.white.withValues(alpha: 0.65)
+                : const Color(0xFF2C2E30).withValues(alpha: 0.48)),
+      shadows: hasPhotos
           ? [
               const Shadow(
                 blurRadius: 4,
@@ -756,7 +863,7 @@ class _CalendarDayCell extends StatelessWidget {
 
     final Color lunarColor = isImportantFest
         ? (hasEntry ? Colors.white : const Color(0xFFE1AF78))
-        : (isNight ? Colors.white.withValues(alpha: 0.45) : Colors.black45);
+        : (isNight ? Colors.white.withValues(alpha: 0.55) : Colors.black.withValues(alpha: 0.55));
 
     final TextStyle lunarStyle = TextStyle(
       fontSize: 9.5,
@@ -781,7 +888,7 @@ class _CalendarDayCell extends StatelessWidget {
             ? BorderSide(color: const Color(0xFFE1AF78).withValues(alpha: 0.6), width: 1.5)
             : (hasEntry
                 ? BorderSide(color: isNight ? Colors.white12 : Colors.black.withValues(alpha: 0.12), width: 1.0)
-                : BorderSide(color: isNight ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03), width: 0.5)));
+                : BorderSide(color: isNight ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06), width: 0.8)));
 
     return GestureDetector(
       onTap: onTap,
@@ -795,18 +902,9 @@ class _CalendarDayCell extends StatelessWidget {
                     : (hasEntry
                           ? (isNight ? const Color(0xFF3B3E42) : Colors.white)
                           : (isNight
-                                ? Colors.white.withValues(alpha: 0.02)
-                                : Colors.black.withValues(alpha: 0.008)))),
+                                ? Colors.white.withValues(alpha: 0.06)
+                                : Colors.white.withValues(alpha: 0.5)))),
           borderRadius: BorderRadius.circular(10),
-          boxShadow: hasEntry
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isNight ? 0.45 : 0.08),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-              : null,
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(

@@ -96,16 +96,7 @@ class DiaryBottomSheet extends StatelessWidget {
  
     return MediaQuery(
       data: MediaQuery.of(context).copyWith(viewInsets: EdgeInsets.zero),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: isNight ? 15 : 0,
-          sigmaY: isNight ? 15 : 0,
-        ),
-        child: Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: content,
-        ),
-      ),
+      child: content,
     );
   }
 }

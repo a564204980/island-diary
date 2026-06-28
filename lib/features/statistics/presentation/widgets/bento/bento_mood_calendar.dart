@@ -120,6 +120,7 @@ extension _BentoMoodCalendar on _StatisticsPageState {
                     ),
                     child: entry != null
                         ? Stack(
+                            fit: StackFit.expand,
                             clipBehavior: Clip.none,
                             children: [
                               Positioned(

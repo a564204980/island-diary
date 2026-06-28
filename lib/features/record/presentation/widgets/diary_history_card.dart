@@ -531,8 +531,6 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           // 超过3张：只显示前3张，第3张加遮罩+剩余数量
           final double spacing = 6;
           final int crossAxisCount = 3;
-          final double itemSize =
-              (gridWidth - (spacing * (crossAxisCount - 1))) / crossAxisCount;
           final displayImages = images.take(3).toList();
           final remaining = images.length - 3;
 
@@ -541,33 +539,38 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
             children: List.generate(3, (index) {
               final img = displayImages[index];
               final isLast = index == 2;
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Stack(
-                  children: [
-                    DiaryUtils.buildImage(
-                      img['path'],
-                      width: itemSize,
-                      height: itemSize,
-                      fit: BoxFit.cover,
-                    ),
-                    if (isLast)
-                      Positioned.fill(
-                        child: Container(
-                          color: Colors.black.withValues(alpha: 0.45),
-                          child: Center(
-                            child: Text(
-                              '+$remaining',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
+              return Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: AspectRatio(
+                    aspectRatio: 1.0, // 保持正方形
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: DiaryUtils.buildImage(
+                            img['path'],
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        if (isLast)
+                          Positioned.fill(
+                            child: Container(
+                              color: Colors.black.withValues(alpha: 0.45),
+                              child: Center(
+                                child: Text(
+                                  '+$remaining',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
               );
             }),

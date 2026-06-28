@@ -157,6 +157,93 @@ class UserState
     ]);
   }
 
+  /// 专为 warp 动画切换设计的静默加载。
+  /// 在后台 isolate 并行加载所有数据，完成后回调通知调用方（overlay）
+  /// 调用方在动画结束后再调用 [flushWarpData] 一次性提交所有 ValueNotifier，
+  /// 确保动画期间主线程 100% 只用于渲染帧，0 widget 重建竞争。
+  Future<void> switchLifeLineForWarp(String id, {required VoidCallback onDataReady}) async {
+    if (currentLifeLineId.value == id) {
+      onDataReady();
+      return;
+    }
+
+    // 1. 先更新 ID 并持久化（轻量，不触发全局重建）
+    currentLifeLineId.value = id;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('current_life_line_id', id);
+
+    // 2. 在后台 isolate 并行拉取所有重型数据，暂不提交 ValueNotifier
+    await DiaryUtils.initDocumentsDirPath();
+
+    // 轻量同步数据先拿到（不 notify）
+    final lifeLinesJson = prefs.getString('life_line_list');
+    final userName = prefs.getString(n(_K.userName)) ?? '';
+    final userBio = prefs.getString(n(_K.userBio)) ?? '';
+    final themeId = prefs.getString(n(_K.selectedIslandThemeId)) ?? 'default';
+    final avatarPath = prefs.getString(n(_K.customAvatar));
+
+    // 重型数据并行拉取（后台 isolate）
+    final diaryFuture = () async {
+      final s = prefs.getString(n(_K.savedDiaries));
+      return s != null ? await compute(_parseDiaryEntries, s) : <DiaryEntry>[];
+    }();
+    final bookFuture = () async {
+      final b = prefs.getString(n(_K.savedBooks));
+      return b != null ? await compute(_parseDiaryBooks, b) : <DiaryBook>[];
+    }();
+    final draftFuture = () async {
+      final d = prefs.getString(n(_K.savedDrafts));
+      return d != null ? await compute(_parseDiaryDrafts, d) : <DiaryDraft>[];
+    }();
+    final furnitureFuture = () async {
+      final f = prefs.getString(n(_K.placedFurniture));
+      return f != null ? await compute(_parseFurniture, f) : <PlacedFurniture>[];
+    }();
+    final snapshotFuture = () async {
+      final s = prefs.getString(n(_K.decorationSnapshot));
+      return s != null ? await compute(_decodeBase64, s) : null;
+    }();
+    final achievementFuture = () async {
+      final a = prefs.getString(n(_K.unlockedAchievementsMap));
+      return a != null ? await compute(_parseAchievements, a) : <String, String>{};
+    }();
+
+    // 等待所有后台任务完成
+    final results = await Future.wait([
+      diaryFuture, bookFuture, draftFuture,
+      furnitureFuture, snapshotFuture, achievementFuture,
+    ]);
+
+    // 3. 所有数据已在内存中就位，通知 overlay：「数据准备好了，等你动画结束」
+    // 把实际的 ValueNotifier 提交包装成闭包，由 overlay 在动画结束后调用
+    _pendingWarpFlush = () {
+      // 完整执行一次 loadFromStorage 以确保所有状态一致
+      loadLifeLines(prefs);
+      loadProfile(prefs);
+      loadSecurity(prefs);
+      loadPreference(prefs);
+      isMinimalDataLoaded.value = true;
+
+      savedDiaries.value = results[0] as List<DiaryEntry>;
+      savedBooks.value = results[1] as List<DiaryBook>;
+      savedDrafts.value = results[2] as List<DiaryDraft>;
+      placedFurniture.value = results[3] as List<PlacedFurniture>;
+      decorationSnapshot.value = results[4] as Uint8List?;
+      unlockedAchievements.value = results[5] as Map<String, String>;
+    };
+
+    onDataReady();
+  }
+
+  VoidCallback? _pendingWarpFlush;
+
+  /// 在 overlay 动画结束后调用，一次性批量提交所有 ValueNotifier
+  void flushWarpData() {
+    _pendingWarpFlush?.call();
+    _pendingWarpFlush = null;
+  }
+
+
   Future<void> factoryReset() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();

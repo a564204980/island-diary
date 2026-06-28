@@ -29,18 +29,39 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
   final FocusNode _focusNode = FocusNode();
   int? _selectedMoodIndex;
   DateTime? _selectedDate;
+  double _keyboardHeight = 0;
 
   @override
   void initState() {
     super.initState();
     _selectedDate = widget.initialDate;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 150), () {
+      // 延迟 350ms 等弹窗滑出动画完全结束后再唤起键盘，防止两组动画抢占渲染资源导致卡顿
+      Future.delayed(const Duration(milliseconds: 350), () {
         if (mounted) {
           _focusNode.requestFocus();
         }
       });
     });
+  }
+
+  // 与 diary_editor_page 相同的模式：在 didChangeDependencies 里缓存键盘高度，
+  // build() 不直接订阅 viewInsets，键盘动画期间背景页面完全不重建
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final inset = MediaQuery.viewInsetsOf(context).bottom;
+    if (inset > 100 && inset > _keyboardHeight) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && inset > _keyboardHeight) {
+          setState(() => _keyboardHeight = inset);
+        }
+      });
+    } else if (inset < 10 && _keyboardHeight > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _keyboardHeight = 0);
+      });
+    }
   }
 
   @override
@@ -66,14 +87,16 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
         ? const Color(0xFFC0A6FF)
         : const Color(0xFFE1AF78);
 
-    return DiaryBottomSheet(
-      paperStyle: 'default',
-      showDragHandle: true,
-      isDiary: false,
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    return Container(
+      height: screenHeight * 0.8,
+      child: DiaryBottomSheet(
+        paperStyle: 'default',
+        showDragHandle: true,
+        isDiary: false,
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 32 + MediaQuery.paddingOf(context).bottom),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 搜索输入框
           Container(
@@ -234,60 +257,82 @@ class _DiarySearchPanelState extends State<DiarySearchPanel> {
  
               const SizedBox(height: 12),
  
-              // 心情图标列表
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(kMoods.length, (index) {
-                    final mood = kMoods[index];
-                    final isSelected = _selectedMoodIndex == index;
- 
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedMoodIndex = isSelected ? null : index;
-                        });
-                        _handleSearch();
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.only(right: 10),
-                        padding: const EdgeInsets.all(5),
-                        transform: isSelected 
-                            ? Matrix4.diagonal3Values(1.15, 1.15, 1.0) 
-                            : Matrix4.identity(),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? (mood.glowColor ?? Colors.amber).withValues(alpha: 0.25)
-                              : Colors.transparent,
-                          shape: BoxShape.circle,
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: (mood.glowColor ?? Colors.amber).withValues(alpha: 0.4),
-                                    blurRadius: 10,
-                                    spreadRadius: 1,
-                                  )
-                                ]
-                              : null,
-                        ),
-                        child: Tooltip(
-                          message: mood.label,
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7, // 强制每行显示 7 个
+                  crossAxisSpacing: 6, // 稍微缩小横向间距，保证文字排版空间
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 0.73, // 宽高比：高度大于宽度，给下方文字预留空间
+                ),
+                itemCount: kMoods.length,
+                itemBuilder: (context, index) {
+                  final mood = kMoods[index];
+                  final isSelected = _selectedMoodIndex == index;
+
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedMoodIndex = isSelected ? null : index;
+                      });
+                      _handleSearch();
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 图标容器
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.all(5),
+                          transform: isSelected
+                              ? Matrix4.diagonal3Values(1.1, 1.1, 1.0)
+                              : Matrix4.identity(),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? (mood.glowColor ?? Colors.amber).withValues(alpha: 0.25)
+                                : Colors.transparent,
+                            shape: BoxShape.circle,
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: (mood.glowColor ?? Colors.amber).withValues(alpha: 0.4),
+                                      blurRadius: 10,
+                                      spreadRadius: 1,
+                                    )
+                                  ]
+                                : null,
+                          ),
                           child: Image.asset(
                             mood.iconPath ?? 'assets/icons/happy.png',
-                            width: 32,
-                            height: 32,
+                            width: 30,
+                            height: 30,
                           ),
                         ),
-                      ),
-                    );
-                  }),
-                ),
+                        const SizedBox(height: 5),
+                        // 中文文本标签
+                        Text(
+                          mood.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected 
+                                ? (mood.glowColor ?? highlightColor) 
+                                : textColor.withValues(alpha: 0.7),
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
-        );
+        ),
+      );
   }
 }

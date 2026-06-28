@@ -460,9 +460,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   if (distance < blockRadius) {
                     return; // 忽略小岛实体范围内的点击
                   }
-                  debugPrint('Tap detected at ${event.position}. Active clouds:');
-                  for (final entry in CloudRegistry.activeClouds.entries) {
-                    debugPrint('  Cloud ${entry.key}: ${entry.value}');
+                  if (_currentNavIndex == 0) {
+                    debugPrint('Tap detected at ${event.position}. Active clouds:');
+                    for (final entry in CloudRegistry.activeClouds.entries) {
+                      debugPrint('  Cloud ${entry.key}: ${entry.value}');
+                    }
                   }
                   if (_currentNavIndex == 0 &&
                       UserState().homeDisplayMode.value == 'island') {
@@ -557,7 +559,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                 crossAxisAlignment: CrossAxisAlignment.center,
                                                 children: [
                                                   Text(
-                                                    "我的岛屿日记",
+                                                     "${UserState().userName.value.isEmpty ? '我' : UserState().userName.value} 的岛屿日记",
                                                     style: TextStyle(
                                                       color: isCottonCandy
                                                           ? (isNight ? Colors.white : const Color(0xFF4E3A46))
@@ -579,7 +581,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                "${UserState().userName.value} 的小岛 · 第 ${UserState().savedDiaries.value.length} 天",
+                                                "登岛第 ${UserState().savedDiaries.value.length} 天",
                                                 style: TextStyle(
                                                   color: isCottonCandy
                                                       ? (isNight ? Colors.white54 : const Color(0xFF8D7A84))

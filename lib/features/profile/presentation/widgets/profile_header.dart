@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/widgets/life_line_switcher_sheet.dart';
+import 'package:island_diary/shared/widgets/time_warp_overlay.dart';
+import 'package:island_diary/shared/widgets/top_toast.dart';
 import 'package:island_diary/features/profile/presentation/pages/profile_edit_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/settings_page.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
@@ -175,8 +177,10 @@ class ProfileHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  GestureDetector(
+                   GestureDetector(
                     onTap: () => _showLifeLineSwitcher(context),
+                    onDoubleTap: () => _triggerTimeWarp(context),
+                    onLongPress: () => _triggerTimeWarp(context),
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
@@ -519,6 +523,24 @@ class ProfileHeader extends StatelessWidget {
       ),
       onTap: onTap,
     );
+  }
+
+  void _triggerTimeWarp(BuildContext context) {
+    final userState = UserState();
+    final profiles = userState.lifeLines.value;
+    if (profiles.length <= 1) {
+      showTopToast(context, '✨ 当前只有一个平行时空，请先点击人生线创建一个新时空吧');
+      return;
+    }
+
+    final currentId = userState.currentLifeLineId.value;
+    final currentIndex = profiles.indexWhere((p) => p.id == currentId);
+    if (currentIndex == -1) return;
+
+    final nextIndex = (currentIndex + 1) % profiles.length;
+    final nextProfile = profiles[nextIndex];
+
+    TimeWarpOverlay.show(context, nextProfile);
   }
 
   void _showLifeLineSwitcher(BuildContext context) {

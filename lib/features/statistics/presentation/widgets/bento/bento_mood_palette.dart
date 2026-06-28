@@ -267,82 +267,87 @@ extension _BentoMoodPalette on _StatisticsPageState {
         Widget contentWidget;
 
         if (paletteItems.isEmpty) {
-          // 本月无日记：展示自适应列数 x 7行的半透明灰色马赛克格子底片墙
-          final int defaultCols = (width / cellSize).floor().clamp(1, 20);
-          final Widget emptyGrid = Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(defaultCols, (colIdx) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(rowCount, (rowIdx) {
-                  final String themeId = UserState().selectedIslandThemeId.value;
-                  final bool isLego = themeId == 'lego';
-                  if (isLego) {
-                    final Color whiteColor = isNight
-                        ? const Color(0xFF2C2F36).withValues(alpha: 0.12)
-                        : const Color(0xFFF9F9FB).withValues(alpha: 0.15);
+          final String themeId = UserState().selectedIslandThemeId.value;
+          final double colWidth = themeId == 'lego' ? (cellSize + 1.2) : cellSize;
+          final int defaultCols = (width / colWidth).floor().clamp(1, 20);
+          final Widget emptyGrid = SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(defaultCols, (colIdx) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(rowCount, (rowIdx) {
+                    final String themeId = UserState().selectedIslandThemeId.value;
+                    final bool isLego = themeId == 'lego';
+                    if (isLego) {
+                      final Color whiteColor = isNight
+                          ? const Color(0xFF2C2F36).withValues(alpha: 0.12)
+                          : const Color(0xFFF9F9FB).withValues(alpha: 0.15);
+                      return Container(
+                        width: cellSize,
+                        height: cellSize,
+                        margin: const EdgeInsets.all(0.6),
+                        decoration: BoxDecoration(
+                          color: whiteColor,
+                          borderRadius: BorderRadius.circular(1.8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isNight ? Colors.white.withValues(alpha: 0.01) : Colors.white.withValues(alpha: 0.12),
+                              offset: const Offset(-0.8, -0.8),
+                              blurRadius: 0.8,
+                            ),
+                            BoxShadow(
+                              color: isNight ? Colors.black.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.02),
+                              offset: const Offset(0.8, 0.8),
+                              blurRadius: 0.8,
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: cellSize * 0.54,
+                            height: cellSize * 0.54,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: whiteColor,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: isNight ? Colors.white.withValues(alpha: 0.02) : Colors.white.withValues(alpha: 0.15),
+                                  offset: const Offset(-0.8, -0.8),
+                                  blurRadius: 0.8,
+                                ),
+                                BoxShadow(
+                                  color: isNight ? Colors.black.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.03),
+                                  offset: const Offset(0.8, 0.8),
+                                  blurRadius: 0.8,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
                     return Container(
                       width: cellSize,
                       height: cellSize,
-                      margin: const EdgeInsets.all(0.6),
                       decoration: BoxDecoration(
-                        color: whiteColor,
-                        borderRadius: BorderRadius.circular(1.8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isNight ? Colors.white.withValues(alpha: 0.01) : Colors.white.withValues(alpha: 0.12),
-                            offset: const Offset(-0.8, -0.8),
-                            blurRadius: 0.8,
-                          ),
-                          BoxShadow(
-                            color: isNight ? Colors.black.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.02),
-                            offset: const Offset(0.8, 0.8),
-                            blurRadius: 0.8,
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: cellSize * 0.54,
-                          height: cellSize * 0.54,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: whiteColor,
-                            boxShadow: [
-                              BoxShadow(
-                                color: isNight ? Colors.white.withValues(alpha: 0.02) : Colors.white.withValues(alpha: 0.15),
-                                offset: const Offset(-0.8, -0.8),
-                                blurRadius: 0.8,
-                              ),
-                              BoxShadow(
-                                color: isNight ? Colors.black.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.03),
-                                offset: const Offset(0.8, 0.8),
-                                blurRadius: 0.8,
-                              ),
-                            ],
-                          ),
+                        color: isCottonCandy
+                            ? const Color(0xFFFFEDE7).withValues(alpha: 0.45)
+                            : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02)),
+                        border: Border.all(
+                          color: isCottonCandy
+                              ? const Color(0xFFF8DDD5).withValues(alpha: 0.35)
+                              : (isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04)),
+                          width: 0.4,
                         ),
                       ),
                     );
-                  }
-                  return Container(
-                    width: cellSize,
-                    height: cellSize,
-                    decoration: BoxDecoration(
-                      color: isCottonCandy
-                          ? const Color(0xFFFFEDE7).withValues(alpha: 0.45)
-                          : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02)),
-                      border: Border.all(
-                        color: isCottonCandy
-                            ? const Color(0xFFF8DDD5).withValues(alpha: 0.35)
-                            : (isNight ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04)),
-                        width: 0.4,
-                      ),
-                    ),
-                  );
-                }),
-              );
-            }),
+                  }),
+                );
+              }),
+            ),
           );
 
           contentWidget = Stack(

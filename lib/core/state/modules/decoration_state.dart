@@ -1,5 +1,17 @@
 part of '../user_state.dart';
 
+/// 顶层函数：供 compute() 在后台 isolate 解码 base64 快照
+Uint8List _decodeBase64(String base64Str) => base64Decode(base64Str);
+
+/// 顶层函数：供 compute() 在后台 isolate 解析家具 JSON
+List<PlacedFurniture> _parseFurniture(String jsonStr) {
+  final decoded = jsonDecode(jsonStr) as List;
+  return decoded
+      .map((e) => PlacedFurniture.fromMap(Map<String, dynamic>.from(e)))
+      .where((pf) => !pf.item.imagePath.contains('assets/images/residents/'))
+      .toList();
+}
+
 /// 3. 装修与场景装饰模块
 mixin DecorationMixin {
   final ValueNotifier<List<PlacedFurniture>> placedFurniture = ValueNotifier<List<PlacedFurniture>>([]);
@@ -23,7 +35,8 @@ mixin DecorationMixin {
     final snapshotBase64 = prefs.getString(UserState().n(_K.decorationSnapshot));
     if (snapshotBase64 != null) {
       try {
-        decorationSnapshot.value = base64Decode(snapshotBase64);
+        // base64解码收到弹巳 — 用 compute 移入后台 isolate
+        decorationSnapshot.value = await compute(_decodeBase64, snapshotBase64);
       } catch (_) {}
     }
     final l = prefs.getInt(UserState().n(_K.wallColorLeft));
@@ -49,8 +62,8 @@ mixin DecorationMixin {
     final f = prefs.getString(UserState().n(_K.placedFurniture));
     if (f != null) {
       try {
-        final decoded = jsonDecode(f) as List;
-        placedFurniture.value = decoded.map((e) => PlacedFurniture.fromMap(Map<String, dynamic>.from(e))).where((pf) => !pf.item.imagePath.contains('assets/images/residents/')).toList();
+        // 家具 JSON 解析移入后台 isolate
+        placedFurniture.value = await compute(_parseFurniture, f);
       } catch (_) {}
     }
   }

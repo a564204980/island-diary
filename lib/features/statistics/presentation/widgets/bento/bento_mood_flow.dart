@@ -71,12 +71,13 @@ extension _BentoMoodFlow on _StatisticsPageState {
     final List<LineChartBarData> lineBarsData = [];
     double maxY = 5.0;
 
+    // 确定高亮展示的心情标签：如果有选中就用选中的，否则默认高亮本月最高频心情
+    final String activeLabel = _selectedMoodFlowLabel ?? targetLabels.first;
+
     for (int i = 0; i < targetLabels.length; i++) {
       final label = targetLabels[i];
-      // 筛选：如果选中了某个标签，只处理该标签的数据
-      if (_selectedMoodFlowLabel != null && _selectedMoodFlowLabel != label) continue;
-
       final baseMoodIdx = labelToMoodIndex[label]!;
+      final bool isActive = label == activeLabel;
       
       Color color;
       if (label == kMoods[baseMoodIdx].label) {
@@ -93,33 +94,38 @@ extension _BentoMoodFlow on _StatisticsPageState {
         spots.add(FlSpot(day.toDouble(), val));
       }
 
+      // 高级可视化渲染规则：
+      // - 激活/高亮的主心情曲线：粗线 (3.2)、带发光点、带心情颜色渐变底色填充
+      // - 其它背景心情曲线：淡化细线 (1.0)、无发光点、无渐变填充，仅充当环境参考层
       lineBarsData.add(
         LineChartBarData(
           spots: spots,
           isCurved: true,
-          curveSmoothness: 0.35,
+          curveSmoothness: 0.38,
           preventCurveOverShooting: true,
-          color: color.withValues(alpha: 0.8),
-          barWidth: 2.5,
+          color: isActive 
+              ? color.withValues(alpha: 0.95) 
+              : color.withValues(alpha: isNight ? 0.08 : 0.06), // 背景曲线淡化
+          barWidth: isActive ? 3.2 : 1.0,
           isStrokeCapRound: true,
           dotData: FlDotData(
-            show: true,
+            show: isActive, // 只在当前聚焦的高亮曲线画出数据圆点
             getDotPainter: (spot, percent, barData, index) {
               return FlDotCirclePainter(
-                radius: 2.2,
-                color: color,
-                strokeWidth: 1.2,
-                strokeColor: Colors.white,
+                radius: 3.5, // 变大半径更加明显
+                color: Colors.white,
+                strokeWidth: 2.2,
+                strokeColor: color, // 周围带一圈心情主题色光环，凸显高级发光感
               );
             },
           ),
           belowBarData: BarAreaData(
-            show: true,
+            show: isActive, // 只有高亮线填充心情色渐变
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                color.withValues(alpha: (0.25 - (i * 0.03).clamp(0.0, 0.2)).toDouble()),
+                color.withValues(alpha: 0.22),
                 color.withValues(alpha: 0.0),
               ],
             ),
@@ -151,8 +157,8 @@ extension _BentoMoodFlow on _StatisticsPageState {
         Padding(
           padding: const EdgeInsets.only(top: 6),
           child: _buildMoodFlowSubtitle(
-            targetLabels.first,
-            labelToMoodIndex[targetLabels.first]!,
+            activeLabel,
+            labelToMoodIndex[activeLabel]!,
             isNight,
           ),
         ),
@@ -493,7 +499,11 @@ extension _BentoMoodFlow on _StatisticsPageState {
           fontWeight: FontWeight.w500,
         ),
         children: [
-          TextSpan(text: '${_moodFlowRangeLabel()}高频情绪：'),
+          TextSpan(
+            text: _selectedMoodFlowLabel == null 
+                ? '${_moodFlowRangeLabel()}高频情绪：' 
+                : '已选聚焦情绪：',
+          ),
           TextSpan(
             text: label,
             style: TextStyle(
