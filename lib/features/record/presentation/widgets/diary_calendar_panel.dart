@@ -33,9 +33,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
   late DateTime _focusedMonth;
   DateTime? _selectedDay;
   bool _isCollapsed = false;
-  bool _slideRightToLeft = true;
-
-  double _lastOffset = 0;
+  int? _collapsedWeekIndex;
 
   @override
   void initState() {
@@ -60,21 +58,17 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
     return "";
   }
 
-  List<DateTime> _getWeekDaysForSelected() {
-    final baseDay = _selectedDay ?? DateTime.now();
-    final monday = baseDay.subtract(Duration(days: baseDay.weekday - 1));
-    return List.generate(7, (i) => monday.add(Duration(days: i)));
-  }
-
   @override
   Widget build(BuildContext context) {
-    final themeId = UserState().selectedIslandThemeId.value;
-    final isLego = themeId == 'lego';
-    final fontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
+    return ValueListenableBuilder<String>(
+      valueListenable: UserState().selectedIslandThemeId,
+      builder: (context, themeId, _) {
+        final isLego = themeId == 'lego';
+        final fontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
 
-    return ValueListenableBuilder<List<DiaryEntry>>(
-      valueListenable: UserState().savedDiaries,
-      builder: (context, allDiaries, _) {
+        return ValueListenableBuilder<List<DiaryEntry>>(
+          valueListenable: UserState().savedDiaries,
+          builder: (context, allDiaries, _) {
         final year = _focusedMonth.year;
         final month = _focusedMonth.month;
 
@@ -148,6 +142,8 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
           selectedWeekIndex = 0;
         }
 
+        final int activeWeekIndex = (_isCollapsed && _collapsedWeekIndex != null) ? _collapsedWeekIndex! : selectedWeekIndex;
+
         // 当前选中的日记列表（直接从所有日记中过滤，支持跨月选择）
         final selectedDayDiaries = _selectedDay != null
             ? allDiaries.where((d) {
@@ -160,7 +156,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
         return Column(
           children: [
-            // 固定在顶部的日历头部模块
+            // 固定在顶部的日记头部模块
             GestureDetector(
               onVerticalDragUpdate: (details) {
                 if (details.primaryDelta != null && details.primaryDelta! > 8) {
@@ -173,6 +169,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                   if (!_isCollapsed && _selectedDay != null) {
                     setState(() {
                       _isCollapsed = true;
+                      _collapsedWeekIndex = selectedWeekIndex;
                     });
                   }
                 }
@@ -204,10 +201,10 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                             ),
                             onPressed: () {
                               setState(() {
-                                _slideRightToLeft = false;
                                 _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
                                 _selectedDay = null;
                                 _isCollapsed = false;
+                                _collapsedWeekIndex = null;
                               });
                             },
                           ),
@@ -238,10 +235,10 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                             ),
                             onPressed: () {
                               setState(() {
-                                _slideRightToLeft = true;
                                 _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
                                 _selectedDay = null;
                                 _isCollapsed = false;
+                                _collapsedWeekIndex = null;
                               });
                             },
                           ),
@@ -304,79 +301,143 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                   AnimatedSize(
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeOutCubic,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(weeks.length, (wIndex) {
-                        final week = weeks[wIndex];
-                        final bool isTargetWeek = wIndex == selectedWeekIndex;
-                        final bool shouldShow = !_isCollapsed || isTargetWeek;
-
-                        return ClipRect(
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeOutCubic,
-                            height: shouldShow ? 62 : 0,
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 200),
-                              opacity: shouldShow ? 1.0 : 0.0,
-                              child: SingleChildScrollView(
-                                physics: const NeverScrollableScrollPhysics(),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
+                    child: _isCollapsed
+                        ? SizedBox(
+                            height: 62,
+                            child: PageView.builder(
+                              key: ValueKey('pageview_${_focusedMonth.year}_${_focusedMonth.month}'),
+                              controller: PageController(initialPage: activeWeekIndex),
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _collapsedWeekIndex = index;
+                                });
+                              },
+                              itemCount: weeks.length,
+                              itemBuilder: (context, wIndex) {
+                                final week = weeks[wIndex];
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 4, bottom: 6),
                                   child: SizedBox(
                                     height: 52,
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       crossAxisAlignment: CrossAxisAlignment.stretch,
                                       children: List.generate(7, (dIndex) {
-                                      final cellDate = week[dIndex];
-                                      final bool isCurrentMonth = cellDate.month == month && cellDate.year == year;
+                                        final cellDate = week[dIndex];
+                                        final bool isCurrentMonth = cellDate.month == month && cellDate.year == year;
 
-                                      final entries = allDiaries.where((d) {
-                                        final local = d.dateTime.toLocal();
-                                        return local.year == cellDate.year &&
-                                            local.month == cellDate.month &&
-                                            local.day == cellDate.day;
-                                      }).toList();
+                                        final entries = allDiaries.where((d) {
+                                          final local = d.dateTime.toLocal();
+                                          return local.year == cellDate.year &&
+                                              local.month == cellDate.month &&
+                                              local.day == cellDate.day;
+                                        }).toList();
 
-                                      final bool isToday = DateTime.now().year == cellDate.year &&
-                                          DateTime.now().month == cellDate.month &&
-                                          DateTime.now().day == cellDate.day;
-                                      final bool isSelected = _selectedDay != null &&
-                                          _selectedDay!.year == cellDate.year &&
-                                          _selectedDay!.month == cellDate.month &&
-                                          _selectedDay!.day == cellDate.day;
+                                        final bool isToday = DateTime.now().year == cellDate.year &&
+                                            DateTime.now().month == cellDate.month &&
+                                            DateTime.now().day == cellDate.day;
+                                        final bool isSelected = _selectedDay != null &&
+                                            _selectedDay!.year == cellDate.year &&
+                                            _selectedDay!.month == cellDate.month &&
+                                            _selectedDay!.day == cellDate.day;
 
-                                      return Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 5),
-                                          child: Opacity(
-                                            opacity: (!_isCollapsed && !isCurrentMonth) ? 0.3 : 1.0,
-                                            child: _CalendarDayCell(
-                                              date: cellDate,
-                                              entries: entries,
-                                              isToday: isToday,
-                                              isSelected: isSelected,
-                                              isNight: widget.isNight,
-                                              onTap: () {
-                                                setState(() {
-                                                  _selectedDay = cellDate;
-                                                });
-                                              },
-                                            ),
+                                        return Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                                            child: !isCurrentMonth
+                                                ? const SizedBox()
+                                                : _CalendarDayCell(
+                                                    date: cellDate,
+                                                    entries: entries,
+                                                    isToday: isToday,
+                                                    isSelected: isSelected,
+                                                    isNight: widget.isNight,
+                                                    onTap: () {
+                                                      setState(() {
+                                                        _selectedDay = cellDate;
+                                                        _collapsedWeekIndex = wIndex;
+                                                      });
+                                                    },
+                                                  ),
                                           ),
+                                        );
+                                      }),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: List.generate(weeks.length, (wIndex) {
+                              final week = weeks[wIndex];
+                              final bool isTargetWeek = wIndex == selectedWeekIndex;
+                              final bool shouldShow = !_isCollapsed || isTargetWeek;
+
+                              return ClipRect(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 250),
+                                  curve: Curves.easeOutCubic,
+                                  height: shouldShow ? 62 : 0,
+                                  child: SingleChildScrollView(
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    clipBehavior: Clip.none,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(top: 4, bottom: 6),
+                                      child: SizedBox(
+                                        height: 52,
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          children: List.generate(7, (dIndex) {
+                                            final cellDate = week[dIndex];
+                                            final bool isCurrentMonth = cellDate.month == month && cellDate.year == year;
+
+                                            final entries = allDiaries.where((d) {
+                                              final local = d.dateTime.toLocal();
+                                              return local.year == cellDate.year &&
+                                                  local.month == cellDate.month &&
+                                                  local.day == cellDate.day;
+                                            }).toList();
+
+                                            final bool isToday = DateTime.now().year == cellDate.year &&
+                                                DateTime.now().month == cellDate.month &&
+                                                DateTime.now().day == cellDate.day;
+                                            final bool isSelected = _selectedDay != null &&
+                                                _selectedDay!.year == cellDate.year &&
+                                                _selectedDay!.month == cellDate.month &&
+                                                _selectedDay!.day == cellDate.day;
+
+                                            return Expanded(
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 5),
+                                                child: !isCurrentMonth
+                                                    ? const SizedBox()
+                                                    : _CalendarDayCell(
+                                                        date: cellDate,
+                                                        entries: entries,
+                                                        isToday: isToday,
+                                                        isSelected: isSelected,
+                                                        isNight: widget.isNight,
+                                                        onTap: () {
+                                                          setState(() {
+                                                            _selectedDay = cellDate;
+                                                            _collapsedWeekIndex = wIndex;
+                                                          });
+                                                        },
+                                                      ),
+                                              ),
+                                            );
+                                          }),
                                         ),
-                                      );
-                                    }),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
+                              );
+                            }),
                           ),
-                        ),
-                      );
-                      }),
-                    ),
                   ),
                 ],
               ),
@@ -487,15 +548,17 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                         ],
                       ).animate(key: ValueKey(_selectedDay)).fadeIn(duration: 220.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
                   ],
-                ),
-              ),
             ),
           ),
-          ],
-        );
-      },
-    );
-  }
+        ),
+      ),
+    ],
+  );
+    },
+  );
+},
+);
+}
 
   Widget _buildWeekHeader(bool isNight, String fontFamily) {
     final themeId = UserState().selectedIslandThemeId.value;
@@ -890,34 +953,37 @@ class _CalendarDayCell extends StatelessWidget {
                 ? BorderSide(color: isNight ? Colors.white12 : Colors.black.withValues(alpha: 0.12), width: 1.0)
                 : BorderSide(color: isNight ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06), width: 0.8)));
 
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFD4A373).withValues(alpha: isNight ? 0.35 : 0.2)
-              : (isToday
-                    ? const Color(0xFFD4A373).withValues(alpha: isNight ? 0.2 : 0.1)
-                    : (hasEntry
-                          ? (isNight ? const Color(0xFF3B3E42) : Colors.white)
-                          : (isNight
-                                ? Colors.white.withValues(alpha: 0.06)
-                                : Colors.white.withValues(alpha: 0.5)))),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // 图片背景或拼图组件
-            if (allImages.isNotEmpty)
-              Positioned.fill(
-                child: _buildGridImages(allImages),
-              ),
+    final themeId = UserState().selectedIslandThemeId.value;
+    final bool isLego = themeId == 'lego';
 
-            // 日期数字 + 心情图标（整合为同一列，避免图标被文字遮挡）
-            Center(
+    final Widget cellContent = AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? const Color(0xFFD4A373).withValues(alpha: isNight ? 0.35 : 0.2)
+            : (isToday
+                  ? const Color(0xFFD4A373).withValues(alpha: isNight ? 0.2 : 0.1)
+                  : (hasEntry
+                        ? (isNight ? const Color(0xFF3B3E42) : Colors.white)
+                        : (isNight
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : Colors.white.withValues(alpha: 0.5)))),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      clipBehavior: hasPhotos ? Clip.antiAlias : Clip.none,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 图片背景或拼图组件
+          if (allImages.isNotEmpty)
+            Positioned.fill(
+              child: _buildGridImages(allImages),
+            ),
+
+          // 日期数字 + 心情图标（整合为同一列，避免图标被文字遮挡）
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 3),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -926,7 +992,7 @@ class _CalendarDayCell extends StatelessWidget {
                     const SizedBox(height: 1),
                     Text(lunarStr, style: lunarStyle),
                   ] else if (allImages.isEmpty && (moodIdx != null || customMoodIconPath != null)) ...[
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     _buildMoodIcon(
                       moodIdx: moodIdx,
                       customMoodIconPath: customMoodIconPath,
@@ -937,20 +1003,145 @@ class _CalendarDayCell extends StatelessWidget {
                 ],
               ),
             ),
+          ),
 
-            // 顶层覆盖的完美圆角边框，确保图片边缘不会因圆角公式计算产生错位
-            Positioned.fill(
-              child: IgnorePointer(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.fromBorderSide(borderSide),
-                  ),
+          // 顶层覆盖的完美圆角/乐高凹陷边框，确保图片和凹陷边缘完全贴合
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: LegoBorderPainter(
+                  hasSockets: false,
+                  progress: 0.0,
+                  borderColor: borderSide.color,
+                  borderWidth: borderSide.width,
                 ),
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+
+    if (isLego) {
+      return TweenAnimationBuilder<double>(
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        tween: Tween<double>(begin: 0.0, end: isSelected ? 1.0 : 0.0),
+        builder: (context, progress, child) {
+          final bool active = progress > 0.0;
+          return GestureDetector(
+            onTap: onTap,
+            child: Transform.translate(
+              offset: Offset(0, 1.5 * progress),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ClipPath(
+                    clipper: LegoCellClipper(
+                      hasSockets: active,
+                      progress: progress,
+                    ),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFFD4A373).withValues(alpha: isNight ? 0.35 : 0.2)
+                            : (isToday
+                                  ? const Color(0xFFD4A373).withValues(alpha: isNight ? 0.2 : 0.1)
+                                  : (hasEntry
+                                        ? (isNight ? const Color(0xFF3B3E42) : Colors.white)
+                                        : (isNight
+                                              ? Colors.white.withValues(alpha: 0.06)
+                                              : Colors.white.withValues(alpha: 0.5)))),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      clipBehavior: hasPhotos ? Clip.antiAlias : Clip.none,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          if (allImages.isNotEmpty)
+                            Positioned.fill(
+                              child: _buildGridImages(allImages),
+                            ),
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 3),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text("${date.day}", style: dayStyle),
+                                  if (!hasEntry) ...[
+                                    const SizedBox(height: 1),
+                                    Text(lunarStr, style: lunarStyle),
+                                  ] else if (allImages.isEmpty && (moodIdx != null || customMoodIconPath != null)) ...[
+                                    const SizedBox(height: 1),
+                                    _buildMoodIcon(
+                                      moodIdx: moodIdx,
+                                      customMoodIconPath: customMoodIconPath,
+                                      customMoodIconAsset: customMoodIconAsset,
+                                      isNight: isNight,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: CustomPaint(
+                                painter: LegoBorderPainter(
+                                  hasSockets: active,
+                                  progress: progress,
+                                  borderColor: borderSide.color,
+                                  borderWidth: borderSide.width,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (active)
+                    Positioned(
+                      top: -3,
+                      left: 0,
+                      right: 0,
+                      child: Opacity(
+                        opacity: progress.clamp(0.0, 1.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildLegoStud(progress),
+                            const SizedBox(width: 6),
+                            _buildLegoStud(progress),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: cellContent,
+    );
+  }
+
+  Widget _buildLegoStud(double progress) {
+    return Container(
+      width: 7,
+      height: 4,
+      decoration: const BoxDecoration(
+        color: Color(0xFFE1AF78),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(1.5),
+          topRight: Radius.circular(1.5),
         ),
       ),
     );
@@ -962,7 +1153,7 @@ class _CalendarDayCell extends StatelessWidget {
     required String? customMoodIconAsset,
     required bool isNight,
   }) {
-    const double size = 20;
+    const double size = 18;
     final fallbackIcon = Icon(Icons.mood, size: size, color: isNight ? Colors.white54 : const Color(0xFF5C5C5C));
 
     Widget img;
@@ -1106,5 +1297,152 @@ class _CalendarDayCell extends StatelessWidget {
         ],
       );
     }
+  }
+}
+
+class LegoCellClipper extends CustomClipper<Path> {
+  final bool hasSockets;
+  final double progress;
+  LegoCellClipper({required this.hasSockets, this.progress = 1.0});
+
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final w = size.width;
+    final h = size.height;
+    final r = 10.0;
+
+    if (!hasSockets) {
+      path.addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, w, h),
+        Radius.circular(r),
+      ));
+      return path;
+    }
+
+    // Top-left corner to top-right corner
+    path.moveTo(r, 0);
+    path.lineTo(w - r, 0);
+    path.arcToPoint(Offset(w, r), radius: Radius.circular(r));
+    
+    // Right edge to bottom-right corner
+    path.lineTo(w, h - r);
+    path.arcToPoint(Offset(w - r, h), radius: Radius.circular(r));
+    
+    // Bottom edge with two sockets (aligned with top studs)
+    final socketW = 7.0;
+    final socketH = 3.5 * progress;
+    final centerX = w / 2;
+    final studLeftCenter = centerX - 6.5;
+    final studRightCenter = centerX + 6.5;
+    
+    final socketLeft1 = studLeftCenter - socketW / 2;
+    final socketLeft2 = studRightCenter - socketW / 2;
+
+    path.lineTo(socketLeft2 + socketW, h);
+    path.lineTo(socketLeft2 + socketW, h - socketH);
+    path.lineTo(socketLeft2, h - socketH);
+    path.lineTo(socketLeft2, h);
+
+    path.lineTo(socketLeft1 + socketW, h);
+    path.lineTo(socketLeft1 + socketW, h - socketH);
+    path.lineTo(socketLeft1, h - socketH);
+    path.lineTo(socketLeft1, h);
+    
+    // Bottom-left corner to top-left corner
+    path.lineTo(r, h);
+    path.arcToPoint(Offset(0, h - r), radius: Radius.circular(r));
+    path.lineTo(0, r);
+    path.arcToPoint(Offset(r, 0), radius: Radius.circular(r));
+    
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant LegoCellClipper oldClipper) =>
+      oldClipper.hasSockets != hasSockets || oldClipper.progress != progress;
+}
+
+class LegoBorderPainter extends CustomPainter {
+  final bool hasSockets;
+  final double progress;
+  final Color borderColor;
+  final double borderWidth;
+
+  LegoBorderPainter({
+    required this.hasSockets,
+    this.progress = 1.0,
+    required this.borderColor,
+    required this.borderWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final w = size.width;
+    final h = size.height;
+    final r = 10.0;
+
+    final path = Path();
+
+    if (!hasSockets) {
+      final rrect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(borderWidth / 2, borderWidth / 2, w - borderWidth, h - borderWidth),
+        Radius.circular(r - borderWidth / 2),
+      );
+      path.addRRect(rrect);
+      canvas.drawPath(path, paint);
+      return;
+    }
+
+    path.moveTo(r, 0);
+    path.lineTo(w - r, 0);
+    path.arcToPoint(Offset(w, r), radius: Radius.circular(r));
+    
+    path.lineTo(w, h - r);
+    path.arcToPoint(Offset(w - r, h), radius: Radius.circular(r));
+    
+    // Bottom edge with sockets
+    final socketW = 7.0;
+    final socketH = 3.5 * progress;
+    final centerX = w / 2;
+    final studLeftCenter = centerX - 6.5;
+    final studRightCenter = centerX + 6.5;
+    
+    final socketLeft1 = studLeftCenter - socketW / 2;
+    final socketLeft2 = studRightCenter - socketW / 2;
+
+    path.lineTo(socketLeft2 + socketW, h);
+    path.lineTo(socketLeft2 + socketW, h - socketH);
+    path.lineTo(socketLeft2, h - socketH);
+    path.lineTo(socketLeft2, h);
+
+    path.lineTo(socketLeft1 + socketW, h);
+    path.lineTo(socketLeft1 + socketW, h - socketH);
+    path.lineTo(socketLeft1, h - socketH);
+    path.lineTo(socketLeft1, h);
+    
+    path.lineTo(r, h);
+    path.arcToPoint(Offset(0, h - r), radius: Radius.circular(r));
+    path.lineTo(0, r);
+    path.arcToPoint(Offset(r, 0), radius: Radius.circular(r));
+    
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant LegoBorderPainter oldDelegate) {
+    return oldDelegate.hasSockets != hasSockets ||
+        oldDelegate.progress != progress ||
+        oldDelegate.borderColor != borderColor ||
+        oldDelegate.borderWidth != borderWidth;
   }
 }

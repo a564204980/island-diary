@@ -496,8 +496,6 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
       padding: const EdgeInsets.only(top: 12),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final double gridWidth = constraints.maxWidth;
-
           if (!widget.entry.isImageGrid) {
             // 普通模式：精致的小图标排列
             return Wrap(
@@ -530,7 +528,6 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
 
           // 超过3张：只显示前3张，第3张加遮罩+剩余数量
           final double spacing = 6;
-          final int crossAxisCount = 3;
           final displayImages = images.take(3).toList();
           final remaining = images.length - 3;
 

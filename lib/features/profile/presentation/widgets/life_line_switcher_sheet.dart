@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/models/life_line_profile.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/shared/widgets/frosted_rainbow.dart';
 import 'package:island_diary/shared/widgets/top_toast.dart';
 
 import 'package:island_diary/shared/widgets/time_warp_overlay.dart';
