@@ -293,46 +293,50 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             onPressed: () {
+                              Widget? cachedPanel;
                               showModalBottomSheet(
                                 context: context,
                                 isScrollControlled: true,
                                 backgroundColor: Colors.transparent,
-                                builder: (context) => DiarySearchPanel(
-                                  isNight: widget.isNight,
-                                  onSearch: (query, moodIndex) {
-                                    setState(() {
-                                      _searchQuery = query;
-                                      _searchMoodIndex = moodIndex;
-                                      if (query.isNotEmpty || moodIndex != null) {
-                                        try {
-                                          final firstMatch = allDiaries.firstWhere((d) {
-                                            if (moodIndex != null && d.moodIndex != moodIndex) return false;
-                                            if (query.isNotEmpty) {
-                                              return d.content.contains(query) ||
-                                                     (d.title?.contains(query) ?? false) ||
-                                                     (d.tag?.contains(query) ?? false);
-                                            }
-                                            return true;
-                                          });
-                                          _selectedDay = firstMatch.dateTime.toLocal();
-                                          _focusedMonth = DateTime(_selectedDay!.year, _selectedDay!.month, 1);
-                                        } catch (_) {
-                                          _selectedDay = null;
+                                builder: (context) {
+                                  cachedPanel ??= DiarySearchPanel(
+                                    isNight: widget.isNight,
+                                    onSearch: (query, moodIndex) {
+                                      setState(() {
+                                        _searchQuery = query;
+                                        _searchMoodIndex = moodIndex;
+                                        if (query.isNotEmpty || moodIndex != null) {
+                                          try {
+                                            final firstMatch = allDiaries.firstWhere((d) {
+                                              if (moodIndex != null && d.moodIndex != moodIndex) return false;
+                                              if (query.isNotEmpty) {
+                                                return d.content.contains(query) ||
+                                                       (d.title?.contains(query) ?? false) ||
+                                                       (d.tag?.contains(query) ?? false);
+                                              }
+                                              return true;
+                                            });
+                                            _selectedDay = firstMatch.dateTime.toLocal();
+                                            _focusedMonth = DateTime(_selectedDay!.year, _selectedDay!.month, 1);
+                                          } catch (_) {
+                                            _selectedDay = null;
+                                          }
+                                        } else {
+                                          final now = DateTime.now();
+                                          _selectedDay = DateTime(now.year, now.month, now.day);
+                                          _focusedMonth = DateTime(now.year, now.month, 1);
                                         }
-                                      } else {
-                                        final now = DateTime.now();
-                                        _selectedDay = DateTime(now.year, now.month, now.day);
-                                        _focusedMonth = DateTime(now.year, now.month, 1);
-                                      }
-                                    });
-                                  },
-                                  onClear: () {
-                                    setState(() {
-                                      _searchQuery = '';
-                                      _searchMoodIndex = null;
-                                    });
-                                  },
-                                ),
+                                      });
+                                    },
+                                    onClear: () {
+                                      setState(() {
+                                        _searchQuery = '';
+                                        _searchMoodIndex = null;
+                                      });
+                                    },
+                                  );
+                                  return cachedPanel!;
+                                },
                               );
                             },
                           ),

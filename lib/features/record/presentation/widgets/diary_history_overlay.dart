@@ -440,28 +440,32 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                             ),
                                             const SizedBox(width: 40),
                                             _buildToolBtn(Icons.search_rounded, () {
-                                              showModalBottomSheet(
-                                                context: context,
-                                                backgroundColor: Colors.transparent,
-                                                isScrollControlled: true,
-                                                builder: (context) => DiarySearchPanel(
-                                                  isNight: isNight,
-                                                  onSearch: (q, m) {
-                                                    setState(() {
-                                                      _searchQuery = q;
-                                                      _filterMoodIndex = m;
-                                                    });
-                                                  },
-                                                  onClear: () {
-                                                    setState(() {
-                                                      _searchQuery = "";
-                                                      _filterMoodIndex = null;
-                                                      _selectedDate = null;
-                                                    });
-                                                  },
-                                                ),
-                                              );
-                                            }, isNight: isNight),
+                                               Widget? cachedPanel;
+                                               showModalBottomSheet(
+                                                 context: context,
+                                                 backgroundColor: Colors.transparent,
+                                                 isScrollControlled: true,
+                                                 builder: (context) {
+                                                   cachedPanel ??= DiarySearchPanel(
+                                                     isNight: isNight,
+                                                     onSearch: (q, m) {
+                                                       setState(() {
+                                                         _searchQuery = q;
+                                                         _filterMoodIndex = m;
+                                                       });
+                                                     },
+                                                     onClear: () {
+                                                       setState(() {
+                                                         _searchQuery = "";
+                                                         _filterMoodIndex = null;
+                                                         _selectedDate = null;
+                                                       });
+                                                     },
+                                                   );
+                                                   return cachedPanel!;
+                                                 },
+                                               );
+                                             }, isNight: isNight),
                                             const SizedBox(width: 40),
                                           ],
                                           GestureDetector(

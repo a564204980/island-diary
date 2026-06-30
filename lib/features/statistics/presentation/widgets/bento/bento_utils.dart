@@ -30,99 +30,136 @@ extension _BentoUtils on _StatisticsPageState {
     );
   }
 
-  void _showMoodDetailSheet(
+  Future<void> _showMoodDetailSheet(
     BuildContext context,
     int moodIndex,
     List<DiaryEntry> subset,
     bool isNight,
   ) {
+    final String themeId = UserState().selectedIslandThemeId.value;
+    final bool isLego = themeId == 'lego';
+    final String fontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
+
     final config = kMoods[moodIndex % kMoods.length];
     final moodColor = config.glowColor ?? Colors.yellow;
     final entries = subset.where((e) => e.moodIndex == moodIndex).toList();
     entries.sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
-    showModalBottomSheet(
+    return showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
-        return Container(
+        return DiaryBottomSheet(
+          paperStyle: 'none',
           height: MediaQuery.of(context).size.height * 0.7,
-          decoration: BoxDecoration(
-            color: isNight ? const Color(0xFF1E1E1E) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
+          padding: EdgeInsets.zero,
           child: Column(
             children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 12,
-                    height: 12,
+                    width: 10,
+                    height: 10,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: moodColor,
+                      boxShadow: [
+                        BoxShadow(
+                          color: moodColor.withValues(alpha: 0.5),
+                          blurRadius: 4,
+                          spreadRadius: 1,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '${config.label} (${entries.length}篇)',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: isNight ? Colors.white : Colors.black87,
+                      fontFamily: fontFamily,
+                      color: isNight ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
                     ),
                   ),
                 ],
               ),
-              const Divider(height: 32),
+              const SizedBox(height: 16),
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.only(left: 20, right: 20, bottom: 30),
                   itemCount: entries.length,
                   itemBuilder: (context, index) {
                     final e = entries[index];
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: isNight
-                            ? Colors.white10
-                            : Colors.black.withValues(alpha: 0.04),
+                            ? moodColor.withValues(alpha: 0.06)
+                            : moodColor.withValues(alpha: 0.04),
                         borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: moodColor.withValues(alpha: isNight ? 0.2 : 0.15),
+                          width: 0.7,
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            DateFormat('MM月dd日 HH:mm').format(e.dateTime),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isNight ? Colors.white54 : Colors.black45,
-                            ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Container(
+                                width: 4.5,
+                                color: moodColor,
+                              ),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.access_time_rounded,
+                                            size: 11,
+                                            color: isNight ? Colors.white30 : Colors.black38,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            DateFormat('MM月dd日 HH:mm').format(e.dateTime),
+                                            style: TextStyle(
+                                              fontSize: 10.5,
+                                              color: isNight ? Colors.white30 : Colors.black45,
+                                              fontFamily: fontFamily,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        e.content,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          height: 1.4,
+                                          color: isNight ? Colors.white.withValues(alpha: 0.87) : Colors.black87,
+                                          fontFamily: fontFamily,
+                                        ),
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            e.content,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isNight ? Colors.white : Colors.black87,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                        ),
                       ),
                     );
                   },
@@ -150,9 +187,15 @@ extension _BentoUtils on _StatisticsPageState {
     final bool isLego = themeId == 'lego';
 
     if (isLego) {
+      final Color finalBg = backgroundColor ?? (isNight ? const Color(0xFF1E2024) : Colors.white);
+      
+      // 计算积木的 3D 厚度阴影颜色（相比背景降低 14% 亮度）
+      final hsl = HSLColor.fromColor(finalBg);
+      final Color shadowCol = hsl.withLightness((hsl.lightness - 0.14).clamp(0.0, 1.0)).toColor();
+
       return Container(
         decoration: BoxDecoration(
-          color: isNight ? const Color(0xFF1E2024) : Colors.white,
+          color: finalBg,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isNight
@@ -161,10 +204,17 @@ extension _BentoUtils on _StatisticsPageState {
             width: 1,
           ),
           boxShadow: [
+            // 1. 固态 3D 积木厚度实色层
             BoxShadow(
-              color: isNight ? Colors.black38 : Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              color: shadowCol,
+              blurRadius: 0,
+              offset: const Offset(0, 4.0),
+            ),
+            // 2. 底层环境遮蔽软影
+            BoxShadow(
+              color: isNight ? Colors.black45 : Colors.black.withValues(alpha: 0.08),
+              blurRadius: 5.0,
+              offset: const Offset(0, 5.0),
             ),
           ],
         ),
@@ -380,7 +430,7 @@ extension _BentoUtils on _StatisticsPageState {
   Widget _buildBentoHeader({
     required BuildContext context,
     required String title,
-    required String helpContent,
+    String? helpContent,
     required bool isNight,
     Widget? rightAction,
   }) {
@@ -391,25 +441,27 @@ extension _BentoUtils on _StatisticsPageState {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(title, style: _bentoTitleStyle(isNight)),
-            const SizedBox(width: 4),
-            GestureDetector(
-              onTap: () => _showBentoInfoDialog(
-                context: context,
-                title: title,
-                content: helpContent,
-                isNight: isNight,
+            if (helpContent != null && helpContent.isNotEmpty) ...[
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () => _showBentoInfoDialog(
+                  context: context,
+                  title: title,
+                  content: helpContent,
+                  isNight: isNight,
+                ),
+                child: Icon(
+                  CupertinoIcons.info_circle,
+                  size: 14,
+                  color: isNight
+                      ? Colors.white24
+                      : Colors.black.withValues(alpha: 0.2),
+                ),
               ),
-              child: Icon(
-                CupertinoIcons.info_circle,
-                size: 14,
-                color: isNight
-                    ? Colors.white24
-                    : Colors.black.withValues(alpha: 0.2),
-              ),
-            ),
+            ],
           ],
         ),
-        ?rightAction,
+        if (rightAction != null) rightAction,
       ],
     );
   }

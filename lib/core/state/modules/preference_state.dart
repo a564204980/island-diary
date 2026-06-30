@@ -9,6 +9,7 @@ mixin PreferenceMixin on ProfileMixin {
   final ValueNotifier<List<String>> statsOrderWeek = ValueNotifier<List<String>>([]);
   final ValueNotifier<List<String>> statsOrderMonth = ValueNotifier<List<String>>([]);
   final ValueNotifier<List<String>> statsOrderAll = ValueNotifier<List<String>>([]);
+  final ValueNotifier<List<String>> statsHiddenModules = ValueNotifier<List<String>>([]);
   final ValueNotifier<String> preferredPaperStyle = ValueNotifier<String>('note1');
   final ValueNotifier<double> preferredFontSize = ValueNotifier<double>(20.0);
   final ValueNotifier<String> preferredFontFamily = ValueNotifier<String>('LXGWWenKai');
@@ -42,6 +43,7 @@ mixin PreferenceMixin on ProfileMixin {
     statsOrderWeek.value = prefs.getStringList(UserState().n(_K.statsOrderWeek)) ?? [];
     statsOrderMonth.value = prefs.getStringList(UserState().n(_K.statsOrderMonth)) ?? [];
     statsOrderAll.value = prefs.getStringList(UserState().n(_K.statsOrderAll)) ?? [];
+    statsHiddenModules.value = prefs.getStringList(UserState().n('stats_hidden_modules')) ?? [];
     preferredPaperStyle.value = prefs.getString(UserState().n(_K.preferredPaperStyle)) ?? 'note1';
     preferredFontSize.value = prefs.getDouble(UserState().n(_K.preferredFontSize)) ?? 20.0;
     preferredFontFamily.value = prefs.getString(UserState().n(_K.preferredFontFamily)) ?? 'LXGWWenKai';
@@ -137,6 +139,12 @@ mixin PreferenceMixin on ProfileMixin {
       statsOrderAll.value = [];
     }
     await p.remove(UserState().n(k));
+  }
+
+  Future<void> saveStatsHiddenModules(List<String> hidden) async {
+    statsHiddenModules.value = hidden;
+    final p = await SharedPreferences.getInstance();
+    await p.setStringList(UserState().n('stats_hidden_modules'), hidden);
   }
 
   Future<void> setPreferredPaperStyle(String s) async {

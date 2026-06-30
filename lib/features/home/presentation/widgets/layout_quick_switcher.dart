@@ -37,7 +37,7 @@ class LayoutQuickSwitcher extends StatelessWidget {
               ? const Color(0xFFB19FFB).withValues(alpha: 0.3)
               : const Color(0xFFFFD1E1).withValues(alpha: 0.45);
         } else if (themeId == 'lego') {
-          activeColor = const Color(0xFFFFD54F);
+          activeColor = const Color(0xFFFFC100);
           selectedIconColor = const Color(0xFF3B2E25);
           unselectedIconColor = isNight
               ? Colors.white.withValues(alpha: 0.6)

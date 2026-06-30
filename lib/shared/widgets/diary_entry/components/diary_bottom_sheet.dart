@@ -10,6 +10,7 @@ class DiaryBottomSheet extends StatelessWidget {
   final bool showDragHandle;
   final bool isDiary;
   final Clip clipBehavior;
+  final bool avoidKeyboard;
 
   const DiaryBottomSheet({
     super.key,
@@ -20,6 +21,7 @@ class DiaryBottomSheet extends StatelessWidget {
     this.showDragHandle = true,
     this.isDiary = false,
     this.clipBehavior = Clip.antiAlias,
+    this.avoidKeyboard = false,
   });
 
   @override
@@ -58,14 +60,13 @@ class DiaryBottomSheet extends StatelessWidget {
       left: padding is EdgeInsets ? (padding as EdgeInsets).left : 20,
       right: padding is EdgeInsets ? (padding as EdgeInsets).right : 20,
       top: resolvedTopPadding,
-      bottom: padding is EdgeInsets ? (padding as EdgeInsets).bottom : (24 + MediaQuery.of(context).padding.bottom),
+      bottom: padding is EdgeInsets ? (padding as EdgeInsets).bottom : (24 + MediaQuery.paddingOf(context).bottom),
     );
 
     Widget content = Container(
       height: height,
       clipBehavior: clipBehavior,
       padding: resolvedPadding,
-      margin: isLego ? const EdgeInsets.only(bottom: 6) : null,
       decoration: DiaryUtils.getPopupDecoration(paperStyle, isNight, customBgColor: bgColor),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -93,8 +94,12 @@ class DiaryBottomSheet extends StatelessWidget {
       ),
     );
  
+    // 如果 avoidKeyboard 为 true，使用外层 MediaQuery 传递的真实 viewInsets，
+    // 否则清零 viewInsets 维持传统的底部弹窗高度不变行为。
     return MediaQuery(
-      data: MediaQuery.of(context).copyWith(viewInsets: EdgeInsets.zero),
+      data: avoidKeyboard
+          ? MediaQuery.of(context)
+          : MediaQueryData.fromView(View.of(context)).copyWith(viewInsets: EdgeInsets.zero),
       child: content,
     );
   }

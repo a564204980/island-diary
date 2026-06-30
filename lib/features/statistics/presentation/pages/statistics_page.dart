@@ -4,7 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
@@ -20,6 +20,8 @@ import 'package:island_diary/features/statistics/presentation/widgets/glass_bent
 
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 import 'package:island_diary/core/services/ai_service.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_detail_page.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 part '../widgets/bento/bento_radar_chart.dart';
 part '../widgets/bento/bento_mood_calendar.dart';
 part '../widgets/bento/bento_emotion_metrics.dart';
@@ -33,6 +35,7 @@ part '../widgets/bento/bento_mood_trend.dart';
 part '../widgets/bento/bento_mood_flow.dart';
 part '../widgets/bento/bento_memories_today.dart';
 part '../widgets/bento/bento_mood_palette.dart';
+part '../widgets/bento/bento_time_carving.dart';
 
 enum StatTimeRange { week, month, all }
 
@@ -67,6 +70,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   bool _isScrolling = false;
   StatTimeRange _currentRange = StatTimeRange.month;
   late AnimationController _waveAnimController;
+  late AnimationController _timeCarvingAnimController;
   final Map<String, String> _moodTrendSummaries = {};
   String? _selectedMoodWeatherStateId;
 
@@ -76,8 +80,13 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   // 新增：心境流转图交互状态
   int? _selectedMoodFlowX;
   int? _selectedPaletteDay; // 新增：时光调色盘选中日期
+  DiaryEntry? _selectedTimeCarvingEntry; // 新增：时光风铃选中的日记记录
+  String? _hoveredEmotionLabel; // 新增：当前被长按/悬浮的标签情绪名称
+  int? _hoveredTimeIndex; // 新增：当前被长按/悬浮的独处时刻时间段索引
 
   void _clearAllBentoSelections() {
+    _hoveredTimeIndex = null;
+    _hoveredEmotionLabel = null;
     _selectedMoodFlowX = null;
     _selectedMoodTrendX = null;
     _touchedWaveSpotIndex = null; // WaveChart mapping
@@ -86,12 +95,25 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     _selectedHeatmapCoord = null;
     _selectedMoodWeatherStateId = null;
     _selectedPaletteDay = null;
+    _selectedTimeCarvingEntry = null;
   }
 
   void updateState(VoidCallback fn) {
     if (mounted) {
       setState(fn);
     }
+  }
+
+  void updateTimeCarvingEntry(DiaryEntry? entry) {
+    setState(() {
+      if (entry != null) {
+        final prev = _selectedTimeCarvingEntry;
+        _clearAllBentoSelections();
+        _selectedTimeCarvingEntry = (prev == entry) ? null : entry;
+      } else {
+        _selectedTimeCarvingEntry = null;
+      }
+    });
   }
 
   void updateMoodFlowX(int? x) {
@@ -259,6 +281,8 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     UserState().savedDiaries.addListener(_updateDiaries);
     _waveAnimController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1500))..forward();
+    _timeCarvingAnimController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1400))..forward();
     
     // 检查每日任务
     UserState().completeTaskIfType(DailyTaskType.viewStats);
@@ -318,6 +342,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   void dispose() {
     UserState().savedDiaries.removeListener(_updateDiaries);
     _waveAnimController.dispose();
+    _timeCarvingAnimController.dispose();
     super.dispose();
   }
 
@@ -326,6 +351,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.isActive && widget.isActive) {
       _waveAnimController.forward(from: 0);
+      _timeCarvingAnimController.forward(from: 0);
     }
   }
 
@@ -371,28 +397,32 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     switch (_currentRange) {
       case StatTimeRange.week:
         saved = state.statsOrderWeek.value;
-        defaults = ['mood_trend', 'mood_flow', 'intensity_radar', 'stats_row', 'max_streaks', 'mood_progress', 'volatility', 'wave', 'weekly_pattern', 'heatmap', 'time_pattern'];
+        defaults = ['mood_trend', 'mood_flow', 'intensity_radar', 'stats_row', 'max_streaks', 'mood_progress', 'volatility', 'wave', 'weekly_pattern', 'heatmap', 'time_carving', 'time_pattern'];
         break;
       case StatTimeRange.month:
         saved = state.statsOrderMonth.value;
-        defaults = ['mood_trend', 'mood_weather', 'mood_palette', 'mood_flow', 'calendar', 'intensity_radar', 'stats_row', 'max_streaks', 'mood_progress', 'highlights', 'time_pattern'];
+        defaults = ['mood_trend', 'mood_weather', 'mood_palette', 'mood_flow', 'calendar', 'intensity_radar', 'stats_row', 'max_streaks', 'mood_progress', 'highlights', 'time_carving', 'time_pattern'];
         break;
       case StatTimeRange.all:
         saved = state.statsOrderAll.value;
-        defaults = ['mood_trend', 'mood_flow', 'intensity_radar', 'seasonality', 'memories_today', 'heatmap', 'stats_row', 'max_streaks', 'mood_progress', 'time_pattern', 'weather'];
+        defaults = ['mood_trend', 'mood_flow', 'intensity_radar', 'seasonality', 'memories_today', 'heatmap', 'stats_row', 'max_streaks', 'mood_progress', 'time_carving', 'time_pattern', 'weather'];
         break;
     }
     
-    // 如果保存的列表为空或长度不匹配（可能有新功能加入），使用默认
-    if (saved.isEmpty) return defaults;
-    
-    // 确保保存 the 的列表包含所有必需的模块（去重且补全）
-    final Set<String> currentModules = Set.from(saved);
-    final List<String> finalOrder = saved.where((m) => defaults.contains(m)).toList();
-    for (var d in defaults) {
-      if (!currentModules.contains(d)) finalOrder.add(d);
+    List<String> ordered;
+    if (saved.isEmpty) {
+      ordered = List<String>.from(defaults);
+    } else {
+      final Set<String> currentModules = Set.from(saved);
+      final List<String> finalOrder = saved.where((m) => defaults.contains(m)).toList();
+      for (var d in defaults) {
+        if (!currentModules.contains(d)) finalOrder.add(d);
+      }
+      ordered = finalOrder;
     }
-    return finalOrder;
+
+    final hidden = state.statsHiddenModules.value;
+    return ordered.where((m) => !hidden.contains(m)).toList();
   }
 
   Widget _buildModuleById(String id, bool isNight, List<DiaryEntry> filtered) {
@@ -425,6 +455,8 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
         return _buildWeeklyPatternBento(isNight, filtered, themeColor);
       case 'time_pattern':
         return _buildTimePatternBento(isNight, filtered, themeColor);
+      case 'time_carving':
+        return _buildTimeCarvingBento(isNight, filtered, themeColor);
       case 'calendar':
         return _buildMoodCalendarBento(isNight, filtered); // 日历保持多色
       case 'highlights':
@@ -620,86 +652,49 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '心灵气象站',
-                      style: TextStyle(
-                        color: isNight ? Colors.white : const Color(0xFF332F2D),
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                        fontFamily: headerFont,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '记录情绪起伏，感知心灵季候',
-                      style: TextStyle(
-                        color: isNight ? Colors.white38 : Colors.black38,
-                        fontSize: 12,
-                        fontFamily: headerFont,
-                      ),
-                    ),
-                  ],
+              Text(
+                '心灵气象站',
+                style: TextStyle(
+                  color: isNight ? Colors.white : const Color(0xFF332F2D),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  fontFamily: headerFont,
                 ),
               ),
-              _buildSegmentControl(isNight),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildSegmentControl(isNight),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _showManageBottomSheet(context, isNight),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: themeId == 'cotton_candy'
+                            ? Colors.white.withValues(alpha: 0.7)
+                            : (isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05)),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        CupertinoIcons.ellipsis_circle,
+                        size: 20,
+                        color: isNight ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: () async {
-                     final rangeStr = _currentRange == StatTimeRange.week ? 'week' 
-                                    : (_currentRange == StatTimeRange.month ? 'month' : 'all');
-                     await UserState().resetStatsOrder(rangeStr);
-                     setState(() {});
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: themeId == 'cotton_candy'
-                          ? Colors.white.withValues(alpha: 0.7)
-                          : (isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05)),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(CupertinoIcons.refresh, size: 14, color: isNight ? Colors.white70 : Colors.black54),
-                        const SizedBox(width: 4),
-                        Text('重置布局', style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black54)),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => _showPosterPreview(context, isNight),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: themeId == 'cotton_candy'
-                          ? Colors.white.withValues(alpha: 0.7)
-                          : (isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.05)),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(CupertinoIcons.camera_viewfinder, size: 14, color: isNight ? Colors.white70 : Colors.black54),
-                        const SizedBox(width: 4),
-                        Text('总结海报', style: TextStyle(fontSize: 11, color: isNight ? Colors.white70 : Colors.black54)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 6),
+          Text(
+            '记录情绪起伏，感知心灵季候',
+            style: TextStyle(
+              color: isNight ? Colors.white38 : Colors.black38,
+              fontSize: 12,
+              fontFamily: headerFont,
             ),
           ),
         ],
@@ -774,6 +769,268 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
           child: Text(title),
         ),
       ),
+    );
+  }
+
+  static const Map<String, String> _moduleNames = {
+    'mood_trend': '心境起伏趋势',
+    'mood_weather': '当月心情气象',
+    'mood_palette': '时光调色盘',
+    'mood_flow': '情绪流转分析',
+    'calendar': '情绪日历',
+    'intensity_radar': '情绪雷达图',
+    'stats_row': '核心数值统计',
+    'max_streaks': '记录坚持天数',
+    'mood_progress': '心情分布比例',
+    'volatility': '情感波动指数',
+    'wave': '情绪起伏波浪图',
+    'weekly_pattern': '周度记录规律',
+    'time_pattern': '全天记录热力',
+    'time_carving': '时光风铃',
+    'highlights': '月度高光时刻',
+    'seasonality': '灵魂季候分析',
+    'memories_today': '那年今日回顾',
+    'heatmap': '年度记录频率',
+    'weather': '天气心情分布',
+  };
+
+  void _showCustomizeModulesSheet(BuildContext context, bool isNight) {
+    final state = UserState();
+    final themeId = state.selectedIslandThemeId.value;
+    final paperStyle = state.preferredPaperStyle.value;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            List<String> defaults;
+            switch (_currentRange) {
+              case StatTimeRange.week:
+                defaults = ['mood_trend', 'mood_flow', 'intensity_radar', 'stats_row', 'max_streaks', 'mood_progress', 'volatility', 'wave', 'weekly_pattern', 'heatmap', 'time_carving', 'time_pattern'];
+                break;
+              case StatTimeRange.month:
+                defaults = ['mood_trend', 'mood_weather', 'mood_palette', 'mood_flow', 'calendar', 'intensity_radar', 'stats_row', 'max_streaks', 'mood_progress', 'highlights', 'time_carving', 'time_pattern'];
+                break;
+              case StatTimeRange.all:
+                defaults = ['mood_trend', 'mood_flow', 'intensity_radar', 'seasonality', 'memories_today', 'heatmap', 'stats_row', 'max_streaks', 'mood_progress', 'time_carving', 'time_pattern', 'weather'];
+                break;
+            }
+
+            final hidden = state.statsHiddenModules.value;
+
+            return DiaryBottomSheet(
+              isDiary: false,
+              paperStyle: paperStyle,
+              showDragHandle: true,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.7,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      '定制数据分析模块',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isNight ? Colors.white : const Color(0xFF1F2937),
+                        fontFamily: 'LXGWWenKai',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '勾选展示您关注的模块，取消勾选隐藏，长按主页面模块可上下拖动排序',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isNight ? Colors.white38 : Colors.black45,
+                        fontFamily: 'LXGWWenKai',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: defaults.length,
+                        itemBuilder: (context, index) {
+                          final id = defaults[index];
+                          final name = _moduleNames[id] ?? id;
+                          final isVisible = !hidden.contains(id);
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: isNight
+                                  ? Colors.white.withValues(alpha: 0.03)
+                                  : Colors.black.withValues(alpha: 0.02),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: CheckboxListTile(
+                              title: Text(
+                                name,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF1F2937),
+                                  fontFamily: 'LXGWWenKai',
+                                ),
+                              ),
+                              value: isVisible,
+                              activeColor: themeId == 'cotton_candy' 
+                                  ? const Color(0xFF7C3AED) 
+                                  : Theme.of(context).primaryColor,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              onChanged: (bool? val) async {
+                                if (val != null) {
+                                  final newHidden = List<String>.from(state.statsHiddenModules.value);
+                                  if (val) {
+                                    newHidden.remove(id);
+                                  } else {
+                                    if (!newHidden.contains(id)) {
+                                      newHidden.add(id);
+                                    }
+                                  }
+                                  await state.saveStatsHiddenModules(newHidden);
+                                  setModalState(() {});
+                                  setState(() {});
+                                }
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showManageBottomSheet(BuildContext context, bool isNight) {
+    final state = UserState();
+    final paperStyle = state.preferredPaperStyle.value;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DiaryBottomSheet(
+          isDiary: false,
+          paperStyle: paperStyle,
+          showDragHandle: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '面板管理',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isNight ? Colors.white : const Color(0xFF1F2937),
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              _buildManageOption(
+                icon: CupertinoIcons.slider_horizontal_3,
+                title: '定制展示模块',
+                subtitle: '开启/隐藏您关心的分析图表',
+                isNight: isNight,
+                onTap: () {
+                  Navigator.pop(context);
+                  _showCustomizeModulesSheet(context, isNight);
+                },
+              ),
+              Divider(height: 1, color: isNight ? Colors.white10 : Colors.black12, indent: 56),
+              
+              _buildManageOption(
+                icon: CupertinoIcons.refresh,
+                title: '重置组件布局',
+                subtitle: '恢复默认的卡片显示排序',
+                isNight: isNight,
+                onTap: () async {
+                  Navigator.pop(context);
+                  final rangeStr = _currentRange == StatTimeRange.week ? 'week' 
+                                 : (_currentRange == StatTimeRange.month ? 'month' : 'all');
+                  await UserState().resetStatsOrder(rangeStr);
+                  setState(() {});
+                },
+              ),
+              Divider(height: 1, color: isNight ? Colors.white10 : Colors.black12, indent: 56),
+              
+              _buildManageOption(
+                icon: CupertinoIcons.camera_viewfinder,
+                title: '生成总结海报',
+                subtitle: '导出您的高清情绪统计卡片',
+                isNight: isNight,
+                onTap: () {
+                  Navigator.pop(context);
+                  _showPosterPreview(context, isNight);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildManageOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool isNight,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: isNight ? Colors.white70 : Colors.black54, size: 18),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF1F2937),
+          fontFamily: 'LXGWWenKai',
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: 11,
+          color: isNight ? Colors.white38 : Colors.black45,
+          fontFamily: 'LXGWWenKai',
+        ),
+      ),
+      trailing: Icon(
+        Icons.chevron_right_rounded,
+        size: 18,
+        color: isNight ? Colors.white24 : Colors.black26,
+      ),
+      onTap: onTap,
     );
   }
 

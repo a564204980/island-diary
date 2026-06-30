@@ -170,130 +170,394 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
         ? '于【$dominantLabel】时分，您的灵魂星图最为璀璨。'
         : '还没有足够的时间分布数据。';
 
-    return _buildGlassCard(
-      isNight: isNight,
-      backgroundColor: isCottonCandy ? const Color(0xFFFFF4EF) : null,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildBentoHeader(
-            context: context,
-            title: '独处时刻',
-            helpContent: '统计你最常记录日记的时间段，帮助你找到自己的写作节律。',
-            isNight: isNight,
-            rightAction: Icon(
-              CupertinoIcons.star_lefthalf_fill,
-              size: 18,
-              color: isCottonCandy
-                  ? const Color(0xFFF7AAB6)
-                  : themeColor.withValues(alpha: isNight ? 0.6 : 0.4),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            dominantSentence,
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.45,
-              color: isNight ? Colors.white70 : const Color(0xFF7E5D51),
-              fontFamily: 'LXGWWenKai',
-            ),
-          ),
-          if (dominantCount > 0) ...[
-            const SizedBox(height: 8),
-            Text(
-              '占比 ${(dominantRate * 100).toStringAsFixed(0)}%，共 $dominantCount 篇记录。',
-              style: TextStyle(
-                fontSize: 11,
-                color: isNight ? Colors.white38 : Colors.black38,
-              ),
-            ),
-          ],
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: List.generate(4, (index) {
-              final double heightFactor = maxCount > 0
-                  ? (counts[index] / maxCount)
-                  : 0;
-              final Color baseColor = timeLabels[index]['color'] as Color;
-              final int count = counts[index];
+    return AnimatedBuilder(
+      animation: _timeCarvingAnimController,
+      builder: (context, child) {
+        final double animProgress = _timeCarvingAnimController.value;
+        final String themeId = UserState().selectedIslandThemeId.value;
+        final bool isLego = themeId == 'lego';
+        final String localFontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
 
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedContainer(
-                        duration: const Duration(milliseconds: 600),
-                        width: 34,
-                        height: 26 + (heightFactor * 58),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              baseColor.withValues(alpha: 0.82),
-                              baseColor.withValues(alpha: 0.36),
+        return _buildGlassCard(
+          isNight: isNight,
+          backgroundColor: isCottonCandy ? const Color(0xFFFFF4EF) : null,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildBentoHeader(
+                context: context,
+                title: '独处时刻',
+                helpContent: '统计你最常记录日记的时间段，帮助你找到自己的写作节律。点击柱块可查看对应时间段的日记。',
+                isNight: isNight,
+                rightAction: Icon(
+                  CupertinoIcons.star_lefthalf_fill,
+                  size: 18,
+                  color: isCottonCandy
+                      ? const Color(0xFFF7AAB6)
+                      : themeColor.withValues(alpha: isNight ? 0.6 : 0.4),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                dominantSentence,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.45,
+                  color: isNight
+                      ? Colors.white70
+                      : (isLego ? const Color(0xFF6D5A4B) : const Color(0xFF7E5D51)),
+                  fontFamily: localFontFamily,
+                ),
+              ),
+              if (dominantCount > 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '占比 ${(dominantRate * 100).toStringAsFixed(0)}%，共 $dominantCount 篇记录。',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isNight ? Colors.white38 : Colors.black38,
+                    fontFamily: localFontFamily,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: List.generate(4, (index) {
+                  final double heightFactor = maxCount > 0 ? (counts[index] / maxCount) : 0;
+                  
+                  // 柱状图各部分延迟弹性入场
+                  final double curveProgress = Curves.easeOutBack.transform(
+                    ((animProgress - (index * 0.12)) * 2.0).clamp(0.0, 1.0)
+                  );
+                  final double barHeight = 26.0 + (heightFactor * 58.0 * curveProgress);
+                  
+                  final Color baseColor = timeLabels[index]['color'] as Color;
+                  final int count = counts[index];
+                  
+                  final bool isHovered = _hoveredTimeIndex == index;
+                  final double hoverY = isHovered ? -6.0 : 0.0;
+
+                  Widget barWidget;
+                  if (isLego) {
+                    // 乐高模式：拼搭积木柱状条（带乐高凸起Stud和横向积木分割线）
+                    barWidget = Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Opacity(
+                          opacity: curveProgress > 0 ? 1.0 : 0.0,
+                          child: Container(
+                            width: 14,
+                            height: 4.5,
+                            decoration: BoxDecoration(
+                              color: baseColor,
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(2.2)),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: 34,
+                          height: barHeight,
+                          decoration: BoxDecoration(
+                            color: baseColor,
+                            borderRadius: BorderRadius.circular(6),
+                            boxShadow: [
+                              BoxShadow(
+                                color: HSLColor.fromColor(baseColor)
+                                    .withLightness((HSLColor.fromColor(baseColor).lightness - 0.14).clamp(0.0, 1.0))
+                                    .toColor(),
+                                blurRadius: 0,
+                                offset: const Offset(0, 3.0),
+                              ),
                             ],
                           ),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.22),
-                            width: 0.8,
+                          child: Stack(
+                            children: [
+                              // 乐高层叠分割线，模拟单块积木叠加效果
+                              Positioned.fill(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: List.generate(
+                                    (barHeight / 18.0).floor().clamp(1, 6),
+                                    (_) => Container(
+                                      height: 1.0,
+                                      color: Colors.black.withValues(alpha: 0.14),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 5),
+                                child: Align(
+                                  alignment: Alignment.topCenter,
+                                  child: Icon(
+                                    timeLabels[index]['icon'] as IconData,
+                                    size: 16,
+                                    color: Colors.white.withValues(alpha: 0.78),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: baseColor.withValues(alpha: 0.16),
-                              blurRadius: 14,
-                              offset: const Offset(0, 6),
-                            ),
+                        ),
+                      ],
+                    );
+                  } else {
+                    // 经典模式：柔和渐变胶囊柱
+                    barWidget = Container(
+                      width: 34,
+                      height: barHeight,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            baseColor.withValues(alpha: 0.82),
+                            baseColor.withValues(alpha: 0.36),
                           ],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            top: 6,
-                            left: 6,
-                            right: 6,
-                            bottom: 6,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.22),
+                          width: 0.8,
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: baseColor.withValues(alpha: 0.16),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
                           ),
-                          child: Align(
-                            alignment: Alignment.topCenter,
-                            child: Icon(
-                              timeLabels[index]['icon'] as IconData,
-                              size: 17,
-                              color: Colors.white.withValues(alpha: 0.68),
-                            ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: Icon(
+                            timeLabels[index]['icon'] as IconData,
+                            size: 17,
+                            color: Colors.white.withValues(alpha: 0.68),
                           ),
                         ),
-                      )
-                      .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .shimmer(
-                        duration: (1600 + index * 180).ms,
-                        color: Colors.white.withValues(alpha: 0.16),
                       ),
-                  const SizedBox(height: 10),
-                  Text(
-                    timeLabels[index]['label'] as String,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.normal,
-                      color: isNight ? Colors.white54 : Colors.black54,
+                    );
+                  }
+
+                  // 交互弹跳与高亮动画
+                  barWidget = AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutBack,
+                    transform: Matrix4.translationValues(0, hoverY, 0),
+                    child: barWidget,
+                  );
+
+                  return GestureDetector(
+                    onTapDown: (_) {
+                      setState(() {
+                        _hoveredTimeIndex = index;
+                      });
+                    },
+                    onTapUp: (_) {
+                      setState(() {
+                        _hoveredTimeIndex = null;
+                      });
+                    },
+                    onTapCancel: () {
+                      setState(() {
+                        _hoveredTimeIndex = null;
+                      });
+                    },
+                    onTap: () async {
+                      setState(() {
+                        _hoveredTimeIndex = index;
+                      });
+                      await _showTimeGroupDetailSheet(
+                        context,
+                        timeLabels[index]['label'] as String,
+                        groups[index],
+                        isNight,
+                      );
+                      if (mounted) {
+                        setState(() {
+                          _hoveredTimeIndex = null;
+                        });
+                      }
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        barWidget,
+                        const SizedBox(height: 10),
+                        Text(
+                          timeLabels[index]['label'] as String,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isNight ? Colors.white54 : Colors.black54,
+                            fontFamily: localFontFamily,
+                          ),
+                        ),
+                        Text(
+                          '$count 次',
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: isNight ? Colors.white38 : Colors.black38,
+                            fontFamily: localFontFamily,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  Text(
-                    '$count 次',
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: isNight ? Colors.white38 : Colors.black38,
-                    ),
-                  ),
-                ],
-              );
-            }),
+                  );
+                }),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
+    );
+  }
+
+  // 弹窗展示对应时段的所有日记
+  Future<void> _showTimeGroupDetailSheet(
+    BuildContext context,
+    String label,
+    List<DiaryEntry> entries,
+    bool isNight,
+  ) {
+    final String themeId = UserState().selectedIslandThemeId.value;
+    final bool isLego = themeId == 'lego';
+    final String fontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
+
+    entries.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+
+    return showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return DiaryBottomSheet(
+          paperStyle: 'none',
+          height: MediaQuery.of(context).size.height * 0.7,
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              const SizedBox(height: 6),
+              Text(
+                '【$label】记录 (${entries.length}篇)',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: fontFamily,
+                  color: isNight ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.only(left: 20, right: 20, bottom: 30),
+                  itemCount: entries.length,
+                  itemBuilder: (context, index) {
+                    final e = entries[index];
+                    final moodItem = kMoods[e.moodIndex % kMoods.length];
+                    final moodColor = moodItem.glowColor ?? Colors.amber;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: isNight
+                            ? moodColor.withValues(alpha: 0.06)
+                            : moodColor.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: moodColor.withValues(alpha: isNight ? 0.2 : 0.15),
+                          width: 0.7,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Container(
+                                width: 4.5,
+                                color: moodColor,
+                              ),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.access_time_rounded,
+                                                size: 11,
+                                                color: isNight ? Colors.white30 : Colors.black38,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                DateFormat('MM月dd日 HH:mm').format(e.dateTime),
+                                                style: TextStyle(
+                                                  fontSize: 10.5,
+                                                  color: isNight ? Colors.white30 : Colors.black45,
+                                                  fontFamily: fontFamily,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: moodColor.withValues(alpha: 0.15),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              moodItem.label,
+                                              style: TextStyle(
+                                                fontSize: 9.5,
+                                                color: moodColor,
+                                                fontWeight: FontWeight.bold,
+                                                fontFamily: fontFamily,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        e.content,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          height: 1.4,
+                                          color: isNight ? Colors.white.withValues(alpha: 0.87) : Colors.black87,
+                                          fontFamily: fontFamily,
+                                        ),
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

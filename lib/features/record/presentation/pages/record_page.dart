@@ -781,28 +781,32 @@ class _RecordPageState extends State<RecordPage> {
   }
 
   void _showSearch() {
+    Widget? cachedPanel;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       showDragHandle: false,
-      builder: (context) => DiarySearchPanel(
-        isNight: _isNight,
-        onSearch: (q, m) {
-          setState(() {
-            _searchQuery = q;
-            _filterMoodIndex = m;
-          });
-        },
-        onClear: () {
-          setState(() {
-            _searchQuery = "";
-            _filterMoodIndex = null;
-            _selectedDate = null;
-            _headerDate.value = DateTime.now();
-          });
-        },
-      ),
+      builder: (context) {
+        cachedPanel ??= DiarySearchPanel(
+          isNight: _isNight,
+          onSearch: (q, m) {
+            setState(() {
+              _searchQuery = q;
+              _filterMoodIndex = m;
+            });
+          },
+          onClear: () {
+            setState(() {
+              _searchQuery = "";
+              _filterMoodIndex = null;
+              _selectedDate = null;
+              _headerDate.value = DateTime.now();
+            });
+          },
+        );
+        return cachedPanel!;
+      },
     );
   }
 
