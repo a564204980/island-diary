@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -345,7 +344,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                       borderRadius: BorderRadius.circular(18),
                       gradient: LinearGradient(
                         colors: canSave 
-                            ? [primaryColor, primaryColor.withBlue(primaryColor.blue + 20).withRed(primaryColor.red - 10)]
+                            ? [primaryColor, primaryColor.withBlue(((primaryColor.b * 255.0).round() + 20).clamp(0, 255)).withRed(((primaryColor.r * 255.0).round() - 10).clamp(0, 255))]
                             : [primaryColor.withValues(alpha: 0.2), primaryColor.withValues(alpha: 0.1)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,

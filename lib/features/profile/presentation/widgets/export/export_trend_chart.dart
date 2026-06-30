@@ -364,7 +364,7 @@ class ExportTrendChart extends StatelessWidget {
         iconPath,
         width: 12,
         height: 12,
-        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        errorBuilder: (_, _, _) => const SizedBox.shrink(),
       ),
     );
   }

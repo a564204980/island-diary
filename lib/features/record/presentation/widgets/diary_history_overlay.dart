@@ -446,15 +446,10 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                                 isScrollControlled: true,
                                                 builder: (context) => DiarySearchPanel(
                                                   isNight: isNight,
-                                                  initialDate: _selectedDate,
-                                                  onSearch: (q, m, d) {
+                                                  onSearch: (q, m) {
                                                     setState(() {
                                                       _searchQuery = q;
                                                       _filterMoodIndex = m;
-                                                      if (d != null) {
-                                                        _selectedDate = d;
-                                                        _headerDate.value = d;
-                                                      }
                                                     });
                                                   },
                                                   onClear: () {

@@ -98,7 +98,7 @@ class _ArrivalSceneState extends State<ArrivalScene> {
                     decoration: InputDecoration(
                       hintText: '姓名',
                       hintStyle: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 16,
                         letterSpacing: 4,
                         fontWeight: FontWeight.w600,

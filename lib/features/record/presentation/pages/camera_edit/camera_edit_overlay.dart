@@ -347,7 +347,7 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                             return;
                           }
 
-                          final AssetEntity? asset = await PhotoManager.editor.saveImageWithPath(
+                          await PhotoManager.editor.saveImageWithPath(
                             finalResultPath,
                             title:
                                 'diary_cam_${DateTime.now().millisecondsSinceEpoch}.png',
@@ -356,22 +356,13 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                           if (!context.mounted) return;
                           Navigator.pop(context);
 
-                          if (asset != null) {
                             showTopToast(
                               context,
                               '已成功保存到相册',
                               icon: Icons.check_circle_outline_rounded,
                               iconColor: const Color(0xFFD4A373),
                             );
-                          } else {
-                            showTopToast(
-                              context,
-                              '保存相册失败，请重试',
-                              icon: Icons.error_outline_rounded,
-                              iconColor: Colors.redAccent,
-                            );
-                          }
-                        } catch (e) {
+                          } catch (e) {
                           debugPrint("保存相册失败: $e");
                           if (context.mounted) {
                             Navigator.pop(context);

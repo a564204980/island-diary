@@ -355,7 +355,7 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
                           await _deleteTemplate(template);
                           if (!mounted) return;
                           showTopToast(
-                            context,
+                            this.context,
                             '模板 "${template.name}" 已删除',
                             icon: Icons.delete_outline_rounded,
                             iconColor: Colors.redAccent,

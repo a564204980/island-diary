@@ -98,14 +98,14 @@ class ExportWeeklyChart extends StatelessWidget {
                                     end: Alignment.topCenter,
                                     colors: isCottonCandy
                                         ? const [Color(0xFFFF8E9B), Color(0xFFFFB2A6)]
-                                        : [themeColor, themeColor.withOpacity(0.5)],
+                                        : [themeColor, themeColor.withValues(alpha: 0.5)],
                                   )
                                 : null,
-                            color: hasData ? null : (isNight ? Colors.white12 : Colors.black.withOpacity(0.04)),
+                            color: hasData ? null : (isNight ? Colors.white12 : Colors.black.withValues(alpha: 0.04)),
                             boxShadow: hasData
                                 ? [
                                     BoxShadow(
-                                      color: themeColor.withOpacity(0.3),
+                                      color: themeColor.withValues(alpha: 0.3),
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
                                     )

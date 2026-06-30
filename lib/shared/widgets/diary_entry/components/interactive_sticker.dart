@@ -63,7 +63,7 @@ class _InteractiveStickerState extends State<InteractiveSticker> {
         builder: (context, constraints) {
           final center = const Offset(totalSize / 2, totalSize / 2);
 
-          return Container(
+          return SizedBox(
             width: totalSize,
             height: totalSize,
             child: Stack(

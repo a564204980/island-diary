@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import '../utils/diary_utils.dart';

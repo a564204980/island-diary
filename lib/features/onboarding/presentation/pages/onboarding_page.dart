@@ -145,7 +145,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 1500),
                     color: _currentSceneIndex == 1
-                        ? Colors.black.withOpacity(0.2)
+                        ? Colors.black.withValues(alpha: 0.2)
                         : Colors.transparent,
                   ),
                 ),

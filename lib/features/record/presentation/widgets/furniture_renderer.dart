@@ -99,17 +99,17 @@ class FurnitureRenderer {
       if (isFlipped) canvas.scale(-1, 1);
 
       if (vRotX != 0 || vRotY != 0 || vRotZ != 0 || bounceScale != 1.0) {
-        final matrix = Matrix4.identity()..translate(vPivot.dx, vPivot.dy, 0.0);
+        final matrix = Matrix4.identity()..translateByDouble(vPivot.dx, vPivot.dy, 0.0, 1.0);
         if (bounceScale != 1.0) {
-          matrix.translate(0.0, itemH / 2.0, 0.0);
-          matrix.scale(bounceScale, bounceScale, 1.0);
-          matrix.translate(0.0, -itemH / 2.0, 0.0);
+          matrix.translateByDouble(0.0, itemH / 2.0, 0.0, 1.0);
+          matrix.scaleByDouble(bounceScale, bounceScale, 1.0, 1.0);
+          matrix.translateByDouble(0.0, -itemH / 2.0, 0.0, 1.0);
         }
         matrix
           ..rotateX(vRotX * math.pi / 180)
           ..rotateY(vRotY * math.pi / 180)
           ..rotateZ(vRotZ * math.pi / 180)
-          ..translate(-vPivot.dx, -vPivot.dy, 0.0);
+          ..translateByDouble(-vPivot.dx, -vPivot.dy, 0.0, 1.0);
         canvas.transform(matrix.storage);
       }
 

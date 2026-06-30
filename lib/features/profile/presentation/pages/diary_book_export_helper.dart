@@ -19,7 +19,7 @@ class DiaryBookExportHelper {
   }
 
   static PdfColor _toPdfColor(Color c) {
-    return PdfColor.fromInt(c.value);
+    return PdfColor.fromInt(c.toARGB32());
   }
 
   static pw.TextAlign _toPdfAlign(TextAlign align) {

@@ -86,10 +86,9 @@ class _DiaryBookEditPageState extends State<DiaryBookEditPage> {
     try {
       final List<AssetEntity>? result = await AssetPicker.pickAssets(
         context,
-        pickerConfig: AssetPickerConfig(
+        pickerConfig: const AssetPickerConfig(
           maxAssets: 1,
           requestType: RequestType.image,
-          filterOptions: FilterOptionGroup(containsLivePhotos: true),
         ),
       );
       if (result == null || result.isEmpty) return;
@@ -112,6 +111,7 @@ class _DiaryBookEditPageState extends State<DiaryBookEditPage> {
         _tempCoverPath = newFile.path;
       });
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('选择封面失败: $e')),
       );
@@ -577,7 +577,7 @@ class _DiaryBookEditPageState extends State<DiaryBookEditPage> {
           title: '自定义封面颜色',
           onColorSelected: (color) {
             setState(() {
-              _selectedColorValue = color.value;
+              _selectedColorValue = color.toARGB32();
               _tempCoverPath = null;
             });
           },

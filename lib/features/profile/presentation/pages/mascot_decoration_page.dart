@@ -523,7 +523,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                       ),
                       Switch(
                         value: enabled,
-                        activeColor: const Color(0xFFFBBC05),
+                        activeThumbColor: const Color(0xFFFBBC05),
                         onChanged: (val) => userState.setGlassesOverlayEnabled(val),
                       ),
                     ],
@@ -576,7 +576,7 @@ class _MascotDecorationPageState extends State<MascotDecorationPage> {
                       ),
                       Switch(
                         value: isAbove,
-                        activeColor: const Color(0xFFFBBC05),
+                        activeThumbColor: const Color(0xFFFBBC05),
                         onChanged: (val) => userState.setGlassesAboveHat(val),
                       ),
                     ],

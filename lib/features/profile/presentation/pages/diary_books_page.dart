@@ -587,7 +587,7 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
                             
                             await UserState().deleteBook(book.id);
                             
-                            if (this.context.mounted) {
+                            if (mounted) {
                               showTopToast(
                                 this.context,
                                 '《${book.name}》已删除 🍃',

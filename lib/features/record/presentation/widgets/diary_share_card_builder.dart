@@ -675,8 +675,7 @@ class DiaryShareCardBuilder extends StatelessWidget {
                   ],
                 ),
               ),
-            )
-            .toList(),
+            ),
       ],
     );
   }

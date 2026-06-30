@@ -26,7 +26,7 @@ class DiaryPaperCanvas extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: UserState().themeMode,
-      builder: (context, _, ___) {
+      builder: (context, _, _) {
         final bool isNight = UserState().isNight;
         return Container(
           decoration: BoxDecoration(

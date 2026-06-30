@@ -16,8 +16,8 @@ class RecoverDiaryDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 动态辅助颜色
-    final orbColor1 = const Color(0xFFBC8A5F).withOpacity(0.3);
-    final orbColor2 = const Color(0xFFAFA296).withOpacity(0.2);
+    final orbColor1 = const Color(0xFFBC8A5F).withValues(alpha: 0.3);
+    final orbColor2 = const Color(0xFFAFA296).withValues(alpha: 0.2);
 
     return Center(
       child: Material(
@@ -41,13 +41,13 @@ class RecoverDiaryDialog extends StatelessWidget {
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
                     color: isNight 
-                        ? Colors.black.withOpacity(0.6) 
-                        : Colors.white.withOpacity(0.4),
+                        ? Colors.black.withValues(alpha: 0.6) 
+                        : Colors.white.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(36),
                     border: Border.all(
                       color: isNight 
-                          ? Colors.white.withOpacity(0.12) 
-                          : Colors.white.withOpacity(0.6),
+                          ? Colors.white.withValues(alpha: 0.12) 
+                          : Colors.white.withValues(alpha: 0.6),
                       width: 1.5,
                     ),
                   ),
@@ -66,7 +66,7 @@ class RecoverDiaryDialog extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: isNight ? Colors.white.withOpacity(0.9) : const Color(0xFF5D4037),
+                          color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF5D4037),
                           fontFamily: 'LXGWWenKai',
                           letterSpacing: 0.8,
                         ),
@@ -123,7 +123,7 @@ class RecoverDiaryDialog extends StatelessWidget {
           color: color,
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.2),
+              color: color.withValues(alpha: 0.2),
               blurRadius: 40,
               spreadRadius: 20,
             )
@@ -145,7 +145,7 @@ class RecoverDiaryDialog extends StatelessWidget {
           height: 80,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: (isNight ? Colors.cyanAccent : Colors.lightBlueAccent).withOpacity(0.15),
+            color: (isNight ? Colors.cyanAccent : Colors.lightBlueAccent).withValues(alpha: 0.15),
           ),
         ).animate(onPlay: (c) => c.repeat())
          .scale(duration: 2.seconds, begin: const Offset(0.8, 0.8), end: const Offset(1.5, 1.5))
@@ -156,9 +156,9 @@ class RecoverDiaryDialog extends StatelessWidget {
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-            color: (isNight ? Colors.cyanAccent : Colors.lightBlueAccent).withOpacity(0.1),
+            color: (isNight ? Colors.cyanAccent : Colors.lightBlueAccent).withValues(alpha: 0.1),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
           ),
           child: const Center(child: Text("💧", style: TextStyle(fontSize: 40))),
         ).animate(onPlay: (c) => c.repeat(reverse: true))
@@ -193,7 +193,7 @@ class RecoverDiaryDialog extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFD4A373).withOpacity(0.4),
+              color: const Color(0xFFD4A373).withValues(alpha: 0.4),
               blurRadius: 15,
               offset: const Offset(0, 6),
             ),
@@ -222,7 +222,7 @@ class RecoverDiaryDialog extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          color: isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+          color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: isNight ? Colors.white10 : Colors.black12),
         ),

@@ -239,7 +239,7 @@ class _CirclePickerSheetState extends State<CirclePickerSheet> {
                   children: _circleColors.map((colorMap) {
                     final int value = colorMap['value']!;
                     final Color color = Color(value);
-                    final bool isSelected = _selectedColor.value == color.value;
+                    final bool isSelected = _selectedColor == color;
 
                     return GestureDetector(
                       onTap: () {

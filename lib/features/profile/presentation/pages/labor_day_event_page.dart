@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -100,7 +99,7 @@ class LaborDayEventPage extends StatelessWidget {
                                   '活动时间：5月1日 - 5月5日',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: isNight ? Colors.white70 : Colors.orange[950]?.withOpacity(0.8),
+                                    color: isNight ? Colors.white70 : Colors.orange[950]?.withValues(alpha: 0.8),
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 0.5,
                                   ),
@@ -198,10 +197,10 @@ class LaborDayEventPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isNight ? Colors.white.withOpacity(0.08) : Colors.white.withValues(alpha: 0.85),
+        color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(28),
         boxShadow: isNight ? [] : [
-          BoxShadow(color: Colors.orange.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.orange.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -209,7 +208,7 @@ class LaborDayEventPage extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 24),
           const SizedBox(height: 16),
-          Text(title, style: TextStyle(fontSize: 11, color: isNight ? Colors.white38 : Colors.orange[900]?.withOpacity(0.4), fontWeight: FontWeight.w600)),
+          Text(title, style: TextStyle(fontSize: 11, color: isNight ? Colors.white38 : Colors.orange[900]?.withValues(alpha: 0.4), fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -232,7 +231,7 @@ class LaborDayEventPage extends StatelessWidget {
                   subtitle, 
                   style: TextStyle(
                     fontSize: 10, 
-                    color: isNight ? Colors.white38 : Colors.orange[900]?.withOpacity(0.6),
+                    color: isNight ? Colors.white38 : Colors.orange[900]?.withValues(alpha: 0.6),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -248,7 +247,7 @@ class LaborDayEventPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isNight ? Colors.white.withOpacity(0.08) : Colors.white,
+        color: isNight ? Colors.white.withValues(alpha: 0.08) : Colors.white,
         borderRadius: BorderRadius.circular(28),
       ),
       child: Column(
@@ -306,7 +305,7 @@ class LaborDayEventPage extends StatelessWidget {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     ).animate().slideX(begin: 0.1, duration: 800.ms).fade();
@@ -320,7 +319,7 @@ class LaborDayEventPage extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: [const Color(0xFFF57C00), const Color(0xFFFFB300)], begin: Alignment.topLeft, end: Alignment.bottomRight),
           borderRadius: BorderRadius.circular(28),
-          boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+          boxShadow: [BoxShadow(color: Colors.orange.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
         ),
         child: Row(
           children: [
@@ -330,7 +329,7 @@ class LaborDayEventPage extends StatelessWidget {
                 children: [
                   Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text(description, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13)),
+                  Text(description, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13)),
                 ],
               ),
             ),
@@ -413,7 +412,7 @@ class _LaborDayBackground extends StatelessWidget {
         shape: BoxShape.circle,
         gradient: RadialGradient(
           colors: [
-            Colors.orange.withOpacity(isNight ? 0.15 : 0.4),
+            Colors.orange.withValues(alpha: isNight ? 0.15 : 0.4),
             Colors.transparent,
           ],
         ),
@@ -448,7 +447,7 @@ class _WheatField extends StatelessWidget {
                 child: Icon(
                   Icons.grass_rounded,
                   size: 40 + random.nextDouble() * 40,
-                  color: isNight ? Colors.orange[900]!.withOpacity(0.5) : Colors.orange[300],
+                  color: isNight ? Colors.orange[900]!.withValues(alpha: 0.5) : Colors.orange[300],
                 ),
               ),
             ),
@@ -473,9 +472,9 @@ class _CoastSilhouette extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Positioned.fill(child: CustomPaint(painter: _WavePainter(color: isNight ? Colors.orange[900]!.withOpacity(0.1) : Colors.orange[100]!, baseline: 0.7, frequency: 0.01))),
-        Positioned.fill(child: CustomPaint(painter: _WavePainter(color: isNight ? Colors.orange[800]!.withOpacity(0.2) : Colors.orange[200]!, baseline: 0.8, frequency: 0.015))),
-        Positioned.fill(child: CustomPaint(painter: _WavePainter(color: isNight ? Colors.orange[700]!.withOpacity(0.3) : Colors.orange[300]!, baseline: 0.9, frequency: 0.02))),
+        Positioned.fill(child: CustomPaint(painter: _WavePainter(color: isNight ? Colors.orange[900]!.withValues(alpha: 0.1) : Colors.orange[100]!, baseline: 0.7, frequency: 0.01))),
+        Positioned.fill(child: CustomPaint(painter: _WavePainter(color: isNight ? Colors.orange[800]!.withValues(alpha: 0.2) : Colors.orange[200]!, baseline: 0.8, frequency: 0.015))),
+        Positioned.fill(child: CustomPaint(painter: _WavePainter(color: isNight ? Colors.orange[700]!.withValues(alpha: 0.3) : Colors.orange[300]!, baseline: 0.9, frequency: 0.02))),
       ],
     ).animate().slideY(begin: 0.2, duration: 1.seconds);
   }
@@ -517,7 +516,7 @@ class _DiligenceParticles extends StatelessWidget {
         return Positioned(
           left: MediaQuery.of(context).size.width * startX,
           top: -50,
-          child: Icon(Icons.wb_sunny_rounded, size: 4 + random.nextDouble() * 8, color: Colors.orange[200]!.withOpacity(0.2))
+          child: Icon(Icons.wb_sunny_rounded, size: 4 + random.nextDouble() * 8, color: Colors.orange[200]!.withValues(alpha: 0.2))
               .animate(onPlay: (c) => c.repeat())
               .moveY(begin: 0, end: 1000, duration: (8 + random.nextInt(8)).seconds, delay: (random.nextDouble() * 5).seconds)
               .rotate(duration: 10.seconds),

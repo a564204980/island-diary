@@ -105,12 +105,12 @@ class ExportPaletteChart extends StatelessWidget {
                                             height: cellSize,
                                             decoration: BoxDecoration(
                                               color: isNight 
-                                                  ? Colors.white.withOpacity(0.04) 
-                                                  : const Color(0xFFFFEDE7).withOpacity(0.45),
+                                                  ? Colors.white.withValues(alpha: 0.04) 
+                                                  : const Color(0xFFFFEDE7).withValues(alpha: 0.45),
                                               border: Border.all(
                                                 color: isNight 
-                                                    ? Colors.white.withOpacity(0.05) 
-                                                    : const Color(0xFFF8DDD5).withOpacity(0.35),
+                                                    ? Colors.white.withValues(alpha: 0.05) 
+                                                    : const Color(0xFFF8DDD5).withValues(alpha: 0.35),
                                                 width: 0.4,
                                               ),
                                             ),
@@ -147,7 +147,7 @@ class ExportPaletteChart extends StatelessWidget {
                             child: Icon(
                               Icons.cloud,
                               size: 14,
-                              color: isNight ? Colors.white24 : const Color(0xFFC5CAE9).withOpacity(0.9),
+                              color: isNight ? Colors.white24 : const Color(0xFFC5CAE9).withValues(alpha: 0.9),
                             ),
                           ),
                         ],

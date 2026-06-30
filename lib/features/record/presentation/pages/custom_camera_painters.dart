@@ -77,8 +77,8 @@ class StrokePreviewPainter extends CustomPainter {
     required this.getNormalizedCropRect,
     required this.getActiveCropBoxRect,
     this.isRatioMode = false,
-    Listenable? repaint,
-  }) : super(repaint: repaint);
+    super.repaint,
+  });
 
   ui.ColorFilter _createThresholdFilter(Color color, {double threshold = 0.16}) {
     // 阈值说明：
@@ -86,9 +86,9 @@ class StrokePreviewPainter extends CustomPainter {
     //   因此当 sigma = 目标扩展距离 时，threshold = 0.16 对应恰好在 1σ（=扩展距离）处截断。
     //   threshold = 0.5 只会在原始边缘处截断，等于什么都没扩展，描边不可见。
     //   在 Flutter ColorFilter.matrix 中，最后一列的偏移量 (translation vector) 的范围 is 0..255，而非 0..1。
-    final double r = color.red.toDouble();
-    final double g = color.green.toDouble();
-    final double b = color.blue.toDouble();
+    final double r = (color.r * 255.0).round().clamp(0, 255).toDouble();
+    final double g = (color.g * 255.0).round().clamp(0, 255).toDouble();
+    final double b = (color.b * 255.0).round().clamp(0, 255).toDouble();
     const double s = 100.0;
     final double t = -100.0 * threshold * 255.0;
     return ui.ColorFilter.matrix([

@@ -395,8 +395,9 @@ class InteractiveCropOverlayState extends State<InteractiveCropOverlay>
     if (widget.width <= 0 ||
         widget.height <= 0 ||
         _dragStartRect.width <= 0 ||
-        _dragStartRect.height <= 0)
+        _dragStartRect.height <= 0) {
       return;
+    }
 
     final Offset currentOffset =
         details.localFocalPoint - const Offset(edgePadding, edgePadding);

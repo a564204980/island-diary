@@ -124,7 +124,7 @@ class _Pseudo3DPropWidgetState extends State<Pseudo3DPropWidget>
                       ..setEntry(3, 2, 0.0016)
                       ..rotateX(currentX)
                       ..rotateY(currentY)
-                      ..translate(highlightOffsetX * 5.0, highlightOffsetY * 5.0, 15.0),
+                      ..translateByDouble(highlightOffsetX * 5.0, highlightOffsetY * 5.0, 15.0, 1.0),
                     alignment: Alignment.center,
                     child: Container(
                       width: widget.size * 0.78,

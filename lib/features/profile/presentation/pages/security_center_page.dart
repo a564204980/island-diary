@@ -223,7 +223,7 @@ class _SecurityCenterPageState extends State<SecurityCenterPage> {
               const SizedBox(width: 8),
               Switch.adaptive(
                 value: isEnabled,
-                activeColor: const Color(0xFF81C784),
+                activeThumbColor: const Color(0xFF81C784),
                 onChanged: (val) {
                   if (val && state.appLockPin.value.isEmpty) {
                     _showSetPinDialog(context, state);
@@ -246,7 +246,7 @@ class _SecurityCenterPageState extends State<SecurityCenterPage> {
               isNight: isNight,
               trailing: Switch.adaptive(
                 value: state.isBiometricEnabled.value,
-                activeColor: const Color(0xFF81C784),
+                activeThumbColor: const Color(0xFF81C784),
                 onChanged: (val) => state.updateSecuritySettings(biometric: val),
               ),
             ),
@@ -285,7 +285,7 @@ class _SecurityCenterPageState extends State<SecurityCenterPage> {
               _buildNeonIcon(Icons.blur_on_rounded, const Color(0xFF64B5F6)),
               Switch.adaptive(
                 value: state.isMistModeEnabled.value,
-                activeColor: const Color(0xFF64B5F6),
+                activeThumbColor: const Color(0xFF64B5F6),
                 onChanged: (val) => state.updateSecuritySettings(mistMode: val),
               ),
             ],
@@ -323,7 +323,7 @@ class _SecurityCenterPageState extends State<SecurityCenterPage> {
                 _buildNeonIcon(Icons.monitor_rounded, const Color(0xFF4DB6AC)),
                 Switch.adaptive(
                   value: state.isScreenshotProtected.value,
-                  activeColor: const Color(0xFF4DB6AC),
+                  activeThumbColor: const Color(0xFF4DB6AC),
                   onChanged: (val) => state.updateAdvancedSecurity(screenshot: val),
                 ),
               ],

@@ -75,7 +75,7 @@ class ExportMoodFlowChart extends StatelessWidget {
         LineChartBarData(
           spots: spots,
           isCurved: true,
-          color: color.withOpacity(0.8),
+          color: color.withValues(alpha: 0.8),
           barWidth: 2,
           dotData: FlDotData(
             show: true,
@@ -88,7 +88,7 @@ class ExportMoodFlowChart extends StatelessWidget {
           ),
           belowBarData: BarAreaData(
             show: true,
-            color: color.withOpacity(0.04),
+            color: color.withValues(alpha: 0.04),
           ),
         ),
       );
@@ -101,7 +101,7 @@ class ExportMoodFlowChart extends StatelessWidget {
       rightAction: Icon(
         CupertinoIcons.graph_circle,
         size: 18,
-        color: accentColor.withOpacity(isNight ? 0.72 : 0.8),
+        color: accentColor.withValues(alpha: isNight ? 0.72 : 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,7 +126,7 @@ class ExportMoodFlowChart extends StatelessWidget {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
+                    color: color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
@@ -180,7 +180,7 @@ class ExportMoodFlowChart extends StatelessWidget {
                         show: true,
                         drawVerticalLine: false,
                         getDrawingHorizontalLine: (value) => FlLine(
-                          color: isNight ? Colors.white10 : Colors.black.withOpacity(0.03),
+                          color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.03),
                           strokeWidth: 0.8,
                         ),
                       ),

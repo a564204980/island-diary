@@ -20,7 +20,7 @@ void showCustomColorPickerBottomSheet(
       return StatefulBuilder(
         builder: (context, setSheetState) {
           final pickerColor = HSVColor.fromAHSV(1.0, currentHue, currentSaturation, currentValue).toColor();
-          final String hexColor = '#${pickerColor.value.toRadixString(16).substring(2).toUpperCase()}';
+          final String hexColor = '#${pickerColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
           
           return DiaryBottomSheet(
             paperStyle: 'default',

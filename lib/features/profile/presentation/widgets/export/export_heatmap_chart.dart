@@ -162,9 +162,9 @@ class ExportHeatmapChart extends StatelessWidget {
   }
 
   Color _getSeasonalGlowColor(int count, bool isNight, Color themeColor) {
-    if (count <= 0) return isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03);
+    if (count <= 0) return isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03);
     double opacity = (0.2 + (count * 0.15)).clamp(0.2, 0.9);
-    return themeColor.withOpacity(opacity);
+    return themeColor.withValues(alpha: opacity);
   }
 }
 
@@ -199,10 +199,10 @@ class _ExportHeatmapPainter extends CustomPainter {
 
         Color color;
         if (count <= 0) {
-          color = isNight ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03);
+          color = isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03);
         } else {
           double opacity = (0.2 + (count * 0.15)).clamp(0.2, 0.9);
-          color = themeColor.withOpacity(opacity);
+          color = themeColor.withValues(alpha: opacity);
         }
 
         final paint = Paint()

@@ -20,6 +20,7 @@ class DiaryEntry {
   final bool isImageGrid; // 是否开启图片九宫格
   final bool isMixedLayout; // 是否开启图文混排
   final bool isLiked; // 是否已点赞（朋友圈模式交互）
+  final bool isPinned; // 是否已置顶
   final Map<String, String> annotations; // 批注数据 (Key: 块索引_段落索引, Value: 批注内容)
   final String? bookId; // 所属日记本ID
   final String? title; // 日记目录小标题
@@ -42,6 +43,7 @@ class DiaryEntry {
     this.isImageGrid = false,
     this.isMixedLayout = false,
     this.isLiked = false,
+    this.isPinned = false,
     Map<String, String>? annotations,
     this.bookId = 'default',
     this.title,
@@ -68,6 +70,7 @@ class DiaryEntry {
       'isImageGrid': isImageGrid,
       'isMixedLayout': isMixedLayout,
       'isLiked': isLiked,
+      'isPinned': isPinned,
       'annotations': annotations,
       'bookId': bookId,
       'title': title,
@@ -97,6 +100,7 @@ class DiaryEntry {
       isImageGrid: map['isImageGrid'] ?? false,
       isMixedLayout: map['isMixedLayout'] ?? false,
       isLiked: map['isLiked'] ?? false,
+      isPinned: map['isPinned'] ?? false,
       annotations: map['annotations'] != null
           ? Map<String, String>.from(map['annotations'])
           : {},
@@ -123,6 +127,7 @@ class DiaryEntry {
     bool? isImageGrid,
     bool? isMixedLayout,
     bool? isLiked,
+    bool? isPinned,
     Map<String, String>? annotations,
     String? bookId,
     String? title,
@@ -145,6 +150,7 @@ class DiaryEntry {
       isImageGrid: isImageGrid ?? this.isImageGrid,
       isMixedLayout: isMixedLayout ?? this.isMixedLayout,
       isLiked: isLiked ?? this.isLiked,
+      isPinned: isPinned ?? this.isPinned,
       annotations: annotations ?? this.annotations,
       bookId: bookId ?? this.bookId,
       title: title ?? this.title,

@@ -8,6 +8,7 @@ class ExportingDialog extends StatefulWidget {
   final Future<String?> Function() onExport;
 
   const ExportingDialog({
+    super.key,
     required this.fileName,
     required this.dpi,
     required this.onExport,
@@ -68,7 +69,12 @@ class _ExportingDialogState extends State<ExportingDialog> {
           if (_exportedFilePath != null)
             TextButton(
               onPressed: () {
-                Share.shareXFiles([XFile(_exportedFilePath!)], text: '我的日记 PDF');
+                SharePlus.instance.share(
+                  ShareParams(
+                    files: [XFile(_exportedFilePath!)],
+                    text: '我的日记 PDF',
+                  ),
+                );
               },
               child: const Text('分享到微信/社交软件', style: TextStyle(color: Colors.teal, fontWeight: FontWeight.bold)),
             ),

@@ -221,6 +221,23 @@ mixin DiaryMixin on ProfileMixin {
     await _saveDiariesToStorage();
   }
 
+  Future<void> toggleDiaryPin(String diaryId) async {
+    final index = savedDiaries.value.indexWhere((e) => e.id == diaryId);
+    if (index == -1) {
+      return;
+    }
+    final entry = savedDiaries.value[index];
+    savedDiaries.value = List.from(savedDiaries.value)..[index] = DiaryEntry(
+      id: entry.id, dateTime: entry.dateTime, moodIndex: entry.moodIndex, intensity: entry.intensity, content: entry.content,
+      tag: entry.tag, blocks: entry.blocks, weather: entry.weather, temp: entry.temp, location: entry.location,
+      customDate: entry.customDate, customTime: entry.customTime, replies: entry.replies, paperStyle: entry.paperStyle,
+      isImageGrid: entry.isImageGrid, isMixedLayout: entry.isMixedLayout, isLiked: entry.isLiked,
+      isPinned: !entry.isPinned,
+      annotations: entry.annotations,
+    );
+    await _saveDiariesToStorage();
+  }
+
   Future<void> deleteDiary(String diaryId) async {
     savedDiaries.value = savedDiaries.value.where((e) => e.id != diaryId).toList();
     await _saveDiariesToStorage();

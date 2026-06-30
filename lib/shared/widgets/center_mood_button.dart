@@ -235,14 +235,14 @@ class _ParticlePainter extends CustomPainter {
         center.dy + math.sin(currentAngle) * currentDist,
       );
 
-      // 闪烁效果 (Alpha 随进度变�?
+      // 闪烁效果 (Alpha 随进度变化)
       final opacity =
           (math.sin(progress * math.pi * 2 + particle.angle) + 1) / 2;
-      paint.color = baseColor.withOpacity(opacity * 0.8);
+      paint.color = baseColor.withValues(alpha: opacity * 0.8);
 
       canvas.drawCircle(offset, particle.size, paint);
       // 增加一个小一点的光晕
-      paint.color = baseColor.withOpacity(opacity * 0.3);
+      paint.color = baseColor.withValues(alpha: opacity * 0.3);
       canvas.drawCircle(offset, particle.size * 1.5, paint);
     }
   }

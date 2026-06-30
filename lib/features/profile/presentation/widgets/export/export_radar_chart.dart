@@ -137,7 +137,7 @@ class ExportRadarChart extends StatelessWidget {
       rightAction: Icon(
         CupertinoIcons.compass,
         size: 18,
-        color: accentColor.withOpacity(isNight ? 0.72 : 0.8),
+        color: accentColor.withValues(alpha: isNight ? 0.72 : 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,7 +201,7 @@ class ExportRadarChart extends StatelessWidget {
                                 item.iconPath!,
                                 width: iconSize,
                                 height: iconSize,
-                                errorBuilder: (_, __, ___) => const SizedBox(),
+                                errorBuilder: (_, _, _) => const SizedBox(),
                               ),
                             const SizedBox(height: 2),
                             Text(
@@ -232,8 +232,8 @@ class ExportRadarChart extends StatelessWidget {
             Container(
               height: 1,
               color: isNight
-                  ? Colors.white.withOpacity(0.06)
-                  : Colors.black.withOpacity(0.04),
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.black.withValues(alpha: 0.04),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -268,7 +268,7 @@ class ExportRadarChart extends StatelessWidget {
                         '$count',
                         style: TextStyle(
                           fontSize: 9,
-                          color: colorScheme['text']!.withOpacity(0.65),
+                          color: colorScheme['text']!.withValues(alpha: 0.65),
                           fontFamily: 'LXGWWenKai',
                           fontWeight: FontWeight.bold,
                         ),
@@ -288,24 +288,24 @@ class ExportRadarChart extends StatelessWidget {
     final List<Map<String, Color>> colors = isNight
         ? [
             {
-              'bg': const Color(0xFF7B1FA2).withOpacity(0.12),
+              'bg': const Color(0xFF7B1FA2).withValues(alpha: 0.12),
               'text': const Color(0xFFE1BEE7),
-              'border': const Color(0xFF9C27B0).withOpacity(0.25),
+              'border': const Color(0xFF9C27B0).withValues(alpha: 0.25),
             },
             {
-              'bg': const Color(0xFF2E7D32).withOpacity(0.12),
+              'bg': const Color(0xFF2E7D32).withValues(alpha: 0.12),
               'text': const Color(0xFFC8E6C9),
-              'border': const Color(0xFF4CAF50).withOpacity(0.25),
+              'border': const Color(0xFF4CAF50).withValues(alpha: 0.25),
             },
             {
-              'bg': const Color(0xFF1565C0).withOpacity(0.12),
+              'bg': const Color(0xFF1565C0).withValues(alpha: 0.12),
               'text': const Color(0xFFBBDEFB),
-              'border': const Color(0xFF2196F3).withOpacity(0.25),
+              'border': const Color(0xFF2196F3).withValues(alpha: 0.25),
             },
             {
-              'bg': const Color(0xFFC62828).withOpacity(0.12),
+              'bg': const Color(0xFFC62828).withValues(alpha: 0.12),
               'text': const Color(0xFFFFCDD2),
-              'border': const Color(0xFFE57373).withOpacity(0.25),
+              'border': const Color(0xFFE57373).withValues(alpha: 0.25),
             },
           ]
         : [
@@ -355,8 +355,8 @@ class _ExportRadarPainter extends CustomPainter {
 
     final gridPaint = Paint()
       ..color = isNight
-          ? Colors.white.withOpacity(0.2)
-          : Colors.black.withOpacity(0.12)
+          ? Colors.white.withValues(alpha: 0.2)
+          : Colors.black.withValues(alpha: 0.12)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8;
 
@@ -391,12 +391,12 @@ class _ExportRadarPainter extends CustomPainter {
     polygonPath.close();
 
     final fillPaint = Paint()
-      ..color = themeColor.withOpacity(0.35)
+      ..color = themeColor.withValues(alpha: 0.35)
       ..style = PaintingStyle.fill;
     canvas.drawPath(polygonPath, fillPaint);
 
     final borderPaint = Paint()
-      ..color = themeColor.withOpacity(0.8)
+      ..color = themeColor.withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
     canvas.drawPath(polygonPath, borderPaint);

@@ -107,7 +107,7 @@ class StarfieldPainter extends CustomPainter {
         1.0,
       );
 
-      starPaint.color = Colors.white.withOpacity(currentOpacity);
+      starPaint.color = Colors.white.withValues(alpha: currentOpacity);
 
       final Offset position = Offset(star.x * size.width, star.y * size.height);
       canvas.drawCircle(position, star.size, starPaint);
@@ -115,7 +115,7 @@ class StarfieldPainter extends CustomPainter {
       // 给较大的星星加一点微光晕，看起来更梦幻
       if (star.size > 1.2) {
         final Paint glowPaint = Paint()
-          ..color = Colors.white.withOpacity(currentOpacity * 0.25)
+          ..color = Colors.white.withValues(alpha: currentOpacity * 0.25)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0);
         canvas.drawCircle(position, star.size * 2.5, glowPaint);
       }

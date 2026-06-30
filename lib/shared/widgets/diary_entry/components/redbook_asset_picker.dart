@@ -42,7 +42,7 @@ class RedBookAssetPicker extends StatefulWidget {
 class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTickerProviderStateMixin {
   List<AssetPathEntity> _albums = [];
   AssetPathEntity? _selectedAlbum;
-  List<AssetEntity> _allAssets = [];
+  final List<AssetEntity> _allAssets = [];
   List<AssetEntity> _filteredAssets = [];
   final List<AssetEntity> _selectedAssets = [];
 
@@ -115,7 +115,6 @@ class _RedBookAssetPickerState extends State<RedBookAssetPicker> with SingleTick
       final List<AssetPathEntity> paths = await PhotoManager.getAssetPathList(
         type: widget.requestType,
         filterOption: FilterOptionGroup(
-          containsLivePhotos: true,
           onlyLivePhotos: false,
         ),
       );

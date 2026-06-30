@@ -175,13 +175,6 @@ class UserState
     // 2. 在后台 isolate 并行拉取所有重型数据，暂不提交 ValueNotifier
     await DiaryUtils.initDocumentsDirPath();
 
-    // 轻量同步数据先拿到（不 notify）
-    final lifeLinesJson = prefs.getString('life_line_list');
-    final userName = prefs.getString(n(_K.userName)) ?? '';
-    final userBio = prefs.getString(n(_K.userBio)) ?? '';
-    final themeId = prefs.getString(n(_K.selectedIslandThemeId)) ?? 'default';
-    final avatarPath = prefs.getString(n(_K.customAvatar));
-
     // 重型数据并行拉取（后台 isolate）
     final diaryFuture = () async {
       final s = prefs.getString(n(_K.savedDiaries));

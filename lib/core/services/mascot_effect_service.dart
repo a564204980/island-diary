@@ -9,7 +9,5 @@ class MascotEffectService {
   /// 检测并播放专属装扮特效
   void checkAndPlayEffect(BuildContext context, String? decorationId) {
     if (decorationId == null || decorationId.isEmpty) return;
-
-    // TODO: 待后续重新实现专属装扮特效
   }
 }

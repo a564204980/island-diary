@@ -101,7 +101,7 @@ class ExportBackgroundSettings {
       );
 
   Map<String, dynamic> toMap() => {
-        'color': color.value,
+        'color': color.toARGB32(),
         'imagePath': imagePath,
         'opacity': opacity,
         'x': x,
@@ -218,7 +218,7 @@ class ExportElement {
         'height': height,
         'content': content,
         'fontSize': fontSize,
-        'color': color.value,
+        'color': color.toARGB32(),
         'isLocked': isLocked,
         'isVisible': isVisible,
         'rotation': rotation,
@@ -232,7 +232,7 @@ class ExportElement {
         'opacity': opacity,
         'borderRadius': borderRadius,
         'cropRatio': cropRatio,
-        'textBackgroundColor': textBackgroundColor?.value,
+        'textBackgroundColor': textBackgroundColor?.toARGB32(),
         'textBackgroundBorderRadius': textBackgroundBorderRadius,
         'textBackgroundOpacity': textBackgroundOpacity,
         'textBackgroundPadding': textBackgroundPadding,

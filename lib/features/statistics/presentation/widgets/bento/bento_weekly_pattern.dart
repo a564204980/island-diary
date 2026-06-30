@@ -1,6 +1,6 @@
 part of '../../pages/statistics_page.dart';
 
-extension BentoWeeklyPattern on _StatisticsPageState {
+extension _BentoWeeklyPattern on _StatisticsPageState {
   Widget _buildWeeklyPatternBento(bool isNight, List<DiaryEntry> filtered, Color themeColor) {
     if (filtered.isEmpty) return const SizedBox.shrink();
 
@@ -79,18 +79,18 @@ extension BentoWeeklyPattern on _StatisticsPageState {
                                         begin: Alignment.bottomCenter,
                                         end: Alignment.topCenter,
                                         colors: [
-                                          themeColor.withOpacity(0.6),
+                                          themeColor.withValues(alpha: 0.6),
                                           themeColor,
                                         ]
                                       )
                                     : null,
                                   color: dayCounts[index] == 0 
-                                    ? (isNight ? Colors.white10 : Colors.black.withOpacity(0.04))
+                                    ? (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.04))
                                     : null,
                                   boxShadow: dayCounts[index] > 0 
                                     ? [
                                         BoxShadow(
-                                          color: themeColor.withOpacity(0.4),
+                                          color: themeColor.withValues(alpha: 0.4),
                                           blurRadius: 8,
                                           spreadRadius: -2,
                                           offset: const Offset(0, 4)

@@ -288,7 +288,7 @@ class _RecordPageState extends State<RecordPage> {
                                   },
                                 )
                               else if (isCalendar)
-                                const SizedBox(height: 12.0),
+                                const SizedBox(height: 4.0),
                             ],
                           ),
                         ),
@@ -788,15 +788,10 @@ class _RecordPageState extends State<RecordPage> {
       showDragHandle: false,
       builder: (context) => DiarySearchPanel(
         isNight: _isNight,
-        initialDate: _selectedDate,
-        onSearch: (q, m, d) {
+        onSearch: (q, m) {
           setState(() {
             _searchQuery = q;
             _filterMoodIndex = m;
-            if (d != null) {
-              _selectedDate = d;
-              _headerDate.value = d;
-            }
           });
         },
         onClear: () {

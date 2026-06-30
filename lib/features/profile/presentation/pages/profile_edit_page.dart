@@ -521,7 +521,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             int index = currentMonth - (currentDay <= cutoff[currentMonth - 1] ? 1 : 0);
             if (index < 0) index = 11;
             if (index >= 12) index = 0;
-            return '${currentYear}年 · $age岁 · ${signs[index]}';
+            return '$currentYear年 · $age岁 · ${signs[index]}';
           }
 
           return DiaryBottomSheet(

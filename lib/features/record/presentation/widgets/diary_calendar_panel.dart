@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:lunar/lunar.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
@@ -10,6 +9,7 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_detail_page.dart';
 import 'package:island_diary/features/record/presentation/widgets/calendar_day_cell.dart';
+import 'package:island_diary/features/record/presentation/widgets/diary_search_panel.dart';
 
 /// 日历网格面板：单月视图带记录列表版
 class DiaryCalendarPanel extends StatefulWidget {
@@ -35,6 +35,9 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
   DateTime? _selectedDay;
   bool _isCollapsed = false;
   int? _collapsedWeekIndex;
+  bool _isSortDescending = true;
+  String _searchQuery = '';
+  int? _searchMoodIndex;
 
   @override
   void initState() {
@@ -145,15 +148,42 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
         final int activeWeekIndex = (_isCollapsed && _collapsedWeekIndex != null) ? _collapsedWeekIndex! : selectedWeekIndex;
 
-        // 当前选中的日记列表（直接从所有日记中过滤，支持跨月选择）
-        final selectedDayDiaries = _selectedDay != null
+        final bool isGlobalSearch = _selectedDay == null && (_searchQuery.isNotEmpty || _searchMoodIndex != null);
+
+        // 当前选中的日记列表（支持选中具体某天，或进行全局搜索）
+        final selectedDayDiaries = (isGlobalSearch || _selectedDay != null)
             ? allDiaries.where((d) {
                 final local = d.dateTime.toLocal();
-                return local.year == _selectedDay!.year &&
-                    local.month == _selectedDay!.month &&
-                    local.day == _selectedDay!.day;
+                
+                if (!isGlobalSearch) {
+                  bool matchDate = local.year == _selectedDay!.year &&
+                      local.month == _selectedDay!.month &&
+                      local.day == _selectedDay!.day;
+                  if (!matchDate) return false;
+                }
+
+                if (_searchMoodIndex != null && d.moodIndex != _searchMoodIndex) {
+                  return false;
+                }
+
+                if (_searchQuery.isNotEmpty) {
+                  return d.content.contains(_searchQuery) ||
+                         (d.title?.contains(_searchQuery) ?? false) ||
+                         (d.tag?.contains(_searchQuery) ?? false);
+                }
+
+                return true;
               }).toList()
             : <DiaryEntry>[];
+
+        // 将置顶的日记排在前面，未置顶的按时间排序
+        selectedDayDiaries.sort((a, b) {
+          if (a.isPinned && !b.isPinned) return -1;
+          if (!a.isPinned && b.isPinned) return 1;
+          return _isSortDescending 
+              ? b.dateTime.compareTo(a.dateTime)
+              : a.dateTime.compareTo(b.dateTime);
+        });
 
         return Column(
           children: [
@@ -263,10 +293,45 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('开发中：根据标签或分类筛选日历显示的功能'),
-                                  duration: Duration(seconds: 2),
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) => DiarySearchPanel(
+                                  isNight: widget.isNight,
+                                  onSearch: (query, moodIndex) {
+                                    setState(() {
+                                      _searchQuery = query;
+                                      _searchMoodIndex = moodIndex;
+                                      if (query.isNotEmpty || moodIndex != null) {
+                                        try {
+                                          final firstMatch = allDiaries.firstWhere((d) {
+                                            if (moodIndex != null && d.moodIndex != moodIndex) return false;
+                                            if (query.isNotEmpty) {
+                                              return d.content.contains(query) ||
+                                                     (d.title?.contains(query) ?? false) ||
+                                                     (d.tag?.contains(query) ?? false);
+                                            }
+                                            return true;
+                                          });
+                                          _selectedDay = firstMatch.dateTime.toLocal();
+                                          _focusedMonth = DateTime(_selectedDay!.year, _selectedDay!.month, 1);
+                                        } catch (_) {
+                                          _selectedDay = null;
+                                        }
+                                      } else {
+                                        final now = DateTime.now();
+                                        _selectedDay = DateTime(now.year, now.month, now.day);
+                                        _focusedMonth = DateTime(now.year, now.month, 1);
+                                      }
+                                    });
+                                  },
+                                  onClear: () {
+                                    setState(() {
+                                      _searchQuery = '';
+                                      _searchMoodIndex = null;
+                                    });
+                                  },
                                 ),
                               );
                             },
@@ -494,17 +559,19 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
                     const SizedBox(height: 16),
 
-                    // 5. 选中日期的详细日记记录
-                    if (_selectedDay != null)
+                    // 5. 选中日期的详细日记记录，或搜索结果
+                    if (_selectedDay != null || isGlobalSearch)
                       Column(
-                        key: ValueKey(_selectedDay),
+                        key: ValueKey(_selectedDay ?? 'search'),
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                "${_selectedDay!.day} ${_getWeekdayChinese(_selectedDay!.weekday)}",
+                                isGlobalSearch
+                                    ? "搜索结果"
+                                    : "${_selectedDay!.day} ${_getWeekdayChinese(_selectedDay!.weekday)}",
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -527,7 +594,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                               padding: const EdgeInsets.symmetric(vertical: 24),
                               child: Center(
                                 child: Text(
-                                  "这一天没有记录日记哦~",
+                                  isGlobalSearch ? "没有找到符合条件的记录哦~" : "这一天没有记录日记哦~",
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: widget.isNight ? Colors.white24 : Colors.black26,
@@ -547,7 +614,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                               );
                             }),
                         ],
-                      ).animate(key: ValueKey(_selectedDay)).fadeIn(duration: 220.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
+                      ).animate(key: ValueKey(_selectedDay ?? 'search')).fadeIn(duration: 220.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
                   ],
             ),
           ),
@@ -591,6 +658,217 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
     );
   }
 
+  Widget _buildTimelineNode(bool isNight, String themeId) {
+    Color color;
+    bool isSquare = false;
+
+    if (themeId == 'lego') {
+      // 乐高模式：使用代表积木的圆角小方块，颜色使用活力黄
+      color = isNight ? const Color(0xFFFFD54F) : const Color(0xFFFFC107);
+      isSquare = true;
+    } else if (themeId == 'cotton_candy') {
+      // 棉花糖：粉嫩圆点
+      color = isNight ? const Color(0xFFCE93D8) : const Color(0xFFF48FB1);
+    } else {
+      // 默认：高级金棕
+      color = isNight ? const Color(0xFFE1AF78).withValues(alpha: 0.8) : const Color(0xFFD4A373);
+    }
+
+    // 边框颜色与当前背景色一致，营造出“切断”时间轴线的现代视觉效果
+    final borderColor = isNight ? const Color(0xFF2C323A) : Colors.white;
+
+    return Container(
+      width: 14,
+      height: 14,
+      decoration: BoxDecoration(
+        color: color,
+        shape: isSquare ? BoxShape.rectangle : BoxShape.circle,
+        borderRadius: isSquare ? BorderRadius.circular(4) : null,
+        border: Border.all(
+          color: borderColor,
+          width: 2.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.5),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMoodBadge(DiaryEntry entry, {bool isNight = false}) {
+    final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
+    final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
+    final mood = kMoods[moodIdx];
+    final String moodLabel = parsed.customMood ?? mood.label;
+    final String iconPath = (entry.moodIndex >= 0 && entry.moodIndex <= 23)
+        ? 'assets/icons/custom${entry.moodIndex + 1}.png'
+        : (mood.iconPath ?? 'assets/icons/happy.png');
+
+    final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        // 1. 心情标签 (表情图片 + 心情文字)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: isNight
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : Colors.black.withValues(alpha: 0.08),
+              width: 0.8,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              hasCustomIcon
+                  ? Image.file(
+                      File(parsed.customMoodIconPath!),
+                      width: 14,
+                      height: 14,
+                      errorBuilder: (c, e, s) => Icon(
+                        Icons.mood,
+                        size: 14,
+                        color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
+                      ),
+                    )
+                  : Image.asset(
+                      iconPath,
+                      width: 14,
+                      height: 14,
+                      errorBuilder: (c, e, s) => Icon(
+                        Icons.mood,
+                        size: 14,
+                        color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
+                      ),
+                    ),
+              const SizedBox(width: 4),
+              Text(
+                moodLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // 3. 天气标签 (如果有)
+        if (entry.weather != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(
+                color: isNight
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : Colors.black.withValues(alpha: 0.08),
+                width: 0.8,
+              ),
+            ),
+            child: Text(
+              "${entry.weather} ${entry.temp ?? ''}",
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                fontFamily: 'LXGWWenKai',
+              ),
+            ),
+          ),
+
+        // 4. 地点标签 (如果有)
+        if (entry.location != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(
+                color: isNight
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : Colors.black.withValues(alpha: 0.08),
+                width: 0.8,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 10,
+                  color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
+                ),
+                const SizedBox(width: 2),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 160),
+                  child: Text(
+                    entry.location!,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                      fontFamily: 'LXGWWenKai',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // 5. 话题标签 (如果有)
+        ...parsed.tags.map((singleTag) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isNight
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(
+                  color: isNight
+                      ? Colors.white.withValues(alpha: 0.15)
+                      : Colors.black.withValues(alpha: 0.08),
+                  width: 0.8,
+                ),
+              ),
+              child: Text(
+                '#$singleTag',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+            )),
+      ],
+    );
+  }
+
   Widget _buildDiaryDetailCard(DiaryEntry entry, bool isNight, String fontFamily, {required bool isFirst, required bool isLast}) {
     final themeId = UserState().selectedIslandThemeId.value;
     final bool isCottonCandy = themeId == 'cotton_candy';
@@ -603,22 +881,14 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
         ? Colors.white38
         : (isCottonCandy ? const Color(0xFF8D7A84) : const Color(0xFF7E7570));
 
-    final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
-    final mood = kMoods[moodIdx];
     final images = entry.blocks.where((b) => b['type'] == 'image').toList();
 
     // 日记内容提取逻辑
     final String plainContent = DiaryUtils.getFilteredContent(entry.content).trim();
 
-    final timeStr = "${entry.dateTime.toLocal().hour.toString().padLeft(2, '0')}:${entry.dateTime.toLocal().minute.toString().padLeft(2, '0')}";
-
-    // 心情表情图与文本解析
-    final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
-    final String moodLabel = parsed.customMood ?? mood.label;
-    final String iconPath = (entry.moodIndex >= 0 && entry.moodIndex <= 23)
-        ? 'assets/icons/custom${entry.moodIndex + 1}.png'
-        : (mood.iconPath ?? 'assets/icons/happy.png');
-    final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+    final timeStr = _selectedDay == null 
+        ? "${entry.dateTime.toLocal().month}月${entry.dateTime.toLocal().day}日 ${entry.dateTime.toLocal().hour.toString().padLeft(2, '0')}:${entry.dateTime.toLocal().minute.toString().padLeft(2, '0')}"
+        : "${entry.dateTime.toLocal().hour.toString().padLeft(2, '0')}:${entry.dateTime.toLocal().minute.toString().padLeft(2, '0')}";
 
     return GestureDetector(
       onTap: () {
@@ -656,42 +926,8 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                   ),
                   // 时间轴节点（圆形背景 + 心情图标）
                   Positioned(
-                    top: 10,
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: isNight ? const Color(0xFF2C323A) : Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isNight ? Colors.white12 : Colors.black.withValues(alpha: 0.06),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Center(
-                        child: hasCustomIcon
-                            ? Image.file(
-                                File(parsed.customMoodIconPath!),
-                                width: 14,
-                                height: 14,
-                                errorBuilder: (c, e, s) => Icon(
-                                  Icons.mood,
-                                  size: 14,
-                                  color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
-                                ),
-                              )
-                            : Image.asset(
-                                iconPath,
-                                width: 14,
-                                height: 14,
-                                errorBuilder: (c, e, s) => Icon(
-                                  Icons.mood,
-                                  size: 14,
-                                  color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
-                                ),
-                              ),
-                      ),
-                    ),
+                    top: 14,
+                    child: _buildTimelineNode(isNight, themeId),
                   ),
                 ],
               ),
@@ -717,21 +953,85 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                             fontFamily: fontFamily,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          moodLabel,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: subTextColor,
-                            fontFamily: fontFamily,
+                        if (entry.isPinned) ...[
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.push_pin_rounded,
+                            size: 14,
+                            color: const Color(0xFFF9A826), // 暖橙色作为置顶强调色
                           ),
-                        ),
+                        ],
                         const Spacer(),
-                        Icon(
-                          Icons.more_horiz_rounded,
-                          size: 16,
-                          color: subTextColor.withValues(alpha: 0.7),
+                        PopupMenuButton<String>(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          color: isNight ? const Color(0xFF2C323A) : const Color(0xFFF6F7F9),
+                          elevation: 6,
+                          offset: const Offset(0, 24),
+                          child: Container(
+                            padding: const EdgeInsets.only(left: 12, right: 4, top: 4, bottom: 4),
+                            color: Colors.transparent, // expand hit area slightly
+                            child: Icon(
+                              Icons.more_horiz_rounded,
+                              size: 16,
+                              color: subTextColor.withValues(alpha: 0.7),
+                            ),
+                          ),
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: 'pin',
+                              height: 44,
+                              child: Text(
+                                entry.isPinned ? '取消置顶' : '置顶',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: mainTextColor,
+                                  fontFamily: fontFamily,
+                                ),
+                              ),
+                            ),
+                            _CustomMenuDivider(dividerColor: subTextColor.withValues(alpha: 0.2)),
+                            PopupMenuItem(
+                              value: 'sort',
+                              height: 44,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '按时间的排序',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: mainTextColor,
+                                      fontFamily: fontFamily,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Icon(
+                                    _isSortDescending ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                                    size: 16,
+                                    color: mainTextColor,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onSelected: (value) {
+                            if (value == 'pin') {
+                              UserState().toggleDiaryPin(entry.id);
+                            } else if (value == 'sort') {
+                              setState(() {
+                                _isSortDescending = !_isSortDescending;
+                              });
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('开发中：$value 功能'),
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -768,28 +1068,93 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                     // 如果有图片，展示图片预览
                     if (images.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: images.take(3).map((img) {
-                            return DiaryUtils.buildImage(
-                              img['path'],
-                              width: 64,
-                              height: 64,
-                              fit: BoxFit.cover,
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: List.generate(
+                          images.length > 5 ? 5 : images.length,
+                          (index) {
+                            final img = images[index];
+                            final bool isLast = index == 4;
+                            final int extraCount = images.length - 5;
+                            
+                            Widget imageWidget = ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: DiaryUtils.buildImage(
+                                img['path'],
+                                width: 56,
+                                height: 56,
+                                fit: BoxFit.cover,
+                              ),
                             );
-                          }).toList(),
+
+                            if (isLast && extraCount > 0) {
+                              return Stack(
+                                children: [
+                                  imageWidget,
+                                  Positioned.fill(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(alpha: 0.5),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        '+$extraCount',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                            return imageWidget;
+                          },
                         ),
                       ),
                     ],
+                    const SizedBox(height: 10),
+                    // 底部：心情标签及其他标签（如天气、话题）
+                    _buildMoodBadge(entry, isNight: isNight),
                   ],
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// 带有左右内边距的自定义分割线，还原精美的 iOS UI
+class _CustomMenuDivider extends PopupMenuEntry<Never> {
+  final Color dividerColor;
+  const _CustomMenuDivider({required this.dividerColor});
+
+  @override
+  double get height => 1.0;
+
+  @override
+  bool represents(void value) => false;
+
+  @override
+  State<_CustomMenuDivider> createState() => _CustomMenuDividerState();
+}
+
+class _CustomMenuDividerState extends State<_CustomMenuDivider> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Divider(
+        height: 1.0,
+        thickness: 0.5,
+        color: widget.dividerColor,
       ),
     );
   }

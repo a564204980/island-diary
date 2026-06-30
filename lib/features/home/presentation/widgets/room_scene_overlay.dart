@@ -262,7 +262,7 @@ class _RoomDecorationPageState extends State<RoomDecorationPage>
           }
         },
         onLeave: (_) => _controller.selectCell(null),
-        builder: (context, _, __) => Stack(
+        builder: (context, _, _) => Stack(
           children: [
             // 可拖拽场景
             Positioned.fill(

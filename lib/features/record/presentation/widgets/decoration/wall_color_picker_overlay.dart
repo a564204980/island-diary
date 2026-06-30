@@ -139,7 +139,7 @@ class _WallColorPickerOverlayState extends State<WallColorPickerOverlay>
       itemCount: _presetColors.length,
       itemBuilder: (context, index) {
         final color = _presetColors[index];
-        final bool isSelected = currentColor.value == color.value;
+        final bool isSelected = currentColor == color;
 
         return GestureDetector(
           onTap: () {

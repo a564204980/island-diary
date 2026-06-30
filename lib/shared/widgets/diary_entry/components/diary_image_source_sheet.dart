@@ -15,13 +15,13 @@ class DiaryImageSourceSheet extends StatefulWidget {
   final Function(bool)? onImageGridChanged;
 
   const DiaryImageSourceSheet({
-    key,
+    super.key,
     this.paperStyle = 'standard',
     this.isMixedLayout,
     this.isImageGrid,
     this.onMixedLayoutChanged,
     this.onImageGridChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<DiaryImageSourceSheet> createState() => _DiaryImageSourceSheetState();

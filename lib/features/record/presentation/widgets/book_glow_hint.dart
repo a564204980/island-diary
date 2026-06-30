@@ -69,7 +69,7 @@ class _BookGlowHintState extends State<BookGlowHint>
                         BoxShadow(
                           color: const Color(
                             0xFFFFECB3,
-                          ).withOpacity(_opacityAnimation.value),
+                          ).withValues(alpha: _opacityAnimation.value),
                           blurRadius: 10,
                           spreadRadius: 2,
                         ),
@@ -86,7 +86,7 @@ class _BookGlowHintState extends State<BookGlowHint>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                         blurRadius: 4,
                       ),
                     ],
