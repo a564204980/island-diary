@@ -21,6 +21,7 @@ import 'package:island_diary/features/statistics/presentation/widgets/glass_bent
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 import 'package:island_diary/core/services/ai_service.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_detail_page.dart';
+import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 part '../widgets/bento/bento_radar_chart.dart';
 part '../widgets/bento/bento_mood_calendar.dart';
@@ -499,29 +500,252 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
   }
 
   Widget _buildEmptyState(bool isNight) {
+    final String themeId = UserState().selectedIslandThemeId.value;
+    final bool isCottonCandy = themeId == 'cotton_candy';
+    final bool isLego = themeId == 'lego';
+    final Color textColor = isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF332F2D);
+    final Color subTextColor = isNight ? Colors.white.withValues(alpha: 0.5) : const Color(0xFF8A7462);
+
+    final Color primaryColor = Theme.of(context).primaryColor;
+    final Color activeAccentColor = isCottonCandy
+        ? const Color(0xFFFF8E9E)
+        : (isLego ? const Color(0xFFF37D3B) : primaryColor);
+
+    final Color buttonBgColor = activeAccentColor;
+
+    final bool useGlassButton = !isLego && !isCottonCandy;
+    final Color finalButtonTextColor = useGlassButton
+        ? (isNight ? const Color(0xFFFFD54F) : const Color(0xFF6D5A4B))
+        : Colors.white;
+
+    // 乐高模式下计算 3D 阴影颜色
+    final hsl = HSLColor.fromColor(activeAccentColor);
+    final Color legoShadowColor = hsl.withLightness((hsl.lightness - 0.08).clamp(0.0, 1.0)).toColor();
+
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            CupertinoIcons.wind,
-            size: 60,
-            color: isNight ? Colors.white38 : Colors.black26,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '在这段时间里没有记录日记哦',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isNight ? Colors.white54 : Colors.black54,
-              fontSize: 14,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 呼吸感多重极光弥散背景与浮空心灵岛屿插图
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0.95, end: 1.05),
+              duration: const Duration(seconds: 4),
+              curve: Curves.easeInOutSine,
+              builder: (context, animValue, child) {
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // 第一层弥散光晕 (淡雅柔粉)
+                    Transform.scale(
+                      scale: animValue * 1.15,
+                      child: Container(
+                        width: 220,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          shape: isLego ? BoxShape.rectangle : BoxShape.circle,
+                          borderRadius: isLego ? BorderRadius.circular(36) : null,
+                          gradient: RadialGradient(
+                            colors: [
+                              activeAccentColor.withValues(
+                                alpha: (0.1 + (animValue - 0.95) * 0.08).clamp(0.0, 1.0),
+                              ),
+                              activeAccentColor.withValues(alpha: 0.0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // 第二层弥散光晕 (深空淡蓝，创造极光氛围)
+                    Transform.scale(
+                      scale: (2.0 - animValue) * 0.95,
+                      child: Container(
+                        width: 190,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          shape: isLego ? BoxShape.rectangle : BoxShape.circle,
+                          borderRadius: isLego ? BorderRadius.circular(28) : null,
+                          gradient: RadialGradient(
+                            colors: [
+                              (isCottonCandy ? const Color(0xFFC3B4FC) : const Color(0xFF8E9BFF))
+                                  .withValues(alpha: 0.08),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // 心灵空岛与浮空云朵视差插画 (Stateful 自带控制器，性能更优)
+                    _EmptyStateIslandIllustration(
+                      isNight: isNight,
+                      themeColor: activeAccentColor,
+                    ),
+                  ],
+                );
+              },
             ),
-          ),
-        ],
+            const SizedBox(height: 32),
+            Text(
+              '心灵岛屿，静待微风',
+              style: TextStyle(
+                color: textColor,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2,
+                fontFamily: 'LXGWWenKai',
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                '写下第一笔，唤醒你的心灵灯塔，点亮情绪起伏与心境流转数据。',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: subTextColor,
+                  fontSize: 12.5,
+                  height: 1.65,
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+            ),
+            const SizedBox(height: 38),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DiaryEditorPage(),
+                  ),
+                );
+              },
+              child: useGlassButton
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 28,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isNight
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : Colors.white.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                              color: const Color(0xFFFFD54F).withValues(alpha: isNight ? 0.35 : 0.6), // 金色晨光描边
+                              width: 1.2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFFFD54F).withValues(alpha: isNight ? 0.05 : 0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              )
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                CupertinoIcons.pen,
+                                size: 15,
+                                color: finalButtonTextColor,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '开启第一篇日记',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: finalButtonTextColor,
+                                  letterSpacing: 0.5,
+                                  fontFamily: 'LXGWWenKai',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  : Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isLego ? 36 : 28,
+                        vertical: isLego ? 16 : 12,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: isLego
+                            ? null
+                            : const LinearGradient(
+                                colors: [
+                                  Color(0xFFFFB74D), // 暖阳金
+                                  Color(0xFFFF8E9E), // 蜜桃粉
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                        color: isLego ? buttonBgColor : null,
+                        borderRadius: BorderRadius.circular(isLego ? 14 : 22),
+                        border: isLego
+                            ? Border.all(
+                                color: isNight
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : Colors.black.withValues(alpha: 0.05),
+                                width: 1,
+                              )
+                            : null,
+                        boxShadow: isLego
+                            ? [
+                                BoxShadow(
+                                  color: legoShadowColor,
+                                  blurRadius: 0,
+                                  offset: const Offset(0, 4.0),
+                                ),
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 4.0),
+                                ),
+                              ]
+                            : [
+                                BoxShadow(
+                                  color: const Color(0xFFFF8E9E).withValues(alpha: 0.22),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 5),
+                                )
+                              ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            CupertinoIcons.pen,
+                            size: 15,
+                            color: finalButtonTextColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '开启第一篇日记',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: finalButtonTextColor,
+                              letterSpacing: 0.5,
+                              fontFamily: 'LXGWWenKai',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -560,7 +784,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                     children: [
                       _buildHeader(isNight, filteredDiaries),
                       Expanded(
-                        child: filteredDiaries.isEmpty && _currentRange != StatTimeRange.month
+                        child: filteredDiaries.isEmpty
                           ? _buildEmptyState(isNight)
                           : Center(
                               child: ConstrainedBox(
@@ -1034,4 +1258,289 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
     );
   }
 
+}
+
+class _EmptyStateIslandPainter extends CustomPainter {
+  final bool isNight;
+  final Color themeColor;
+
+  _EmptyStateIslandPainter({required this.isNight, required this.themeColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double w = size.width;
+    final double h = size.height;
+
+    // 中心定位 (空岛底座中心在大约 cx = w*0.5, cy = h*0.7)
+    final double cx = w * 0.5;
+    final double cy = h * 0.72;
+
+    // 1. 绘制空岛下方的微弱空气感阴影 (软气流/浮动底座阴影)
+    final shadowPaint = Paint()
+      ..color = (isNight ? Colors.black : themeColor).withValues(alpha: 0.12)
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10.0);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(cx, cy + 30), width: 90, height: 12),
+      shadowPaint,
+    );
+
+    // 2. 绘制空岛泥土基座 (3D 锥形/圆台土层)
+    final dirtPath = Path();
+    dirtPath.moveTo(cx - 50, cy); // 左上 (草地边缘)
+    dirtPath.lineTo(cx + 50, cy); // 右上
+    dirtPath.quadraticBezierTo(cx + 42, cy + 24, cx + 24, cy + 28); // 右侧收缩
+    dirtPath.lineTo(cx - 24, cy + 28); // 底部平直
+    dirtPath.quadraticBezierTo(cx - 42, cy + 24, cx - 50, cy); // 左侧收缩
+    dirtPath.close();
+
+    final dirtPaint = Paint()
+      ..shader = LinearGradient(
+        colors: isNight
+            ? [const Color(0xFF423B38), const Color(0xFF2C2624)]
+            : [const Color(0xFFD7CCC8), const Color(0xFFA1887F)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(Rect.fromLTWH(cx - 50, cy, 100, 28))
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(dirtPath, dirtPaint);
+
+    // 3. 绘制草地层 (稍微探出泥土边缘，带边缘厚度)
+    // 3.1 草地厚度层 (深绿/反光层)
+    final grassThicknessPath = Path();
+    grassThicknessPath.moveTo(cx - 54, cy);
+    grassThicknessPath.lineTo(cx + 54, cy);
+    grassThicknessPath.quadraticBezierTo(cx + 54, cy + 4, cx + 52, cy + 5);
+    grassThicknessPath.lineTo(cx - 52, cy + 5);
+    grassThicknessPath.quadraticBezierTo(cx - 54, cy + 4, cx - 54, cy);
+    grassThicknessPath.close();
+
+    final grassThickPaint = Paint()
+      ..color = isNight ? const Color(0xFF1B5E20) : const Color(0xFF4CAF50)
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(grassThicknessPath, grassThickPaint);
+
+    // 3.2 草地面层 (嫩绿，透视椭圆)
+    final grassPaint = Paint()
+      ..shader = LinearGradient(
+        colors: isNight
+            ? [const Color(0xFF2E7D32), const Color(0xFF1B5E20)]
+            : [const Color(0xFFC8E6C9), const Color(0xFF81C784)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(Rect.fromCenter(center: Offset(cx, cy - 2), width: 108, height: 12))
+      ..style = PaintingStyle.fill;
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(cx, cy - 1), width: 108, height: 10),
+      grassPaint,
+    );
+
+    // 4. 绘制小树 (左侧)
+    final double tx = cx - 28;
+    final double ty = cy - 4;
+
+    // 树干
+    final trunkPaint = Paint()
+      ..color = isNight ? const Color(0xFF3E2723) : const Color(0xFF5D4037)
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(tx, ty), Offset(tx, ty - 12), trunkPaint);
+
+    // 树冠 (叠放的云状绿色圆圈，增加治愈感)
+    final leafPaint = Paint()
+      ..color = isNight ? const Color(0xFF0F9D58) : const Color(0xFFA5D6A7).withValues(alpha: 0.9)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(tx, ty - 16), 7, leafPaint);
+    canvas.drawCircle(Offset(tx - 4, ty - 12), 6, leafPaint);
+    canvas.drawCircle(Offset(tx + 4, ty - 12), 6, leafPaint);
+
+    // 5. 绘制心灵灯塔 (右侧，高约 34)
+    final double lx = cx + 22;
+    final double ly = cy - 3;
+
+    // 灯塔塔身 (白灰红相间，立体圆锥体)
+    final baseWidth = 9.0;
+    final topWidth = 5.0;
+    final towerHeight = 28.0;
+
+    final towerPath = Path();
+    towerPath.moveTo(lx - baseWidth / 2, ly);
+    towerPath.lineTo(lx + baseWidth / 2, ly);
+    towerPath.lineTo(lx + topWidth / 2, ly - towerHeight);
+    towerPath.lineTo(lx - topWidth / 2, ly - towerHeight);
+    towerPath.close();
+
+    final towerPaint = Paint()
+      ..shader = LinearGradient(
+        colors: isNight
+            ? [const Color(0xFFCFD8DC), const Color(0xFF90A4AE)]
+            : [const Color(0xFFECEFF1), const Color(0xFFB0BEC5)],
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+      ).createShader(Rect.fromLTWH(lx - baseWidth / 2, ly - towerHeight, baseWidth, towerHeight))
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(towerPath, towerPaint);
+
+    // 绘制红色条纹装饰
+    final stripePaint = Paint()
+      ..color = isNight ? const Color(0xFFC62828) : const Color(0xFFEF5350)
+      ..style = PaintingStyle.fill;
+    
+    // 中间装饰环
+    final stripePath = Path()
+      ..moveTo(lx - 7.5 / 2, ly - 10)
+      ..lineTo(lx + 7.5 / 2, ly - 10)
+      ..lineTo(lx + 6.5 / 2, ly - 15)
+      ..lineTo(lx - 6.5 / 2, ly - 15)
+      ..close();
+    canvas.drawPath(stripePath, stripePaint);
+
+    // 塔顶发光阁楼 (金色微光)
+    final atticPaint = Paint()
+      ..color = const Color(0xFFFFD54F)
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(
+      Rect.fromCenter(center: Offset(lx, ly - towerHeight - 2), width: 4.5, height: 4),
+      atticPaint,
+    );
+
+    // 塔尖圆顶 (黑色/深灰)
+    final capPath = Path()
+      ..moveTo(lx - 3.5, ly - towerHeight - 4)
+      ..lineTo(lx + 3.5, ly - towerHeight - 4)
+      ..quadraticBezierTo(lx, ly - towerHeight - 8, lx, ly - towerHeight - 8)
+      ..close();
+    canvas.drawPath(
+      capPath,
+      Paint()
+        ..color = const Color(0xFF37474F)
+        ..style = PaintingStyle.fill,
+    );
+
+    // 6. 绘制塔尖射出的扇形指引光束 (核心治愈属性，微光发散)
+    final beamPath = Path();
+    beamPath.moveTo(lx, ly - towerHeight - 2); // 塔尖起点
+    beamPath.lineTo(w * 0.92, h * 0.12); // 光束终点 1
+    beamPath.lineTo(w * 0.95, h * 0.32); // 光束终点 2
+    beamPath.close();
+
+    final beamPaint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          const Color(0xFFFFF9C4).withValues(alpha: 0.35), // 起点微黄暖光
+          const Color(0xFFFFF9C4).withValues(alpha: 0.0),  // 逐渐淡入天空
+        ],
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+      ).createShader(Rect.fromLTWH(lx, h * 0.12, w * 0.95 - lx, h * 0.32 - h * 0.12))
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(beamPath, beamPaint);
+
+    // 7. 绘制天空中点缀的几颗十字星芒
+    final starPaint = Paint()
+      ..color = (isNight ? Colors.white : themeColor).withValues(alpha: 0.38)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    _drawStar(canvas, Offset(w * 0.18, h * 0.22), 4.5, starPaint);
+    _drawStar(canvas, Offset(w * 0.82, h * 0.58), 3.5, starPaint);
+    _drawStar(canvas, Offset(w * 0.86, h * 0.18), 5.0, starPaint);
+  }
+
+  void _drawStar(Canvas canvas, Offset center, double size, Paint paint) {
+    canvas.drawLine(Offset(center.dx - size, center.dy), Offset(center.dx + size, center.dy), paint);
+    canvas.drawLine(Offset(center.dx, center.dy - size), Offset(center.dx, center.dy + size), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _EmptyStateIslandIllustration extends StatefulWidget {
+  final bool isNight;
+  final Color themeColor;
+
+  const _EmptyStateIslandIllustration({required this.isNight, required this.themeColor});
+
+  @override
+  State<_EmptyStateIslandIllustration> createState() => _EmptyStateIslandIllustrationState();
+}
+
+class _EmptyStateIslandIllustrationState extends State<_EmptyStateIslandIllustration>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _floatAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+
+    _floatAnim = Tween<double>(begin: -6.0, end: 6.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _floatAnim,
+      builder: (context, child) {
+        final double dy = _floatAnim.value;
+        return Container(
+          width: 240,
+          height: 180,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // 1. 浮空云朵 1 (左后方，漂浮方向与空岛相反，实现视差)
+              Positioned(
+                top: 26 + (dy * 0.4),
+                left: 20 - (dy * 0.25),
+                child: Icon(
+                  Icons.cloud_rounded,
+                  size: 46,
+                  color: widget.isNight
+                      ? Colors.white.withValues(alpha: 0.35)
+                      : Colors.white.withValues(alpha: 0.85),
+                ),
+              ),
+              // 2. 浮空云朵 2 (右前方，漂浮方向与空岛相反，幅度不同)
+              Positioned(
+                bottom: 30 - (dy * 0.35),
+                right: 18 + (dy * 0.3),
+                child: Icon(
+                  Icons.cloud_rounded,
+                  size: 38,
+                  color: widget.isNight
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : Colors.white.withValues(alpha: 0.72),
+                ),
+              ),
+              // 3. 空岛主体 (跟随浮动动画上下飘移)
+              Transform.translate(
+                offset: Offset(0, dy),
+                child: CustomPaint(
+                  size: const Size(210, 160),
+                  painter: _EmptyStateIslandPainter(
+                    isNight: widget.isNight,
+                    themeColor: widget.themeColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }

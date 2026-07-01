@@ -6,18 +6,85 @@ extension _BentoMoodTrend on _StatisticsPageState {
     List<DiaryEntry> filtered,
     Color themeColor,
   ) {
+    final bool isCottonCandy = UserState().selectedIslandThemeId.value == 'cotton_candy';
+
     if (filtered.isEmpty && _allDiaries.isEmpty) {
+      final Color textColor = isNight ? Colors.white70 : const Color(0xFF332F2D);
+      final Color subTextColor = isNight ? Colors.white38 : Colors.black38;
+      final Color buttonBgColor = isCottonCandy
+          ? const Color(0xFFFCAEAE)
+          : (isNight ? Colors.white12 : const Color(0xFF332F2D));
+      final Color buttonTextColor = Colors.white;
+
       return _buildGlassCard(
         isNight: isNight,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
         hideLegoBackground: true,
-        child: const SizedBox(
+        child: SizedBox(
           height: 200,
-          child: Center(
-            child: Text(
-              '记录心情，发现情绪波动的旋律 📈',
-              style: TextStyle(fontSize: 13, color: Colors.grey),
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                CupertinoIcons.graph_square,
+                size: 40,
+                color: isCottonCandy
+                    ? const Color(0xFFFCAEAE)
+                    : (isNight ? Colors.white30 : Colors.black26),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '记录心情，发现情绪波动的旋律 📈',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '写下第一篇日记，即可在此观测你的情绪天气和起伏曲线哦',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: subTextColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DiaryEditorPage(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: buttonBgColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: buttonBgColor.withValues(alpha: 0.2),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      )
+                    ],
+                  ),
+                  child: Text(
+                    '去记一笔',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: buttonTextColor,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -160,9 +227,6 @@ extension _BentoMoodTrend on _StatisticsPageState {
       5.0,
     ].reduce((curr, next) => curr > next ? curr : next);
     double yLimit = (absMax * 1.3).ceilToDouble();
-
-    final bool isCottonCandy =
-        UserState().selectedIslandThemeId.value == 'cotton_candy';
 
     // 🔥 棉花糖岛白天模式下的折线颜色：一比一复刻图 2 的梦幻马卡龙桃粉色！
     final Color mainBarColor = (isCottonCandy && !isNight)

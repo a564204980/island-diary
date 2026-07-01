@@ -136,28 +136,28 @@ extension _BentoEmotionMetrics on _StatisticsPageState {
 
            Widget segmentWidget = GestureDetector(
             onTapDown: (_) {
-              setState(() {
+              updateState(() {
                 _hoveredEmotionLabel = data.label;
               });
             },
             onTapUp: (_) {
-              setState(() {
+              updateState(() {
                 _hoveredEmotionLabel = null;
               });
             },
             onTapCancel: () {
-              setState(() {
+              updateState(() {
                 _hoveredEmotionLabel = null;
               });
             },
             onTap: () async {
               if (data.originalMoodIndex != null) {
-                setState(() {
+                updateState(() {
                   _hoveredEmotionLabel = data.label;
                 });
                 await _showMoodDetailSheet(context, data.originalMoodIndex!, filtered, isNight);
                 if (mounted) {
-                  setState(() {
+                  updateState(() {
                     _hoveredEmotionLabel = null;
                   });
                 }
@@ -245,28 +245,28 @@ extension _BentoEmotionMetrics on _StatisticsPageState {
                 opacity: chipOpacity,
                 child: GestureDetector(
                   onTapDown: (_) {
-                    setState(() {
+                    updateState(() {
                       _hoveredEmotionLabel = data.label;
                     });
                   },
                   onTapUp: (_) {
-                    setState(() {
+                    updateState(() {
                       _hoveredEmotionLabel = null;
                     });
                   },
                   onTapCancel: () {
-                    setState(() {
+                    updateState(() {
                       _hoveredEmotionLabel = null;
                     });
                   },
                   onTap: () async {
                     if (data.originalMoodIndex != null) {
-                      setState(() {
+                      updateState(() {
                         _hoveredEmotionLabel = data.label;
                       });
                       await _showMoodDetailSheet(context, data.originalMoodIndex!, filtered, isNight);
                       if (mounted) {
-                        setState(() {
+                        updateState(() {
                           _hoveredEmotionLabel = null;
                         });
                       }

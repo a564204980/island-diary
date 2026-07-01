@@ -255,10 +255,7 @@ extension _BentoMoodCalendar on _StatisticsPageState {
         final curve = Curves.easeOutBack.transform(anim1.value);
         return Transform.scale(
           scale: 0.8 + (curve * 0.2),
-          child: Opacity(
-            opacity: anim1.value,
-            child: child,
-          ),
+          child: child,
         );
       },
     );

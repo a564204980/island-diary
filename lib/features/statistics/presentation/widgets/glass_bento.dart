@@ -60,15 +60,7 @@ class GlassBento extends StatelessWidget {
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: isScrolling || blurSigma <= 0.0
-              ? container
-              : BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-                  child: container,
-                ),
-        ),
+        child: container,
       ),
     );
   }

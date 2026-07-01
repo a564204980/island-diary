@@ -25,128 +25,122 @@ class IslandVipGuardDialog extends StatelessWidget {
     return Center(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 36),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 36),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF0F1123).withValues(alpha: 0.88),
-                    const Color(0xFF1A162B).withValues(alpha: 0.88),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  width: 0.8,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    blurRadius: 40,
-                    offset: const Offset(0, 16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 36),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF0F1123).withValues(alpha: 0.88),
+                const Color(0xFF1A162B).withValues(alpha: 0.88),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.12),
+              width: 0.8,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 40,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 核心华丽星芒
+                _buildInsignia(primaryStarColor),
+                const SizedBox(height: 28),
+                
+                // 标题
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'LXGWWenKai',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.5,
                   ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 核心华丽星芒
-                    _buildInsignia(primaryStarColor),
-                    const SizedBox(height: 28),
-                    
-                    // 标题
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'LXGWWenKai',
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1.5,
-                      ),
-                    ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.15, end: 0, curve: Curves.easeOutCubic),
-                    
-                    const SizedBox(height: 12),
-                    // 描述
-                    Text(
-                      description,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'LXGWWenKai',
-                        fontSize: 13.5,
-                        color: Colors.white.withValues(alpha: 0.55),
-                        height: 1.5,
-                      ),
-                    ).animate().fadeIn(delay: 150.ms),
-                    
-                    const SizedBox(height: 26),
-                    // 权益高亮框
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            primaryStarColor.withValues(alpha: 0.08),
-                            secondaryStarColor.withValues(alpha: 0.08),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: primaryStarColor.withValues(alpha: 0.2),
-                          width: 0.8,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.auto_awesome_rounded, size: 16, color: primaryStarColor),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              benefitText,
-                              style: const TextStyle(
-                                fontFamily: 'LXGWWenKai',
-                                fontSize: 12.5,
-                                color: Color(0xFFE9D5FF),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ).animate().scale(delay: 350.ms, curve: Curves.easeOutBack),
-                    
-                    const SizedBox(height: 36),
-                    // 行动按钮
-                    _buildActionButton(context, primaryStarColor, secondaryStarColor),
-                    
-                    const SizedBox(height: 10),
-                    // 取消按钮
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      child: Text(
-                        '稍后再说',
-                        style: TextStyle(
-                          fontFamily: 'LXGWWenKai',
-                          color: Colors.white.withValues(alpha: 0.35),
-                          fontSize: 13,
-                        ),
-                      ),
+                ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.15, end: 0, curve: Curves.easeOutCubic),
+                
+                const SizedBox(height: 12),
+                // 描述
+                Text(
+                  description,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'LXGWWenKai',
+                    fontSize: 13.5,
+                    color: Colors.white.withValues(alpha: 0.55),
+                    height: 1.5,
+                  ),
+                ).animate().fadeIn(delay: 150.ms),
+                
+                const SizedBox(height: 26),
+                // 权益高亮框
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        primaryStarColor.withValues(alpha: 0.08),
+                        secondaryStarColor.withValues(alpha: 0.08),
+                      ],
                     ),
-                  ],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: primaryStarColor.withValues(alpha: 0.2),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.auto_awesome_rounded, size: 16, color: primaryStarColor),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          benefitText,
+                          style: const TextStyle(
+                            fontFamily: 'LXGWWenKai',
+                            fontSize: 12.5,
+                            color: Color(0xFFE9D5FF),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().scale(delay: 350.ms, curve: Curves.easeOutBack),
+                
+                const SizedBox(height: 36),
+                // 行动按钮
+                _buildActionButton(context, primaryStarColor, secondaryStarColor),
+                
+                const SizedBox(height: 10),
+                // 取消按钮
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  child: Text(
+                    '稍后再说',
+                    style: TextStyle(
+                      fontFamily: 'LXGWWenKai',
+                      color: Colors.white.withValues(alpha: 0.35),
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),

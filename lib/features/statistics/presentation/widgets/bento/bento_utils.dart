@@ -278,13 +278,9 @@ extension _BentoUtils on _StatisticsPageState {
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: Material(
                 color: Colors.transparent,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
                         color: isNight
                             ? const Color(0xFF1A1A1A).withValues(alpha: 0.8)
                             : Colors.white.withValues(alpha: 0.85),
@@ -332,8 +328,6 @@ extension _BentoUtils on _StatisticsPageState {
                   ),
                 ),
               ),
-            ),
-          ),
         );
       },
     );

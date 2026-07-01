@@ -665,40 +665,35 @@ class _RecordPageState extends State<RecordPage> {
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: ClipOval(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: GestureDetector(
-            onTap: onTap,
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isNight 
-                    ? const Color(0xFF1B232E).withValues(alpha: 0.72) 
-                    : Colors.white.withValues(alpha: 0.8),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isNight 
-                      ? Colors.white.withValues(alpha: 0.12) 
-                      : Colors.black.withValues(alpha: 0.06),
-                  width: 1.0,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: isNight 
+                ? const Color(0xFF1B232E).withValues(alpha: 0.72) 
+                : Colors.white.withValues(alpha: 0.8),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isNight 
+                  ? Colors.white.withValues(alpha: 0.12) 
+                  : Colors.black.withValues(alpha: 0.06),
+              width: 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
               ),
-              child: Center(
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: isNight ? const Color(0xFFE1AF78) : const Color(0xFFD4A373),
-                ),
-              ),
+            ],
+          ),
+          child: Center(
+            child: Icon(
+              icon,
+              size: 20,
+              color: isNight ? const Color(0xFFE1AF78) : const Color(0xFFD4A373),
             ),
           ),
         ),

@@ -28,7 +28,6 @@ class DiaryBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isNight = UserState().isNight;
     final themeId = UserState().selectedIslandThemeId.value;
-    final bool isLego = themeId == 'lego';
 
     final Color inkColor;
     final Color bgColor;

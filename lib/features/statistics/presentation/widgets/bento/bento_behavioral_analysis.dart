@@ -355,22 +355,22 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
 
                   return GestureDetector(
                     onTapDown: (_) {
-                      setState(() {
+                      updateState(() {
                         _hoveredTimeIndex = index;
                       });
                     },
                     onTapUp: (_) {
-                      setState(() {
+                      updateState(() {
                         _hoveredTimeIndex = null;
                       });
                     },
                     onTapCancel: () {
-                      setState(() {
+                      updateState(() {
                         _hoveredTimeIndex = null;
                       });
                     },
                     onTap: () async {
-                      setState(() {
+                      updateState(() {
                         _hoveredTimeIndex = index;
                       });
                       await _showTimeGroupDetailSheet(
@@ -380,7 +380,7 @@ extension _BentoBehavioralAnalysis on _StatisticsPageState {
                         isNight,
                       );
                       if (mounted) {
-                        setState(() {
+                        updateState(() {
                           _hoveredTimeIndex = null;
                         });
                       }
