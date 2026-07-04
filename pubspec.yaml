@@ -176,6 +176,10 @@ flutter:
       fonts:
         - asset: assets/fonts/SweiFistLegCJKjp-Medium-2.ttf
 
+
+dependency_overrides:
+  win32: 5.14.0
+
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true

@@ -91,6 +91,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   bool _isPanelExpanded = false; // 面板是否展开，默认收起
   int _focusedPageIndex = 0; // 当前选中的/聚焦的页面
   int _pageTabIdx = 0; // 页面面板子Tab页签：0纸张尺寸，1我的模板
+  bool _isInitializing = true; // 是否正在异步排版大量日记
   bool _isZoomScaleInitialized = false; // 是否已经根据容器尺寸初始化了缩放比例
   final TransformationController _transformationController = TransformationController();
 
@@ -578,10 +579,21 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
       }
     });
     _exportSettings.fileName = '${widget.book.name}_导出';
-    _initDefaultElements();
-    _initialCanvasStateJson = _getCanvasStateJson();
+    
     _transformationController.addListener(_onViewportChanged);
     _loadLocalTemplates();
+
+    // 延迟解析海量日记，让新页面的转场动画顺滑无阻
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // 留出 350ms 等待 MaterialPageRoute 动画完全展开
+      await Future.delayed(const Duration(milliseconds: 350));
+      _initDefaultElements();
+      if (!mounted) return;
+      setState(() {
+        _isInitializing = false;
+        _initialCanvasStateJson = _getCanvasStateJson();
+      });
+    });
   }
 
   // 初始化默认放入一些精美的占位元素，基于用户日记，起点和宽度与页边距联动
@@ -1209,7 +1221,8 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     if (pageOffset > contentHeightLimit) {
       maxPage += 1;
     }
-    return (maxPage + 1).clamp(1, 10);
+    // 取消了 10 页的强制上限，以支持整本日记的完整渲染和导出
+    return (maxPage + 1);
   }
 
   double get _totalCanvasHeight {
@@ -1432,9 +1445,27 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
         ],
       ),
-      body: Stack(
-        children: [
-          // 离屏预渲染区：将待截图的图表 Widget 动态渲染到真实 RenderTree 中并置于屏幕外以确保 Paint 执行，避免 !debugNeedsPaint 错误
+      body: _isInitializing
+          ? const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: Color(0xFFA68565)),
+                  SizedBox(height: 16),
+                  Text(
+                    '正在将您的日记排版成书...',
+                    style: TextStyle(
+                      color: Color(0xFFA68565),
+                      fontFamily: 'LXGWWenKai',
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Stack(
+              children: [
+                // 离屏预渲染区：将待截图的图表 Widget 动态渲染到真实 RenderTree 中并置于屏幕外以确保 Paint 执行，避免 !debugNeedsPaint 错误
           if (_capturingChartWidget != null)
             Positioned(
               left: -9999,
