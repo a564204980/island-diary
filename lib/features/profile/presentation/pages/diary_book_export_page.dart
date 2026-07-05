@@ -46,6 +46,20 @@ part 'export/parts/export_panel_export.dart';
 
 // --- 主页面实现 ---
 
+class RichTextEditingController extends TextEditingController {
+  final InlineSpan Function(String text, TextStyle style) buildRichTextSpan;
+
+  RichTextEditingController({
+    String? text,
+    required this.buildRichTextSpan,
+  }) : super(text: text);
+
+  @override
+  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
+    return buildRichTextSpan(text, style ?? const TextStyle()) as TextSpan;
+  }
+}
+
 class DiaryBookExportPage extends StatefulWidget {
   final DiaryBook book;
   final List<DiaryEntry> diaries;
@@ -612,7 +626,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   @override
   void initState() {
     super.initState();
-    _textEditorController = TextEditingController();
+    _textEditorController = RichTextEditingController(buildRichTextSpan: _buildRichTextSpan);
     _inlineFocusNode.addListener(() {
       if (!_inlineFocusNode.hasFocus) {
         updateState(() {
@@ -888,6 +902,8 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
           fontSize: 15,
           color: Colors.black87,
         );
+
+        _adjustTextElementWidth(sentenceElement);
 
         final sStyle = TextStyle(
           fontSize: sentenceElement.fontSize,
@@ -1397,13 +1413,39 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
       letterSpacing: element.letterSpacing,
       height: element.lineHeight,
     );
+    double extraWidgetWidth = 0.0;
+    
+    // 1. Calculate mood_icon width (width: fontSize * 1.2, plus padding right 4.0)
+    final moodPattern = RegExp(r'\[mood_icon:(.*?)\]');
+    final moodMatches = moodPattern.allMatches(element.content);
+    final double moodIconWidth = (element.fontSize) * 1.2 + 4.0;
+    extraWidgetWidth += moodMatches.length * moodIconWidth;
+    
+    // 2. Clean text string without mood_icons for emoji parsing
+    String textWithoutMood = element.content.replaceAll(moodPattern, '');
+    
+    // 3. Calculate PUA emojis width (width: fontSize * 1.3, plus padding horizontal 1.0*2)
+    final chunks = EmojiMapping.parseText(textWithoutMood);
+    final double puaEmojiWidth = (element.fontSize) * 1.3 + 2.0;
+    
+    StringBuffer plainTextBuilder = StringBuffer();
+    for (var chunk in chunks) {
+      if (chunk.isEmoji) {
+        extraWidgetWidth += puaEmojiWidth;
+      } else {
+        plainTextBuilder.write(chunk.text);
+      }
+    }
+    
+    final plainText = plainTextBuilder.toString();
+
     final textPainter = TextPainter(
-      text: TextSpan(text: element.content, style: textStyle),
+      text: TextSpan(text: plainText, style: textStyle),
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: _canvasWidth - _margin.left - _margin.right);
-    // 额外留出 16dp 容错间距与文本背景的 padding
+    // 额外留出 4dp 容错间距与文本背景的 padding
     final double paddingOffset = (element.textBackgroundColor != null) ? (element.textBackgroundPadding * 2) : 0.0;
-    element.width = (textPainter.width + 16.0 + paddingOffset).clamp(50.0, _canvasWidth - _margin.left - _margin.right);
+    element.width = (textPainter.maxIntrinsicWidth + extraWidgetWidth + 4.0 + paddingOffset).clamp(50.0, _canvasWidth - _margin.left - _margin.right);
   }
 
   void _handleBackPress() {
@@ -1565,7 +1607,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _initialCanvasStateJson == _getCanvasStateJson(),
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _handleBackPress();

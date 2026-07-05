@@ -448,9 +448,9 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Colors.white.withValues(alpha: 0.4),
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF8B5CF6), width: 2),
+                        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.6), width: 1.5),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.15),
