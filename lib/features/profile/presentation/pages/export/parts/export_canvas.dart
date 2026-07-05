@@ -2,11 +2,222 @@ part of '../../diary_book_export_page.dart';
 
 final Map<String, ui.Shader> _exportShaderCache = {};
 
+final Map<int, Widget> _exportCanvasElementWidgetCache = {};
+
+class _ElementSelectionBuilder extends StatefulWidget {
+  final ValueNotifier<String?> notifier;
+  final String elementId;
+  final Widget Function(BuildContext context, bool isSelected) builder;
+
+  const _ElementSelectionBuilder({
+    Key? key,
+    required this.notifier,
+    required this.elementId,
+    required this.builder,
+  }) : super(key: key);
+
+  @override
+  _ElementSelectionBuilderState createState() => _ElementSelectionBuilderState();
+}
+
+class _ElementSelectionBuilderState extends State<_ElementSelectionBuilder> {
+  late bool _isSelected;
+
+  @override
+  void initState() {
+    super.initState();
+    _isSelected = widget.notifier.value == widget.elementId;
+    widget.notifier.addListener(_listener);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ElementSelectionBuilder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.notifier != widget.notifier) {
+      oldWidget.notifier.removeListener(_listener);
+      widget.notifier.addListener(_listener);
+    }
+    _isSelected = widget.notifier.value == widget.elementId;
+  }
+
+  @override
+  void dispose() {
+    widget.notifier.removeListener(_listener);
+    super.dispose();
+  }
+
+  void _listener() {
+    final newIsSelected = widget.notifier.value == widget.elementId;
+    if (_isSelected != newIsSelected) {
+      setState(() {
+        _isSelected = newIsSelected;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.builder(context, _isSelected);
+  }
+}
+
 extension _ExportCanvasExtension on _DiaryBookExportPageState {
+
+  Widget _buildCanvasElementWithCache(ExportElement element) {
+    // 缓存 key 【不再包含选中状态】，因为选中高亮通过 _ElementSelectionBuilder 独立驱动，
+    // 无需因选中变化而使缓存失效并重建整个元素 widget。
+    final h1 = Object.hash(
+      element.id, element.x, element.y, element.width, element.height, element.rotation,
+      element.content, element.fontSize, element.color.value, element.fontFamily,
+      element.fontWeight, element.fontStyle, element.textDecoration, element.textAlign,
+      element.letterSpacing, element.lineHeight, element.opacity, element.borderRadius,
+      element.cropRatio, element.textBackgroundColor?.value
+    );
+    final h2 = Object.hash(
+      element.textBackgroundBorderRadius, element.textBackgroundOpacity, element.textBackgroundPadding, 
+      element.isLocked
+    );
+    final key = Object.hash(h1, h2);
+
+    if (_exportCanvasElementWidgetCache.containsKey(key)) {
+      return _exportCanvasElementWidgetCache[key]!;
+    }
+    
+    // 用 _ElementSelectionBuilder 包裹每个元素，它比 ValueListenableBuilder 聪明，
+    // 只有当该元素的选中状态【发生翻转】（被选中/取消选中）时，它才会触发重绘。
+    // 这将复杂度从 O(N) 降到了 O(1)（每次点击最多只有 2 个元素重绘）！
+    const double handlePadding = 12.0;
+    final widget = Positioned(
+      key: ValueKey(element.id),
+      left: element.x - handlePadding,
+      top: getScreenY(element.y) - handlePadding,
+      child: _ElementSelectionBuilder(
+        notifier: _selectionNotifier,
+        elementId: element.id,
+        builder: (context, isSelected) {
+          // 由于 _buildCanvasElement 内部会用到 isSelected 的状态，直接传递
+          // 注意：内部如果还有读取 _selectedElementId 的地方，现在可以依赖传入的 isSelected 了
+          return _buildCanvasElement(element, isSelected);
+        },
+      ),
+    );
+    _exportCanvasElementWidgetCache[key] = widget;
+    
+    if (_exportCanvasElementWidgetCache.length > 50000) {
+       _exportCanvasElementWidgetCache.clear();
+    }
+    return widget;
+  }
 
   // --- 画布组件构建 ---
   Widget _buildCanvas() {
     final int count = _pageCount;
+
+    // 1. 渲染每一页的背景卡片、背景图、页边距辅助线及页脚信息
+    if (_cachedBackgroundWidgets == null) {
+      _cachedBackgroundWidgets = [];
+      for (int i = 0; i < count; i++) {
+        final bg = getBgSettingsForPage(i);
+        _cachedBackgroundWidgets!.add(
+          Builder(
+            builder: (context) {
+              return Positioned(
+                left: 0,
+                top: i * (_canvasHeight + pageGap),
+                width: _canvasWidth,
+                height: _canvasHeight,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: bg.color,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 25,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: ClipRect(
+                    child: Stack(
+                      children: [
+                        // 渲染背景图片，限制在画布区域内，并应用透明度、位移、缩放、裁剪
+                        if (bg.imagePath != null)
+                          Positioned(
+                            left: bg.x,
+                            top: bg.y,
+                            width: _canvasWidth * bg.scale,
+                            height: _canvasHeight * bg.scale,
+                            child: Opacity(
+                              opacity: bg.opacity,
+                              child: AspectRatio(
+                                aspectRatio: bg.cropRatio == '1:1'
+                                    ? 1.0
+                                    : bg.cropRatio == '3:4'
+                                        ? 0.75
+                                        : bg.cropRatio == '4:3'
+                                            ? 4.0 / 3.0
+                                            : bg.cropRatio == '16:9'
+                                                ? 16.0 / 9.0
+                                                : _canvasWidth / _canvasHeight,
+                                child: bg.imagePath!.startsWith('http://') || bg.imagePath!.startsWith('https://')
+                                    ? Image.network(bg.imagePath!, fit: BoxFit.cover)
+                                    : bg.imagePath!.startsWith('assets/')
+                                        ? Image.asset(bg.imagePath!, fit: BoxFit.cover)
+                                        : Image.file(File(bg.imagePath!), fit: BoxFit.cover),
+                              ),
+                            ),
+                          ),
+                        // 页边距辅助线（仅在选中状态下展示页边距范围提示）
+                        Positioned(
+                          left: _margin.left,
+                          top: _margin.top,
+                          right: _margin.right,
+                          bottom: _margin.bottom,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFF5A3E28).withValues(alpha: 0.25),
+                                style: BorderStyle.solid,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // 页脚页码
+                        Positioned(
+                          bottom: 8,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Text(
+                              '第 ${i + 1} 页 / 共 $count 页',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: const Color(0xFF5A3E28).withValues(alpha: 0.4),
+                                fontFamily: 'LXGWWenKai',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+          )
+        );
+      }
+    }
+
+    final allWidgets = <Widget>[];
+
+    for (final e in _elements) {
+      if (!e.isVisible) continue;
+      allWidgets.add(_buildCanvasElementWithCache(e));
+    }
+
     return Container(
       width: _canvasWidth,
       height: _totalCanvasHeight,
@@ -16,109 +227,21 @@ extension _ExportCanvasExtension on _DiaryBookExportPageState {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // 1. 渲染每一页的背景卡片、背景图、页边距辅助线及页脚信息
-          for (int i = 0; i < count; i++) ...[
-            Builder(
-              builder: (context) {
-                final bg = getBgSettingsForPage(i);
-                return Positioned(
-                  left: 0,
-                  top: i * (_canvasHeight + pageGap),
-                  width: _canvasWidth,
-                  height: _canvasHeight,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: bg.color,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          blurRadius: 25,
-                          spreadRadius: 2,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: ClipRect(
-                      child: Stack(
-                        children: [
-                          // 渲染背景图片，限制在画布区域内，并应用透明度、位移、缩放、裁剪
-                          if (bg.imagePath != null)
-                            Positioned(
-                              left: bg.x,
-                              top: bg.y,
-                              width: _canvasWidth * bg.scale,
-                              height: _canvasHeight * bg.scale,
-                              child: Opacity(
-                                opacity: bg.opacity,
-                                child: AspectRatio(
-                                  aspectRatio: bg.cropRatio == '1:1'
-                                      ? 1.0
-                                      : bg.cropRatio == '3:4'
-                                          ? 0.75
-                                          : bg.cropRatio == '4:3'
-                                              ? 4.0 / 3.0
-                                              : bg.cropRatio == '16:9'
-                                                  ? 16.0 / 9.0
-                                                  : _canvasWidth / _canvasHeight,
-                                  child: bg.imagePath!.startsWith('http://') || bg.imagePath!.startsWith('https://')
-                                      ? Image.network(bg.imagePath!, fit: BoxFit.cover)
-                                      : bg.imagePath!.startsWith('assets/')
-                                          ? Image.asset(bg.imagePath!, fit: BoxFit.cover)
-                                          : Image.file(File(bg.imagePath!), fit: BoxFit.cover),
-                                ),
-                              ),
-                            ),
-                          // 页边距辅助线（仅在选中状态下展示页边距范围提示）
-                          Positioned(
-                            left: _margin.left,
-                            top: _margin.top,
-                            right: _margin.right,
-                            bottom: _margin.bottom,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: const Color(0xFF5A3E28).withValues(alpha: 0.25),
-                                  style: BorderStyle.solid,
-                                  width: 1.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                          // 页脚页码
-                          Positioned(
-                            bottom: 8,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: Text(
-                                '第 ${i + 1} 页 / 共 $count 页',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: const Color(0xFF5A3E28).withValues(alpha: 0.4),
-                                  fontFamily: 'LXGWWenKai',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }
+          ..._cachedBackgroundWidgets!,
+
+          // 所有元素按 Z-order 渲染，每个元素通过 ValueListenableBuilder(_selectionNotifier) 独立响应选中
+          ...allWidgets,
+
+          // 选中元素的悬浮快捷菜单 + 尺寸气泡：监听 _selectionNotifier 即时响应，无需画布重建
+          ValueListenableBuilder<String?>(
+            valueListenable: _selectionNotifier,
+            builder: (context, _, __) => Stack(
+              children: [
+                _buildSuspendedToolbar(),
+                _buildDimensionBubble(),
+              ],
             ),
-          ],
-
-          // 渲染页面内的所有设计元素（非选中的先画，选中的最后画以保证最高的 Z 层级）
-          ..._elements.where((e) => e.isVisible && e.id != _selectedElementId).map((e) => _buildCanvasElement(e)),
-          if (_selectedElementId != null)
-            ..._elements.where((e) => e.isVisible && e.id == _selectedElementId).map((e) => _buildCanvasElement(e)),
-
-          // 选中的元素悬浮快捷菜单
-          _buildSuspendedToolbar(),
-
-          // 实时宽高提示气泡
-          _buildDimensionBubble(),
+          ),
         ],
       ),
     );

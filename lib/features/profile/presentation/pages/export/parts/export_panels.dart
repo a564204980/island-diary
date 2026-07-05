@@ -1,156 +1,161 @@
 part of '../../diary_book_export_page.dart';
 
 extension _ExportPanelsExtension on _DiaryBookExportPageState {
-  void setState(VoidCallback fn) => updateState(fn);
 
   // --- 底部配置面板及 Tab 切换 ---
   Widget _buildBottomPanel() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF5A3E28).withValues(alpha: 0.06),
-            blurRadius: 20,
-            offset: const Offset(0, -8),
+    return ValueListenableBuilder<(bool, int)>(
+      valueListenable: _panelStateNotifier,
+      builder: (context, panelState, _) {
+        final isPanelExpanded = panelState.$1;
+        final activeTabIndex = panelState.$2;
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF8A7A6E).withValues(alpha: 0.06),
+                blurRadius: 20,
+                offset: const Offset(0, -8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 分类控制区内容展示
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOut,
-              height: _isPanelExpanded ? 220 : 0,
-              child: ClipRect(
-                child: OverflowBox(
-                  minHeight: 0,
-                  maxHeight: 220,
-                  alignment: Alignment.topCenter,
-                  child: Container(
-                    height: 220,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: _buildActiveTabContent(),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 分类控制区内容展示
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  height: isPanelExpanded ? 220 : 0,
+                  child: ClipRect(
+                    child: OverflowBox(
+                      minHeight: 0,
+                      maxHeight: 220,
+                      alignment: Alignment.topCenter,
+                      child: Container(
+                        height: 220,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        child: _buildActiveTabContent(activeTabIndex),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            // 底部分类 Tab 按钮栏
-            Container(
-              height: 68,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: const BoxDecoration(
-                color: Colors.transparent,
-                border: Border(top: BorderSide(color: Color(0xFFF3EDE6), width: 1)),
-              ),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double tabWidth = constraints.maxWidth / 6;
-                  final activeColor = const Color(0xFF5A3E28);
-                  final inactiveColor = const Color(0xFF9E9185);
+                // 底部分类 Tab 按钮栏
+                Container(
+                  height: 68,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
+                    border: Border(top: BorderSide(color: Color(0xFFF3EDE6), width: 1)),
+                  ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double tabWidth = constraints.maxWidth / 6;
+                      final activeColor = const Color(0xFF8A7A6E);
+                      final inactiveColor = const Color(0xFF9E9185);
 
-                  return Stack(
-                     children: [
-                       // 滑动背景滑块
-                       AnimatedPositioned(
-                         duration: const Duration(milliseconds: 250),
-                         curve: Curves.easeOutCubic,
-                         left: _activeTabIndex * tabWidth + 4,
-                         top: 2,
-                         bottom: 2,
-                         width: tabWidth - 8,
-                         child: AnimatedOpacity(
-                           duration: const Duration(milliseconds: 200),
-                           opacity: _isPanelExpanded ? 1.0 : 0.0,
-                           child: Container(
-                             decoration: BoxDecoration(
-                               color: const Color(0xFFF4EFEB),
-                               borderRadius: BorderRadius.circular(16),
-                             ),
-                           ),
-                         ),
-                       ),
-                       // 选项按钮排布
-                       Row(
-                         children: List.generate(6, (index) {
-                           final isSelected = _isPanelExpanded && _activeTabIndex == index;
-                           IconData icon;
-                           String label;
-                           switch (index) {
-                             case 0: icon = Icons.description_outlined; label = '页面'; break;
-                             case 1: icon = Icons.wallpaper_outlined; label = '背景'; break;
-                             case 2: icon = Icons.add_circle_outline_rounded; label = '添加'; break;
-                             case 3: icon = Icons.tune_rounded; label = '属性'; break;
-                             case 4: icon = Icons.layers_outlined; label = '图层'; break;
-                             case 5: icon = Icons.ios_share_rounded; label = '导出'; break;
-                             default: icon = Icons.description_outlined; label = '';
-                           }
-
-                           return Expanded(
-                             child: GestureDetector(
-                               behavior: HitTestBehavior.opaque,
-                               onTap: () {
-                                 setState(() {
-                                   if (_activeTabIndex == index && _isPanelExpanded) {
-                                     _isPanelExpanded = false;
-                                   } else {
-                                     _activeTabIndex = index;
-                                     _isPanelExpanded = true;
-                                   }
-                                 });
-                               },
+                      return Stack(
+                         children: [
+                           // 滑动背景滑块
+                           AnimatedPositioned(
+                             duration: const Duration(milliseconds: 250),
+                             curve: Curves.easeOutCubic,
+                             left: activeTabIndex * tabWidth + 4,
+                             top: 2,
+                             bottom: 2,
+                             width: tabWidth - 8,
+                             child: AnimatedOpacity(
+                               duration: const Duration(milliseconds: 200),
+                               opacity: isPanelExpanded ? 1.0 : 0.0,
                                child: Container(
-                                 color: Colors.transparent,
-                                 alignment: Alignment.center,
-                                 child: Column(
-                                   mainAxisAlignment: MainAxisAlignment.center,
-                                   mainAxisSize: MainAxisSize.min,
-                                   children: [
-                                     AnimatedScale(
-                                       duration: const Duration(milliseconds: 200),
-                                       scale: isSelected ? 1.06 : 1.0,
-                                       child: Icon(
-                                         icon,
-                                         color: isSelected ? activeColor : inactiveColor,
-                                         size: 20,
-                                       ),
-                                     ),
-                                     const SizedBox(height: 3),
-                                     Text(
-                                       label,
-                                       style: TextStyle(
-                                         color: isSelected ? activeColor : inactiveColor,
-                                         fontSize: 10,
-                                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                         fontFamily: 'LXGWWenKai',
-                                       ),
-                                     ),
-                                   ],
+                                 decoration: BoxDecoration(
+                                   color: const Color(0xFFF4EFEB),
+                                   borderRadius: BorderRadius.circular(16),
                                  ),
                                ),
                              ),
-                           );
-                         }),
-                       ),
-                     ],
-                  );
-                },
-              ),
+                           ),
+                           // 选项按钮排布
+                           Row(
+                             children: List.generate(6, (index) {
+                               final isSelected = isPanelExpanded && activeTabIndex == index;
+                               IconData icon;
+                               String label;
+                               switch (index) {
+                                 case 0: icon = Icons.description_outlined; label = '页面'; break;
+                                 case 1: icon = Icons.wallpaper_outlined; label = '背景'; break;
+                                 case 2: icon = Icons.add_circle_outline_rounded; label = '添加'; break;
+                                 case 3: icon = Icons.tune_rounded; label = '属性'; break;
+                                 case 4: icon = Icons.layers_outlined; label = '图层'; break;
+                                 case 5: icon = Icons.ios_share_rounded; label = '导出'; break;
+                                 default: icon = Icons.description_outlined; label = '';
+                               }
+
+                               return Expanded(
+                                 child: GestureDetector(
+                                   behavior: HitTestBehavior.opaque,
+                                   onTap: () {
+                                     if (_activeTabIndex == index && _isPanelExpanded) {
+                                       _isPanelExpanded = false;
+                                     } else {
+                                       _activeTabIndex = index;
+                                       _isPanelExpanded = true;
+                                     }
+                                     _panelStateNotifier.value = (_isPanelExpanded, _activeTabIndex);
+                                   },
+                                   child: Container(
+                                     color: Colors.transparent,
+                                     alignment: Alignment.center,
+                                     child: Column(
+                                       mainAxisAlignment: MainAxisAlignment.center,
+                                       mainAxisSize: MainAxisSize.min,
+                                       children: [
+                                         AnimatedScale(
+                                           duration: const Duration(milliseconds: 200),
+                                           scale: isSelected ? 1.06 : 1.0,
+                                           child: Icon(
+                                             icon,
+                                             color: isSelected ? activeColor : inactiveColor,
+                                             size: 20,
+                                           ),
+                                         ),
+                                         const SizedBox(height: 3),
+                                         Text(
+                                           label,
+                                           style: TextStyle(
+                                             color: isSelected ? activeColor : inactiveColor,
+                                             fontSize: 10,
+                                             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                             fontFamily: 'LXGWWenKai',
+                                           ),
+                                         ),
+                                       ],
+                                     ),
+                                   ),
+                                 ),
+                               );
+                             }),
+                           ),
+                         ],
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildActiveTabContent() {
+  Widget _buildActiveTabContent(int activeTabIndex) {
     Widget content;
-    switch (_activeTabIndex) {
+    switch (activeTabIndex) {
       case 0:
         content = KeyedSubtree(key: const ValueKey(0), child: _buildPageSettingsPanel());
         break;
@@ -161,7 +166,14 @@ extension _ExportPanelsExtension on _DiaryBookExportPageState {
         content = KeyedSubtree(key: const ValueKey(2), child: _buildAddElementsPanel());
         break;
       case 3:
-        content = KeyedSubtree(key: const ValueKey(3), child: _buildPropertiesPanel());
+        // 属性面板监听 _selectionNotifier，选中新元素时局部刷新
+        content = KeyedSubtree(
+          key: const ValueKey(3),
+          child: ValueListenableBuilder<String?>(
+            valueListenable: _selectionNotifier,
+            builder: (context, _, __) => _buildPropertiesPanel(),
+          ),
+        );
         break;
       case 4:
         content = KeyedSubtree(key: const ValueKey(4), child: _buildLayersPanel());
@@ -206,14 +218,14 @@ extension _ExportPanelsExtension on _DiaryBookExportPageState {
           color: isSelected ? const Color(0xFFF4EFEB) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? const Color(0xFF5A3E28) : const Color(0xFFECE5DF),
+            color: isSelected ? const Color(0xFF8A7A6E) : const Color(0xFFECE5DF),
             width: 1,
           ),
         ),
         child: Icon(
           icon,
           size: 18,
-          color: isSelected ? const Color(0xFF5A3E28) : const Color(0xFF8A7A6E),
+          color: isSelected ? const Color(0xFF8A7A6E) : const Color(0xFF8A7A6E),
         ),
       ),
     );
@@ -242,12 +254,12 @@ extension _ExportPanelsExtension on _DiaryBookExportPageState {
           Expanded(
             child: SliderTheme(
               data: SliderThemeData(
-                activeTrackColor: const Color(0xFF5A3E28),
+                activeTrackColor: const Color(0xFF8A7A6E),
                 inactiveTrackColor: const Color(0xFFEFECE9),
-                thumbColor: const Color(0xFF5A3E28),
+                thumbColor: const Color(0xFF8A7A6E),
                 trackHeight: 3.0,
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
-                overlayColor: const Color(0xFF5A3E28).withValues(alpha: 0.12),
+                overlayColor: const Color(0xFF8A7A6E).withValues(alpha: 0.12),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
               ),
               child: Slider(
@@ -263,7 +275,7 @@ extension _ExportPanelsExtension on _DiaryBookExportPageState {
             width: 32,
             child: Text(
               displayValue,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF5A3E28), fontFamily: 'LXGWWenKai'),
+              style: const TextStyle(fontSize: 10, color: Color(0xFF8A7A6E), fontFamily: 'LXGWWenKai'),
               textAlign: TextAlign.end,
             ),
           ),
@@ -304,13 +316,13 @@ class _ExportColorPicker extends StatelessWidget {
               color: c,
               shape: BoxShape.circle,
               border: Border.all(
-                color: isSelected ? const Color(0xFF5A3E28) : Colors.grey[200]!,
-                width: isSelected ? 2.5 : 1,
+                color: isSelected ? const Color(0xFF8A7A6E) : Colors.grey[200]!,
+                width: isSelected ? 2 : 1,
               ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: const Color(0xFF5A3E28).withValues(alpha: 0.15),
+                        color: const Color(0xFF8A7A6E).withValues(alpha: 0.15),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       )

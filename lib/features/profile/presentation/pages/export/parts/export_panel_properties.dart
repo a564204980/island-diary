@@ -21,7 +21,7 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
             children: [
               const Text(
                 '选择裁剪比例',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF5A3E28), fontFamily: 'LXGWWenKai'),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF8A7A6E), fontFamily: 'LXGWWenKai'),
               ),
               const SizedBox(height: 12),
               ...[
@@ -41,11 +41,11 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                       fontFamily: 'LXGWWenKai',
                       fontSize: 13,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? const Color(0xFF5A3E28) : const Color(0xFF8A7A6E),
+                      color: isSelected ? const Color(0xFF8A7A6E) : const Color(0xFF8A7A6E),
                     ),
                   ),
                   trailing: isSelected
-                      ? const Icon(Icons.check_circle_rounded, color: Color(0xFF5A3E28), size: 18)
+                      ? const Icon(Icons.check_circle_rounded, color: Color(0xFF8A7A6E), size: 18)
                       : null,
                   onTap: () {
                     Navigator.pop(context);
@@ -101,7 +101,7 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                 fontFamily: 'LXGWWenKai',
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF5A3E28),
+                color: Color(0xFF8A7A6E),
               ),
             ),
             const SizedBox(height: 4),
@@ -145,7 +145,7 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF5A3E28)),
+                  borderSide: const BorderSide(color: Color(0xFF8A7A6E)),
                 ),
               ),
               onChanged: (val) {
@@ -170,8 +170,11 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
               child: DropdownButton<String>(
                 value: element.fontFamily,
                 isExpanded: true,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF5A3E28), fontFamily: 'LXGWWenKai'),
-                items: ['系统内置', '思源黑体', '思源宋体', 'Roboto', 'LXGWWenKai'].map((f) {
+                style: const TextStyle(fontSize: 12, color: Color(0xFF8A7A6E), fontFamily: 'LXGWWenKai'),
+                items: [
+                  if (!['系统内置', '思源黑体', '思源宋体', 'Roboto', 'LXGWWenKai', 'Georgia'].contains(element.fontFamily)) element.fontFamily,
+                  '系统内置', '思源黑体', '思源宋体', 'Roboto', 'LXGWWenKai', 'Georgia'
+                ].map((f) {
                   return DropdownMenuItem(value: f, child: Text(f));
                 }).toList(),
                 onChanged: (val) {
@@ -364,8 +367,8 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                     color: Colors.transparent,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: element.textBackgroundColor == null ? const Color(0xFF5A3E28) : Colors.grey[300]!,
-                      width: element.textBackgroundColor == null ? 2.5 : 1,
+                      color: element.textBackgroundColor == null ? const Color(0xFF8A7A6E) : Colors.grey[300]!,
+                      width: element.textBackgroundColor == null ? 2 : 1,
                     ),
                   ),
                   child: const Center(
@@ -405,7 +408,7 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                                 Color(0xFFDBEAFE),
                                 Color(0xFFF3E8FF)
                               ].contains(element.textBackgroundColor))
-                          ? const Color(0xFF5A3E28)
+                          ? const Color(0xFF8A7A6E)
                           : Colors.grey[300]!,
                       width: (element.textBackgroundColor != null &&
                               !const [
@@ -416,12 +419,12 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                                 Color(0xFFDBEAFE),
                                 Color(0xFFF3E8FF)
                               ].contains(element.textBackgroundColor))
-                          ? 2.5
+                          ? 2
                           : 1,
                     ),
                   ),
                   child: const Center(
-                    child: Icon(Icons.colorize_rounded, size: 14, color: Color(0xFF5A3E28)),
+                    child: Icon(Icons.colorize_rounded, size: 14, color: Color(0xFF8A7A6E)),
                   ),
                 ),
               ),
@@ -530,7 +533,7 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                   label: const Text('更换图片', style: TextStyle(fontSize: 11, fontFamily: 'LXGWWenKai')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF4EFEB),
-                    foregroundColor: const Color(0xFF5A3E28),
+                    foregroundColor: const Color(0xFF8A7A6E),
                     elevation: 0,
                     side: const BorderSide(color: Color(0xFFECE5DF)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -562,7 +565,7 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                     style: const TextStyle(fontSize: 11, fontFamily: 'LXGWWenKai'),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5A3E28),
+                    backgroundColor: const Color(0xFF8A7A6E),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -692,7 +695,7 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                                 Colors.purple,
                                 Colors.green
                               ].contains(element.color))
-                          ? const Color(0xFF5A3E28)
+                          ? const Color(0xFF8A7A6E)
                           : Colors.grey[300]!,
                       width: (!const [
                                 Colors.black87,
@@ -703,12 +706,12 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                                 Colors.purple,
                                 Colors.green
                               ].contains(element.color))
-                          ? 2.5
+                          ? 2
                           : 1,
                     ),
                   ),
                   child: const Center(
-                    child: Icon(Icons.colorize_rounded, size: 14, color: Color(0xFF5A3E28)),
+                    child: Icon(Icons.colorize_rounded, size: 14, color: Color(0xFF8A7A6E)),
                   ),
                 ),
               ),
@@ -752,7 +755,7 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF5A3E28),
+                  color: Color(0xFF8A7A6E),
                   fontFamily: 'LXGWWenKai',
                 ),
               ),
@@ -828,7 +831,7 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
           border: Border.all(color: const Color(0xFFECE5DF), width: 0.8),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: const Color(0xFF5A3E28), size: 20),
+        child: Icon(icon, color: const Color(0xFF8A7A6E), size: 20),
       ),
     );
   }
@@ -837,7 +840,7 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
     final currentStyle = element.content.isEmpty ? 'solid' : element.content;
     final bool isSelected = currentStyle == styleVal;
     
-    final Color activeColor = const Color(0xFF5A3E28);
+    final Color activeColor = const Color(0xFF8A7A6E);
     final Color inactiveColor = const Color(0xFF8A7A6E);
     final Color activeBg = const Color(0xFFF4EFEB);
     final Color inactiveBg = const Color(0xFFF7F4F2);

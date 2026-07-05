@@ -3,7 +3,9 @@ part of '../../diary_book_export_page.dart';
 extension _ExportPanelExportExtension on _DiaryBookExportPageState {
   // 6. 导出配置面板
   Widget _buildExportSettingsPanel() {
-    return Column(
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 文件名输入框
@@ -159,6 +161,7 @@ extension _ExportPanelExportExtension on _DiaryBookExportPageState {
           ),
         ),
       ],
+    ),
     );
   }
 

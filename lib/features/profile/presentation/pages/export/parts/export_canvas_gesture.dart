@@ -1,9 +1,10 @@
 part of '../../diary_book_export_page.dart';
 
 extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
+
+
   // 渲染单个画布元素与编辑控制点
-  Widget _buildCanvasElement(ExportElement element) {
-    final isSelected = element.id == _selectedElementId;
+  Widget _buildCanvasElement(ExportElement element, bool isSelected) {
     const double handlePadding = 12.0;
 
     // 移动手势包裹在 Transform.rotate 外层，使 details.delta 保持屏幕坐标系，
@@ -12,39 +13,45 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
     // 手势识别器的回调 closure 被替换为错误元素的回调。
     final double screenY = getScreenY(element.y);
 
-    return Positioned(
-      key: ValueKey(element.id),
-      left: element.x - handlePadding,
-      top: screenY - handlePadding,
-      child: GestureDetector(
-        onPanStart: (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId)
-            ? null
-            : (details) {
-                _saveToHistory();
-                updateState(() {
-                  _activeHandle = 'move';
-                  _dragX = element.x;
-                  _dragY = screenY;
-                });
-              },
-        onPanEnd: (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId)
-            ? null
-            : (details) {
-                updateState(() {
-                  _activeHandle = null;
-                });
-              },
-        onPanCancel: (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId)
-            ? null
-            : () {
-                updateState(() {
-                  _activeHandle = null;
-                });
-              },
-        onPanUpdate: (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId)
-            ? null
-            : (details) {
-                  updateState(() {
+    return Listener(
+      // Listener.onPointerDown 是原始指针事件，在手势仲裁之前立即触发，
+      // 彻底绕过 InteractiveViewer / GestureDetector 的竞争延迟。
+          behavior: HitTestBehavior.opaque,
+          onPointerDown: (_) {
+            if (_selectedElementId != element.id) {
+              _selectElement(element.id);
+            }
+          },
+          child: GestureDetector(
+          // 外层 GestureDetector 仅处理 pan（移动）手势，不再参与选中。
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            // 吞没 onTap 事件，防止其冒泡到画板背景的 GestureDetector 导致误触发 _selectElement(null)
+          },
+          onPanStart: (details) {
+              if (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId) return;
+              _saveToHistory();
+              updateState(() {
+                _activeHandle = 'move';
+                _dragX = element.x;
+                _dragY = screenY;
+              });
+            },
+          onPanEnd: (details) {
+              if (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId) return;
+              updateState(() {
+                _activeHandle = null;
+              });
+            },
+          onPanCancel: () {
+              if (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId) return;
+              updateState(() {
+                _activeHandle = null;
+              });
+            },
+          onPanUpdate: (details) {
+              if (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId) return;
+              updateState(() {
                   // 此处 delta 已是屏幕坐标系（GestureDetector 在 Transform.rotate 外），
                   // 虚拟拖拽坐标累加 delta（保留没有被磁吸强制修正的真实手势轨迹）
                   _dragX += details.delta.dx;
@@ -144,13 +151,12 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
         child: Transform.rotate(
           angle: element.rotation,
           child: GestureDetector(
-            // 仅处理点击类手势，不再注册 pan（pan 已由外层处理）
+            // 仅处理内层特有手势：已选中时的再次选中确认（备用）和双击编辑
             onTapDown: (_) {
-              _selectElement(element.id);
+              // 空实现，仅用于占位竞争手势
             },
-            onDoubleTap: element.isLocked
-                ? null
-                : () {
+            onDoubleTap: () {
+                    if (element.isLocked) return;
                     _selectElement(element.id);
                     if (element.type == 'text') {
                       updateState(() {
@@ -492,8 +498,8 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
             ),        // Stack 结束
           ),          // 内层 GestureDetector 结束
         ),            // Transform.rotate 结束
-      ),              // 外层 GestureDetector 结束
-    );                // Positioned 结束
+        ),              // 外层 GestureDetector 结束
+        );              // Listener 结束
   }
 
   Widget _buildControlPoint({bool isCapsule = false, bool isActive = false}) {

@@ -18,10 +18,10 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
           children: [
             const Text('背景纯色', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54)),
             TextButton.icon(
-              icon: const Icon(Icons.copy_all_rounded, size: 14, color: Color(0xFF8A6C5C)),
+              icon: const Icon(Icons.copy_all_rounded, size: 14, color: Color(0xFF5A3E28)),
               label: const Text(
                 '应用到所有页面',
-                style: TextStyle(fontSize: 11, fontFamily: 'LXGWWenKai', color: Color(0xFF8A6C5C), fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 11, fontFamily: 'LXGWWenKai', color: Color(0xFF5A3E28), fontWeight: FontWeight.bold),
               ),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -30,7 +30,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
               ),
               onPressed: () {
                 _saveToHistory();
-                updateState(() {
+                updateStateAndBackground(() {
                   final currentBg = _bgSettings;
                   for (int i = 0; i < _pageCount; i++) {
                     _pageBgSettings[i] = currentBg.copy();
@@ -56,7 +56,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                   initialColor: _bgSettings.color,
                   onColorSelected: (color) {
                     _saveToHistory();
-                    updateState(() {
+                    updateStateAndBackground(() {
                       _bgSettings.color = color;
                       _bgSettings.imagePath = null;
                     });
@@ -78,7 +78,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                               Colors.white,
                               Color(0xFFF5F7FA),
                             ].contains(_bgSettings.color))
-                        ? const Color(0xFF5A3E28)
+                        ? const Color(0xFF8A7A6E)
                         : Colors.grey[300]!,
                     width: (_bgSettings.imagePath == null &&
                             !const [
@@ -88,12 +88,12 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                               Colors.white,
                               Color(0xFFF5F7FA),
                             ].contains(_bgSettings.color))
-                        ? 2.5
+                        ? 2
                         : 1,
                   ),
                 ),
                 child: const Center(
-                  child: Icon(Icons.colorize_rounded, size: 18, color: Color(0xFF5A3E28)),
+                  child: Icon(Icons.colorize_rounded, size: 18, color: Color(0xFF8A7A6E)),
                 ),
               ),
             ),
@@ -108,7 +108,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                   spacing: 12,
                   onColorSelected: (c) {
                     _saveToHistory();
-                    updateState(() {
+                    updateStateAndBackground(() {
                       _bgSettings.color = c;
                       _bgSettings.imagePath = null;
                     });
@@ -128,7 +128,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
             children: [
               GestureDetector(
                 onTap: () {
-                  updateState(() {
+                  updateStateAndBackground(() {
                     _bgSettings.imagePath = null;
                   });
                 },
@@ -138,7 +138,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _bgSettings.imagePath == null ? const Color(0xFF5A3E28) : Colors.transparent, width: 2),
+                    border: Border.all(color: _bgSettings.imagePath == null ? const Color(0xFF8A7A6E) : Colors.transparent, width: 2),
                   ),
                   child: const Center(child: Icon(Icons.block, size: 18, color: Colors.grey)),
                 ),
@@ -155,7 +155,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                   if (file == null) return;
 
                   _saveToHistory();
-                  updateState(() {
+                  updateStateAndBackground(() {
                     _bgSettings.imagePath = file.path;
                   });
                 },
@@ -166,7 +166,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: _bgSettings.imagePath != null && !_bgSettings.imagePath!.startsWith('assets/') ? const Color(0xFF5A3E28) : Colors.transparent,
+                      color: _bgSettings.imagePath != null && !_bgSettings.imagePath!.startsWith('assets/') ? const Color(0xFF8A7A6E) : Colors.transparent,
                       width: 2,
                     ),
                     image: _bgSettings.imagePath != null && !_bgSettings.imagePath!.startsWith('assets/')
@@ -198,7 +198,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                     return GestureDetector(
                       onTap: () {
                         _saveToHistory();
-                        updateState(() {
+                        updateStateAndBackground(() {
                           _bgSettings.imagePath = paperBg;
                           _bgSettings.color = paperColor;
                         });
@@ -211,7 +211,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                           color: paperColor,
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: isSelected ? const Color(0xFF5A3E28) : Colors.transparent,
+                            color: isSelected ? const Color(0xFF8A7A6E) : Colors.transparent,
                             width: 2,
                           ),
                           image: DecorationImage(
@@ -240,7 +240,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
             displayValue: '${(_bgSettings.opacity * 100).toInt()}%',
             onChanged: (val) {
               _saveToHistory();
-              updateState(() {
+              updateStateAndBackground(() {
                 _bgSettings.opacity = val;
               });
             },
@@ -255,7 +255,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
             displayValue: '${(_bgSettings.scale * 100).toInt()}%',
             onChanged: (val) {
               _saveToHistory();
-              updateState(() {
+              updateStateAndBackground(() {
                 _bgSettings.scale = val;
               });
             },
@@ -380,7 +380,7 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                   onTap: () {
                     Navigator.pop(context);
                     _saveToHistory();
-                    updateState(() {
+                    updateStateAndBackground(() {
                       _bgSettings.cropRatio = ratio;
                     });
                   },
@@ -433,25 +433,25 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildNudgeArrow(Icons.keyboard_arrow_left_rounded, () {
-                updateState(() {
+                updateStateAndBackground(() {
                   _bgSettings.x -= 1;
                 });
               }),
               const SizedBox(width: 8),
               _buildNudgeArrow(Icons.keyboard_arrow_up_rounded, () {
-                updateState(() {
+                updateStateAndBackground(() {
                   _bgSettings.y -= 1;
                 });
               }),
               const SizedBox(width: 8),
               _buildNudgeArrow(Icons.keyboard_arrow_down_rounded, () {
-                updateState(() {
+                updateStateAndBackground(() {
                   _bgSettings.y += 1;
                 });
               }),
               const SizedBox(width: 8),
               _buildNudgeArrow(Icons.keyboard_arrow_right_rounded, () {
-                updateState(() {
+                updateStateAndBackground(() {
                   _bgSettings.x += 1;
                 });
               }),

@@ -254,9 +254,9 @@ extension _ExportPanelAddExtension on _DiaryBookExportPageState {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: const Color(0xFF5A3E28), size: 24),
+            Icon(icon, color: const Color(0xFF8A7A6E), size: 24),
             const SizedBox(height: 6),
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF8A7A6E))),
           ],
         ),
       ),

@@ -61,7 +61,33 @@ class DiaryBookExportPage extends StatefulWidget {
 }
 
 class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerProviderStateMixin {
-  void updateState(VoidCallback fn) => mounted ? setState(fn) : fn();
+  Widget? _canvasSubtreeCache;
+  final ValueNotifier<int> _canvasRefreshTrigger = ValueNotifier<int>(0);
+  List<Widget>? _cachedBackgroundWidgets;
+
+  // 专门用于通知「选中元素 + 面板展开」变化，避免 setState 全量重建
+  final ValueNotifier<String?> _selectionNotifier = ValueNotifier<String?>(null);
+  // 面板展开状态通知器（isPanelExpanded + activeTabIndex打包通知）
+  final ValueNotifier<(bool, int)> _panelStateNotifier = ValueNotifier<(bool, int)>((false, 0));
+
+  void updateState(VoidCallback fn) {
+    fn();
+    _canvasRefreshTrigger.value++;
+    Future.microtask(() {
+      if (mounted) {
+        _selectionNotifier.value = _selectedElementId; // 通知属性面板刷新
+        _panelStateNotifier.value = (_isPanelExpanded, _activeTabIndex);
+      }
+    });
+    if (mounted) setState(() {});
+  }
+
+  void updateStateAndBackground(VoidCallback fn) {
+    fn();
+    _cachedBackgroundWidgets = null;
+    _canvasRefreshTrigger.value++;
+    if (mounted) setState(() {});
+  }
 
   // 核心设计状态
   ExportPageSize _pageSize = ExportPageSize.presets[0];
@@ -93,6 +119,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   int _pageTabIdx = 0; // 页面面板子Tab页签：0纸张尺寸，1我的模板
   bool _isInitializing = true; // 是否正在异步排版大量日记
   bool _isZoomScaleInitialized = false; // 是否已经根据容器尺寸初始化了缩放比例
+  double? _initialScale; // 新增：记录初始设定的完美铺满屏幕时的 scale
   final TransformationController _transformationController = TransformationController();
 
   // 图表预渲染用 GlobalKey（Offstage + RepaintBoundary 截图）
@@ -105,6 +132,9 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
   // 画布截图用 GlobalKey
   final GlobalKey _canvasBoundaryKey = GlobalKey();
+
+  // 当前画布视口的剔除渲染边界缓冲框
+  Rect _currentCullingRect = Rect.zero;
 
   // 临时挂载的待截图图表组件
   Widget? _capturingChartWidget;
@@ -126,6 +156,10 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
   AnimationController? _matrixAnimationController;
   Animation<Matrix4>? _matrixAnimation;
+
+  AnimationController? _alignAnimationController;
+  Animation<Matrix4>? _alignAnimation;
+  
   BoxConstraints? _lastConstraints;
   late TextEditingController _textEditorController;
 
@@ -199,23 +233,28 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
 
   void _selectElement(String? id) {
-    setState(() {
-      if (_editingElementId != null) {
-        _inlineFocusNode.unfocus();
-        _editingElementId = null;
-      }
-      _selectedElementId = id;
-      if (id != null) {
-        final idx = _elements.indexWhere((e) => e.id == id);
-        if (idx != -1) {
-          _textEditorController.text = _elements[idx].content;
-          if (!_elements[idx].isLocked) {
-            _activeTabIndex = 3; // 自动切换到“属性”面板
-          }
+    if (_editingElementId != null) {
+      _inlineFocusNode.unfocus();
+      _editingElementId = null;
+    }
+    _selectedElementId = id;
+    if (id != null) {
+      final idx = _elements.indexWhere((e) => e.id == id);
+      if (idx != -1) {
+        _textEditorController.text = _elements[idx].content;
+        if (!_elements[idx].isLocked) {
+          _activeTabIndex = 3; // 自动切换到"属性"面板
         }
-        _isPanelExpanded = true;
-      } else {
-        _isPanelExpanded = false;
+      }
+      _isPanelExpanded = true;
+    } else {
+      _isPanelExpanded = false;
+    }
+    // 使用微任务延迟更新，避免在当前同步调用栈中触发 setState，从而防止 "widget tree locked" 异常
+    Future.microtask(() {
+      if (mounted) {
+        _selectionNotifier.value = id;
+        _panelStateNotifier.value = (_isPanelExpanded, _activeTabIndex);
       }
     });
   }
@@ -242,7 +281,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
           ElevatedButton(
             onPressed: () {
               _saveToHistory();
-              setState(() {
+              updateState(() {
                 element.content = controller.text;
               });
               Navigator.pop(context);
@@ -266,8 +305,11 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     _transformationController.removeListener(_onViewportChanged);
     _transformationController.dispose();
     _matrixAnimationController?.dispose();
+    _alignAnimationController?.dispose();
     _textEditorController.dispose();
     _inlineFocusNode.dispose();
+    _selectionNotifier.dispose();
+    _panelStateNotifier.dispose();
     super.dispose();
   }
 
@@ -573,7 +615,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     _textEditorController = TextEditingController();
     _inlineFocusNode.addListener(() {
       if (!_inlineFocusNode.hasFocus) {
-        setState(() {
+        updateState(() {
           _editingElementId = null;
         });
       }
@@ -589,7 +631,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
       await Future.delayed(const Duration(milliseconds: 350));
       _initDefaultElements();
       if (!mounted) return;
-      setState(() {
+      updateState(() {
         _isInitializing = false;
         _initialCanvasStateJson = _getCanvasStateJson();
       });
@@ -1156,7 +1198,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
   // 根据当前滑动的页边距，动态同步更新系统默认排版元素的位置和宽度
   void _updateElementsMargin() {
-    setState(() {
+    updateState(() {
       _initDefaultElements();
     });
   }
@@ -1167,14 +1209,14 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     final double currentScale = matrix.getMaxScaleOnAxis();
     final double newScale = (currentScale * factor).clamp(0.2, 3.0);
     final double finalFactor = newScale / currentScale;
-    setState(() {
+    updateState(() {
       _transformationController.value = matrix..scaleByDouble(finalFactor, finalFactor, 1.0, 1.0);
     });
   }
 
   // 保存历史状态用于撤销
   void _saveToHistory() {
-    setState(() {
+    updateState(() {
       _undoStack.add(_elements.map((e) => e.copy()).toList());
       _redoStack.clear();
     });
@@ -1182,7 +1224,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
   void _undo() {
     if (_undoStack.isNotEmpty) {
-      setState(() {
+      updateState(() {
         _redoStack.add(_elements.map((e) => e.copy()).toList());
         _elements = _undoStack.removeLast();
       });
@@ -1191,7 +1233,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
   void _redo() {
     if (_redoStack.isNotEmpty) {
-      setState(() {
+      updateState(() {
         _undoStack.add(_elements.map((e) => e.copy()).toList());
         _elements = _redoStack.removeLast();
       });
@@ -1262,9 +1304,67 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     newPageIndex = newPageIndex.clamp(0, _pageCount - 1);
     
     if (newPageIndex != _focusedPageIndex) {
-      updateState(() {
+      if (_isPanelExpanded) {
+        updateState(() {
+          _focusedPageIndex = newPageIndex;
+        });
+      } else {
         _focusedPageIndex = newPageIndex;
-      });
+      }
+    }
+
+    final double translationX = matrix.getTranslation().x;
+    final Rect viewport = Rect.fromLTWH(
+      -translationX / scale,
+      -translationY / scale,
+      constraints.maxWidth / scale,
+      constraints.maxHeight / scale,
+    );
+
+    // 如果视口滑出了当前剔除框的安全内边距，则更新剔除框并触发一次按需渲染
+    if (_currentCullingRect.isEmpty ||
+        !_currentCullingRect.deflate(500).contains(viewport.topLeft) ||
+        !_currentCullingRect.deflate(500).contains(viewport.bottomRight)) {
+      _currentCullingRect = viewport.inflate(2000);
+      _canvasRefreshTrigger.value++;
+    }
+  }
+
+  // 交互结束时：若处于未放大状态但发生偏航，触发果冻回弹式磁吸居中
+  void _onInteractionEnd(ScaleEndDetails details) {
+    if (_initialScale == null || _lastConstraints == null) return;
+    
+    final matrix = _transformationController.value;
+    final scale = matrix.getMaxScaleOnAxis();
+    
+    // 如果缩小到默认级别附近，强制 X 轴回正
+    if (scale <= _initialScale! + 0.05) {
+      final targetDx = (_lastConstraints!.maxWidth - _canvasWidth * scale) / 2;
+      final currentDx = matrix.getTranslation().x;
+      
+      // 容差大于 1 px，认为发生了偏移，执行回弹动画
+      if ((currentDx - targetDx).abs() > 1.0) {
+        final targetMatrix = matrix.clone()..setTranslationRaw(targetDx, matrix.getTranslation().y, 0.0);
+        
+        _alignAnimationController?.dispose();
+        _alignAnimationController = AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 300), // 回弹耗时
+        );
+        _alignAnimation = Matrix4Tween(
+          begin: matrix,
+          end: targetMatrix,
+        ).animate(CurvedAnimation(
+          parent: _alignAnimationController!,
+          curve: Curves.easeOutCubic, // 果冻般的回弹曲线
+        ));
+        
+        _alignAnimation!.addListener(() {
+          _transformationController.value = _alignAnimation!.value;
+        });
+        
+        _alignAnimationController!.forward();
+      }
     }
   }
 
@@ -1383,7 +1483,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF8A6C5C),
+                              color: Color(0xFF5A3E28),
                               fontFamily: 'LXGWWenKai',
                             ),
                           ),
@@ -1400,6 +1500,67 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     );
   }
 
+
+  Widget _getCanvasSubtree() {
+    if (_canvasSubtreeCache != null) return _canvasSubtreeCache!;
+    _canvasSubtreeCache = Positioned.fill(
+      child: GestureDetector(
+        onTap: () {
+          _selectElement(null);
+        },
+        child: Container(
+          color: const Color(0xFFEAE7E4),
+          alignment: Alignment.center,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              _lastConstraints = constraints;
+              if (!_isZoomScaleInitialized) {
+                // 自动计算初始最佳充满宽度比例，留出左右各 16dp 的边距（共 32dp）
+                const padding = 32.0;
+                final targetWidth = constraints.maxWidth - padding;
+                final scale = targetWidth / _canvasWidth;
+                _initialScale = scale;
+                
+                // 动态计算平移量，实现水平和垂直的绝对居中对齐
+                final dx = (constraints.maxWidth - _canvasWidth * scale) / 2;
+                final dy = 16.0;
+                
+                // 初始化 TransformationController 矩阵值（带平移补偿）
+                _transformationController.value = Matrix4.identity()
+                  ..translateByDouble(dx, dy, 0.0, 1.0)
+                  ..scaleByDouble(scale, scale, 1.0, 1.0);
+                _isZoomScaleInitialized = true;
+              }
+              return InteractiveViewer(
+                transformationController: _transformationController,
+                onInteractionEnd: _onInteractionEnd, // 新增：松手时自动磁吸回弹
+                minScale: 0.1,
+                maxScale: 3.0,
+                clipBehavior: Clip.none,
+                constrained: false, // 解锁视口高度约束，使 A4/A5 纸张恢复其原本真实的物理比例
+                boundaryMargin: const EdgeInsets.all(double.infinity), // 解除边界限制，允许超长画布自由平移和定位
+                interactionEndFrictionCoefficient: 0.00005, // 增加阻尼感，使滑动更加平稳厚重
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(
+                    width: _canvasWidth,
+                    child: RepaintBoundary(
+                      key: _canvasBoundaryKey,
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: _canvasRefreshTrigger,
+                        builder: (context, _, __) => _buildCanvas(),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    return _canvasSubtreeCache!;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1475,73 +1636,33 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
           Stack(
             children: [
               // 1. 画布及浮动手势工具区域
-              Positioned.fill(
-                child: GestureDetector(
-                  onTap: () {
-                    _selectElement(null);
-                  },
-                  child: Container(
-                    color: const Color(0xFFEAE7E4),
-                    alignment: Alignment.center,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        _lastConstraints = constraints;
-                        if (!_isZoomScaleInitialized) {
-                          // 自动计算初始最佳充满宽度比例，留出左右各 16dp 的边距（共 32dp）
-                          const padding = 32.0;
-                          final targetWidth = constraints.maxWidth - padding;
-                          final scale = targetWidth / _canvasWidth;
-                          
-                          // 动态计算平移量，实现水平和垂直的绝对居中对齐
-                          final dx = (constraints.maxWidth - _canvasWidth * scale) / 2;
-                          final dy = 16.0;
-                          
-                          // 初始化 TransformationController 矩阵值（带平移补偿）
-                          _transformationController.value = Matrix4.identity()
-                            ..translateByDouble(dx, dy, 0.0, 1.0)
-                            ..scaleByDouble(scale, scale, 1.0, 1.0);
-                          _isZoomScaleInitialized = true;
-                        }
-                        return InteractiveViewer(
-                          transformationController: _transformationController,
-                          minScale: 0.1,
-                          maxScale: 3.0,
-                          clipBehavior: Clip.none,
-                          constrained: false, // 解锁视口高度约束，使 A4/A5 纸张恢复其原本真实的物理比例
-                          boundaryMargin: const EdgeInsets.all(800.0), // 留出充足的边界以供拖拽
-                          child: Align(
-                            alignment: Alignment.topLeft,
-                            child: SizedBox(
-                              width: _canvasWidth,
-                              child: RepaintBoundary(
-                                key: _canvasBoundaryKey,
-                                child: _buildCanvas(),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
-              // 2. 浮动悬浮工具栏 (定位在配置面板上方)
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-                bottom: (_isPanelExpanded ? 220 : 0) + 68 + MediaQuery.of(context).padding.bottom + 12,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: _buildQuickToolbar(),
-                ),
-              ),
-              // 3. 底部配置面板区 (层叠覆盖在最上层)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _buildBottomPanel(),
+              _getCanvasSubtree(),
+              // 2. 浮动悬浮工具栏 + 底部面板：监听 _panelStateNotifier，选中时无需 setState
+              ValueListenableBuilder<(bool, int)>(
+                valueListenable: _panelStateNotifier,
+                builder: (context, panelState, _) {
+                  final isPanelExpanded = panelState.$1;
+                  return Stack(
+                    children: [
+                      AnimatedPositioned(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                        bottom: (isPanelExpanded ? 220 : 0) + 68 + MediaQuery.of(context).padding.bottom + 12,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: _buildQuickToolbar(),
+                        ),
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: _buildBottomPanel(),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),

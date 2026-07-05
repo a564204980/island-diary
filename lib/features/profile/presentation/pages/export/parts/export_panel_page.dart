@@ -27,11 +27,11 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
 
   Widget _buildTabHeaderItem(int index, String title) {
     final bool isSelected = _pageTabIdx == index;
-    final Color activeColor = const Color(0xFF5A3E28);
+    final Color activeColor = const Color(0xFF8A7A6E);
     final Color inactiveColor = const Color(0xFF8A7A6E);
     return GestureDetector(
       onTap: () {
-        updateState(() {
+        updateStateAndBackground(() {
           _pageTabIdx = index;
         });
       },
@@ -90,7 +90,7 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
           max: 60,
           displayValue: '${_margin.left.toInt()}',
           onChanged: (val) {
-            updateState(() => _margin.left = val);
+            updateStateAndBackground(() => _margin.left = val);
             _updateElementsMargin();
           },
         ),
@@ -102,7 +102,7 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
           max: 60,
           displayValue: '${_margin.right.toInt()}',
           onChanged: (val) {
-            updateState(() => _margin.right = val);
+            updateStateAndBackground(() => _margin.right = val);
             _updateElementsMargin();
           },
         ),
@@ -114,7 +114,7 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
           max: 80,
           displayValue: '${_margin.top.toInt()}',
           onChanged: (val) {
-            updateState(() => _margin.top = val);
+            updateStateAndBackground(() => _margin.top = val);
             _updateElementsMargin();
           },
         ),
@@ -126,7 +126,7 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
           max: 80,
           displayValue: '${_margin.bottom.toInt()}',
           onChanged: (val) {
-            updateState(() => _margin.bottom = val);
+            updateStateAndBackground(() => _margin.bottom = val);
             _updateElementsMargin();
           },
         ),
@@ -489,7 +489,7 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
     return GestureDetector(
       onTap: () {
         Navigator.pop(context);
-        updateState(() {
+        updateStateAndBackground(() {
           _pageSize = p;
         });
         _updateElementsMargin();
@@ -621,7 +621,7 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
     return GestureDetector(
       onTap: () {
         if (_isLandscape != landscape) {
-          updateState(() {
+          updateStateAndBackground(() {
             _isLandscape = landscape;
           });
           _updateElementsMargin();
@@ -651,7 +651,7 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
           style: TextStyle(
             fontSize: 11,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? const Color(0xFF5A3E28) : const Color(0xFF8A7A6E),
+            color: isSelected ? const Color(0xFF8A7A6E) : const Color(0xFF8A7A6E),
             fontFamily: 'LXGWWenKai',
           ),
         ),
@@ -721,7 +721,7 @@ extension _ExportPanelPageExtension on _DiaryBookExportPageState {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      color: isSelected ? const Color(0xFF5A3E28) : const Color(0xFF8A7A6E),
+                      color: isSelected ? const Color(0xFF8A7A6E) : const Color(0xFF8A7A6E),
                       fontFamily: 'LXGWWenKai',
                     ),
                   ),
