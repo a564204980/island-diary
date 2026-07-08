@@ -421,7 +421,7 @@ class _AnimatedImagePreviewListState extends State<AnimatedImagePreviewList> {
     return SizeTransition(
       sizeFactor: animation,
       axis: Axis.horizontal,
-      axisAlignment: -1.0,
+      alignment: Alignment.centerLeft,
       child: FadeTransition(
         opacity: animation,
         child: Padding(
@@ -615,7 +615,7 @@ class _AnimatedTagListState extends State<AnimatedTagList> {
     return SizeTransition(
       sizeFactor: animation,
       axis: Axis.horizontal,
-      axisAlignment: -1.0,
+      alignment: Alignment.centerLeft,
       child: FadeTransition(
         opacity: animation,
         child: Padding(

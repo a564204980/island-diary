@@ -200,7 +200,9 @@ class _DiaryBookEditPageState extends State<DiaryBookEditPage> {
                         ),
                         if (_tempCoverPath == null)
                           Text(
-                            _presetColorNames[_presetColors.indexOf(_selectedColorValue)],
+                            _presetColors.contains(_selectedColorValue)
+                                ? _presetColorNames[_presetColors.indexOf(_selectedColorValue)]
+                                : '自定义颜色',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,

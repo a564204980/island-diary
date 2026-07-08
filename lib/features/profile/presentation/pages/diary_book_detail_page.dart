@@ -11,7 +11,7 @@ import 'package:island_diary/features/profile/presentation/pages/diary_book_expo
 import 'package:island_diary/features/profile/presentation/pages/diary_book_detail_reader_page.dart';
 import 'package:island_diary/features/profile/presentation/widgets/dashed_line_painter.dart';
 import 'package:island_diary/shared/widgets/top_toast.dart';
-
+import 'package:flutter_animate/flutter_animate.dart';
 class DiaryBookDetailPage extends StatefulWidget {
   final DiaryBook book;
   const DiaryBookDetailPage({super.key, required this.book});
@@ -1109,10 +1109,10 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           child: Container(
-            width: 310,
+            width: 320,
             decoration: BoxDecoration(
               color: isNight ? const Color(0xFF2C2C2E) : Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: isNight
                     ? Colors.white.withValues(alpha: 0.08)
@@ -1127,124 +1127,172 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                 ),
               ],
             ),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 标题
-                Padding(
-                  padding: const EdgeInsets.only(top: 24, left: 24, right: 24),
-                  child: Text(
-                    '修改章节标题',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: fontFamily,
-                      color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF2C2C2C),
+                // 头部
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.spa_rounded, // 治愈绿叶图标
+                          color: Color(0xFFA68565), 
+                          size: 22,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '修改章节标题',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: fontFamily,
+                            color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF2C2C2C),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-                
-                // 输入框
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isNight 
-                          ? Colors.white.withValues(alpha: 0.04) 
-                          : const Color(0xFFF7F7F7),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isNight 
-                            ? Colors.white.withValues(alpha: 0.08) 
-                            : Colors.black.withValues(alpha: 0.05),
-                        width: 0.5,
+                    InkWell(
+                      onTap: () => Navigator.pop(dialogContext),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: isNight ? Colors.white10 : const Color(0xFFF0F0F0),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: isNight ? Colors.white54 : Colors.black54,
+                        ),
                       ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // 输入框
+                Container(
+                  decoration: BoxDecoration(
+                    color: isNight 
+                        ? Colors.white.withValues(alpha: 0.04) 
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFA68565), // 统一的绿色边框
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      textSelectionTheme: TextSelectionThemeData(
+                        cursorColor: const Color(0xFFA68565),
+                        selectionColor: const Color(0xFFA68565).withValues(alpha: 0.3),
+                        selectionHandleColor: const Color(0xFFA68565),
+                      ),
+                    ),
                     child: TextField(
                       controller: controller,
                       autofocus: true,
+                      maxLength: 20,
+                      maxLines: 2,
+                      minLines: 2,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 15,
                         fontFamily: fontFamily,
                         color: isNight ? Colors.white.withValues(alpha: 0.95) : const Color(0xFF2C2C2C),
                       ),
+                      buildCounter: (context, {required currentLength, required isFocused, maxLength}) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8, bottom: 8),
+                          child: Text(
+                            '$currentLength/$maxLength',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontFamily: fontFamily,
+                              color: isNight ? Colors.white38 : Colors.black38,
+                            ),
+                          ),
+                        );
+                      },
                       decoration: InputDecoration(
                         hintText: '写个有意义的标题吧...',
                         hintStyle: TextStyle(
-                          fontSize: 14,
+                          fontSize: 15,
                           fontFamily: fontFamily,
                           color: isNight ? Colors.white38 : Colors.black38,
                         ),
                         border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        counterText: '', // 去除底部默认计数器
                       ),
                     ),
                   ),
                 ),
-
-                // 分割线
-                Container(
-                  height: 0.5,
-                  color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                ),
+                const SizedBox(height: 24),
 
                 // 操作按钮
                 Row(
                   children: [
                     Expanded(
-                      child: InkWell(
-                        onTap: () => Navigator.pop(dialogContext),
-                        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20)),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          child: Text(
-                            "取消",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: fontFamily,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: isNight ? Colors.white54 : const Color(0xFF8E8E93),
+                      child: Material(
+                        color: isNight ? Colors.white10 : const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(12),
+                        child: InkWell(
+                          onTap: () => Navigator.pop(dialogContext),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            child: Text(
+                              "取消",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: fontFamily,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: isNight ? Colors.white70 : const Color(0xFF5C5C5C),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                    Container(
-                      width: 0.5,
-                      height: 48,
-                      color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                    ),
+                    const SizedBox(width: 16),
                     Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final newTitle = controller.text.trim();
-                          final updated = entry.copyWith(title: newTitle);
-                          await UserState().updateDiary(updated);
-                          if (context.mounted) {
-                            Navigator.pop(dialogContext);
-                            showTopToast(
-                              context,
-                              '标题修改成功',
-                              icon: Icons.check_circle_rounded,
-                              iconColor: const Color(0xFF10B981),
-                            );
-                          }
-                        },
-                        borderRadius: const BorderRadius.only(bottomRight: Radius.circular(20)),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          child: Text(
-                            "确定",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: fontFamily,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFFA68565),
+                      child: Material(
+                        color: const Color(0xFFA68565), // 治愈绿
+                        borderRadius: BorderRadius.circular(12),
+                        child: InkWell(
+                          onTap: () async {
+                            final newTitle = controller.text.trim();
+                            final updated = entry.copyWith(title: newTitle);
+                            await UserState().updateDiary(updated);
+                            if (context.mounted) {
+                              Navigator.pop(dialogContext);
+                              showTopToast(
+                                context,
+                                '标题修改成功',
+                                icon: Icons.check_circle_rounded,
+                                iconColor: const Color(0xFF10B981),
+                              );
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            child: Text(
+                              "确定",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: fontFamily,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
@@ -1255,7 +1303,7 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
               ],
             ),
           ),
-        );
+        ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack, begin: const Offset(0.9, 0.9)).fade();
       },
     );
   }

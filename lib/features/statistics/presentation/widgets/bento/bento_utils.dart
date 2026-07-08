@@ -455,7 +455,7 @@ extension _BentoUtils on _StatisticsPageState {
             ],
           ],
         ),
-        if (rightAction != null) rightAction,
+        ?rightAction,
       ],
     );
   }

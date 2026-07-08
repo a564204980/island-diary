@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ArborDayEventPage extends StatelessWidget {
   const ArborDayEventPage({super.key});
@@ -198,7 +199,11 @@ class ArborDayEventPage extends StatelessWidget {
                                       : '带话题 #岛屿日记 #我的岛屿生活，集赞后截图联系客服小姐姐领奖哦~',
                                   onTap: isOngoing
                                       ? () {
-                                          // TODO: 调起分享逻辑
+                                          SharePlus.instance.share(
+                                            ShareParams(
+                                              text: '快来和我一起体验《岛屿日记》的植树节特别活动吧！\n#岛屿日记 #我的岛屿生活\n在这里种下属于你的治愈小树苗 🌱',
+                                            ),
+                                          );
                                         }
                                       : null,
                                 ),

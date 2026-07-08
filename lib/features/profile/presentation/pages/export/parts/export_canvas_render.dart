@@ -58,14 +58,11 @@ extension _ExportCanvasRenderExtension on _DiaryBookExportPageState {
           alignment: PlaceholderAlignment.middle,
           child: Padding(
             padding: const EdgeInsets.only(right: 4.0),
-            child: Transform.translate(
-              offset: Offset(0, (baseStyle.fontSize ?? 18.0) * 0.12),
-              child: Image.asset(
-                path,
-                width: (baseStyle.fontSize ?? 18.0) * 1.2,
-                height: (baseStyle.fontSize ?? 18.0) * 1.2,
-                fit: BoxFit.contain,
-              ),
+            child: Image.asset(
+              path,
+              width: (baseStyle.fontSize ?? 18.0) * 1.2,
+              height: (baseStyle.fontSize ?? 18.0) * 1.2,
+              fit: BoxFit.contain,
             ),
           ),
         ),
@@ -89,14 +86,11 @@ extension _ExportCanvasRenderExtension on _DiaryBookExportPageState {
           alignment: PlaceholderAlignment.middle,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 1.0),
-            child: Transform.translate(
-              offset: Offset(0, (baseStyle.fontSize ?? 18.0) * 0.12),
-              child: Image.asset(
-                chunk.emojiPath!,
-                width: (baseStyle.fontSize ?? 18.0) * 1.3,
-                height: (baseStyle.fontSize ?? 18.0) * 1.3,
-                fit: BoxFit.contain,
-              ),
+            child: Image.asset(
+              chunk.emojiPath!,
+              width: (baseStyle.fontSize ?? 18.0) * 1.3,
+              height: (baseStyle.fontSize ?? 18.0) * 1.3,
+              fit: BoxFit.contain,
             ),
           ),
         );

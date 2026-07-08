@@ -32,6 +32,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:island_diary/shared/widgets/top_toast.dart';
 
 part 'export/parts/export_canvas.dart';
+part 'export/parts/export_canvas_bg_layer.dart';
 part 'export/parts/export_canvas_gesture.dart';
 part 'export/parts/export_canvas_render.dart';
 part 'export/parts/export_canvas_toolbar.dart';
@@ -50,9 +51,9 @@ class RichTextEditingController extends TextEditingController {
   final InlineSpan Function(String text, TextStyle style) buildRichTextSpan;
 
   RichTextEditingController({
-    String? text,
+    super.text,
     required this.buildRichTextSpan,
-  }) : super(text: text);
+  });
 
   @override
   TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
@@ -1443,9 +1444,9 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
       text: TextSpan(text: plainText, style: textStyle),
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: _canvasWidth - _margin.left - _margin.right);
-    // 额外留出 4dp 容错间距与文本背景的 padding
+    // 额外留出 16dp 容错间距与文本背景的 padding (防止意外换行)
     final double paddingOffset = (element.textBackgroundColor != null) ? (element.textBackgroundPadding * 2) : 0.0;
-    element.width = (textPainter.maxIntrinsicWidth + extraWidgetWidth + 4.0 + paddingOffset).clamp(50.0, _canvasWidth - _margin.left - _margin.right);
+    element.width = (textPainter.maxIntrinsicWidth + extraWidgetWidth + 16.0 + paddingOffset).clamp(50.0, _canvasWidth - _margin.left - _margin.right);
   }
 
   void _handleBackPress() {
@@ -1590,7 +1591,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
                       key: _canvasBoundaryKey,
                       child: ValueListenableBuilder<int>(
                         valueListenable: _canvasRefreshTrigger,
-                        builder: (context, _, __) => _buildCanvas(),
+                        builder: (context, _, _) => _buildCanvas(),
                       ),
                     ),
                   ),

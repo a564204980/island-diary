@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:island_diary/core/theme/app_colors.dart';
+import 'package:island_diary/core/theme/app_spacings.dart';
 
 /// 精致居中提示弹窗：图标 + 文字竖向排列，毛玻璃卡片风格
 class IslandAlert extends StatelessWidget {
@@ -63,58 +65,57 @@ class IslandAlert extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF2C2C2E) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
-    final textColor = isDark ? const Color(0xFFE5E5EA) : const Color(0xFF5D4037);
+    final colors = AppColorsExtension.of(context);
 
     return Material(
       color: Colors.transparent,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 60),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: borderColor,
-            width: 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-              blurRadius: 40,
-              spreadRadius: -5,
-              offset: const Offset(0, 12),
+      child: Center(
+        child: Container(
+          width: AppSpacings.dialogMaxWidth(context),
+          decoration: BoxDecoration(
+            color: colors.cardBackground,
+            borderRadius: AppSpacings.alertRadius,
+            border: Border.all(
+              color: colors.border,
+              width: 1.0,
             ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              icon,
-              style: const TextStyle(fontSize: 32),
-            )
-                .animate()
-                .scale(
-                  delay: 80.ms,
-                  duration: 450.ms,
-                  curve: Curves.easeOutBack,
-                ),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: textColor,
-                fontWeight: FontWeight.w500,
-                height: 1.55,
-                fontFamily: 'LXGWWenKai',
+            boxShadow: [
+              BoxShadow(
+                color: colors.lightShadow,
+                blurRadius: 40,
+                spreadRadius: -5,
+                offset: const Offset(0, 12),
               ),
-            ),
-          ],
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                icon,
+                style: const TextStyle(fontSize: 32),
+              )
+                  .animate()
+                  .scale(
+                    delay: 80.ms,
+                    duration: 450.ms,
+                    curve: Curves.easeOutBack,
+                  ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                  height: 1.55,
+                  fontFamily: 'LXGWWenKai',
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

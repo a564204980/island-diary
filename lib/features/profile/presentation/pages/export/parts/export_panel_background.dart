@@ -122,28 +122,22 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
         const Text('背景插图', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54)),
         const SizedBox(height: 8),
         SizedBox(
-          height: 50,
+          height: 72,
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
-              GestureDetector(
+              _AnimatedThumbnail(
+                isSelected: _bgSettings.imagePath == null,
                 onTap: () {
                   updateStateAndBackground(() {
                     _bgSettings.imagePath = null;
                   });
                 },
-                child: Container(
-                  width: 50,
-                  margin: const EdgeInsets.only(right: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _bgSettings.imagePath == null ? const Color(0xFF8A7A6E) : Colors.transparent, width: 2),
-                  ),
-                  child: const Center(child: Icon(Icons.block, size: 18, color: Colors.grey)),
-                ),
+                backgroundColor: Colors.grey[200],
+                child: const Center(child: Icon(Icons.block, size: 18, color: Colors.grey)),
               ),
-              GestureDetector(
+              _AnimatedThumbnail(
+                isSelected: _bgSettings.imagePath != null && !_bgSettings.imagePath!.startsWith('assets/'),
                 onTap: () async {
                   final List<AssetEntity>? result = await RedBookAssetPicker.pick(
                     context,
@@ -159,33 +153,22 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                     _bgSettings.imagePath = file.path;
                   });
                 },
-                child: Container(
-                  width: 50,
-                  margin: const EdgeInsets.only(right: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: _bgSettings.imagePath != null && !_bgSettings.imagePath!.startsWith('assets/') ? const Color(0xFF8A7A6E) : Colors.transparent,
-                      width: 2,
-                    ),
-                    image: _bgSettings.imagePath != null && !_bgSettings.imagePath!.startsWith('assets/')
-                        ? DecorationImage(
-                            image: FileImage(File(_bgSettings.imagePath!)),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                  ),
-                  child: _bgSettings.imagePath == null || _bgSettings.imagePath!.startsWith('assets/')
-                      ? const Center(
-                          child: Icon(
-                            Icons.add_photo_alternate_outlined,
-                            size: 20,
-                            color: Color(0xFF9E9185),
-                          ),
-                        )
-                      : null,
-                ),
+                backgroundColor: Colors.grey[100],
+                image: _bgSettings.imagePath != null && !_bgSettings.imagePath!.startsWith('assets/')
+                    ? DecorationImage(
+                        image: FileImage(File(_bgSettings.imagePath!)),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+                child: _bgSettings.imagePath == null || _bgSettings.imagePath!.startsWith('assets/')
+                    ? const Center(
+                        child: Icon(
+                          Icons.add_photo_alternate_outlined,
+                          size: 20,
+                          color: Color(0xFF9E9185),
+                        ),
+                      )
+                    : null,
               ),
               // 信纸背景选项
               for (int n = 1; n <= 9; n++) ...[
@@ -195,7 +178,9 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                     final String paperBg = DiaryUtils.getPaperBackgroundPath(paperStyle, false);
                     final Color paperColor = DiaryUtils.getPaperBaseColor(paperStyle, false);
                     final bool isSelected = _bgSettings.imagePath == paperBg;
-                    return GestureDetector(
+                    
+                    return _AnimatedThumbnail(
+                      isSelected: isSelected,
                       onTap: () {
                         _saveToHistory();
                         updateStateAndBackground(() {
@@ -203,22 +188,10 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
                           _bgSettings.color = paperColor;
                         });
                       },
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        margin: const EdgeInsets.only(right: 10),
-                        decoration: BoxDecoration(
-                          color: paperColor,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: isSelected ? const Color(0xFF8A7A6E) : Colors.transparent,
-                            width: 2,
-                          ),
-                          image: DecorationImage(
-                            image: AssetImage(paperBg),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+                      backgroundColor: paperColor,
+                      image: DecorationImage(
+                        image: AssetImage(paperBg),
+                        fit: BoxFit.cover,
                       ),
                     );
                   }
@@ -462,3 +435,139 @@ extension _ExportPanelBackgroundExtension on _DiaryBookExportPageState {
     );
   }
 }
+
+class _AnimatedThumbnail extends StatefulWidget {
+  final bool isSelected;
+  final VoidCallback onTap;
+  final Color? backgroundColor;
+  final DecorationImage? image;
+  final Widget? child;
+
+  const _AnimatedThumbnail({
+    required this.isSelected,
+    required this.onTap,
+    this.backgroundColor,
+    this.image,
+    this.child,
+  });
+
+  @override
+  State<_AnimatedThumbnail> createState() => _AnimatedThumbnailState();
+}
+
+class _AnimatedThumbnailState extends State<_AnimatedThumbnail> with SingleTickerProviderStateMixin {
+  bool _isPressed = false;
+  late AnimationController _sweepController;
+
+  @override
+  void initState() {
+    super.initState();
+    _sweepController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    if (widget.isSelected) {
+      _sweepController.value = 1.0;
+    }
+  }
+
+  @override
+  void didUpdateWidget(_AnimatedThumbnail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelected && !oldWidget.isSelected) {
+      _sweepController.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _sweepController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOutQuad,
+        child: Container(
+          width: 48,
+          height: 72,
+          margin: const EdgeInsets.only(right: 10),
+          child: Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.none,
+            children: [
+              // 1. 底层内容（颜色/图片/图标）
+              Container(
+                decoration: BoxDecoration(
+                  color: widget.backgroundColor,
+                  image: widget.image,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: widget.child,
+              ),
+              
+              // 2. 扫光效果 (只在动画中绘制)
+              if (widget.isSelected)
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: AnimatedBuilder(
+                      animation: _sweepController,
+                      builder: (context, child) {
+                        // 如果动画结束就不需要一直重绘渐变
+                        if (_sweepController.isCompleted) return const SizedBox.shrink();
+                        
+                        final val = -1.0 + (_sweepController.value * 3.0);
+                        return FractionalTranslation(
+                          translation: Offset(val, 0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.0),
+                                  Colors.white.withValues(alpha: 0.5),
+                                  Colors.white.withValues(alpha: 0.0),
+                                ],
+                                stops: const [0.1, 0.5, 0.9],
+                                transform: const GradientRotation(pi / 6),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                
+              // 3. 边框渐显
+              Positioned.fill(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOut,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: widget.isSelected ? const Color(0xFF8A7A6E) : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

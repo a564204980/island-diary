@@ -130,7 +130,7 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
             height: 38,
             child: TextField(
               controller: _textEditorController,
-              style: const TextStyle(fontSize: 12, fontFamily: 'LXGWWenKai'),
+              style: const TextStyle(fontSize: 12, fontFamily: 'LXGWWenKai', fontFamilyFallback: ['IconFont']),
               decoration: InputDecoration(
                 hintText: '文字内容',
                 contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),

@@ -45,12 +45,9 @@ extension _ExportPanelLayersExtension on _DiaryBookExportPageState {
                 child: child,
               );
             },
-            onReorder: (oldIndex, newIndex) {
+            onReorderItem: (oldIndex, newIndex) {
               _saveToHistory();
               updateState(() {
-                if (newIndex > oldIndex) {
-                  newIndex -= 1;
-                }
                 if (oldIndex == newIndex) return;
 
                 final itemToMove = visibleElements[oldIndex];

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
+
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -93,7 +93,6 @@ class _K {
   static const ownedDecorations = 'owned_decoration_ids';
   static const unlockedMascots = 'unlocked_mascot_paths';
 
-
   static const isImageCompressEnabled = 'is_image_compress_enabled';
   static const imageCompressQuality = 'image_compress_quality';
   static const diaryLayoutMode = 'diary_layout_mode';
@@ -161,7 +160,10 @@ class UserState
   /// 在后台 isolate 并行加载所有数据，完成后回调通知调用方（overlay）
   /// 调用方在动画结束后再调用 [flushWarpData] 一次性提交所有 ValueNotifier，
   /// 确保动画期间主线程 100% 只用于渲染帧，0 widget 重建竞争。
-  Future<void> switchLifeLineForWarp(String id, {required VoidCallback onDataReady}) async {
+  Future<void> switchLifeLineForWarp(
+    String id, {
+    required VoidCallback onDataReady,
+  }) async {
     if (currentLifeLineId.value == id) {
       onDataReady();
       return;
@@ -190,7 +192,9 @@ class UserState
     }();
     final furnitureFuture = () async {
       final f = prefs.getString(n(_K.placedFurniture));
-      return f != null ? await compute(_parseFurniture, f) : <PlacedFurniture>[];
+      return f != null
+          ? await compute(_parseFurniture, f)
+          : <PlacedFurniture>[];
     }();
     final snapshotFuture = () async {
       final s = prefs.getString(n(_K.decorationSnapshot));
@@ -198,13 +202,19 @@ class UserState
     }();
     final achievementFuture = () async {
       final a = prefs.getString(n(_K.unlockedAchievementsMap));
-      return a != null ? await compute(_parseAchievements, a) : <String, String>{};
+      return a != null
+          ? await compute(_parseAchievements, a)
+          : <String, String>{};
     }();
 
     // 等待所有后台任务完成
     final results = await Future.wait([
-      diaryFuture, bookFuture, draftFuture,
-      furnitureFuture, snapshotFuture, achievementFuture,
+      diaryFuture,
+      bookFuture,
+      draftFuture,
+      furnitureFuture,
+      snapshotFuture,
+      achievementFuture,
     ]);
 
     // 3. 所有数据已在内存中就位，通知 overlay：「数据准备好了，等你动画结束」
@@ -235,7 +245,6 @@ class UserState
     _pendingWarpFlush?.call();
     _pendingWarpFlush = null;
   }
-
 
   Future<void> factoryReset() async {
     final prefs = await SharedPreferences.getInstance();

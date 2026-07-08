@@ -5,6 +5,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/home/presentation/pages/home_page.dart';
 import 'package:island_diary/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:island_diary/shared/widgets/security/security_guard.dart';
+import 'package:island_diary/core/theme/app_theme.dart';
 
 void main() {
   // 确保 Flutter 底层绑定初始化完毕
@@ -49,47 +50,8 @@ class IslandDiaryApp extends StatelessWidget {
           title: '岛屿日记',
           debugShowCheckedModeBanner: false,
           scrollBehavior: AppScrollBehavior(),
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF0F172A),
-              brightness: Brightness.light,
-            ),
-            useMaterial3: true,
-            scaffoldBackgroundColor: const Color(0xFFE6F3F5),
-            fontFamily: defaultFont,
-            textTheme: ThemeData(useMaterial3: true).textTheme.apply(
-              bodyColor: const Color(0xFF5A3E28),
-              displayColor: const Color(0xFF5A3E28),
-              fontFamily: defaultFont,
-            ),
-            bottomSheetTheme: const BottomSheetThemeData(
-              showDragHandle: false,
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.transparent,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-              ),
-            ),
-          ),
-          darkTheme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF0F172A),
-              brightness: Brightness.dark,
-            ),
-            useMaterial3: true,
-            scaffoldBackgroundColor: const Color(0xFF1E1E1F),
-            fontFamily: darkFont,
-            bottomSheetTheme: const BottomSheetThemeData(
-              showDragHandle: false,
-              backgroundColor: Color(0xFF1F1F1F),
-              surfaceTintColor: Colors.transparent,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-              ),
-            ),
-          ),
+          theme: AppTheme.lightTheme(defaultFont),
+          darkTheme: AppTheme.darkTheme(darkFont),
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,

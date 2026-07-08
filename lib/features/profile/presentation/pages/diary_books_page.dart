@@ -181,6 +181,10 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
         book.customCoverPath != null &&
         File(book.customCoverPath!).existsSync();
 
+    // 根据日记数量动态计算书本厚度（4 到 8 之间）
+    // 基础厚度 4，防止厚度过大导致视觉突兀，将最大值限制在 8px
+    final double thickness = (4.0 + (count / 20.0)).clamp(4.0, 8.0);
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -198,16 +202,18 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
                 children: [
                   // 1. 纸张厚度（底层白边）
                   Positioned(
-                    left: 6,
-                    top: 2,
-                    right: 0,
-                    bottom: 0,
+                    left: 0, 
+                    top: 3,    // 纸张上下各内缩 3px，使其比硬皮封面稍小（不凸出）
+                    right: 0,  // 右侧贴边，从而在封面右侧露出厚度
+                    bottom: 3, // 底部内缩，确保底部不会看到纸张
                     child: Container(
                       decoration: BoxDecoration(
                         color: isNight
                             ? const Color(0xFFC0C0C0)
                             : const Color(0xFFF4F1EA), // 纸张色
                         borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(4), // 与封面左侧圆角保持一致
+                          bottomLeft: Radius.circular(4), 
                           topRight: Radius.circular(8),
                           bottomRight: Radius.circular(8),
                         ),
@@ -247,8 +253,8 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
                   Positioned(
                     left: 0,
                     top: 0,
-                    right: 6,
-                    bottom: 4, // 露出底部纸张
+                    right: thickness,
+                    bottom: 0, // 封面垂直方向占满全高
                     child: Container(
                       decoration: BoxDecoration(
                         color: hasCustomCover
@@ -634,44 +640,74 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
   Widget _buildMenuOption({
     required IconData icon,
     required String title,
-    required Color iconColor,
+    required String subtitle,
+    required Color baseColor,
     required VoidCallback onTap,
     required bool isNight,
     required String fontFamily,
     bool isDestructive = false,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isDestructive
-                    ? const Color(0xFFC47B7B)
-                    : (isNight ? Colors.white54 : const Color(0xFF8E8E93)),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: fontFamily,
-                    color: isDestructive
-                        ? const Color(0xFFC47B7B)
-                        : (isNight
-                              ? Colors.white.withValues(alpha: 0.9)
-                              : const Color(0xFF2C2C2C)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: isNight
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: baseColor.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 22,
+                    color: baseColor,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: fontFamily,
+                          color: isDestructive
+                              ? baseColor
+                              : (isNight ? Colors.white : const Color(0xFF2C2C2C)),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontFamily: fontFamily,
+                          color: isNight ? Colors.white54 : Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: isNight ? Colors.white38 : Colors.black38,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -688,6 +724,7 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
       context: context,
       backgroundColor: Colors.transparent,
       showDragHandle: false,
+      isScrollControlled: true,
       builder: (sheetContext) {
         return DiaryBottomSheet(
           paperStyle: 'default',
@@ -697,58 +734,83 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
             left: 20,
             right: 20,
             top: 12,
-            bottom: 12 + MediaQuery.of(context).padding.bottom,
+            bottom: 32 + MediaQuery.of(context).padding.bottom,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // 头部区域
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24, left: 8, right: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '日记本选项',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isNight ? Colors.white : Colors.black87,
+                            fontFamily: fontFamily,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '管理你的日记本',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isNight ? Colors.white54 : Colors.black54,
+                            fontFamily: fontFamily,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Color(0xFFA5D6A7),
+                      size: 24,
+                    ),
+                  ],
+                ),
+              ).animate().fade(duration: 300.ms).slideY(begin: 0.2, end: 0),
+              
+              // 选项列表
               _buildMenuOption(
-                icon: Icons.edit_note_rounded,
+                icon: Icons.edit_outlined,
                 title: '重命名日记本',
-                iconColor: const Color(0xFFD4A373),
+                subtitle: '修改日记本的名称',
+                baseColor: const Color(0xFF6B906A), // 绿色系
                 isNight: isNight,
                 fontFamily: fontFamily,
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _showCreateBookDialog(context, editingBook: book);
                 },
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Divider(
-                  height: 1,
-                  thickness: 0.5,
-                  color: isNight
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.black.withValues(alpha: 0.05),
-                ),
-              ),
+              ).animate().fade(duration: 300.ms, delay: 50.ms).slideY(begin: 0.1, end: 0),
+              
               _buildMenuOption(
                 icon: Icons.image_outlined,
                 title: '设置自定义封面',
-                iconColor: const Color(0xFFD4A373),
+                subtitle: '为日记本选择或上传封面',
+                baseColor: const Color(0xFF6B8BCC), // 蓝色系
                 isNight: isNight,
                 fontFamily: fontFamily,
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _showCoverPicker(context, book);
                 },
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Divider(
-                  height: 1,
-                  thickness: 0.5,
-                  color: isNight
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.black.withValues(alpha: 0.05),
-                ),
-              ),
+              ).animate().fade(duration: 300.ms, delay: 100.ms).slideY(begin: 0.1, end: 0),
+              
               _buildMenuOption(
                 icon: Icons.delete_outline_rounded,
                 title: '删除日记本',
-                iconColor: Colors.redAccent,
+                subtitle: '删除后将无法恢复，请谨慎操作',
+                baseColor: const Color(0xFFC47B7B), // 红色系
                 isNight: isNight,
                 fontFamily: fontFamily,
                 isDestructive: true,
@@ -756,7 +818,44 @@ class _DiaryBooksPageState extends State<DiaryBooksPage> {
                   Navigator.pop(sheetContext);
                   _confirmDeleteBook(context, book);
                 },
-              ),
+              ).animate().fade(duration: 300.ms, delay: 150.ms).slideY(begin: 0.1, end: 0),
+              
+              const SizedBox(height: 12),
+              
+              // 取消按钮
+              Material(
+                color: isNight
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(24),
+                child: InkWell(
+                  onTap: () => Navigator.pop(sheetContext),
+                  borderRadius: BorderRadius.circular(24),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: isNight ? Colors.white70 : Colors.black54,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '取消',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: fontFamily,
+                            color: isNight ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ).animate().fade(duration: 300.ms, delay: 200.ms).slideY(begin: 0.1, end: 0),
             ],
           ),
         );

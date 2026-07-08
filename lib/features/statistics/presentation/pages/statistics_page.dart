@@ -488,7 +488,6 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
 
   void _onReorder(int oldIndex, int newIndex) {
     setState(() {
-      if (newIndex > oldIndex) newIndex -= 1;
       final order = _getModuleOrder();
       final String item = order.removeAt(oldIndex);
       order.insert(newIndex, item);
@@ -811,7 +810,7 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
                                     padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
                                     physics: const BouncingScrollPhysics(),
                                     itemCount: _getModuleOrder().length,
-                                    onReorder: _onReorder,
+                                    onReorderItem: _onReorder,
                                     proxyDecorator: (child, index, animation) {
                                       return AnimatedBuilder(
                                         animation: animation,
@@ -1496,7 +1495,7 @@ class _EmptyStateIslandIllustrationState extends State<_EmptyStateIslandIllustra
       animation: _floatAnim,
       builder: (context, child) {
         final double dy = _floatAnim.value;
-        return Container(
+        return SizedBox(
           width: 240,
           height: 180,
           child: Stack(

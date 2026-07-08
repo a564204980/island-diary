@@ -8,6 +8,7 @@ import 'package:flutter_windowmanager_plus/flutter_windowmanager_plus.dart';
 import 'package:camera/camera.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:local_auth/local_auth.dart';
 
 import 'package:island_diary/core/state/user_state.dart';
 
@@ -154,6 +155,26 @@ class _SecurityGuardState extends State<SecurityGuard> with WidgetsBindingObserv
           _captureIntruder();
         }
       }
+    }
+  }
+
+  Future<void> _authenticateWithBiometrics() async {
+    final LocalAuthentication auth = LocalAuthentication();
+    try {
+      final bool didAuthenticate = await auth.authenticate(
+        localizedReason: '请验证指纹或面容以解锁岛屿日记',
+        persistAcrossBackgrounding: true,
+        biometricOnly: true,
+      );
+      if (didAuthenticate && mounted) {
+        setState(() {
+          _isLocked = false;
+          _failedAttempts = 0;
+        });
+        _pinController.clear();
+      }
+    } catch (e) {
+      debugPrint("Biometric auth error: $e");
     }
   }
 
@@ -337,7 +358,7 @@ class _SecurityGuardState extends State<SecurityGuard> with WidgetsBindingObserv
                                 IconButton(
                                   icon: const Icon(Icons.fingerprint, size: 40, color: Colors.white70),
                                   onPressed: () {
-                                    // TODO: 调用 local_auth 验证
+                                    _authenticateWithBiometrics();
                                   },
                                 ),
                             ],
