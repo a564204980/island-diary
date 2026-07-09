@@ -142,6 +142,7 @@ class TextAttribute {
   final double? fontSize;
   final bool? underline;
   final String? underlineStyle; // 新增下划线样式: solid, double, dashed, dotted, wavy, marker
+  final bool? bold;
 
   TextAttribute({
     required this.start,
@@ -151,6 +152,7 @@ class TextAttribute {
     this.fontSize,
     this.underline,
     this.underlineStyle,
+    this.bold,
   });
 
   Map<String, dynamic> toMap() => {
@@ -161,6 +163,7 @@ class TextAttribute {
     if (fontSize != null) 'fontSize': fontSize,
     if (underline != null) 'underline': underline,
     if (underlineStyle != null) 'underlineStyle': underlineStyle,
+    if (bold != null) 'bold': bold,
   };
 
   factory TextAttribute.fromMap(Map<String, dynamic> map) => TextAttribute(
@@ -173,6 +176,7 @@ class TextAttribute {
     fontSize: map['fontSize']?.toDouble(),
     underline: map['underline'],
     underlineStyle: map['underlineStyle']?.toString(),
+    bold: map['bold'],
   );
 }
 
@@ -538,7 +542,7 @@ class DiaryTextEditingController extends TextEditingController {
            baseColor ??
            (UserState().isNight
                ? const Color(0xFFE0C097)
-               : const Color(0xFF5D4037)),
+               : const Color(0xFF333333)),
        baseFontSize = baseFontSize ?? 20.0,
        baseFontFamily = baseFontFamily ?? 'LXGWWenKai' {
     this.attributes = attributes ?? [];
@@ -606,6 +610,9 @@ class DiaryTextEditingController extends TextEditingController {
               color: attr.color,
               backgroundColor: attr.backgroundColor,
               fontSize: attr.fontSize,
+              underline: attr.underline,
+              underlineStyle: attr.underlineStyle,
+              bold: attr.bold,
             ),
           );
         }
@@ -646,10 +653,12 @@ class DiaryTextEditingController extends TextEditingController {
     double? fontSize,
     bool? underline,
     String? underlineStyle,
+    bool? bold,
     bool clearColor = false,
     bool clearBgColor = false,
     bool clearFontSize = false,
     bool clearUnderline = false,
+    bool clearBold = false,
   }) {
     if (selection.isCollapsed) return;
 
@@ -729,6 +738,20 @@ class DiaryTextEditingController extends TextEditingController {
             underlineStyle: 'solid',
           ),
         );
+      }
+    }
+
+    // 处理加粗逻辑
+    if (clearBold || bold != null) {
+      attributes.removeWhere(
+        (attr) =>
+            attr.bold != null &&
+            ((attr.start >= start && attr.start < end) ||
+                (attr.end > start && attr.end <= end) ||
+                (attr.start <= start && attr.end >= end)),
+      );
+      if (bold != null) {
+        attributes.add(TextAttribute(start: start, end: end, bold: bold));
       }
     }
 
@@ -1091,6 +1114,7 @@ class DiaryTextEditingController extends TextEditingController {
                   return TextStyle(
                     color: attr.color ?? baseColor,
                     fontSize: attr.fontSize,
+                    fontWeight: (attr.bold == true) ? FontWeight.bold : null,
                     height: 1.8,
                   );
                 }
@@ -1111,6 +1135,7 @@ class DiaryTextEditingController extends TextEditingController {
                 return TextStyle(
                   color: attr.color ?? baseColor,
                   fontSize: attr.fontSize,
+                  fontWeight: (attr.bold == true) ? FontWeight.bold : null,
                   height: 1.8,
                   background: Paint()
                     ..shader = DiaryTextEditingController.getUnderlineShader(style, lineColor, rectHeight),
@@ -1120,6 +1145,7 @@ class DiaryTextEditingController extends TextEditingController {
                 color: attr.color,
                 backgroundColor: attr.backgroundColor,
                 fontSize: attr.fontSize,
+                fontWeight: (attr.bold == true) ? FontWeight.bold : null,
                 height: 1.8,
               ),
         'priority': 1,

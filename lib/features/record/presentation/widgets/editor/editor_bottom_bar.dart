@@ -82,11 +82,11 @@ class EditorBottomBar extends StatelessWidget {
     final bool isWide = screenWidth > 800;
     final double toolbarMaxWidth = isWide ? 800.0 : double.infinity;
 
-    final Color barBgColor = Colors.transparent;
-
     final Color iconColor = isNight
         ? Colors.white70
         : Colors.black87;
+
+    final Color barBgColor = Colors.transparent;
 
     Widget bottomBarContent = Container(
       margin: EdgeInsets.zero,

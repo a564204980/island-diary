@@ -68,50 +68,54 @@ class DiaryFontSizePickerSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              alignment: WrapAlignment.center,
-              children: sizes.map((size) {
-                final isSelected = currentFontSize == size['value'];
-                return GestureDetector(
-                  onTap: () => onApplyFontSize(size['value']),
-                  child: AnimatedContainer(
-                    duration: 300.ms,
-                    curve: Curves.easeOutCubic,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? accentColor
-                          : accentColor.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(
-                        color: accentColor.withValues(alpha: isSelected ? 1.0 : 0.15),
-                        width: 1.5,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: sizes.map((size) {
+                  final isSelected = currentFontSize == size['value'];
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
+                    child: GestureDetector(
+                      onTap: () => onApplyFontSize(size['value']),
+                      child: AnimatedContainer(
+                        duration: 300.ms,
+                        curve: Curves.easeOutCubic,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? accentColor
+                              : accentColor.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(25),
+                          border: Border.all(
+                            color: accentColor.withValues(alpha: isSelected ? 1.0 : 0.15),
+                            width: 1.5,
+                          ),
+                          boxShadow: isSelected ? [
+                            BoxShadow(
+                              color: accentColor.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            )
+                          ] : null,
+                        ),
+                        child: Text(
+                          size['label'],
+                          style: TextStyle(
+                            fontFamily: 'LXGWWenKai',
+                            fontSize: 15,
+                            color: isSelected ? Colors.white : inkColor.withValues(alpha: 0.8),
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
                       ),
-                      boxShadow: isSelected ? [
-                        BoxShadow(
-                          color: accentColor.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        )
-                      ] : null,
                     ),
-                    child: Text(
-                      size['label'],
-                      style: TextStyle(
-                        fontFamily: 'LXGWWenKai',
-                        fontSize: 15,
-                        color: isSelected ? Colors.white : inkColor.withValues(alpha: 0.8),
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
             const SizedBox(height: 32),
             // 滑块区域

@@ -61,6 +61,35 @@ class _ElementSelectionBuilderState extends State<_ElementSelectionBuilder> {
   }
 }
 
+class _GuidelinesPainter extends CustomPainter {
+  final List<double> vGuidelines;
+  final List<double> hGuidelines;
+
+  _GuidelinesPainter(this.vGuidelines, this.hGuidelines);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (vGuidelines.isEmpty && hGuidelines.isEmpty) return;
+    
+    final paint = Paint()
+      ..color = const Color(0xFFFF7A7A) // 柔和的辅助线颜色
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    for (final x in vGuidelines) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (final y in hGuidelines) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GuidelinesPainter oldDelegate) {
+    return true;
+  }
+}
+
 extension _ExportCanvasExtension on _DiaryBookExportPageState {
   Widget _buildCanvasElementWithCache(ExportElement element) {
     // 缓存 key 【不再包含选中状态】，因为选中高亮通过 _ElementSelectionBuilder 独立驱动，
@@ -182,6 +211,16 @@ extension _ExportCanvasExtension on _DiaryBookExportPageState {
 
           // 所有元素按 Z-order 渲染，每个元素通过 ValueListenableBuilder(_selectionNotifier) 独立响应选中
           ...allWidgets,
+
+          // 磁吸辅助线
+          if (_vGuidelines.isNotEmpty || _hGuidelines.isNotEmpty)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _GuidelinesPainter(_vGuidelines, _hGuidelines),
+                ),
+              ),
+            ),
 
           // 选中元素的悬浮快捷菜单 + 尺寸气泡：监听 _selectionNotifier 即时响应，无需画布重建
           ValueListenableBuilder<String?>(

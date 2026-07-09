@@ -215,19 +215,6 @@ class _CanvasBackgroundLayerState extends State<CanvasBackgroundLayer> with Sing
                 ),
               ),
 
-            // 3. 顶层：全局轻微压暗，制造过渡沉浸感
-            if (isAnimating)
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, child) {
-                  // 在整个动画过程中压暗，顶峰出现在中间偏前
-                  final dimOpacity = sin(_controller.value * pi) * 0.15;
-                  return IgnorePointer(
-                    child: Container(color: Colors.black.withValues(alpha: dimOpacity)),
-                  );
-                },
-              ),
-
             // 4. 页边距辅助线
             Positioned(
               left: widget.margin.left,

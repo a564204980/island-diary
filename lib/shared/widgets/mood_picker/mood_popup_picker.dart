@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import '../diary_entry/utils/diary_utils.dart';
 import 'config/mood_config.dart';
+import '../../animations/bouncing_button.dart';
 
 class MoodPopupPicker extends StatefulWidget {
   final int? initialIndex;
@@ -108,7 +109,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
               itemBuilder: (context, index) {
                 final mood = kMoods[index];
                 final isSelected = _selectedIndex == index;
-                return GestureDetector(
+                return BouncingButton(
                   onTap: () {
                     HapticFeedback.lightImpact();
                     setState(() {
@@ -219,7 +220,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                     child: Row(
                       children: history
                           .map(
-                            (tag) => GestureDetector(
+                            (tag) => BouncingButton(
                               onTap: () {
                                 HapticFeedback.selectionClick();
                                 setState(() {
@@ -322,7 +323,7 @@ class _MoodPopupPickerState extends State<MoodPopupPicker> {
                 final bool canSave = _selectedIndex != null || _tagController.text.trim().isNotEmpty;
                 final glowColor = mood?.glowColor ?? primaryColor;
                 
-                return GestureDetector(
+                return BouncingButton(
                   onTap: () {
                     final tag = _tagController.text.trim();
                     if (_selectedIndex != null || tag.isNotEmpty) {

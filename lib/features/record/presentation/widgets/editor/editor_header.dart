@@ -26,14 +26,8 @@ class EditorHeader extends StatelessWidget {
     final bool hasPaperBg = paperStyle.startsWith('note') ||
         (paperStyle == 'classic' && themeId == 'cotton_candy');
 
-    final Color bgColor = hasPaperBg
-        ? Colors.transparent
-        : (isNight 
-            ? const Color(0xFF121212) 
-            : (themeId == 'lego' ? const Color(0xFFFDF3E3) : const Color(0xFFFAF8F5)));
-    
     return Container(
-      color: bgColor, // 确保置顶时遮挡下方文字
+      color: Colors.transparent, // 根据用户要求调整为全透明，无分割线
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -58,13 +52,6 @@ class EditorHeader extends StatelessWidget {
             ],
           ),
         ),
-        // 底部细横线 (提高显见度)
-        if (!hasPaperBg)
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            height: 0.8,
-            color: inkColor.withValues(alpha: 0.1),
-          ),
       ],
     ),
   );

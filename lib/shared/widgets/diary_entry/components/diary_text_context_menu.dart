@@ -90,14 +90,28 @@ class DiaryTextContextMenu extends StatelessWidget {
       }
     }
 
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final Offset primaryAnchor = editableTextState.contextMenuAnchors.primaryAnchor;
+    final Offset? secondaryAnchor = editableTextState.contextMenuAnchors.secondaryAnchor;
+    
+    // In some custom editors (like ExtendedText), primaryAnchor is the start of the selection 
+    // and secondaryAnchor is the end. Averaging them gives the exact visual center.
+    double anchorDx = primaryAnchor.dx;
+    if (secondaryAnchor != null && (secondaryAnchor.dx - primaryAnchor.dx).abs() > 0.1) {
+      anchorDx = (primaryAnchor.dx + secondaryAnchor.dx) / 2.0;
+    }
+
     return CustomSingleChildLayout(
       delegate: TextSelectionToolbarLayoutDelegate(
-        anchorAbove: editableTextState.contextMenuAnchors.primaryAnchor,
-        anchorBelow: editableTextState.contextMenuAnchors.secondaryAnchor ??
-            editableTextState.contextMenuAnchors.primaryAnchor,
+        anchorAbove: Offset(anchorDx, primaryAnchor.dy),
+        anchorBelow: secondaryAnchor != null 
+            ? Offset(anchorDx, secondaryAnchor.dy)
+            : Offset(anchorDx, primaryAnchor.dy),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: IntrinsicWidth(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -115,13 +129,13 @@ class DiaryTextContextMenu extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildToolbarButton("复制", () {
+                _buildToolbarButton(Icons.copy_rounded, () {
                   editableTextState.copySelection(SelectionChangedCause.toolbar);
                   editableTextState.hideToolbar();
                 }, false),
                 if (showAnnotation) ...[
                   const SizedBox(width: 4),
-                  _buildToolbarButton("批注", () {
+                  _buildToolbarButton(Icons.add_comment_rounded, () {
                     editableTextState.hideToolbar();
                     onAddAnnotation(
                       blockIndex: blockIndex,
@@ -132,7 +146,7 @@ class DiaryTextContextMenu extends StatelessWidget {
                   }, false),
                   if (overlappingAnn != null && onDeleteAnnotation != null) ...[
                     const SizedBox(width: 4),
-                    _buildToolbarButton("删除", () {
+                    _buildToolbarButton(Icons.delete_outline_rounded, () {
                       editableTextState.hideToolbar();
                       onDeleteAnnotation!(overlappingAnn!['key']);
                     }, false),
@@ -140,7 +154,7 @@ class DiaryTextContextMenu extends StatelessWidget {
                 ],
                 if (showUnderline) ...[
                   const SizedBox(width: 4),
-                  _buildToolbarButton("颜色", () {
+                  _buildToolbarButton(Icons.format_color_text_rounded, () {
                     final controller = controllerOverride ?? editableTextState.widget.controller;
                     if (controller is DiaryTextEditingController) {
                       final targetSelection = selectionOffset != null && selectionOffset! > 0
@@ -189,7 +203,7 @@ class DiaryTextContextMenu extends StatelessWidget {
                     }
                   }, false),
                   const SizedBox(width: 4),
-                  _buildToolbarButton("背景", () {
+                  _buildToolbarButton(Icons.format_color_fill_rounded, () {
                     final controller = controllerOverride ?? editableTextState.widget.controller;
                     if (controller is DiaryTextEditingController) {
                       final targetSelection = selectionOffset != null && selectionOffset! > 0
@@ -238,7 +252,35 @@ class DiaryTextContextMenu extends StatelessWidget {
                     }
                   }, false),
                   const SizedBox(width: 4),
-                  _buildToolbarButton("划线", () {
+                  _buildToolbarButton(Icons.format_bold_rounded, () {
+                    final controller = controllerOverride ?? editableTextState.widget.controller;
+                    if (controller is DiaryTextEditingController) {
+                      final targetSelection = selectionOffset != null && selectionOffset! > 0
+                          ? TextSelection(
+                              baseOffset: selection.baseOffset + selectionOffset!,
+                              extentOffset: selection.extentOffset + selectionOffset!,
+                            )
+                          : selection;
+                      bool isBold = false;
+                      for (var attr in controller.attributes) {
+                        if (attr.bold == true &&
+                            attr.start <= targetSelection.start &&
+                            attr.end >= targetSelection.end) {
+                          isBold = true;
+                          break;
+                        }
+                      }
+                      
+                      editableTextState.hideToolbar();
+                      if (isBold) {
+                        controller.applyAttributeToSelection(targetSelection, clearBold: true);
+                      } else {
+                        controller.applyAttributeToSelection(targetSelection, bold: true);
+                      }
+                      onAttributeApplied?.call();
+                    }
+                  }, false),
+                  _buildToolbarButton(Icons.format_underlined_rounded, () {
                     final controller = controllerOverride ?? editableTextState.widget.controller;
                     if (controller is DiaryTextEditingController) {
                       final targetSelection = selectionOffset != null && selectionOffset! > 0
@@ -286,7 +328,7 @@ class DiaryTextContextMenu extends StatelessWidget {
                     }
                   }, false),
                   const SizedBox(width: 4),
-                  _buildToolbarButton("圈线", () {
+                  _buildToolbarButton(Icons.gesture_rounded, () {
                     final controller = controllerOverride ?? editableTextState.widget.controller;
                     if (controller is DiaryTextEditingController) {
                       final targetSelection = selectionOffset != null && selectionOffset! > 0
@@ -342,32 +384,29 @@ class DiaryTextContextMenu extends StatelessWidget {
             ),
           ),
           CustomPaint(
-            size: const Size(12, 6),
-            painter: _ToolbarArrowPainter(),
+            size: const Size(double.infinity, 6),
+            painter: _ToolbarArrowPainter(anchorDx, screenWidth),
           ),
         ],
+      ),
       ),
     );
   }
 
-  Widget _buildToolbarButton(String label, VoidCallback onTap, bool isHighlighted) {
+  Widget _buildToolbarButton(IconData icon, VoidCallback onTap, bool isHighlighted) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isHighlighted ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            fontFamily: 'LXGWWenKai',
-          ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: Colors.white,
         ),
       ),
     );
@@ -375,19 +414,36 @@ class DiaryTextContextMenu extends StatelessWidget {
 }
 
 class _ToolbarArrowPainter extends CustomPainter {
+  final double anchorDx;
+  final double screenWidth;
+
+  _ToolbarArrowPainter(this.anchorDx, this.screenWidth);
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = const Color(0xFF2F2F2F)
       ..style = PaintingStyle.fill;
+      
+    final double padding = 8.0; 
+    final double actualLeft = (anchorDx - size.width / 2).clamp(padding, screenWidth - padding - size.width);
+    final double arrowCenterX = (anchorDx - actualLeft).clamp(12.0, size.width - 12.0);
+
+    final double radius = 1.5;
+    final double arrowWidth = 12.0;
+    
     final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..lineTo(size.width, 0)
+      ..moveTo(arrowCenterX - arrowWidth / 2, 0)
+      ..lineTo(arrowCenterX - radius, size.height - radius)
+      ..quadraticBezierTo(
+          arrowCenterX, size.height, arrowCenterX + radius, size.height - radius)
+      ..lineTo(arrowCenterX + arrowWidth / 2, 0)
       ..close();
     canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _ToolbarArrowPainter oldDelegate) {
+    return oldDelegate.anchorDx != anchorDx || oldDelegate.screenWidth != screenWidth;
+  }
 }

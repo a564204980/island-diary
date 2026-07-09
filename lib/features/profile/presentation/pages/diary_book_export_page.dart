@@ -97,6 +97,17 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     if (mounted) setState(() {});
   }
 
+  void updateCanvasState(VoidCallback fn) {
+    fn();
+    _canvasRefreshTrigger.value++;
+    // 通知属性面板刷新XY坐标
+    Future.microtask(() {
+      if (mounted) {
+        _selectionNotifier.value = _selectedElementId;
+      }
+    });
+  }
+
   void updateStateAndBackground(VoidCallback fn) {
     fn();
     _cachedBackgroundWidgets = null;
@@ -127,6 +138,8 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   String? _activeHandle;
   double _dragX = 0.0;
   double _dragY = 0.0;
+  List<double> _vGuidelines = [];
+  List<double> _hGuidelines = [];
   final FocusNode _inlineFocusNode = FocusNode();
   int _activeTabIndex = 0; // 0:页面, 1:背景, 2:添加, 3:属性, 4:图层, 5:导出
   bool _isPanelExpanded = false; // 面板是否展开，默认收起

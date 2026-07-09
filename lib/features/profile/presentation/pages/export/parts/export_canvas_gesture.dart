@@ -41,17 +41,21 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
               if (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId) return;
               updateState(() {
                 _activeHandle = null;
+                _vGuidelines.clear();
+                _hGuidelines.clear();
               });
             },
           onPanCancel: () {
               if (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId) return;
               updateState(() {
                 _activeHandle = null;
+                _vGuidelines.clear();
+                _hGuidelines.clear();
               });
             },
           onPanUpdate: (details) {
               if (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId) return;
-              updateState(() {
+              updateCanvasState(() {
                   // 此处 delta 已是屏幕坐标系（GestureDetector 在 Transform.rotate 外），
                   // 虚拟拖拽坐标累加 delta（保留没有被磁吸强制修正的真实手势轨迹）
                   _dragX += details.delta.dx;
@@ -59,6 +63,9 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
 
                   double newX = _dragX;
                   double newY = _dragY;
+
+                  _vGuidelines.clear();
+                  _hGuidelines.clear();
 
                   // 页边距与相邻元素磁吸对齐（仅在元素基本未旋转时才做磁吸，旋转后对齐参考线没有意义）
                   final double rotationMod = element.rotation % (2 * pi);
@@ -69,13 +76,17 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                     // 1. 页边距磁吸
                     if ((_dragX - _margin.left).abs() < snapThreshold) {
                       newX = _margin.left;
+                      _vGuidelines.add(newX);
                     } else if ((_dragX + element.width - (_canvasWidth - _margin.right)).abs() < snapThreshold) {
                       newX = _canvasWidth - _margin.right - element.width;
+                      _vGuidelines.add(newX + element.width);
                     }
                     if ((_dragY - _margin.top).abs() < snapThreshold) {
                       newY = _margin.top;
+                      _hGuidelines.add(newY);
                     } else if ((_dragY + element.height - (_canvasHeight - _margin.bottom)).abs() < snapThreshold) {
                       newY = _canvasHeight - _margin.bottom - element.height;
+                      _hGuidelines.add(newY + element.height);
                     }
 
                     // 2. 相邻元素对齐吸附 (遍历其他可见未旋转元素)
@@ -90,42 +101,52 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                       // 顶部对齐
                       if ((_dragY - other.y).abs() < snapThreshold) {
                         newY = other.y;
+                        _hGuidelines.add(newY);
                       }
                       // 底部对齐
                       else if ((_dragY + element.height - (other.y + other.height)).abs() < snapThreshold) {
                         newY = other.y + other.height - element.height;
+                        _hGuidelines.add(newY + element.height);
                       }
                       // 垂直居中对齐
                       else if (((_dragY + element.height / 2) - (other.y + other.height / 2)).abs() < snapThreshold) {
                         newY = other.y + other.height / 2 - element.height / 2;
+                        _hGuidelines.add(newY + element.height / 2);
                       }
                       // 纵向首尾相连邻接
                       else if ((_dragY - (other.y + other.height)).abs() < snapThreshold) {
                         newY = other.y + other.height;
+                        _hGuidelines.add(newY);
                       }
                       else if (((_dragY + element.height) - other.y).abs() < snapThreshold) {
                         newY = other.y - element.height;
+                        _hGuidelines.add(other.y);
                       }
 
                       // --- X 轴方向对齐吸附 ---
                       // 左侧对齐
                       if ((_dragX - other.x).abs() < snapThreshold) {
                         newX = other.x;
+                        _vGuidelines.add(newX);
                       }
                       // 右侧对齐
                       else if ((_dragX + element.width - (other.x + other.width)).abs() < snapThreshold) {
                         newX = other.x + other.width - element.width;
+                        _vGuidelines.add(newX + element.width);
                       }
                       // 水平居中对齐
                       else if (((_dragX + element.width / 2) - (other.x + other.width / 2)).abs() < snapThreshold) {
                         newX = other.x + other.width / 2 - element.width / 2;
+                        _vGuidelines.add(newX + element.width / 2);
                       }
                       // 横向首尾并排邻接
                       else if ((_dragX - (other.x + other.width)).abs() < snapThreshold) {
                         newX = other.x + other.width;
+                        _vGuidelines.add(newX);
                       }
                       else if (((_dragX + element.width) - other.x).abs() < snapThreshold) {
                         newX = other.x - element.width;
+                        _vGuidelines.add(other.x);
                       }
                     }
                   }
@@ -198,6 +219,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onPanStart: (_) {
+                    _saveToHistory();
                     updateState(() {
                       _activeHandle = 'topLeft';
                     });
@@ -213,8 +235,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                     });
                   },
                   onPanUpdate: (details) {
-                    updateState(() {
-                      _saveToHistory();
+                    updateCanvasState(() {
                       final double newX = (element.x + details.delta.dx).clamp(0.0, element.x + element.width - 30.0);
                       final double dx = newX - element.x;
                       element.x = newX;
@@ -236,6 +257,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onPanStart: (_) {
+                    _saveToHistory();
                     updateState(() {
                       _activeHandle = 'topRight';
                     });
@@ -251,8 +273,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                     });
                   },
                   onPanUpdate: (details) {
-                    updateState(() {
-                      _saveToHistory();
+                    updateCanvasState(() {
                       element.width = (element.width + details.delta.dx).clamp(30.0, (_canvasWidth - element.x).clamp(30.0, _canvasWidth));
                       
                       final double newY = (element.y + details.delta.dy).clamp(0.0, element.y + element.height - 10.0);
@@ -271,6 +292,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onPanStart: (_) {
+                    _saveToHistory();
                     updateState(() {
                       _activeHandle = 'bottomLeft';
                     });
@@ -286,8 +308,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                     });
                   },
                   onPanUpdate: (details) {
-                    updateState(() {
-                      _saveToHistory();
+                    updateCanvasState(() {
                       final double newX = (element.x + details.delta.dx).clamp(0.0, element.x + element.width - 30.0);
                       final double dx = newX - element.x;
                       element.x = newX;
@@ -306,6 +327,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onPanStart: (_) {
+                    _saveToHistory();
                     updateState(() {
                       _activeHandle = 'bottomRight';
                     });
@@ -321,8 +343,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                     });
                   },
                   onPanUpdate: (details) {
-                    updateState(() {
-                      _saveToHistory();
+                    updateCanvasState(() {
                       element.width = (element.width + details.delta.dx).clamp(30.0, (_canvasWidth - element.x).clamp(30.0, _canvasWidth));
                       element.height = (element.height + details.delta.dy).clamp(10.0, (_totalCanvasHeight - element.y).clamp(10.0, _totalCanvasHeight));
                     });
@@ -339,6 +360,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onPanStart: (_) {
+                      _saveToHistory();
                       updateState(() {
                         _activeHandle = 'leftSide';
                       });
@@ -354,8 +376,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                       });
                     },
                     onPanUpdate: (details) {
-                      updateState(() {
-                        _saveToHistory();
+                      updateCanvasState(() {
                         final double newX = (element.x + details.delta.dx).clamp(0.0, element.x + element.width - 30.0);
                         final double dx = newX - element.x;
                         element.x = newX;
@@ -375,6 +396,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onPanStart: (_) {
+                      _saveToHistory();
                       updateState(() {
                         _activeHandle = 'rightSide';
                       });
@@ -390,8 +412,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                       });
                     },
                     onPanUpdate: (details) {
-                      updateState(() {
-                        _saveToHistory();
+                      updateCanvasState(() {
                         element.width = (element.width + details.delta.dx).clamp(30.0, (_canvasWidth - element.x).clamp(30.0, _canvasWidth));
                       });
                     },
@@ -430,7 +451,7 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                       });
                     },
                     onPanUpdate: (details) {
-                      updateState(() {
+                      updateCanvasState(() {
                         // 1. 取得旋转弧度逆向投影回本地的水平位移量 ldx
                         final double cosA = cos(-element.rotation);
                         final double sinA = sin(-element.rotation);

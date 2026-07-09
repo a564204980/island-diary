@@ -34,7 +34,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   double keyboardHeight = 330;
   Color currentTextColor = UserState().isNight
       ? const Color(0xFFE0C097)
-      : const Color(0xFF5D4037);
+      : const Color(0xFF333333);
   Color currentHighlightColor = Colors.transparent;
   double currentFontSize = UserState().preferredFontSize.value;
   String currentFontFamily = UserState().preferredFontFamily.value;
@@ -68,7 +68,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     if (blocks.isEmpty) {
       currentTextColor = UserState().isNight
           ? const Color(0xFFE0C097)
-          : const Color(0xFF5D4037);
+          : const Color(0xFF333333);
     }
 
     currentDraftId = widget.draft?.id ?? 'draft_${DateTime.now().microsecondsSinceEpoch}';
@@ -608,7 +608,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   /// 集中处理所有文本块的颜色同步，避免在 build 阶段触发状态更新
   void syncBlockColors() {
     final bool isNight = UserState().isNight;
-    final Color targetColor = DiaryUtils.getInkColor(currentPaperStyle, isNight);
+    final Color targetColor = isNight ? const Color(0xFFE0C097) : const Color(0xFF333333);
 
     for (var block in blocks) {
       if (block is TextBlock && block.controller is DiaryTextEditingController) {

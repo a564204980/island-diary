@@ -469,65 +469,20 @@ class DiaryUtils {
   /// 获取信纸对应的墨水颜色 (文字颜色)
   static Color getInkColor(String paperStyle, bool isNight) {
     if (isNight) {
-      return const Color(0xFFFFFFFF);
+      return const Color(0xFFE0C097); // 统一夜间文本颜色
     }
-
-    // 针对“时光叙事”(note2) 风格使用深咖啡色
-    if (paperStyle == 'note2') {
-      return const Color(0xFF5A463D);
-    }
-
-    // 针对“粉色梦境”(note9) 风格使用深玫瑰木色
-    if (paperStyle == 'note9') {
-      return const Color(0xFF4E3B3B);
-    }
-
-    // 针对“林间听雨”(note7) 风格使用深海石板蓝
-    if (paperStyle == 'note7') {
-      return const Color(0xFF2F3E46);
-    }
-
-    // 针对“云端独白”(note3) 风格使用深碳灰色
-    if (paperStyle == 'note3') {
-      return const Color(0xFF3A3A3A);
-    }
-
-    // 默认白天模式：具有质感的深灰蓝绿色
-    return const Color(0xFF3D4E4F);
+    // 默认白天模式：统一纯色（纯黑/深灰），不随背景变化
+    return const Color(0xFF333333);
   }
 
   /// 获取信纸对应的 UI 控件背景色 (如工具栏底色)
   static Color getPaperBaseColor(String paperStyle, bool isNight) {
-    if (isNight && !paperStyle.startsWith('note')) {
-      return const Color(0xFF141426);
-    }
-
-    if (paperStyle == 'note1') {
-      return isNight ? const Color(0xFF1B2E3D) : const Color(0xFFE8EEF2);
-    } else if (paperStyle == 'note2') {
-      return isNight ? const Color(0xFF2D261F) : const Color(0xFFF1E4CF);
-    } else if (paperStyle == 'note3') {
-      return isNight ? const Color(0xFF262626) : const Color(0xFFEEEDED);
-    } else if (paperStyle == 'note4') {
-      return isNight ? const Color(0xFF2D2C28) : const Color(0xFFF2F1E8);
-    } else if (paperStyle == 'note5') {
-      return isNight ? const Color(0xFF2C2825) : const Color(0xFFF8EFDF);
-    } else if (paperStyle == 'note6') {
-      return isNight ? const Color(0xFF2C2A28) : const Color(0xFFEBE6DF);
-    } else if (paperStyle == 'note7') {
-      return isNight ? const Color(0xFF1B262D) : const Color(0xFFEBF5FB);
-    } else if (paperStyle == 'note8') {
-      return isNight ? const Color(0xFF1B2626) : const Color(0xFFF7FBFB);
-    } else if (paperStyle == 'note9') {
-      return isNight ? const Color(0xFF28263D) : const Color(0xFFFCEFF9);
-    } else if (paperStyle.startsWith('note')) {
-      return isNight ? const Color(0xFF2D2A26) : const Color(0xFFF3EBE1);
-    }
-
     if (UserState().selectedIslandThemeId.value == 'cotton_candy') {
-      return const Color(0xFFFBF3E9);
+      return isNight ? const Color(0xFF141426) : const Color(0xFFFBF3E9);
     }
-    return const Color(0xFFF7F2E9);
+    
+    // 统一返回默认背景色，不随信纸变化
+    return isNight ? const Color(0xFF1B1B1B) : const Color(0xFFFFFFFF);
   }
 
   /// 获取信纸对应的 UI 强调色 (图标、开关等)
@@ -539,28 +494,8 @@ class DiaryUtils {
       return const Color(0xFFE0C097);
     }
 
-    // 针对“时光叙事”(note2) 风格使用复古棕褐色
-    if (paperStyle == 'note2') {
-      return const Color(0xFF8B6B5D);
-    }
-
-    // 针对“粉色梦境”(note9) 风格使用灰粉玫瑰色
-    if (paperStyle == 'note9') {
-      return const Color(0xFF8B6B6B);
-    }
-
-    // 针对“林间听雨”(note7) 风格使用雾霾蓝
-    if (paperStyle == 'note7') {
-      return const Color(0xFF546E7A);
-    }
-
-    // 针对“云端独白”(note3) 风格使用冷月灰
-    if (paperStyle == 'note3') {
-      return const Color(0xFF757575);
-    }
-
-    // 白天模式：使用默认主题色
-    return const Color(0xFFA68565);
+    // 白天模式：回归日记本该有的温润质感，使用经典的深咖/深棕色
+    return const Color(0xFF5D4037);
   }
 
   /// 获取与信纸风格高度协调的弹窗背景色
@@ -569,13 +504,11 @@ class DiaryUtils {
       return const Color(0xFF241E3D);
     }
     final Color baseBgColor = getPaperBaseColor(paperStyle, isNight);
-    final Color accent = getAccentColor(paperStyle, isNight);
 
     // 夜间模式下不使用透明度，使背景完全实色不透光
     final double opacity = isNight ? 1.0 : 0.98;
 
-    // 通过与强调色微弱混合，让背景带上一层温润的色调
-    return Color.lerp(baseBgColor, accent, 0.05)!.withValues(alpha: opacity);
+    return baseBgColor.withValues(alpha: opacity);
   }
 
   /// 获取弹窗统一装饰样式，支持棉花糖主题夜间模式的顶部紫色描边与去发光

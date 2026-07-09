@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';
@@ -103,36 +105,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
             backgroundColor: bgColor,
             body: Stack(
               children: [
-                // 1. 信纸底色层与手绘边框装饰
+                // 1. 信纸底色层与手绘边框装饰 (带切换扩散动画)
                 Positioned.fill(
-                  child: Container(
-                    color: bgColor,
-                    child: Stack(
-                      children: [
-                        if (currentPaperStyle.startsWith('note') || (currentPaperStyle == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'))
-                          Positioned.fill(
-                            child: Image.asset(
-                              currentPaperStyle == 'classic'
-                                  ? (isNight
-                                      ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
-                                      : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png')
-                                  : DiaryUtils.getPaperBackgroundPath(currentPaperStyle, isNight),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: PaperBackgroundPainter(
-                              style: currentPaperStyle,
-                              isNight: isNight && 
-                                  !currentPaperStyle.startsWith('note') && 
-                                  !(currentPaperStyle == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'),
-                              accentColor: accentColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: _AnimatedPaperBackground(
+                    paperStyle: currentPaperStyle,
+                    bgColor: bgColor,
+                    isNight: isNight,
+                    accentColor: accentColor,
                   ),
                 ),
 
@@ -146,16 +125,18 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     if (hasTags) baseBottomBarHeight += 26.0;
                     if (hasImages) baseBottomBarHeight += 50.0;
                     
+                    final double toolbarOnlyHeight = baseBottomBarHeight - 32.0;
+
                     final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-                    final double totalBottomPadding = (isEmojiOpen || isColorPickerOpen || isImagePickerOpen)
-                        ? keyboardHeight + baseBottomBarHeight
-                        : bottomInset + baseBottomBarHeight + MediaQuery.paddingOf(context).bottom;
+                    final double bottomBounds = (isEmojiOpen || isColorPickerOpen || isImagePickerOpen)
+                        ? keyboardHeight + toolbarOnlyHeight
+                        : bottomInset + toolbarOnlyHeight + MediaQuery.paddingOf(context).bottom;
 
                     return Positioned(
                       top: MediaQuery.paddingOf(context).top + 56,
                       left: 0,
                       right: 0,
-                      bottom: totalBottomPadding, 
+                      bottom: bottomBounds, 
                       child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
@@ -253,9 +234,9 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               },
                             ),
                             // 底部留白
-                            const SliverToBoxAdapter(
+                            SliverToBoxAdapter(
                               child: SizedBox(
-                                height: 100, // 恢复合理的底部安全余量留白，确保最后一行能滚动到视口之上
+                                height: 100 + baseBottomBarHeight + MediaQuery.paddingOf(context).bottom, // 恢复合理的底部安全余量留白，确保最后一行能完全滚出悬浮底部工具栏
                               ),
                             ),
                           ],
@@ -309,20 +290,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             child: GestureDetector(
                               onTap: _showBookSelector,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 6,
-                                ),
                                 decoration: BoxDecoration(
-                                  color: isNight
-                                      ? const Color(0xFF2C2E30).withValues(alpha: 0.9)
-                                      : Colors.white.withValues(alpha: 0.9),
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: isNight
-                                        ? Colors.white.withValues(alpha: 0.08)
-                                        : const Color(0xFFE6E1D5),
-                                  ),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withValues(alpha: 0.05),
@@ -331,37 +300,67 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                     ),
                                   ],
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.menu_book_rounded,
-                                      size: 14,
-                                      color: isNight
-                                          ? const Color(0xFFFFB74D)
-                                          : const Color(0xFFD4A373),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      '收纳至：${currentBook.name}',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: isNight
-                                            ? Colors.white70
-                                            : Colors.black87,
-                                        fontFamily: UserState().selectedIslandThemeId.value == 'lego'
-                                            ? 'SweiFistLeg'
-                                            : 'LXGWWenKai',
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        child: BackdropFilter(
+                                          filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                                          child: const SizedBox.shrink(),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      Icons.keyboard_arrow_down_rounded,
-                                      size: 14,
-                                      color: isNight ? Colors.white30 : Colors.black38,
-                                    ),
-                                  ],
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isNight
+                                              ? const Color(0xFF2C2E30).withValues(alpha: 0.4)
+                                              : Colors.white.withValues(alpha: 0.4),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(
+                                            color: isNight
+                                                ? Colors.white.withValues(alpha: 0.08)
+                                                : const Color(0xFFE6E1D5).withValues(alpha: 0.8),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.menu_book_rounded,
+                                              size: 14,
+                                              color: isNight
+                                                  ? const Color(0xFFFFB74D)
+                                                  : const Color(0xFFD4A373),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              '收纳至：${currentBook.name}',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: isNight
+                                                    ? Colors.white70
+                                                    : Colors.black87,
+                                                fontFamily: UserState().selectedIslandThemeId.value == 'lego'
+                                                    ? 'SweiFistLeg'
+                                                    : 'LXGWWenKai',
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.keyboard_arrow_down_rounded,
+                                              size: 14,
+                                              color: isNight ? Colors.white30 : Colors.black38,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -1505,3 +1504,165 @@ class _KeyboardFollowerState extends State<_KeyboardFollower> {
     );
   }
 }
+
+class _AnimatedPaperBackground extends StatefulWidget {
+  final String paperStyle;
+  final Color bgColor;
+  final bool isNight;
+  final Color accentColor;
+
+  const _AnimatedPaperBackground({
+    required this.paperStyle,
+    required this.bgColor,
+    required this.isNight,
+    required this.accentColor,
+  });
+
+  @override
+  State<_AnimatedPaperBackground> createState() => _AnimatedPaperBackgroundState();
+}
+
+class _AnimatedPaperBackgroundState extends State<_AnimatedPaperBackground> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  String? _oldPaperStyle;
+  Color? _oldBgColor;
+  bool? _oldIsNight;
+  Color? _oldAccentColor;
+
+  late String _currentPaperStyle;
+  late Color _currentBgColor;
+  late bool _currentIsNight;
+  late Color _currentAccentColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPaperStyle = widget.paperStyle;
+    _currentBgColor = widget.bgColor;
+    _currentIsNight = widget.isNight;
+    _currentAccentColor = widget.accentColor;
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        if (mounted) {
+          setState(() {
+            _oldPaperStyle = null;
+          });
+        }
+      }
+    });
+    _controller.value = 1.0;
+  }
+
+  @override
+  void didUpdateWidget(_AnimatedPaperBackground oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.paperStyle != widget.paperStyle || 
+        oldWidget.isNight != widget.isNight) {
+      _oldPaperStyle = oldWidget.paperStyle;
+      _oldBgColor = oldWidget.bgColor;
+      _oldIsNight = oldWidget.isNight;
+      _oldAccentColor = oldWidget.accentColor;
+
+      _currentPaperStyle = widget.paperStyle;
+      _currentBgColor = widget.bgColor;
+      _currentIsNight = widget.isNight;
+      _currentAccentColor = widget.accentColor;
+      
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _buildLayer(String paperStyle, Color bgColor, bool isNight, Color accentColor) {
+    return Container(
+      color: bgColor,
+      child: Stack(
+        children: [
+          if (paperStyle.startsWith('note') || (paperStyle == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'))
+            Positioned.fill(
+              child: Image.asset(
+                paperStyle == 'classic'
+                    ? (isNight
+                        ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
+                        : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png')
+                    : DiaryUtils.getPaperBackgroundPath(paperStyle, isNight),
+                fit: BoxFit.cover,
+              ),
+            ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: PaperBackgroundPainter(
+                style: paperStyle,
+                isNight: isNight && 
+                    !paperStyle.startsWith('note') && 
+                    !(paperStyle == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'),
+                accentColor: accentColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isAnimating = _oldPaperStyle != null;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // 1. 底层：新背景
+        _buildLayer(_currentPaperStyle, _currentBgColor, _currentIsNight, _currentAccentColor),
+
+        // 2. 中层：老背景带遮罩（在新图之上挖个扩大的洞）
+        if (isAnimating)
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              final curve = Curves.easeOutQuart;
+              final val = curve.transform(_controller.value);
+              
+              return ShaderMask(
+                blendMode: BlendMode.dstOut,
+                shaderCallback: (Rect bounds) {
+                  final maxRadius = sqrt(pow(bounds.width / 2, 2) + pow(bounds.height, 2));
+                  final currentRadius = maxRadius * val;
+                  final fuzzyRadius = currentRadius + (val * 180.0); 
+
+                  final shortestSide = min(bounds.width, bounds.height);
+                  final double effectiveRadius = maxRadius / shortestSide;
+                  
+                  final double stop1 = max((currentRadius / maxRadius).clamp(0.0, 1.0), 0.0001);
+                  final double stop2 = max((fuzzyRadius / maxRadius).clamp(0.0, 1.0), stop1 + 0.0001);
+
+                  return RadialGradient(
+                    center: Alignment.bottomCenter,
+                    radius: effectiveRadius,
+                    colors: const [
+                      Colors.black,
+                      Colors.black,
+                      Colors.transparent,
+                    ],
+                    stops: [0.0, stop1, stop2],
+                  ).createShader(bounds);
+                },
+                child: child,
+              );
+            },
+            child: _buildLayer(_oldPaperStyle!, _oldBgColor!, _oldIsNight!, _oldAccentColor!),
+          ),
+      ],
+    );
+  }
+}
+

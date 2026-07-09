@@ -33,7 +33,7 @@ class DiaryTextStylePickerSheet extends StatelessWidget {
       accentColor = themeId == 'cotton_candy' ? const Color(0xFFC0A6FF) : const Color(0xFFE0C097);
     } else {
       inkColor = themeId == 'cotton_candy' ? const Color(0xFF7C3AED) : const Color(0xFF1F2937);
-      accentColor = themeId == 'cotton_candy' ? const Color(0xFF7C3AED) : const Color(0xFFA68565);
+      accentColor = themeId == 'cotton_candy' ? const Color(0xFF7C3AED) : const Color(0xFF5D4037);
     }
 
     final List<Map<String, dynamic>> sizes = [
@@ -73,52 +73,80 @@ class DiaryTextStylePickerSheet extends StatelessWidget {
           // 第一部分：文字大小
           _buildSectionTitle('设置文字大小', accentColor, inkColor, fontFamily),
           const SizedBox(height: 16),
-          GridView.count(
-            padding: EdgeInsets.zero,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 3,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 2.5,
-            children: sizes.map((size) {
-              final isSelected = currentFontSize >= size['min'] && currentFontSize < size['max'];
-              return GestureDetector(
-                onTap: () => onApplyFontSize(size['value']),
-                child: AnimatedContainer(
-                  duration: 300.ms,
-                  curve: Curves.easeOutCubic,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? accentColor
-                        : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.white),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected ? accentColor : accentColor.withValues(alpha: 0.1),
-                      width: 1.2,
-                    ),
-                    boxShadow: isSelected ? [
-                      BoxShadow(
-                        color: accentColor.withValues(alpha: 0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      )
-                    ] : null,
-                  ),
-                  child: Center(
-                    child: Text(
-                      size['label'],
-                      style: TextStyle(
-                        fontFamily: fontFamily,
-                        fontSize: 13,
-                        color: isSelected ? Colors.white : inkColor.withValues(alpha: 0.8),
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final int selectedIndex = sizes.indexWhere((size) => currentFontSize >= size['min'] && currentFontSize < size['max']);
+                final validIndex = selectedIndex >= 0 ? selectedIndex : 2; // Default fallback
+                final double itemWidth = constraints.maxWidth / sizes.length;
+
+                return SizedBox(
+                  height: 36, // Fixed height to contain the Stack
+                  child: Stack(
+                    children: [
+                      // 1. Sliding thumb (Physical sliding animation)
+                      AnimatedPositioned(
+                        duration: 350.ms,
+                        curve: Curves.easeOutCubic, // Elegant physics
+                        left: validIndex * itemWidth,
+                        top: 0,
+                        bottom: 0,
+                        width: itemWidth,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isNight ? const Color(0xFF333333) : Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: !isNight ? [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              )
+                            ] : null,
+                          ),
+                        ),
                       ),
-                    ),
+                      
+                      // 2. Text Labels
+                      Row(
+                        children: [
+                          for (int i = 0; i < sizes.length; i++)
+                            Expanded(
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => onApplyFontSize(sizes[i]['value']),
+                                child: Center(
+                                  child: AnimatedDefaultTextStyle(
+                                    duration: 250.ms,
+                                    curve: Curves.easeOutCubic,
+                                    style: TextStyle(
+                                      fontFamily: fontFamily,
+                                      fontSize: 13,
+                                      color: (validIndex == i) 
+                                          ? (isNight ? Colors.white : accentColor) 
+                                          : inkColor.withValues(alpha: 0.6),
+                                      fontWeight: (validIndex == i) ? FontWeight.bold : FontWeight.w500,
+                                    ),
+                                    child: Text(
+                                      sizes[i]['label'],
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              },
+            ),
           ),
           const SizedBox(height: 12),
           // 滑块
@@ -186,33 +214,28 @@ class DiaryTextStylePickerSheet extends StatelessWidget {
               return GestureDetector(
                 onTap: () => onApplyFontFamily(font['value']!),
                 child: AnimatedContainer(
-                  duration: 300.ms,
+                  duration: 200.ms,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? accentColor
-                        : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.white),
-                    borderRadius: BorderRadius.circular(12),
+                        ? accentColor.withValues(alpha: 0.08)
+                        : (isNight ? Colors.white.withValues(alpha: 0.03) : Colors.white),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: isSelected ? accentColor : accentColor.withValues(alpha: 0.1),
+                      color: isSelected ? accentColor.withValues(alpha: 0.8) : inkColor.withValues(alpha: 0.08),
                       width: 1.2,
                     ),
-                    boxShadow: isSelected ? [
-                      BoxShadow(
-                        color: accentColor.withValues(alpha: 0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      )
-                    ] : null,
                   ),
                   child: Center(
-                    child: Text(
-                      font['label']!,
+                    child: AnimatedDefaultTextStyle(
+                      duration: 250.ms,
+                      curve: Curves.easeOutCubic,
                       style: TextStyle(
                         fontFamily: font['value'],
                         fontSize: 13,
-                        color: isSelected ? Colors.white : inkColor.withValues(alpha: 0.8),
+                        color: isSelected ? accentColor : inkColor.withValues(alpha: 0.7),
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
+                      child: Text(font['label']!),
                     ),
                   ),
                 ),

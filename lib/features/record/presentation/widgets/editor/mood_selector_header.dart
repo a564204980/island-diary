@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/shared/animations/bouncing_button.dart';
 
 
 class MoodSelectorHeader extends StatefulWidget {
@@ -143,7 +144,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                     BoxShadow(
                       color: isCottonCandyDark
                           ? const Color(0xFFC0A6FF).withValues(alpha: 0.12)
-                          : Colors.transparent,
+                          : const Color(0xFFC0A6FF).withValues(alpha: 0.0),
                       blurRadius: isCottonCandyDark ? 16 : 0,
                       spreadRadius: isCottonCandyDark ? 1 : 0,
                     ),
@@ -154,12 +155,9 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                     ),
                   ],
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: isSelected ? () => onClearMood?.call() : null,
-              borderRadius: BorderRadius.circular(24),
-              child: AnimatedCrossFade(
+          child: BouncingButton(
+            onTap: isSelected ? () => onClearMood?.call() : null,
+            child: AnimatedCrossFade(
                 firstChild: KeyedSubtree(
                   key: const ValueKey('expanded_content'),
                   child: SizedBox(
@@ -205,7 +203,6 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                   );
                 },
               ),
-            ),
           ),
         ),
       );
@@ -602,7 +599,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                             decoration: BoxDecoration(
                               color: isDark
                                   ? Colors.white.withValues(alpha: 0.15)
-                                  : Colors.white,
+                                  : Colors.white.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(32),
                               border: Border.all(
                                 color: isSelected
@@ -616,7 +613,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                                       ? moodColor.withValues(
                                           alpha: isDark ? 0.4 : 0.2,
                                         )
-                                      : Colors.transparent,
+                                      : moodColor.withValues(alpha: 0.0),
                                   blurRadius: isDark ? 20 : 15,
                                   offset: Offset(0, isDark ? 4 : 8),
                                 ),

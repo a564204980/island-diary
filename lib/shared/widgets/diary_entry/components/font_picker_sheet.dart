@@ -29,6 +29,7 @@ class DiaryFontPickerSheet extends StatelessWidget {
 
     final bool isNight = UserState().isNight;
     final Color textColor = DiaryUtils.getInkColor('standard', isNight);
+    final Color accentColor = DiaryUtils.getAccentColor('standard', isNight);
 
     return BackdropFilter(
       filter: ImageFilter.blur(
@@ -77,13 +78,13 @@ class DiaryFontPickerSheet extends StatelessWidget {
                   child: Container(
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? (isNight ? textColor.withValues(alpha: 0.8) : const Color(0xFF8B5E3C))
+                          ? (isNight ? textColor.withValues(alpha: 0.8) : accentColor)
                           : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.5)),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isNight 
                             ? (isSelected ? textColor : Colors.white10)
-                            : (const Color(0xFF8B5E3C)).withValues(alpha: isSelected ? 1.0 : 0.2),
+                            : accentColor.withValues(alpha: isSelected ? 1.0 : 0.2),
                         width: 1.5,
                       ),
                     ),
@@ -95,7 +96,7 @@ class DiaryFontPickerSheet extends StatelessWidget {
                           fontSize: 14,
                           color: isSelected 
                               ? (isNight ? Colors.black87 : Colors.white) 
-                              : (isNight ? textColor.withValues(alpha: 0.7) : const Color(0xFF8B5E3C)),
+                              : (isNight ? textColor.withValues(alpha: 0.7) : accentColor),
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
