@@ -131,54 +131,91 @@ class _EmojiPanelState extends State<EmojiPanel> {
               color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildCategoryTabText(
-                    index: 0,
-                    title: '云织',
-                    isSelected: _currentIndex == 0,
-                    inkColor: inkColor,
-                    isNight: isNight,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final double itemWidth = constraints.maxWidth / 5;
+
+                return SizedBox(
+                  height: 36, // Fixed height to contain the Stack
+                  child: Stack(
+                    children: [
+                      // Sliding thumb (Physical sliding animation)
+                      AnimatedPositioned(
+                        duration: const Duration(milliseconds: 350),
+                        curve: Curves.easeOutCubic,
+                        left: _currentIndex * itemWidth,
+                        top: 0,
+                        bottom: 0,
+                        width: itemWidth,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isNight ? Colors.white.withValues(alpha: 0.15) : Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: isNight ? 0.2 : 0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              )
+                            ],
+                          ),
+                        ),
+                      ),
+                      
+                      // Text Labels and Icons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildCategoryTabText(
+                              index: 0,
+                              title: '云织',
+                              isSelected: _currentIndex == 0,
+                              inkColor: inkColor,
+                              isNight: isNight,
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildCategoryTabText(
+                              index: 1,
+                              title: '霜见',
+                              isSelected: _currentIndex == 1,
+                              inkColor: inkColor,
+                              isNight: isNight,
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildCategoryTabText(
+                              index: 2,
+                              title: '笃守',
+                              isSelected: _currentIndex == 2,
+                              inkColor: inkColor,
+                              isNight: isNight,
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildCategoryTabText(
+                              index: 3,
+                              title: '灵犀',
+                              isSelected: _currentIndex == 3,
+                              inkColor: inkColor,
+                              isNight: isNight,
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildCategoryTabIcon(
+                              index: 4,
+                              icon: Icons.favorite_rounded,
+                              isSelected: _currentIndex == 4,
+                              inkColor: inkColor,
+                              isNight: isNight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
-                Expanded(
-                  child: _buildCategoryTabText(
-                    index: 1,
-                    title: '霜见',
-                    isSelected: _currentIndex == 1,
-                    inkColor: inkColor,
-                    isNight: isNight,
-                  ),
-                ),
-                Expanded(
-                  child: _buildCategoryTabText(
-                    index: 2,
-                    title: '笃守',
-                    isSelected: _currentIndex == 2,
-                    inkColor: inkColor,
-                    isNight: isNight,
-                  ),
-                ),
-                Expanded(
-                  child: _buildCategoryTabText(
-                    index: 3,
-                    title: '灵犀',
-                    isSelected: _currentIndex == 3,
-                    inkColor: inkColor,
-                    isNight: isNight,
-                  ),
-                ),
-                Expanded(
-                  child: _buildCategoryTabIcon(
-                    index: 4,
-                    icon: Icons.favorite_rounded,
-                    isSelected: _currentIndex == 4,
-                    inkColor: inkColor,
-                    isNight: isNight,
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
 
@@ -208,35 +245,21 @@ class _EmojiPanelState extends State<EmojiPanel> {
     required bool isNight,
   }) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () => setState(() => _currentIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isNight ? Colors.white.withValues(alpha: 0.15) : Colors.white)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            if (isSelected)
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isNight ? 0.2 : 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? inkColor : inkColor.withValues(alpha: 0.4),
-              fontFamily: 'LXGWWenKai',
-            ),
+      child: Center(
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected 
+                ? (isNight ? inkColor : const Color(0xFF58585A)) 
+                : inkColor.withValues(alpha: 0.4),
+            fontFamily: 'LXGWWenKai',
           ),
+          child: Text(title),
         ),
       ),
     );
@@ -250,31 +273,24 @@ class _EmojiPanelState extends State<EmojiPanel> {
     required bool isNight,
   }) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () => setState(() => _currentIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isNight ? Colors.white.withValues(alpha: 0.15) : Colors.white)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            if (isSelected)
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isNight ? 0.2 : 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-          ],
-        ),
-        child: Center(
-          child: Icon(
-            icon,
-            size: 18,
-            color: isSelected ? inkColor : inkColor.withValues(alpha: 0.4),
+      child: Center(
+        child: TweenAnimationBuilder<Color?>(
+          tween: ColorTween(
+            end: isSelected 
+                ? (isNight ? inkColor : const Color(0xFF58585A)) 
+                : inkColor.withValues(alpha: 0.4),
           ),
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          builder: (context, color, child) {
+            return Icon(
+              icon,
+              size: 18,
+              color: color,
+            );
+          },
         ),
       ),
     );

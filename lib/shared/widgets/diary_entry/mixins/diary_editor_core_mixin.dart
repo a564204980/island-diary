@@ -132,7 +132,8 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       _fixedQuote = '从心出发，记录此刻的点滴...';
       return;
     }
-    final mood = kMoods[currentMoodIndex!];
+    final moodIdx = currentMoodIndex!.clamp(0, kMoods.length - 1);
+    final mood = kMoods[moodIdx];
     _fixedQuote = DiaryUtils.getMoodQuote(mood.label);
   }
 

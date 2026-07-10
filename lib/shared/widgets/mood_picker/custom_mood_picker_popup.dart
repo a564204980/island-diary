@@ -1,11 +1,41 @@
 import 'dart:io';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/redbook_asset_picker.dart';
+import 'dart:convert';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+
+class RecentMoodItem {
+  final String tag;
+  final String iconPath;
+  final int index;
+  final String type; // 'standard', 'pack', 'user'
+
+  RecentMoodItem({
+    required this.tag,
+    required this.iconPath,
+    required this.index,
+    required this.type,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'tag': tag,
+        'iconPath': iconPath,
+        'index': index,
+        'type': type,
+      };
+
+  factory RecentMoodItem.fromJson(Map<String, dynamic> json) => RecentMoodItem(
+        tag: json['tag'],
+        iconPath: json['iconPath'],
+        index: json['index'],
+        type: json['type'] ?? 'user',
+      );
+}
 
 class CustomMoodPickerPage extends StatefulWidget {
   final String paperStyle;
@@ -26,13 +56,25 @@ class CustomMoodPickerPage extends StatefulWidget {
 class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
   final TextEditingController _controller = TextEditingController();
   int _selectedGridIndex = 1; // 默认选中系统表情的第1个（index = 1）
-  String? _selectedInspirationTag;
   String? _errorText;
 
   SharedPreferences? _prefs;
-  List<String> _inspirationTags = ["想念", "委屈", "焦虑", "空空的", "释然", "被治愈"];
-  List<String> _recentMoodTags = [];
+  List<RecentMoodItem> _recentMoods = [];
   List<String> _customEmojis = []; // 存放自定义表情文件名，例如 emoji_123.png
+
+  static const List<Map<String, String>> standardEmojis = [
+    {'label': '开心', 'icon': 'assets/icons/happy.png'},
+    {'label': '平静', 'icon': 'assets/icons/calm.png'},
+    {'label': '低落', 'icon': 'assets/icons/down.png'},
+    {'label': '烦躁', 'icon': 'assets/icons/irritated.png'},
+    {'label': '疲惫', 'icon': 'assets/icons/tired.png'},
+    {'label': '惊喜', 'icon': 'assets/icons/surprise.png'},
+    {'label': '害羞', 'icon': 'assets/icons/shy.png'},
+    {'label': '焦虑', 'icon': 'assets/icons/anxious.png'},
+    {'label': '委屈', 'icon': 'assets/icons/wronged.png'},
+    {'label': '无聊', 'icon': 'assets/icons/bored.png'},
+    {'label': '期待', 'icon': 'assets/icons/expect.png'},
+  ];
 
   static const List<Map<String, String>> emojis = [
     {'label': '开心', 'icon': 'assets/icons/custom1.png'},
@@ -70,14 +112,15 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
   Future<void> _loadData() async {
     _prefs = await SharedPreferences.getInstance();
 
-    final List<String>? savedInspiration = _prefs!.getStringList('custom_inspiration_tags');
-    if (savedInspiration != null) {
-      _inspirationTags = savedInspiration;
-    }
-
-    final List<String>? savedRecent = _prefs!.getStringList('recent_custom_mood_tags');
+    final List<String>? savedRecent = _prefs!.getStringList('recent_custom_moods_v2');
     if (savedRecent != null) {
-      _recentMoodTags = savedRecent;
+      _recentMoods = savedRecent.map((e) {
+        try {
+          return RecentMoodItem.fromJson(jsonDecode(e));
+        } catch (_) {
+          return null;
+        }
+      }).whereType<RecentMoodItem>().toList();
     }
 
     final List<String>? savedCustomEmojis = _prefs!.getStringList('user_imported_emojis');
@@ -88,16 +131,39 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
     setState(() {});
   }
 
-  Future<void> _saveRecentMood(String tag) async {
+  Future<void> _saveRecentMoodItem(RecentMoodItem item) async {
     if (_prefs == null) return;
-    final list = List<String>.from(_recentMoodTags);
-    list.remove(tag);
-    list.insert(0, tag);
-    if (list.length > 10) {
-      list.removeLast();
+    
+    // Remove if exists (by tag name to avoid duplicate names)
+    _recentMoods.removeWhere((e) => e.tag == item.tag);
+    _recentMoods.insert(0, item);
+    
+    if (_recentMoods.length > 10) {
+      _recentMoods.removeLast();
     }
-    _recentMoodTags = list;
-    await _prefs!.setStringList('recent_custom_mood_tags', list);
+    
+    final listStr = _recentMoods.map((e) => jsonEncode(e.toJson())).toList();
+    await _prefs!.setStringList('recent_custom_moods_v2', listStr);
+  }
+
+  Future<String> _ensureStandardAssetInFileSystem(String assetPath) async {
+    try {
+      final Directory docDir = await getApplicationDocumentsDirectory();
+      final Directory emojiDir = Directory('${docDir.path}/custom_emojis');
+      if (!await emojiDir.exists()) {
+        await emojiDir.create(recursive: true);
+      }
+      final String fileName = assetPath.split('/').last;
+      final File file = File('${emojiDir.path}/$fileName');
+      if (!await file.exists()) {
+        final byteData = await rootBundle.load(assetPath);
+        await file.writeAsBytes(byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
+      }
+      return fileName;
+    } catch (e) {
+      debugPrint("Error copying standard asset to filesystem: $e");
+      return assetPath;
+    }
   }
 
   Future<void> _importCustomEmoji() async {
@@ -128,7 +194,8 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
       }
 
       setState(() {
-        _selectedGridIndex = 1 + emojis.length + _customEmojis.length - 1;
+        _selectedGridIndex = 1 + standardEmojis.length + emojis.length + _customEmojis.length - 1;
+        _controller.text = "自定义";
       });
     } catch (e) {
       debugPrint("Import emoji error: $e");
@@ -197,110 +264,6 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
     );
   }
 
-  void _showAddTagDialog() {
-    final TextEditingController tagController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) {
-        final Color inkColor = DiaryUtils.getInkColor(widget.paperStyle, widget.isNight);
-        final themeId = UserState().selectedIslandThemeId.value;
-        final bool isLego = themeId == 'lego';
-        final String fontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
-        
-        final Color themeAccentColor = DiaryUtils.getAccentColor(widget.paperStyle, widget.isNight);
-        final Color primaryColor = isLego
-            ? (widget.isNight ? const Color(0xFFFFA726) : const Color(0xFFFF9800))
-            : (themeId == 'cotton_candy'
-                ? const Color(0xFFC0A6FF)
-                : themeAccentColor);
-
-        return AlertDialog(
-          backgroundColor: widget.isNight ? const Color(0xFF241E3D) : const Color(0xFFFAF8F5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(isLego ? 8.0 : 16.0),
-          ),
-          title: Text("添加灵感标签", style: TextStyle(fontFamily: fontFamily, color: inkColor)),
-          content: TextField(
-            controller: tagController,
-            autofocus: true,
-            maxLength: 10,
-            style: TextStyle(fontFamily: fontFamily, color: inkColor),
-            decoration: InputDecoration(
-              hintText: "输入新标签名称",
-              hintStyle: TextStyle(color: inkColor.withValues(alpha: 0.3)),
-              counterText: "",
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text("取消", style: TextStyle(fontFamily: fontFamily, color: inkColor.withValues(alpha: 0.6))),
-            ),
-            TextButton(
-              onPressed: () async {
-                final text = tagController.text.trim();
-                if (text.isNotEmpty) {
-                  Navigator.pop(context);
-                  if (!_inspirationTags.contains(text)) {
-                    setState(() {
-                      _inspirationTags.add(text);
-                      if (_prefs != null) {
-                        _prefs!.setStringList('custom_inspiration_tags', _inspirationTags);
-                      }
-                    });
-                  }
-                }
-              },
-              child: Text("添加", style: TextStyle(fontFamily: fontFamily, color: primaryColor)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _onLongPressTag(String tag) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final Color inkColor = DiaryUtils.getInkColor(widget.paperStyle, widget.isNight);
-        final themeId = UserState().selectedIslandThemeId.value;
-        final bool isLego = themeId == 'lego';
-        final String fontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
-
-        return AlertDialog(
-          backgroundColor: widget.isNight ? const Color(0xFF241E3D) : const Color(0xFFFAF8F5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(isLego ? 8.0 : 16.0),
-          ),
-          title: Text("删除标签", style: TextStyle(fontFamily: fontFamily, color: inkColor)),
-          content: Text("确定要删除“$tag”这个标签吗？", style: TextStyle(fontFamily: fontFamily, color: inkColor.withValues(alpha: 0.8))),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text("取消", style: TextStyle(fontFamily: fontFamily, color: inkColor.withValues(alpha: 0.6))),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                setState(() {
-                  _inspirationTags.remove(tag);
-                  if (_selectedInspirationTag == tag) {
-                    _selectedInspirationTag = null;
-                  }
-                  if (_prefs != null) {
-                    _prefs!.setStringList('custom_inspiration_tags', _inspirationTags);
-                  }
-                });
-              },
-              child: const Text("删除", style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   void dispose() {
     _controller.dispose();
@@ -315,10 +278,6 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
         height: 56,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(
-            color: inkColor.withValues(alpha: 0.2),
-            width: 1.5,
-          ),
           color: widget.isNight ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         ),
         child: Center(
@@ -333,7 +292,9 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
   }
 
   Widget _buildEmojiItem(int gridIndex, Color primaryColor, Color inkColor) {
-    final int totalCount = 1 + emojis.length + _customEmojis.length;
+    final int standardCount = standardEmojis.length;
+    final int customCount = emojis.length;
+    final int totalCount = 1 + standardCount + customCount + _customEmojis.length;
     if (gridIndex >= totalCount) return const SizedBox.shrink();
 
     if (gridIndex == 0) {
@@ -344,18 +305,24 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
     }
 
     final bool isSelected = _selectedGridIndex == gridIndex;
-    final bool isCustom = gridIndex > emojis.length;
+    final bool isStandard = gridIndex >= 1 && gridIndex < 1 + standardCount;
+    final bool isPackCustom = gridIndex >= 1 + standardCount && gridIndex < 1 + standardCount + customCount;
+    final bool isUserCustom = gridIndex >= 1 + standardCount + customCount;
 
     String? assetPath;
     String? customFileName;
     String label = "";
 
-    if (!isCustom) {
-      final emoji = emojis[gridIndex - 1];
+    if (isStandard) {
+      final emoji = standardEmojis[gridIndex - 1];
       assetPath = emoji['icon'];
       label = emoji['label']!;
-    } else {
-      customFileName = _customEmojis[gridIndex - 1 - emojis.length];
+    } else if (isPackCustom) {
+      final emoji = emojis[gridIndex - 1 - standardCount];
+      assetPath = emoji['icon'];
+      label = emoji['label']!;
+    } else if (isUserCustom) {
+      customFileName = _customEmojis[gridIndex - 1 - standardCount - customCount];
       label = "自定义";
     }
 
@@ -364,7 +331,7 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
         : Colors.transparent;
 
     Widget emojiWidget;
-    if (isCustom) {
+    if (isUserCustom) {
       final String directPath = '${DiaryUtils.documentsDirPath}/$customFileName';
       final String subDirPath = '${DiaryUtils.documentsDirPath}/custom_emojis/$customFileName';
       final File file = File(subDirPath).existsSync() ? File(subDirPath) : File(directPath);
@@ -391,13 +358,10 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
       onTap: () {
         setState(() {
           _selectedGridIndex = gridIndex;
-          if (!isCustom) {
-            _selectedInspirationTag = null;
-            _controller.text = label;
-          }
+          _controller.text = label;
         });
       },
-      onLongPress: isCustom ? () => _onLongPressCustomEmoji(gridIndex - 1 - emojis.length) : null,
+      onLongPress: isUserCustom ? () => _onLongPressCustomEmoji(gridIndex - 1 - standardCount - customCount) : null,
       child: AnimatedScale(
         scale: isSelected ? 1.12 : 1.0,
         duration: const Duration(milliseconds: 300),
@@ -433,94 +397,199 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
     );
   }
 
-  Widget _buildAddTagChip(Color primaryColor, Color inkColor, double chipRadius, String fontFamily) {
-    return GestureDetector(
-      onTap: _showAddTagDialog,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: widget.isNight ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF7F2EB),
-          borderRadius: BorderRadius.circular(chipRadius),
-          border: Border.all(
-            color: inkColor.withValues(alpha: 0.2),
-            width: 1.2,
+  Widget _buildLivePreview(Color primaryColor, Color inkColor, double radius, String fontFamily) {
+    final int standardCount = standardEmojis.length;
+    final int customCount = emojis.length;
+    final int totalCount = 1 + standardCount + customCount + _customEmojis.length;
+
+    String? assetPath;
+    String? customFileName;
+    bool isUserCustom = false;
+
+    if (_selectedGridIndex >= 1 && _selectedGridIndex < 1 + standardCount) {
+      assetPath = standardEmojis[_selectedGridIndex - 1]['icon'];
+    } else if (_selectedGridIndex >= 1 + standardCount && _selectedGridIndex < 1 + standardCount + customCount) {
+      assetPath = emojis[_selectedGridIndex - 1 - standardCount]['icon'];
+    } else if (_selectedGridIndex >= 1 + standardCount + customCount && _selectedGridIndex < totalCount) {
+      customFileName = _customEmojis[_selectedGridIndex - 1 - standardCount - customCount];
+      isUserCustom = true;
+    } else {
+      assetPath = 'assets/icons/happy.png'; // fallback
+    }
+
+    Widget previewIcon;
+    if (isUserCustom && customFileName != null) {
+      final String directPath = '${DiaryUtils.documentsDirPath}/$customFileName';
+      final String subDirPath = '${DiaryUtils.documentsDirPath}/custom_emojis/$customFileName';
+      final File file = File(subDirPath).existsSync() ? File(subDirPath) : File(directPath);
+      previewIcon = Image.file(
+        file,
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(Icons.mood, size: 80, color: primaryColor.withValues(alpha: 0.3)),
+      );
+      previewIcon = ClipOval(child: previewIcon);
+    } else {
+      previewIcon = Image.asset(
+        assetPath ?? 'assets/icons/happy.png',
+        width: 80,
+        height: 80,
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(Icons.mood, size: 80, color: primaryColor.withValues(alpha: 0.3)),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+      decoration: BoxDecoration(
+        color: widget.isNight ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withValues(alpha: 0.08),
+            blurRadius: 24,
+            spreadRadius: 4,
+            offset: const Offset(0, 8),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add_rounded, size: 14, color: inkColor.withValues(alpha: 0.6)),
-            const SizedBox(width: 4),
-            Text(
-              "新增",
-              style: TextStyle(
-                fontSize: 13,
-                color: inkColor.withValues(alpha: 0.6),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return ScaleTransition(
+                scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+                child: FadeTransition(opacity: animation, child: child),
+              );
+            },
+            child: KeyedSubtree(
+              key: ValueKey(_selectedGridIndex),
+              child: previewIcon,
+            ),
+          ),
+          const SizedBox(height: 24),
+          TextField(
+            controller: _controller,
+            maxLength: 10,
+            textAlign: TextAlign.center,
+            onChanged: (val) {
+              if (_errorText != null) {
+                setState(() => _errorText = null);
+              }
+            },
+            style: TextStyle(
+              color: inkColor,
+              fontFamily: fontFamily,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+            decoration: InputDecoration(
+              hintText: "给这个心情起个名字...",
+              errorText: _errorText,
+              counterText: "",
+              errorStyle: TextStyle(
+                fontSize: 12,
                 fontFamily: fontFamily,
               ),
+              hintStyle: TextStyle(
+                color: inkColor.withValues(alpha: 0.3),
+                fontSize: 18,
+                fontWeight: FontWeight.normal,
+              ),
+              border: InputBorder.none,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildRecentMoodTags(Color primaryColor, Color inkColor, double chipRadius, String fontFamily) {
-    if (_recentMoodTags.isEmpty) return const SizedBox.shrink();
+  Widget _buildRecentMoods(Color primaryColor, Color inkColor, double chipRadius, String fontFamily) {
+    if (_recentMoods.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 16),
         Text(
           "最近使用",
           style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: inkColor.withValues(alpha: 0.7),
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: inkColor.withValues(alpha: 0.8),
             fontFamily: fontFamily,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         SizedBox(
-          height: 36,
+          height: 48,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            itemCount: _recentMoodTags.length,
+            itemCount: _recentMoods.length,
             itemBuilder: (context, idx) {
-              final tag = _recentMoodTags[idx];
+              final item = _recentMoods[idx];
+              
+              Widget iconWidget;
+              if (item.type == 'user') {
+                final String directPath = '${DiaryUtils.documentsDirPath}/${item.iconPath}';
+                final String subDirPath = '${DiaryUtils.documentsDirPath}/custom_emojis/${item.iconPath}';
+                final File file = File(subDirPath).existsSync() ? File(subDirPath) : File(directPath);
+                iconWidget = Image.file(
+                  file, width: 28, height: 28, fit: BoxFit.cover,
+                  errorBuilder: (c, e, s) => Icon(Icons.mood, size: 28, color: primaryColor.withValues(alpha: 0.3)),
+                );
+                iconWidget = ClipOval(child: iconWidget);
+              } else {
+                iconWidget = Image.asset(
+                  item.iconPath, width: 28, height: 28,
+                  errorBuilder: (c, e, s) => Icon(Icons.mood, size: 28, color: primaryColor.withValues(alpha: 0.3)),
+                );
+              }
+
               return Container(
-                margin: const EdgeInsets.only(right: 8),
+                margin: const EdgeInsets.only(right: 12),
                 child: GestureDetector(
                   onTap: () {
                     setState(() {
-                      _controller.text = tag;
-                      _selectedInspirationTag = null;
+                      _controller.text = item.tag;
                       _errorText = null;
+                      
+                      _selectedGridIndex = item.index;
+                      final totalCount = 1 + standardEmojis.length + emojis.length + _customEmojis.length;
+                      if (_selectedGridIndex < 1 || _selectedGridIndex >= totalCount) {
+                        _selectedGridIndex = 1;
+                      }
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
                       color: widget.isNight
                           ? Colors.white.withValues(alpha: 0.05)
-                          : const Color(0xFFF7F2EB),
-                      borderRadius: BorderRadius.circular(chipRadius),
-                      border: Border.all(
-                        color: inkColor.withValues(alpha: 0.08),
-                        width: 1,
-                      ),
+                          : Colors.white.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: inkColor.withValues(alpha: 0.08)),
                     ),
-                    child: Center(
-                      child: Text(
-                        tag,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: inkColor.withValues(alpha: 0.7),
-                          fontFamily: fontFamily,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        iconWidget,
+                        const SizedBox(width: 8),
+                        Text(
+                          item.tag,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: inkColor.withValues(alpha: 0.8),
+                            fontFamily: fontFamily,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ),
@@ -528,6 +597,7 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
             },
           ),
         ),
+        const SizedBox(height: 24),
       ],
     );
   }
@@ -618,19 +688,6 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
     final double defaultRadius = isLego ? 8.0 : (isCottonCandy ? 24.0 : 16.0);
     final double chipRadius = isLego ? 8.0 : 20.0;
 
-    final Border textfieldBorder = isLego
-        ? Border.all(color: isDark ? Colors.white70 : Colors.black, width: 1.8)
-        : Border.all(color: isCottonCandy
-            ? const Color(0xFFC0A6FF).withValues(alpha: 0.4)
-            : inkColor.withValues(alpha: 0.15));
-
-    Border tagBorder(bool isSelected) => isSelected
-        ? Border.all(color: primaryColor, width: isLego ? 1.8 : 1.2)
-        : (isLego
-            ? Border.all(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.8), width: 1.2)
-            : Border.all(color: isCottonCandy
-                ? const Color(0xFFC0A6FF).withValues(alpha: 0.2)
-                : inkColor.withValues(alpha: 0.08)));
 
     final int totalEmojiCount = 1 + emojis.length + _customEmojis.length;
 
@@ -691,126 +748,19 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 8),
-                            Text(
-                              "心情标签",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: inkColor.withValues(alpha: 0.7),
-                                fontFamily: fontFamily,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-                                borderRadius: BorderRadius.circular(defaultRadius),
-                                border: textfieldBorder,
-                              ),
-                              child: TextField(
-                                controller: _controller,
-                                maxLength: 10,
-                                onChanged: (val) {
-                                  if (_errorText != null) {
-                                    setState(() => _errorText = null);
-                                  }
-                                },
-                                style: TextStyle(color: inkColor, fontFamily: fontFamily),
-                                decoration: InputDecoration(
-                                  hintText: "比如：期待又紧张",
-                                  errorText: _errorText,
-                                  counterText: "",
-                                  errorStyle: TextStyle(
-                                    fontSize: 12,
-                                    fontFamily: fontFamily,
-                                  ),
-                                  hintStyle: TextStyle(
-                                    color: inkColor.withValues(alpha: 0.3),
-                                    fontSize: 14,
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                  border: InputBorder.none,
-                                ),
-                              ),
-                            ),
-                            _buildRecentMoodTags(primaryColor, inkColor, chipRadius, fontFamily),
-                            const SizedBox(height: 28),
-                            Text(
-                              "灵感标签",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: inkColor.withValues(alpha: 0.7),
-                                fontFamily: fontFamily,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                ..._inspirationTags.map((tag) {
-                                  final bool isSelected = _selectedInspirationTag == tag;
-                                  return GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedInspirationTag = isSelected ? null : tag;
-                                        if (!isSelected) {
-                                          _controller.text = tag;
-                                          _errorText = null;
-                                        }
-                                      });
-                                    },
-                                    onLongPress: () => _onLongPressTag(tag),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? (isLego
-                                                ? primaryColor
-                                                : primaryColor.withValues(alpha: isDark ? 0.25 : 0.12))
-                                            : (isDark
-                                                ? Colors.white.withValues(alpha: 0.05)
-                                                : const Color(0xFFF7F2EB)),
-                                        borderRadius: BorderRadius.circular(chipRadius),
-                                        border: tagBorder(isSelected),
-                                      ),
-                                      child: Text(
-                                        tag,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                          color: isSelected
-                                              ? (isLego ? (isDark ? Colors.black : Colors.white) : primaryColor)
-                                              : inkColor.withValues(alpha: 0.6),
-                                          fontFamily: fontFamily,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }),
-                                _buildAddTagChip(primaryColor, inkColor, chipRadius, fontFamily),
-                              ],
-                            ),
-                            const SizedBox(height: 28),
+                            const SizedBox(height: 16),
+                            _buildLivePreview(primaryColor, inkColor, defaultRadius, fontFamily),
+                            const SizedBox(height: 32),
+                            _buildRecentMoods(primaryColor, inkColor, chipRadius, fontFamily),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text(
-                                  "选择一个表情",
+                                  "表情资源库",
                                   style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: inkColor.withValues(alpha: 0.7),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: inkColor.withValues(alpha: 0.8),
                                     fontFamily: fontFamily,
                                   ),
                                 ),
@@ -881,23 +831,62 @@ class _CustomMoodPickerPageState extends State<CustomMoodPickerPage> {
                                     return;
                                   }
 
-                                  await _saveRecentMood(tagText);
+                                  final int standardCount = standardEmojis.length;
+                                  final int customCount = emojis.length;
+                                  final bool isStandard = _selectedGridIndex >= 1 && _selectedGridIndex < 1 + standardCount;
+                                  final bool isPackCustom = _selectedGridIndex >= 1 + standardCount && _selectedGridIndex < 1 + standardCount + customCount;
+                                  final bool isUserCustom = _selectedGridIndex >= 1 + standardCount + customCount;
+                                  
+                                  String? assetPath;
+                                  String type = 'user';
+                                  
+                                  if (isStandard) {
+                                    assetPath = standardEmojis[_selectedGridIndex - 1]['icon']!;
+                                    type = 'standard';
+                                  } else if (isPackCustom) {
+                                    assetPath = emojis[_selectedGridIndex - 1 - standardCount]['icon']!;
+                                    type = 'pack';
+                                  } else if (isUserCustom) {
+                                    assetPath = _customEmojis[_selectedGridIndex - 1 - standardCount - customCount];
+                                    type = 'user';
+                                  }
+
+                                  if (assetPath != null) {
+                                    final item = RecentMoodItem(
+                                      tag: tagText,
+                                      iconPath: assetPath,
+                                      index: _selectedGridIndex,
+                                      type: type,
+                                    );
+                                    await _saveRecentMoodItem(item);
+                                  }
+
                                   if (!context.mounted) return;
 
-                                  final isCustom = _selectedGridIndex > emojis.length;
-                                  if (isCustom) {
-                                    final customFileName = _customEmojis[_selectedGridIndex - 1 - emojis.length];
+                                  if (isStandard) {
+                                    final String assetPath = standardEmojis[_selectedGridIndex - 1]['icon']!;
+                                    final String fileName = await _ensureStandardAssetInFileSystem(assetPath);
+                                    
+                                    if (!context.mounted) return;
                                     Navigator.pop(context, {
-                                      'index': 100 + (_selectedGridIndex - 1 - emojis.length),
+                                      'index': 200 + (_selectedGridIndex - 1),
+                                      'tag': tagText,
+                                      'intensity': 6.0,
+                                      'customMoodIcon': fileName,
+                                    });
+                                  } else if (isPackCustom) {
+                                    Navigator.pop(context, {
+                                      'index': _selectedGridIndex - 1 - standardCount,
+                                      'tag': tagText,
+                                      'intensity': 6.0,
+                                    });
+                                  } else if (isUserCustom) {
+                                    final customFileName = _customEmojis[_selectedGridIndex - 1 - standardCount - customCount];
+                                    Navigator.pop(context, {
+                                      'index': 100 + (_selectedGridIndex - 1 - standardCount - customCount),
                                       'tag': tagText,
                                       'intensity': 6.0,
                                       'customMoodIcon': customFileName,
-                                    });
-                                  } else {
-                                    Navigator.pop(context, {
-                                      'index': _selectedGridIndex - 1,
-                                      'tag': tagText,
-                                      'intensity': 6.0,
                                     });
                                   }
                                 },

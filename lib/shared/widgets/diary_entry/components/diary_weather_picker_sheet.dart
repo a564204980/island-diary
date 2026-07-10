@@ -128,7 +128,7 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
   }
 
   Color _getTemperatureColor(double temp) {
-    final double ratio = ((temp + 90) / 150).clamp(0.0, 1.0);
+    final double ratio = ((temp + 40) / 110).clamp(0.0, 1.0);
     return Color.lerp(
       const Color(0xFF3A86C8), // 冰蓝
       const Color(0xFFEE6C4D), // 暖橙红
@@ -172,27 +172,27 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
               color: isSelected 
-                  ? accentColor 
-                  : accentColor.withValues(alpha: 0.05),
+                  ? accentColor.withValues(alpha: 0.1)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: isSelected 
-                    ? accentColor 
-                    : accentColor.withValues(alpha: 0.1),
-                width: 1.5,
+                    ? accentColor.withValues(alpha: 0.3)
+                    : Colors.transparent,
+                width: 1.0,
               ),
               boxShadow: isSelected ? [
                 BoxShadow(
-                  color: accentColor.withValues(alpha: 0.25),
+                  color: accentColor.withValues(alpha: 0.05),
                   blurRadius: 8,
-                  offset: const Offset(0, 3),
+                  offset: const Offset(0, 2),
                 )
               ] : null,
             ),
             child: Icon(
               weather.icon,
               size: 20,
-              color: isSelected ? Colors.white : inkColor.withValues(alpha: 0.6),
+              color: isSelected ? accentColor : inkColor.withValues(alpha: 0.35),
             ),
           ),
           const SizedBox(height: 4),
@@ -218,7 +218,9 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
     final String fontFamily = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
 
     final Color accentColor = DiaryUtils.getAccentColor(widget.paperStyle, isNight);
-    final Color inkColor = DiaryUtils.getInkColor(widget.paperStyle, isNight);
+    final Color inkColor = isNight 
+        ? Colors.white
+        : DiaryUtils.getInkColor(widget.paperStyle, isNight);
     final Color tempColor = _getTemperatureColor(_temperature);
 
     return DiaryBottomSheet(
@@ -343,7 +345,7 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
                 Row(
                   children: [
                     Text(
-                      '-90°C', 
+                      '-40°C', 
                       style: TextStyle(
                         fontSize: 10, 
                         color: inkColor.withValues(alpha: 0.4), 
@@ -366,8 +368,8 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
                         ),
                         child: Slider(
                           value: _temperature,
-                          min: -90,
-                          max: 60,
+                          min: -40,
+                          max: 70,
                           onChanged: (val) {
                             setState(() => _temperature = val);
                             if (_selectedIdx != -1) {
@@ -381,7 +383,7 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
                       ),
                     ),
                     Text(
-                      '60°C', 
+                      '70°C', 
                       style: TextStyle(
                         fontSize: 10, 
                         color: inkColor.withValues(alpha: 0.4), 

@@ -118,7 +118,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                 // 2. 主编辑区 (文字与图片块)
                 Builder(
                   builder: (context) {
-                    final bool hasTags = currentTags.where((t) => !t.startsWith('mood:')).isNotEmpty;
+                    final bool hasTags = currentTags.where((t) => !t.startsWith('mood:') && !t.startsWith('mood_icon:')).isNotEmpty;
                     final bool hasImages = !isMixedLayout && blocks.whereType<ImageBlock>().isNotEmpty;
                     
                     double baseBottomBarHeight = 52.0 + 32.0; // 52.0 是工具栏高度，32.0 是“收纳至”指示栏高度
@@ -194,7 +194,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               onClearMood: () {
                                 setState(() {
                                   currentMoodIndex = null;
-                                  currentTags = currentTags.where((t) => !t.startsWith('mood:')).toList();
+                                  currentTags = currentTags.where((t) => !t.startsWith('mood:') && !t.startsWith('mood_icon:')).toList();
                                   updateMoodQuote();
                                 });
                                 onBlocksChanged();
@@ -390,7 +390,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         onSave: onSave,
                         onTagClick: onTagClick,
                         onMusicPick: onMusicButtonPressed,
-                        currentTags: currentTags.where((t) => !t.startsWith('mood:')).toList(),
+                        currentTags: currentTags.where((t) => !t.startsWith('mood:') && !t.startsWith('mood_icon:')).toList(),
                         onRemoveTag: (tag) {
                           setState(() {
                             currentTags = currentTags.where((t) => t != tag).toList();
@@ -753,14 +753,16 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
 
   void _showMoreBottomSheet() {
     final bool isNight = UserState().isNight;
-    final Color accentColor = DiaryUtils.getAccentColor(
-      currentPaperStyle,
-      isNight,
-    );
-    final Color textColor = DiaryUtils.getInkColor(
-      currentPaperStyle,
-      isNight,
-    ).withValues(alpha: 0.9);
+    final String themeId = UserState().selectedIslandThemeId.value;
+    final Color accentColor = themeId == 'cotton_candy'
+        ? (isNight ? const Color(0xFFC0A6FF) : const Color(0xFF7C3AED))
+        : (themeId == 'lego' ? const Color(0xFF3B82F6) : (isNight ? const Color(0xFFD4A373) : const Color(0xFF8B5E3C)));
+    final Color textColor = isNight
+        ? Colors.white.withValues(alpha: 0.9)
+        : DiaryUtils.getInkColor(
+            currentPaperStyle,
+            isNight,
+          ).withValues(alpha: 0.9);
     final String fontFamily = UserState().selectedIslandThemeId.value == 'lego'
         ? 'SweiFistLeg'
         : 'LXGWWenKai';
@@ -915,8 +917,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                     inactiveTrackColor: accentColor.withValues(alpha: 0.15),
                                     thumbColor: accentColor,
                                     overlayColor: accentColor.withValues(alpha: 0.1),
-                                    valueIndicatorColor: accentColor,
-                                    valueIndicatorTextStyle: const TextStyle(color: Colors.white, fontSize: 10),
+                                    showValueIndicator: ShowValueIndicator.never,
                                   ),
                                   child: Slider(
                                     value: UserState().imageCompressQuality.value.toDouble(),

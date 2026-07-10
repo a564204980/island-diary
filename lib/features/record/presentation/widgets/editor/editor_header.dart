@@ -20,12 +20,6 @@ class EditorHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
-
-    final themeId = UserState().selectedIslandThemeId.value;
-    final bool hasPaperBg = paperStyle.startsWith('note') ||
-        (paperStyle == 'classic' && themeId == 'cotton_candy');
-
     return Container(
       color: Colors.transparent, // 根据用户要求调整为全透明，无分割线
       child: Column(
@@ -60,7 +54,9 @@ class EditorHeader extends StatelessWidget {
   Widget _buildDraftBadge(bool isNight) {
     final themeId = UserState().selectedIslandThemeId.value;
     final String fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
-    final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
+    final Color inkColor = isNight
+        ? Colors.white.withValues(alpha: 0.9)
+        : DiaryUtils.getInkColor(paperStyle, isNight);
 
     return Padding(
       padding: const EdgeInsets.only(right: 16),

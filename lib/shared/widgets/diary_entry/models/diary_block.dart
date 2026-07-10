@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -235,6 +236,92 @@ class DiaryTextEditingController extends TextEditingController {
       decorationColor: color,
       decorationThickness: thickness,
     );
+  }
+
+  static ui.Shader getBackgroundShader(Color color, double rectHeight) {
+    final key = "bg_drybrush_${color.toARGB32()}_${rectHeight.toStringAsFixed(1)}";
+    if (_shaderCache.containsKey(key)) {
+      return _shaderCache[key]!;
+    }
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    
+    final double w = 300.0; // wider tile for organic look
+    final double h = rectHeight;
+
+    final random = math.Random(12345); 
+    
+    // 1. Draw base with ragged, organic top and bottom edges
+    final basePaint = Paint()
+      ..color = color.withValues(alpha: 0.15)
+      ..style = PaintingStyle.fill;
+      
+    for (int i = 0; i < 4; i++) {
+      final startTopY = h * 0.1 + random.nextDouble() * (h * 0.1);
+      final startBottomY = h * 0.9 - random.nextDouble() * (h * 0.1);
+      
+      final path = Path();
+      path.moveTo(0, startTopY);
+      path.quadraticBezierTo(w * 0.5, startTopY + (random.nextDouble() - 0.5) * (h * 0.1), w, startTopY);
+      path.lineTo(w, startBottomY);
+      path.quadraticBezierTo(w * 0.5, startBottomY + (random.nextDouble() - 0.5) * (h * 0.1), 0, startBottomY);
+      path.close();
+      
+      canvas.drawPath(path, basePaint);
+    }
+
+    // 2. Add horizontal "dry brush" grain (fewer strokes to avoid turning into a solid block)
+    final grainPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.square;
+      
+    for (int i = 0; i < 40; i++) {
+      final isDark = random.nextDouble() > 0.4;
+      grainPaint.color = isDark 
+          ? color.withValues(alpha: random.nextDouble() * 0.4 + 0.1)
+          : Colors.white.withValues(alpha: random.nextDouble() * 0.2);
+          
+      grainPaint.strokeWidth = random.nextDouble() * 2.0 + 0.5;
+      final y = h * 0.05 + random.nextDouble() * (h * 0.9);
+      
+      final path = Path();
+      path.moveTo(0, y);
+      path.quadraticBezierTo(w * 0.5, y + (random.nextDouble() - 0.5) * 3, w, y);
+      canvas.drawPath(path, grainPaint);
+    }
+    
+    // 3. Add a few distinct thicker "bristle" marks for texture contrast
+    final bristlePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+      
+    for (int i = 0; i < 8; i++) {
+      bristlePaint.color = color.withValues(alpha: random.nextDouble() * 0.3 + 0.1);
+      bristlePaint.strokeWidth = random.nextDouble() * 2.5 + 1.0;
+      final y = h * 0.1 + random.nextDouble() * (h * 0.8);
+      
+      final path = Path();
+      path.moveTo(0, y);
+      path.quadraticBezierTo(w * 0.5, y + (random.nextDouble() - 0.5) * 4, w, y);
+      canvas.drawPath(path, bristlePaint);
+    }
+
+    final picture = recorder.endRecording();
+    final img = picture.toImageSync(w.toInt(), h.clamp(1.0, 1000.0).toInt());
+    final shader = ImageShader(
+      img,
+      TileMode.repeated,
+      TileMode.repeated,
+      Float64List.fromList([
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0,
+      ]),
+    );
+    _shaderCache[key] = shader;
+    return shader;
   }
 
   static ui.Shader getUnderlineShader(String style, Color color, double rectHeight) {
@@ -541,7 +628,7 @@ class DiaryTextEditingController extends TextEditingController {
   }) : baseColor =
            baseColor ??
            (UserState().isNight
-               ? const Color(0xFFE0C097)
+               ? Colors.white.withValues(alpha: 0.9)
                : const Color(0xFF333333)),
        baseFontSize = baseFontSize ?? 20.0,
        baseFontFamily = baseFontFamily ?? 'LXGWWenKai' {
@@ -1143,7 +1230,8 @@ class DiaryTextEditingController extends TextEditingController {
               }()
             : TextStyle(
                 color: attr.color,
-                backgroundColor: attr.backgroundColor,
+                // backgroundColor 现在由 DiaryBrushBackgroundPainter 在 Canvas 层绘制，
+                // 这里不再设置，避免 TextStyle 的矩形裁剪盖住自定义笔刷效果
                 fontSize: attr.fontSize,
                 fontWeight: (attr.bold == true) ? FontWeight.bold : null,
                 height: 1.8,
@@ -1243,54 +1331,77 @@ class DiaryTextEditingController extends TextEditingController {
         }
       }
 
-      if (activeAnnotation != null) {
-        final Color color = (activeAnnotation['color'] as Color).withValues(alpha: 0.4);
-        children.add(
-          TextSpan(
-            text: chunk,
-            style: combinedStyle.copyWith(
-              backgroundColor: color,
-              height: 1.15,
-            ),
-          ),
-        );
-      } else {
-        children.add(TextSpan(text: chunk, style: combinedStyle));
-      }
-
-      // Append bubble icon if this chunk ends exactly at an annotation's end
+      // 判断是否在这个 chunk 结束处需要附加气泡
+      Map<String, dynamic>? endingAnnotation;
       for (var ann in blockAnnotations) {
         if (end == ann['end']) {
-          final annKey = ann['key'] as String;
-          children.add(
-            WidgetSpan(
-              alignment: PlaceholderAlignment.top,
-              child: SelectionContainer.disabled(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 1),
-                  child: SizedBox(
-                    width: 20,
-                    height: 18,
-                    child: Listener(
-                      behavior: HitTestBehavior.opaque,
-                      onPointerDown: (_) {
-                        if (effectiveOnAnnotationTap != null) {
-                          effectiveOnAnnotationTap(annKey);
-                        }
-                      },
-                      child: CustomPaint(
-                        painter: _CommentBubblePainter(
-                          fillColor: isNight ? const Color(0xFF3E3A36) : const Color(0xFFFDFBF7),
-                          strokeColor: isNight ? Colors.white38 : const Color(0xFF8B7355).withValues(alpha: 0.5),
+          endingAnnotation = ann;
+          break;
+        }
+      }
+
+      final TextStyle finalStyle = activeAnnotation != null
+          ? combinedStyle.copyWith(
+              backgroundColor: (activeAnnotation['color'] as Color).withValues(alpha: 0.4),
+              height: 1.15,
+            )
+          : combinedStyle;
+
+      if (endingAnnotation != null && chunk.isNotEmpty) {
+        // 为了修复 WidgetSpan 打乱 TextField 光标映射位置的严重 Bug，
+        // 我们不能凭空插入一个 WidgetSpan (它会占用 1 个文本长度)。
+        // 解决办法：将该 chunk 的最后一个字符和气泡合并到一个 WidgetSpan 中渲染，
+        // 这样 WidgetSpan 替代了最后一个字符，总文本长度保持不变，光标映射完美。
+        final String prefix = chunk.substring(0, chunk.length - 1);
+        final String lastChar = chunk.substring(chunk.length - 1);
+        
+        if (prefix.isNotEmpty) {
+          children.add(TextSpan(text: prefix, style: finalStyle));
+        }
+
+        final annKey = endingAnnotation['key'] as String;
+        children.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(lastChar, style: finalStyle),
+                Transform.translate(
+                  offset: const Offset(0, -5), // 稍微往上移动气泡
+                  child: SelectionContainer.disabled(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 1),
+                      child: SizedBox(
+                        width: 20,
+                        height: 18,
+                        child: Listener(
+                          behavior: HitTestBehavior.opaque,
+                          onPointerDown: (_) {
+                            if (effectiveOnAnnotationTap != null) {
+                              effectiveOnAnnotationTap(annKey);
+                            }
+                          },
+                          child: CustomPaint(
+                            painter: _CommentBubblePainter(
+                              fillColor: isNight ? const Color(0xFF3E3A36) : const Color(0xFFFDFBF7),
+                              strokeColor: isNight ? Colors.white38 : const Color(0xFF8B7355).withValues(alpha: 0.5),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          );
-        }
+          ),
+        );
+      } else {
+        children.add(TextSpan(text: chunk, style: finalStyle));
       }
     }
 

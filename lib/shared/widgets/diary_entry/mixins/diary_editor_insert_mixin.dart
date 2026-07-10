@@ -28,7 +28,7 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
       themeAccentColor = themeId == 'cotton_candy' ? const Color(0xFFC0A6FF) : const Color(0xFFE0C097);
     } else {
       inkColor = themeId == 'cotton_candy' ? const Color(0xFF7C3AED) : const Color(0xFF1F2937);
-      themeAccentColor = themeId == 'cotton_candy' ? const Color(0xFF7C3AED) : const Color(0xFFA68565);
+      themeAccentColor = themeId == 'cotton_candy' ? const Color(0xFF7C3AED) : const Color(0xFF9C785A);
     }
 
     final controller = TextEditingController(text: location);
@@ -63,77 +63,94 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
             const SizedBox(height: 16),
             Container(
               decoration: BoxDecoration(
-                color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: inkColor.withValues(alpha: 0.15),
-                ),
+                color: isNight ? Colors.white.withValues(alpha: 0.05) : inkColor.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: TextField(
                 controller: controller,
-                style: TextStyle(color: inkColor, fontFamily: fontFamily),
+                style: TextStyle(color: inkColor, fontFamily: fontFamily, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: '输入地点名称 (如: 杭州·西湖)',
                   hintStyle: TextStyle(
-                    color: inkColor.withValues(alpha: 0.3),
-                    fontSize: 14,
+                    color: inkColor.withValues(alpha: 0.35),
+                    fontSize: 15,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 12,
+                    vertical: 14,
                   ),
                   border: InputBorder.none,
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _autoGetLocation();
-                    },
-                    icon: Icon(Icons.my_location_rounded, size: 16, color: themeAccentColor),
-                    label: Text(
-                      '自动定位',
-                      style: TextStyle(
-                        color: themeAccentColor,
-                        fontFamily: fontFamily,
-                        fontWeight: FontWeight.bold,
+                  child: SizedBox(
+                    height: 48,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _autoGetLocation();
+                      },
+                      icon: Icon(Icons.my_location_rounded, size: 18, color: themeAccentColor),
+                      label: Text(
+                        '自动定位',
+                        style: TextStyle(
+                          color: themeAccentColor,
+                          fontFamily: fontFamily,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
                       ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: themeAccentColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                      style: TextButton.styleFrom(
+                        backgroundColor: themeAccentColor.withValues(alpha: 0.1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        location = controller.text.trim().isEmpty ? null : controller.text.trim();
-                      });
-                      onBlocksChanged();
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: themeAccentColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: isNight ? [] : [
+                        BoxShadow(
+                          color: themeAccentColor.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
                     ),
-                    child: Text(
-                      '确定',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontFamily: fontFamily,
-                        fontWeight: FontWeight.bold,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          location = controller.text.trim().isEmpty ? null : controller.text.trim();
+                        });
+                        onBlocksChanged();
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: themeAccentColor,
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      child: Text(
+                        '确定',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontFamily: fontFamily,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
                       ),
                     ),
                   ),
@@ -447,8 +464,8 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
 
   void showPaperPicker() {
     final bool isNight = UserState().isNight;
-    final mood = (currentMoodIndex != null && currentMoodIndex! >= 0) ? kMoods[currentMoodIndex!] : null;
-    final defaultAccentColor = isNight ? const Color(0xFFE0C097) : const Color(0xFF8B5E3C);
+    final mood = (currentMoodIndex != null && currentMoodIndex! >= 0) ? kMoods[currentMoodIndex!.clamp(0, kMoods.length - 1)] : null;
+    final defaultAccentColor = isNight ? const Color(0xFFE0C097) : const Color(0xFF58585A);
     final moodGlowColor = mood?.glowColor;
     final accentColor = mood == null 
         ? defaultAccentColor 

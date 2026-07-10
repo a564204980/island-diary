@@ -887,8 +887,13 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
     final images = entry.blocks.where((b) => b['type'] == 'image').toList();
 
-    // 日记内容提取逻辑
-    final String plainContent = DiaryUtils.getFilteredContent(entry.content).trim();
+    // 日记内容提取逻辑：将预览转换为单行文本（自然折行），彻底消除因回车或多余空行导致的垂直间距
+    final String plainContent = DiaryUtils.getFilteredContent(entry.content)
+        .replaceAll(RegExp(r'[\u200B-\u200F\u2028\u2029\uFEFF\uFFFC]'), '')
+        .replaceAll('\n', ' ')
+        .replaceAll('\r', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ') // 合并多个空格
+        .trim();
 
     final timeStr = _selectedDay == null 
         ? "${entry.dateTime.toLocal().month}月${entry.dateTime.toLocal().day}日 ${entry.dateTime.toLocal().hour.toString().padLeft(2, '0')}:${entry.dateTime.toLocal().minute.toString().padLeft(2, '0')}"
@@ -1049,7 +1054,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                         height: 1.4,
                       );
                       if (plainContent.isEmpty) {
-                        return Text("无文字内容", style: textStyle);
+                        return const SizedBox.shrink();
                       }
                       final spans = EmojiMapping.parseText(plainContent).map((chunk) {
                         if (chunk.isEmoji) {
@@ -1066,12 +1071,16 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                       return RichText(
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
+                        textHeightBehavior: const TextHeightBehavior(
+                          applyHeightToFirstAscent: false,
+                          applyHeightToLastDescent: false,
+                        ),
                         text: TextSpan(children: spans),
                       );
                     }),
                     // 如果有图片，展示图片预览
                     if (images.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,

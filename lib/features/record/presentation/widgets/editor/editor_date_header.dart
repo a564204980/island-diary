@@ -18,7 +18,9 @@ class EditorDateHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
+    final Color inkColor = isNight
+        ? Colors.white.withValues(alpha: 0.9)
+        : DiaryUtils.getInkColor(paperStyle, isNight);
     final String dayStr = dateTime.day.toString();
     final String yearMonthStr = "${dateTime.year}年${dateTime.month}月";
     final String weekTimeStr = "${_getChineseWeekDay(dateTime.weekday)}  ${DateFormat('HH:mm').format(dateTime)}";
@@ -38,7 +40,7 @@ class EditorDateHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 68,
                 fontWeight: FontWeight.w500,
-                color: DiaryUtils.getInkColor(paperStyle, isNight),
+                color: inkColor,
                 fontFamily: 'Georgia',
                 height: 1.0,
               ),
@@ -54,7 +56,7 @@ class EditorDateHeader extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: DiaryUtils.getInkColor(paperStyle, isNight).withValues(alpha: 0.6),
+                    color: inkColor.withValues(alpha: 0.6),
                     fontFamily: 'LXGWWenKai',
                   ),
                 ),
@@ -68,7 +70,7 @@ class EditorDateHeader extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: DiaryUtils.getInkColor(paperStyle, isNight).withValues(alpha: 0.8),
+                        color: inkColor.withValues(alpha: 0.8),
                         fontFamily: 'LXGWWenKai',
                       ),
                     ),

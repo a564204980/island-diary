@@ -128,12 +128,30 @@ class DiaryBlockItem extends StatelessWidget {
   Widget _buildTextBlock(TextBlock block, BuildContext context) {
     final isNight = isNightOverride ?? UserState().isNight;
 
-    final inkColor = paperStyle != null
-        ? DiaryUtils.getInkColor(paperStyle!, isNight)
-        : (isNight ? const Color(0xFFE0C097) : const Color(0xFF5D4037));
+    final inkColor = isNight
+        ? Colors.white.withValues(alpha: 0.9)
+        : (paperStyle != null
+            ? DiaryUtils.getInkColor(paperStyle!, isNight)
+            : const Color(0xFF5D4037));
+        
+    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego'
+        ? 'SweiFistLeg'
+        : 'LXGWWenKai';
 
     final tc = block.controller;
     if (tc is DiaryTextEditingController) {
+      // 动态适配当前主题的文字颜色（如果之前保存的是默认色）
+      if (tc.baseColor.toARGB32() == 0xFF333333 || 
+          tc.baseColor.toARGB32() == 0xFFE0C097 || 
+          tc.baseColor.toARGB32() == Colors.white.withValues(alpha: 0.9).toARGB32()) {
+        tc.baseColor = inkColor;
+      }
+
+      // 动态适配字体
+      if (tc.baseFontFamily == 'LXGWWenKai' || tc.baseFontFamily == 'SweiFistLeg' || tc.baseFontFamily.isEmpty) {
+        tc.baseFontFamily = fontFamily;
+      }
+      
       tc.blockIndex = index;
       tc.annotations = annotations;
       tc.onAnnotationTap = (key) {
@@ -179,11 +197,16 @@ class DiaryBlockItem extends StatelessWidget {
                     valueListenable: tc,
                     builder: (builderContext, value, child) {
                       return CustomPaint(
-                        painter: DiaryCirclePainter(
+                        // 笔刷背景画在底层（先画）
+                        foregroundPainter: DiaryCirclePainter(
                           context: builderContext,
                           controller: tc,
                           inkColor: inkColor,
                           blockIndex: index,
+                        ),
+                        painter: DiaryBrushBackgroundPainter(
+                          context: builderContext,
+                          controller: tc,
                         ),
                       );
                     },
@@ -204,6 +227,7 @@ class DiaryBlockItem extends StatelessWidget {
                 fontSize: 20,
                 height: 1.8,
                 color: inkColor,
+                fontFamily: fontFamily,
                 fontFamilyFallback: const ['LXGWWenKai'],
               ),
               contextMenuBuilder: (context, editableTextState) {
@@ -222,6 +246,7 @@ class DiaryBlockItem extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: isFirstTextBlock ? '今天发生了什么？记录此刻的触动...' : '',
                 hintStyle: TextStyle(
+                  fontFamily: fontFamily,
                   color: isNoteBackground
                       ? (accentColor?.withValues(alpha: 0.4) ??
                             (isNight ? Colors.white38 : Colors.black38))
@@ -734,6 +759,124 @@ class _AnimatedDeleteWrapperState extends State<AnimatedDeleteWrapper>
       },
       child: widget.builder(context, _startDelete),
     );
+  }
+}
+
+/// 在文字下方绘制笔刷高亮背景，突破 TextStyle.background 的矩形裁剪限制
+class DiaryBrushBackgroundPainter extends CustomPainter {
+  final BuildContext context;
+  final DiaryTextEditingController controller;
+
+  DiaryBrushBackgroundPainter({
+    required this.context,
+    required this.controller,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (controller.text.isEmpty) return;
+
+    // 找到 RenderEditable（复用 DiaryCirclePainter 的思路）
+    RenderEditable? renderEditable;
+    if (context is Element) {
+      Element? parentEl = context as Element;
+      int count = 0;
+      parentEl.visitAncestorElements((ancestor) {
+        parentEl = ancestor;
+        count++;
+        return count < 3;
+      });
+      final targetEl = parentEl;
+      if (targetEl != null) {
+        void visitor(Element el) {
+          if (renderEditable != null) return;
+          final ro = el.renderObject;
+          if (ro is RenderEditable) {
+            renderEditable = ro;
+            return;
+          }
+          el.visitChildren(visitor);
+        }
+        targetEl.visitChildren(visitor);
+      }
+    }
+
+    if (renderEditable == null) return;
+    final re = renderEditable!;
+    if (!re.attached) return;
+
+    final RenderBox? myBox = context.findRenderObject() as RenderBox?;
+    if (myBox == null || !myBox.attached || !myBox.hasSize) return;
+
+    final Offset offset =
+        re.localToGlobal(Offset.zero) - myBox.localToGlobal(Offset.zero);
+
+    canvas.save();
+    canvas.translate(offset.dx, offset.dy);
+
+    for (var attr in controller.attributes) {
+      final bgColor = attr.backgroundColor;
+      if (bgColor == null) continue;
+
+      final start = attr.start.clamp(0, controller.text.length);
+      final end = attr.end.clamp(0, controller.text.length);
+      if (start >= end) continue;
+
+      final boxes = re.getBoxesForSelection(
+        TextSelection(baseOffset: start, extentOffset: end),
+      );
+
+      for (var box in boxes) {
+        final rect = box.toRect();
+        if (rect.isEmpty || rect.width < 2) continue;
+
+        // 去除左右向外延伸，因为 StrokeCap.round 会自动两端增加半个线宽的圆角
+        const double padX = 0.0;
+        const double padY = 3.0;
+        final double l = rect.left - padX;
+        final double r = rect.right + padX;
+        final double t = rect.top + padY;
+        final double b = rect.bottom - padY;
+        final double h = b - t;
+        if (h <= 0) continue;
+
+        _drawBrushStroke(canvas, l, r, t, b, h, bgColor);
+      }
+    }
+
+    canvas.restore();
+  }
+
+    void _drawBrushStroke(
+    Canvas canvas,
+    double l,
+    double r,
+    double t,
+    double b,
+    double h,
+    Color color,
+  ) {
+    // Draw a clean, standard rounded rectangle highlight
+    final double paddingX = 0.0;
+    l += paddingX;
+    r -= paddingX;
+
+    final w = r - l;
+    if (w <= 0) return;
+
+    final paint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = color.withValues(alpha: 0.35);
+
+    // Provide a small border radius for a polished look
+    final rect = RRect.fromLTRBR(l, t + h * 0.1, r, b - h * 0.1, const Radius.circular(4.0));
+    canvas.drawRRect(rect, paint);
+  }
+
+  @override
+  bool shouldRepaint(DiaryBrushBackgroundPainter oldDelegate) {
+    return oldDelegate.controller != controller ||
+        oldDelegate.controller.attributes != controller.attributes;
   }
 }
 

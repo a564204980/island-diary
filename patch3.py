@@ -1,140 +1,14 @@
-import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
-import 'package:flutter/material.dart';
-import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
-import 'underline_picker_sheet.dart';
-import 'circle_picker_sheet.dart';
+import sys
 
-class DiaryTextContextMenu extends StatefulWidget {
-  final EditableTextState editableTextState;
-  final int blockIndex;
-  final Map<String, String> annotations;
-  final Function({
-    String? key,
-    required int blockIndex,
-    required int start,
-    required int end,
-    required String selectedText,
-  }) onAddAnnotation;
-  final Function(String key)? onDeleteAnnotation;
-  final bool showAnnotation;
-  final bool showUnderline;
-  final String? paperStyle;
-  final DiaryTextEditingController? controllerOverride;
-  final int? selectionOffset;
-  final VoidCallback? onAttributeApplied;
+with open('d:/project/island_diary/lib/shared/widgets/diary_entry/components/diary_text_context_menu.dart', 'r', encoding='utf-8') as f:
+    code = f.read()
 
-  const DiaryTextContextMenu({
-    super.key,
-    required this.editableTextState,
-    required this.blockIndex,
-    required this.annotations,
-    required this.onAddAnnotation,
-    this.onDeleteAnnotation,
-    this.showAnnotation = true,
-    this.showUnderline = false,
-    this.paperStyle,
-    this.controllerOverride,
-    this.selectionOffset,
-    this.onAttributeApplied,
-  });
+code = code.replace('bool _isColorMode = false;', 'int _colorMode = 0;')
 
-  @override
-  State<DiaryTextContextMenu> createState() => _DiaryTextContextMenuState();
-}
+layout_start = code.find('            child: SingleChildScrollView(')
+layout_end = code.find('              ],\n              ),\n            ),\n          ),\n          CustomPaint(')
 
-class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {
-  int _colorMode = 0;
-
-
-  @override
-  Widget build(BuildContext context) {
-    final selection = widget.editableTextState.textEditingValue.selection;
-    if (selection.isCollapsed) return const SizedBox.shrink();
-
-    final text = widget.editableTextState.textEditingValue.text;
-    final selectedText = selection.start >= 0 && selection.end <= text.length
-        ? text.substring(selection.start, selection.end)
-        : '';
-
-    // 如果选择的文本仅包含 Object Replacement Character (\uFFFC，代表 WidgetSpan，如小气泡或图片)
-    // 则直接隐藏选区工具栏，不弹出 tooltip
-    if (selectedText.isEmpty || selectedText.trim().runes.every((r) => r == 0xFFFC)) {
-      return const SizedBox.shrink();
-    }
-
-    // 检查选区是否与已有批注有重叠
-    Map<String, dynamic>? overlappingAnn;
-    for (var entry in widget.annotations.entries) {
-      final parts = entry.key.split('_');
-      if (parts.length == 3 && int.tryParse(parts[0]) == widget.blockIndex) {
-        final annStart = int.tryParse(parts[1]);
-        final annEnd = int.tryParse(parts[2]);
-        if (annStart != null && annEnd != null) {
-          if (selection.start < annEnd && selection.end > annStart) {
-            overlappingAnn = {
-              'key': entry.key,
-              'start': annStart,
-              'end': annEnd,
-            };
-            break;
-          }
-        }
-      }
-    }
-
-    // 如果存在重叠的批注，且当前选区未完全覆盖它，则自动扩展选区至整个批注范围
-    if (widget.showAnnotation && overlappingAnn != null) {
-      final int annStart = overlappingAnn['start'];
-      final int annEnd = overlappingAnn['end'];
-      if (selection.start != annStart || selection.end != annEnd) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          widget.editableTextState.updateEditingValue(
-            widget.editableTextState.textEditingValue.copyWith(
-              selection: TextSelection(baseOffset: annStart, extentOffset: annEnd),
-            ),
-          );
-        });
-        return const SizedBox.shrink();
-      }
-    }
-
-    final double screenWidth = MediaQuery.sizeOf(context).width;
-    final Offset primaryAnchor = widget.editableTextState.contextMenuAnchors.primaryAnchor;
-    final Offset? secondaryAnchor = widget.editableTextState.contextMenuAnchors.secondaryAnchor;
-    
-    // In some custom editors (like ExtendedText), primaryAnchor is the start of the selection 
-    // and secondaryAnchor is the end. Averaging them gives the exact visual center.
-    double anchorDx = primaryAnchor.dx;
-    if (secondaryAnchor != null && (secondaryAnchor.dx - primaryAnchor.dx).abs() > 0.1) {
-      anchorDx = (primaryAnchor.dx + secondaryAnchor.dx) / 2.0;
-    }
-
-    return CustomSingleChildLayout(
-      delegate: TextSelectionToolbarLayoutDelegate(
-        anchorAbove: Offset(anchorDx, primaryAnchor.dy),
-        anchorBelow: secondaryAnchor != null 
-            ? Offset(anchorDx, secondaryAnchor.dy)
-            : Offset(anchorDx, primaryAnchor.dy),
-      ),
-      child: IntrinsicWidth(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2F2F2F),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: SingleChildScrollView(
+new_layout = '''            child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const NeverScrollableScrollPhysics(),
               child: Row(
@@ -357,40 +231,15 @@ class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {
                         ..._buildColorModeChildren(context),
                       ],
                     ),
-                  ),              ],
-              ),
-            ),
-          ),
-          CustomPaint(
-            size: const Size(double.infinity, 6),
-            painter: _ToolbarArrowPainter(anchorDx, screenWidth),
-          ),
-        ],
-      ),
-      ),
-    );
-  }
+                  ),'''
 
-  Widget _buildToolbarButton(IconData icon, VoidCallback onTap, bool isHighlighted) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isHighlighted ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
+code = code[:layout_start] + new_layout + code[layout_end:]
 
-  List<Widget> _buildColorModeChildren(BuildContext context) {
+# Replace _buildColorModeChildren
+start_method = code.find('  List<Widget> _buildColorModeChildren(BuildContext context) {')
+end_method = code.find('}\n\nclass _ToolbarArrowPainter extends CustomPainter {', start_method)
+
+new_method = '''  List<Widget> _buildColorModeChildren(BuildContext context) {
     final selection = widget.editableTextState.textEditingValue.selection;
     final targetSelection = widget.selectionOffset != null && widget.selectionOffset! > 0
         ? TextSelection(
@@ -449,39 +298,11 @@ class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {
       const SizedBox(width: 4),
     ];
   }
-}
+'''
 
-class _ToolbarArrowPainter extends CustomPainter {
-  final double anchorDx;
-  final double screenWidth;
+code = code[:start_method] + new_method + code[end_method:]
 
-  _ToolbarArrowPainter(this.anchorDx, this.screenWidth);
+with open('d:/project/island_diary/lib/shared/widgets/diary_entry/components/diary_text_context_menu.dart', 'w', encoding='utf-8') as f:
+    f.write(code)
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF2F2F2F)
-      ..style = PaintingStyle.fill;
-      
-    final double padding = 8.0; 
-    final double actualLeft = (anchorDx - size.width / 2).clamp(padding, screenWidth - padding - size.width);
-    final double arrowCenterX = (anchorDx - actualLeft).clamp(12.0, size.width - 12.0);
-
-    final double radius = 1.5;
-    final double arrowWidth = 12.0;
-    
-    final path = Path()
-      ..moveTo(arrowCenterX - arrowWidth / 2, 0)
-      ..lineTo(arrowCenterX - radius, size.height - radius)
-      ..quadraticBezierTo(
-          arrowCenterX, size.height, arrowCenterX + radius, size.height - radius)
-      ..lineTo(arrowCenterX + arrowWidth / 2, 0)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ToolbarArrowPainter oldDelegate) {
-    return oldDelegate.anchorDx != anchorDx || oldDelegate.screenWidth != screenWidth;
-  }
-}
+print("Replacement complete.")

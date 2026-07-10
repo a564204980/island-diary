@@ -35,7 +35,7 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
   late ScrollController _scrollController;
   late String _localStyle;
   static const double itemTotalWidth =
-      96.0; // 80 (width) + 8*2 (horizontal margin)
+      80.0; // 68 (width) + 6*2 (horizontal margin)
   static const double listPadding = 16.0;
 
   Map<String, String> _getEffectiveStyles() {
@@ -191,59 +191,45 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                       duration: const Duration(milliseconds: 250),
                       curve: Curves.easeOutBack,
                       child: Container(
-                        width: 80,
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        width: 68,
+                        margin: const EdgeInsets.symmetric(horizontal: 6),
                         child: Column(
                           children: [
                             AnimatedContainer(
-                                duration: const Duration(milliseconds: 250),
-                                curve: Curves.easeInOut,
-                                padding: const EdgeInsets.all(3.0), // 优雅的间距
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(19),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? itemAccentColor.withValues(alpha: 0.85)
-                                        : Colors.transparent,
-                                    width: 2.2, // 加粗的外圈，更加显眼精致
-                                  ),
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeInOut,
+                              width: 68,
+                              height: 78,
+                              decoration: BoxDecoration(
+                                color: isNight
+                                    ? Colors.black26
+                                    : (UserState().selectedIslandThemeId.value == 'lego' && key == 'classic'
+                                        ? const Color(0xFFFDF3E3)
+                                        : (UserState().selectedIslandThemeId.value == 'cotton_candy' && key == 'classic'
+                                            ? const Color(0xFFFBF3E9)
+                                            : Colors.white)),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isSelected ? itemAccentColor : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                                  width: isSelected ? 2.0 : 1.0,
                                 ),
-                                child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 250),
-                                    curve: Curves.easeInOut,
-                                    width: 64,
-                                    height: 74,
-                                    decoration: BoxDecoration(
-                                      color: isNight
-                                          ? Colors.black26
-                                          : (UserState().selectedIslandThemeId.value == 'lego' && key == 'classic'
-                                              ? const Color(0xFFFDF3E3)
-                                              : (UserState().selectedIslandThemeId.value == 'cotton_candy' && key == 'classic'
-                                                  ? const Color(0xFFFBF3E9)
-                                                  : Colors.white)),
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(
-                                        color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                                        width: 1.0,
-                                      ),
-                                      boxShadow: [
-                                        if (isSelected)
-                                          BoxShadow(
-                                            color: itemAccentColor.withValues(alpha: 0.35),
-                                            blurRadius: 10,
-                                            spreadRadius: 0.5,
-                                            offset: const Offset(0, 3),
-                                          ),
-                                        if (!isSelected)
-                                          BoxShadow(
-                                            color: Colors.black.withValues(alpha: 0.05),
-                                            blurRadius: 5,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                      ],
+                                boxShadow: [
+                                  if (isSelected)
+                                    BoxShadow(
+                                      color: itemAccentColor.withValues(alpha: 0.2),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 6),
                                     ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(13),
+                                  if (!isSelected)
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(14), // slightly less than container to avoid clipping the border
                                       child: Stack(
                                         children: [
                                           if (key.startsWith('note') || (key == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'))
@@ -270,33 +256,23 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                                             ),
                                           ),
                                           Positioned(
-                                            bottom: 4,
-                                            right: 4,
+                                            bottom: 6,
+                                            right: 6,
                                             child: AnimatedScale(
-                                              scale: isSelected ? 1.0 : 0.05,
+                                              scale: isSelected ? 1.0 : 0.0,
                                               duration: const Duration(milliseconds: 250),
                                               curve: Curves.easeOutBack,
-                                              child: AnimatedOpacity(
-                                                opacity: isSelected ? 1.0 : 0.0,
-                                                duration: const Duration(milliseconds: 200),
-                                                child: Container(
-                                                  padding: const EdgeInsets.all(2.5),
-                                                  decoration: BoxDecoration(
-                                                    color: itemAccentColor,
-                                                    shape: BoxShape.circle,
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.black.withValues(alpha: 0.15),
-                                                        blurRadius: 3,
-                                                        offset: const Offset(0, 1),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.check_rounded,
-                                                    size: 10,
-                                                    color: Colors.white,
-                                                  ),
+                                              child: Container(
+                                                padding: const EdgeInsets.all(2),
+                                                decoration: BoxDecoration(
+                                                  color: itemAccentColor,
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(color: Colors.white, width: 1.5),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.check_rounded,
+                                                  size: 10,
+                                                  color: Colors.white,
                                                 ),
                                               ),
                                             ),
@@ -305,7 +281,6 @@ class _PaperPickerSheetState extends State<PaperPickerSheet> {
                                       ),
                                     ),
                                   ),
-                              ),
                             const SizedBox(height: 8),
                             Text(
                               label,

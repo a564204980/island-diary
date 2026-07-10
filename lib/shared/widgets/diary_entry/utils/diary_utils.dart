@@ -469,7 +469,7 @@ class DiaryUtils {
   /// 获取信纸对应的墨水颜色 (文字颜色)
   static Color getInkColor(String paperStyle, bool isNight) {
     if (isNight) {
-      return const Color(0xFFE0C097); // 统一夜间文本颜色
+      return Colors.white.withValues(alpha: 0.9); // 统一夜间文本颜色
     }
     // 默认白天模式：统一纯色（纯黑/深灰），不随背景变化
     return const Color(0xFF333333);
@@ -494,8 +494,8 @@ class DiaryUtils {
       return const Color(0xFFE0C097);
     }
 
-    // 白天模式：回归日记本该有的温润质感，使用经典的深咖/深棕色
-    return const Color(0xFF5D4037);
+    // 白天模式：统一使用高级暖棕色
+    return const Color(0xFF9C785A);
   }
 
   /// 获取与信纸风格高度协调的弹窗背景色
@@ -809,7 +809,9 @@ class ParsedTags {
         customMood = part.substring(5);
       } else if (part.startsWith('mood_icon:')) {
         final relPath = part.substring(10);
-        if (DiaryUtils.documentsDirPath.isNotEmpty) {
+        if (relPath.startsWith('assets/')) {
+          customMoodIconPath = relPath;
+        } else if (DiaryUtils.documentsDirPath.isNotEmpty) {
           final String directPath = '${DiaryUtils.documentsDirPath}/$relPath';
           final String subDirPath =
               '${DiaryUtils.documentsDirPath}/custom_emojis/$relPath';

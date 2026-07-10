@@ -1,29 +1,29 @@
-import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
-import 'package:flutter/material.dart';
-import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
-import 'underline_picker_sheet.dart';
-import 'circle_picker_sheet.dart';
+import sys
+import re
 
-class DiaryTextContextMenu extends StatefulWidget {
-  final EditableTextState editableTextState;
-  final int blockIndex;
-  final Map<String, String> annotations;
-  final Function({
-    String? key,
-    required int blockIndex,
-    required int start,
-    required int end,
-    required String selectedText,
-  }) onAddAnnotation;
-  final Function(String key)? onDeleteAnnotation;
-  final bool showAnnotation;
-  final bool showUnderline;
-  final String? paperStyle;
-  final DiaryTextEditingController? controllerOverride;
-  final int? selectionOffset;
-  final VoidCallback? onAttributeApplied;
+with open('d:/project/island_diary/lib/shared/widgets/diary_entry/components/diary_text_context_menu.dart', 'r', encoding='utf-8') as f:
+    code = f.read()
 
-  const DiaryTextContextMenu({
+# Make it Stateful
+code = code.replace('class DiaryTextContextMenu extends StatelessWidget {', 'class DiaryTextContextMenu extends StatefulWidget {')
+
+# Add State class
+code = code.replace(
+'''  const DiaryTextContextMenu({
+    super.key,
+    required this.editableTextState,
+    required this.blockIndex,
+    required this.annotations,
+    required this.onAddAnnotation,
+    this.onDeleteAnnotation,
+    this.showAnnotation = true,
+    this.showUnderline = false,
+    this.paperStyle,
+    this.controllerOverride,
+    this.selectionOffset,
+    this.onAttributeApplied,
+  });''',
+'''  const DiaryTextContextMenu({
     super.key,
     required this.editableTextState,
     required this.blockIndex,
@@ -43,171 +43,130 @@ class DiaryTextContextMenu extends StatefulWidget {
 }
 
 class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {
-  int _colorMode = 0;
+  bool _isColorMode = false;
+''')
 
+# Replace field accesses with widget.
+fields = [
+    'editableTextState', 'blockIndex', 'annotations', 'onAddAnnotation',
+    'onDeleteAnnotation', 'showAnnotation', 'showUnderline', 'paperStyle',
+    'controllerOverride', 'selectionOffset', 'onAttributeApplied'
+]
+parts = code.split('class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {')
+state_code = parts[1]
 
-  @override
-  Widget build(BuildContext context) {
-    final selection = widget.editableTextState.textEditingValue.selection;
-    if (selection.isCollapsed) return const SizedBox.shrink();
+for field in fields:
+    state_code = re.sub(r'(?<!\.)\b' + field + r'\b(?!\s*:)', 'widget.' + field, state_code)
 
-    final text = widget.editableTextState.textEditingValue.text;
-    final selectedText = selection.start >= 0 && selection.end <= text.length
-        ? text.substring(selection.start, selection.end)
-        : '';
+code = parts[0] + 'class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {' + state_code
 
-    // 如果选择的文本仅包含 Object Replacement Character (\uFFFC，代表 WidgetSpan，如小气泡或图片)
-    // 则直接隐藏选区工具栏，不弹出 tooltip
-    if (selectedText.isEmpty || selectedText.trim().runes.every((r) => r == 0xFFFC)) {
-      return const SizedBox.shrink();
-    }
+# Replace the layout
+layout_start = code.find('            child: Row(')
+layout_start = code.find('              children: [', layout_start) + len('              children: [\n')
 
-    // 检查选区是否与已有批注有重叠
-    Map<String, dynamic>? overlappingAnn;
-    for (var entry in widget.annotations.entries) {
-      final parts = entry.key.split('_');
-      if (parts.length == 3 && int.tryParse(parts[0]) == widget.blockIndex) {
-        final annStart = int.tryParse(parts[1]);
-        final annEnd = int.tryParse(parts[2]);
-        if (annStart != null && annEnd != null) {
-          if (selection.start < annEnd && selection.end > annStart) {
-            overlappingAnn = {
-              'key': entry.key,
-              'start': annStart,
-              'end': annEnd,
-            };
-            break;
-          }
-        }
-      }
-    }
+layout_end = code.find('            ),\n          ),\n          CustomPaint(', layout_start)
 
-    // 如果存在重叠的批注，且当前选区未完全覆盖它，则自动扩展选区至整个批注范围
-    if (widget.showAnnotation && overlappingAnn != null) {
-      final int annStart = overlappingAnn['start'];
-      final int annEnd = overlappingAnn['end'];
-      if (selection.start != annStart || selection.end != annEnd) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          widget.editableTextState.updateEditingValue(
-            widget.editableTextState.textEditingValue.copyWith(
-              selection: TextSelection(baseOffset: annStart, extentOffset: annEnd),
-            ),
-          );
-        });
-        return const SizedBox.shrink();
-      }
-    }
-
-    final double screenWidth = MediaQuery.sizeOf(context).width;
-    final Offset primaryAnchor = widget.editableTextState.contextMenuAnchors.primaryAnchor;
-    final Offset? secondaryAnchor = widget.editableTextState.contextMenuAnchors.secondaryAnchor;
-    
-    // In some custom editors (like ExtendedText), primaryAnchor is the start of the selection 
-    // and secondaryAnchor is the end. Averaging them gives the exact visual center.
-    double anchorDx = primaryAnchor.dx;
-    if (secondaryAnchor != null && (secondaryAnchor.dx - primaryAnchor.dx).abs() > 0.1) {
-      anchorDx = (primaryAnchor.dx + secondaryAnchor.dx) / 2.0;
-    }
-
-    return CustomSingleChildLayout(
-      delegate: TextSelectionToolbarLayoutDelegate(
-        anchorAbove: Offset(anchorDx, primaryAnchor.dy),
-        anchorBelow: secondaryAnchor != null 
-            ? Offset(anchorDx, secondaryAnchor.dy)
-            : Offset(anchorDx, primaryAnchor.dy),
-      ),
-      child: IntrinsicWidth(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2F2F2F),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+new_layout = '''                AnimatedSize(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOutCubic,
+                  child: _isColorMode ? const SizedBox.shrink() : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildToolbarButton(Icons.copy_rounded, () {
+                        widget.editableTextState.copySelection(SelectionChangedCause.toolbar);
+                        widget.editableTextState.hideToolbar();
+                      }, false),
+                      if (widget.showAnnotation) ...[
+                        const SizedBox(width: 4),
+                        _buildToolbarButton(Icons.add_comment_rounded, () {
+                          widget.editableTextState.hideToolbar();
+                          widget.onAddAnnotation(
+                            blockIndex: widget.blockIndex,
+                            start: selection.start,
+                            end: selection.end,
+                            selectedText: selectedText,
+                          );
+                        }, false),
+                        if (overlappingAnn != null && widget.onDeleteAnnotation != null) ...[
+                          const SizedBox(width: 4),
+                          _buildToolbarButton(Icons.delete_outline_rounded, () {
+                            widget.editableTextState.hideToolbar();
+                            widget.onDeleteAnnotation!(overlappingAnn!['key']);
+                          }, false),
+                        ],
+                      ],
+                    ],
+                  ),
                 ),
-              ],
-            ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const NeverScrollableScrollPhysics(),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+                if (widget.showUnderline) ...[
                   AnimatedSize(
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeOutCubic,
-                    child: _colorMode != 0 ? const SizedBox.shrink() : Row(
+                    child: _isColorMode ? const SizedBox.shrink() : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _buildToolbarButton(Icons.copy_rounded, () {
-                          widget.editableTextState.copySelection(SelectionChangedCause.toolbar);
-                          widget.editableTextState.hideToolbar();
-                        }, false),
-                        if (widget.showAnnotation) ...[
-                          const SizedBox(width: 4),
-                          _buildToolbarButton(Icons.add_comment_rounded, () {
+                        const SizedBox(width: 4),
+                        _buildToolbarButton(Icons.format_color_text_rounded, () {
+                          final controller = widget.controllerOverride ?? widget.editableTextState.widget.controller;
+                          if (controller is DiaryTextEditingController) {
+                            final targetSelection = widget.selectionOffset != null && widget.selectionOffset! > 0
+                                ? TextSelection(
+                                    baseOffset: selection.baseOffset + widget.selectionOffset!,
+                                    extentOffset: selection.extentOffset + widget.selectionOffset!,
+                                  )
+                                : selection;
+                            Color currentTextColor = controller.baseColor;
+                            Color currentBgColor = Colors.transparent;
+                            for (var attr in controller.attributes) {
+                              if (attr.start <= targetSelection.start && attr.end >= targetSelection.end) {
+                                if (attr.color != null) currentTextColor = attr.color!;
+                                if (attr.backgroundColor != null) currentBgColor = attr.backgroundColor!;
+                              }
+                            }
                             widget.editableTextState.hideToolbar();
-                            widget.onAddAnnotation(
-                              blockIndex: widget.blockIndex,
-                              start: selection.start,
-                              end: selection.end,
-                              selectedText: selectedText,
+                            showModalBottomSheet(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              builder: (ctx) => DiaryColorPickerSheet(
+                                currentTextColor: currentTextColor,
+                                currentBgColor: currentBgColor,
+                                paperStyle: widget.paperStyle ?? 'classic',
+                                initialIsBackground: false,
+                                onApplyColor: (color, isBg) {
+                                  if (isBg) {
+                                    controller.applyAttributeToSelection(targetSelection, bgColor: color);
+                                  } else {
+                                    controller.applyAttributeToSelection(targetSelection, color: color);
+                                  }
+                                  Navigator.pop(ctx);
+                                  widget.onAttributeApplied?.call();
+                                },
+                                onClear: (isBg) {
+                                  if (isBg) {
+                                    controller.applyAttributeToSelection(targetSelection, clearBgColor: true);
+                                  } else {
+                                    controller.applyAttributeToSelection(targetSelection, clearColor: true);
+                                  }
+                                  Navigator.pop(ctx);
+                                  widget.onAttributeApplied?.call();
+                                },
+                              ),
                             );
-                          }, false),
-                          if (overlappingAnn != null && widget.onDeleteAnnotation != null) ...[
-                            const SizedBox(width: 4),
-                            _buildToolbarButton(Icons.delete_outline_rounded, () {
-                              widget.editableTextState.hideToolbar();
-                              widget.onDeleteAnnotation!(overlappingAnn!['key']);
-                            }, false),
-                          ],
-                        ],
+                          }
+                        }, false),
+                        const SizedBox(width: 4),
                       ],
                     ),
                   ),
-                  if (widget.showUnderline) ...[
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOutCubic,
-                      child: _colorMode == 2 ? const SizedBox.shrink() : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(width: 4),
-                          _buildToolbarButton(Icons.format_color_text_rounded, () {
-                            setState(() {
-                              _colorMode = _colorMode == 1 ? 0 : 1;
-                            });
-                          }, _colorMode == 1),
-                        ],
-                      ),
-                    ),
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOutCubic,
-                      child: _colorMode == 1 ? const SizedBox.shrink() : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(width: 4),
-                          _buildToolbarButton(Icons.format_color_fill_rounded, () {
-                            setState(() {
-                              _colorMode = _colorMode == 2 ? 0 : 2;
-                            });
-                          }, _colorMode == 2),
-                        ],
-                      ),
-                    ),
-                  ],
+                  _buildToolbarButton(Icons.format_color_fill_rounded, () {
+                    setState(() {
+                      _isColorMode = !_isColorMode;
+                    });
+                  }, _isColorMode),
                   AnimatedSize(
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeOutCubic,
-                    child: _colorMode != 0 ? const SizedBox.shrink() : Row(
+                    child: _isColorMode ? const SizedBox.shrink() : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const SizedBox(width: 4),
@@ -346,50 +305,28 @@ class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {
                       ],
                     ),
                   ),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    alignment: Alignment.centerLeft,
-                    child: _colorMode == 0 ? const SizedBox.shrink() : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(width: 8),
-                        ..._buildColorModeChildren(context),
-                      ],
-                    ),
-                  ),              ],
-              ),
-            ),
-          ),
-          CustomPaint(
-            size: const Size(double.infinity, 6),
-            painter: _ToolbarArrowPainter(anchorDx, screenWidth),
-          ),
-        ],
-      ),
-      ),
-    );
-  }
+                ],
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.centerLeft,
+                  child: !_isColorMode ? const SizedBox.shrink() : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(width: 8),
+                      ..._buildColorModeChildren(context).skip(2),
+                    ],
+                  ),
+                ),
+'''
 
-  Widget _buildToolbarButton(IconData icon, VoidCallback onTap, bool isHighlighted) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isHighlighted ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
+code = code[:layout_start] + new_layout + code[layout_end:]
 
+# Add _buildColorModeChildren
+# Put it just before the final }
+end_of_state_idx = code.rfind('}')
+
+method_code = '''
   List<Widget> _buildColorModeChildren(BuildContext context) {
     final selection = widget.editableTextState.textEditingValue.selection;
     final targetSelection = widget.selectionOffset != null && widget.selectionOffset! > 0
@@ -403,14 +340,16 @@ class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {
     final List<Color> colors = DiaryUtils.presetTextColors.sublist(0, 5);
     
     return [
+      _buildToolbarButton(Icons.format_color_fill_rounded, () {
+        setState(() {
+          _isColorMode = false;
+        });
+      }, true),
+      const SizedBox(width: 8),
       ...colors.map((color) => GestureDetector(
         onTap: () {
           if (controller is DiaryTextEditingController) {
-             if (_colorMode == 1) {
-               controller.applyAttributeToSelection(targetSelection, color: color);
-             } else {
-               controller.applyAttributeToSelection(targetSelection, bgColor: color);
-             }
+             controller.applyAttributeToSelection(targetSelection, bgColor: color);
              widget.onAttributeApplied?.call();
              widget.editableTextState.hideToolbar();
           }
@@ -432,11 +371,7 @@ class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {
       GestureDetector(
         onTap: () {
           if (controller is DiaryTextEditingController) {
-             if (_colorMode == 1) {
-               controller.applyAttributeToSelection(targetSelection, clearColor: true);
-             } else {
-               controller.applyAttributeToSelection(targetSelection, clearBgColor: true);
-             }
+             controller.applyAttributeToSelection(targetSelection, clearBgColor: true);
              widget.onAttributeApplied?.call();
              widget.editableTextState.hideToolbar();
           }
@@ -449,39 +384,10 @@ class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {
       const SizedBox(width: 4),
     ];
   }
-}
+'''
 
-class _ToolbarArrowPainter extends CustomPainter {
-  final double anchorDx;
-  final double screenWidth;
+code = code[:end_of_state_idx] + method_code + code[end_of_state_idx:]
+code = "import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';\n" + code
 
-  _ToolbarArrowPainter(this.anchorDx, this.screenWidth);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF2F2F2F)
-      ..style = PaintingStyle.fill;
-      
-    final double padding = 8.0; 
-    final double actualLeft = (anchorDx - size.width / 2).clamp(padding, screenWidth - padding - size.width);
-    final double arrowCenterX = (anchorDx - actualLeft).clamp(12.0, size.width - 12.0);
-
-    final double radius = 1.5;
-    final double arrowWidth = 12.0;
-    
-    final path = Path()
-      ..moveTo(arrowCenterX - arrowWidth / 2, 0)
-      ..lineTo(arrowCenterX - radius, size.height - radius)
-      ..quadraticBezierTo(
-          arrowCenterX, size.height, arrowCenterX + radius, size.height - radius)
-      ..lineTo(arrowCenterX + arrowWidth / 2, 0)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ToolbarArrowPainter oldDelegate) {
-    return oldDelegate.anchorDx != anchorDx || oldDelegate.screenWidth != screenWidth;
-  }
-}
+with open('d:/project/island_diary/lib/shared/widgets/diary_entry/components/diary_text_context_menu.dart', 'w', encoding='utf-8') as f:
+    f.write(code)

@@ -94,15 +94,16 @@ class _DiaryTagPickerSheetState extends State<DiaryTagPickerSheet> {
 
     // 采用与通用弹窗一致的非信纸配色，不跟随信纸材质色
     final Color inkColor;
-    final Color accentColor;
     
     if (isNight) {
       inkColor = Colors.white;
-      accentColor = themeId == 'cotton_candy' ? const Color(0xFFC0A6FF) : const Color(0xFFE0C097);
     } else {
       inkColor = themeId == 'cotton_candy' ? const Color(0xFF7C3AED) : const Color(0xFF1F2937);
-      accentColor = themeId == 'cotton_candy' ? const Color(0xFF7C3AED) : const Color(0xFFA68565);
     }
+
+    final Color accentColor = themeId == 'cotton_candy'
+        ? (isNight ? const Color(0xFFC0A6FF) : const Color(0xFF7C3AED))
+        : (themeId == 'lego' ? const Color(0xFF3B82F6) : (isNight ? const Color(0xFFD4A373) : const Color(0xFF8B5E3C)));
 
     return DiaryBottomSheet(
       paperStyle: widget.paperStyle,
@@ -191,59 +192,73 @@ class _DiaryTagPickerSheetState extends State<DiaryTagPickerSheet> {
           const SizedBox(height: 20),
 
           // 已选定标签显示区
-          if (_selectedTags.isNotEmpty) ...[
-            Text(
-              '已添加 (${_selectedTags.length}/5)',
-              style: TextStyle(
-                fontSize: 12,
-                fontFamily: fontFamily,
-                fontWeight: FontWeight.bold,
-                color: inkColor.withValues(alpha: 0.4),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _selectedTags.map((tag) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: accentColor.withValues(alpha: 0.3),
-                      width: 0.8,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+          AnimatedSize(
+            duration: 300.ms,
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: _selectedTags.isEmpty
+                ? const SizedBox.shrink()
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        '# $tag',
+                        '已添加 (${_selectedTags.length}/5)',
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.bold,
                           fontFamily: fontFamily,
-                          color: accentColor,
+                          fontWeight: FontWeight.bold,
+                          color: inkColor.withValues(alpha: 0.4),
                         ),
+                      ).animate().fadeIn(duration: 200.ms),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _selectedTags.map((tag) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: accentColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: accentColor.withValues(alpha: 0.3),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '# $tag',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: fontFamily,
+                                    color: accentColor,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                GestureDetector(
+                                  onTap: () => _toggleTag(tag),
+                                  child: Icon(
+                                    Icons.close_rounded,
+                                    size: 14,
+                                    color: accentColor.withValues(alpha: 0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ).animate(key: ValueKey(tag)).scale(
+                                begin: const Offset(0.8, 0.8),
+                                curve: Curves.easeOutBack,
+                                duration: 350.ms,
+                              ).fadeIn(duration: 250.ms);
+                        }).toList(),
                       ),
-                      const SizedBox(width: 6),
-                      GestureDetector(
-                        onTap: () => _toggleTag(tag),
-                        child: Icon(
-                          Icons.close_rounded,
-                          size: 14,
-                          color: accentColor.withValues(alpha: 0.7),
-                        ),
-                      ),
+                      const SizedBox(height: 20),
                     ],
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-          ],
+          ),
 
           // 推荐标签
           Text(

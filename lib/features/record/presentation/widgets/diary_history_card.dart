@@ -339,7 +339,9 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                                           : 200,
                                     );
 
-                                final bool hasOverflow = tp.didExceedMaxLines;
+                                final bool textOverflow = tp.didExceedMaxLines;
+                                final bool imagesOverflow = !widget.entry.isImageGrid && widget.entry.blocks.where((b) => b['type'] == 'image').length > 4;
+                                final bool hasOverflow = textOverflow || imagesOverflow;
 
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,8 +351,8 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                                       curve: Curves.easeInOut,
                                       alignment: Alignment.topLeft,
                                       child: RichText(
-                                        maxLines: _isExpanded ? null : 2,
-                                        overflow: _isExpanded
+                                        maxLines: (hasOverflow && _isExpanded) ? null : 2,
+                                        overflow: (hasOverflow && _isExpanded)
                                             ? TextOverflow.visible
                                             : TextOverflow.clip,
                                         text: displaySpan,
@@ -492,9 +494,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
         .toList();
     if (images.isEmpty) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: LayoutBuilder(
+    return LayoutBuilder(
         builder: (context, constraints) {
           if (!widget.entry.isImageGrid) {
             // 普通模式：精致的小图标排列
@@ -573,9 +573,8 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
             }),
           );
         },
-      ),
-    );
-  }
+      );
+    }
 
   Widget _buildTimelineLine({required bool isTop}) {
     return Container(
