@@ -21,13 +21,13 @@ class DiaryUtils {
   }
 
   /// 预设文本颜色
-  static const List<Color> presetTextColors = [
-    Color(0xFF5D4037),
-    Color(0xFF2C3E50),
-    Color(0xFF34495E),
-    Color(0xFF27AE60),
-    Color(0xFF16A085),
-    Color(0xFFC0392B),
+  static List<Color> getPresetTextColors(bool isNight) => [
+    const Color(0xFFF70000), // Red
+    const Color(0xFFF6AD00), // Orange
+    const Color(0xFF007500), // Green
+    const Color(0xFF6F08A0), // Purple
+    isNight ? const Color(0xFF000000) : const Color(0xFFFFFFFF), // Black/White
+    const Color(0xFFEBEBEB), // Gray
     Color(0xFFE74C3C),
     Color(0xFF8E44AD),
     Color(0xFF9B59B6),

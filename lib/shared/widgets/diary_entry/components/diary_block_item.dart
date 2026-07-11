@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:video_player/video_player.dart';
 import 'package:island_diary/core/state/user_state.dart';
@@ -15,6 +16,8 @@ import 'package:flutter/rendering.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_text_context_menu.dart';
 
 OverlayEntry? _activeImageToolbarEntry;
+
+
 
 class DiaryBlockItem extends StatelessWidget {
   final DiaryBlock block;
@@ -171,8 +174,8 @@ class DiaryBlockItem extends StatelessWidget {
       data: Theme.of(context).copyWith(
         textSelectionTheme: TextSelectionThemeData(
           cursorColor: inkColor,
-          selectionColor: inkColor.withValues(alpha: 0.28),
-          selectionHandleColor: inkColor,
+          selectionColor: Colors.transparent, // Disable native selection, drawn by DiaryBrushBackgroundPainter
+          selectionHandleColor: const Color(0xFF38383A),
         ),
       ),
       child: Focus(
@@ -207,6 +210,7 @@ class DiaryBlockItem extends StatelessWidget {
                         painter: DiaryBrushBackgroundPainter(
                           context: builderContext,
                           controller: tc,
+                          selectionColor: inkColor.withValues(alpha: 0.28),
                         ),
                       );
                     },
@@ -230,6 +234,15 @@ class DiaryBlockItem extends StatelessWidget {
                 fontFamily: fontFamily,
                 fontFamilyFallback: const ['LXGWWenKai'],
               ),
+              selectionControls: tc is DiaryTextEditingController 
+                  ? BubbleAwareSelectionControls(
+                      controller: tc,
+                      blockIndex: index,
+                      onAddAnnotation: onAddAnnotation,
+                      onDeleteAnnotation: onDeleteAnnotation,
+                      paperStyle: paperStyle,
+                    )
+                  : null,
               contextMenuBuilder: (context, editableTextState) {
                 if (onAddAnnotation == null) return const SizedBox.shrink();
                 return DiaryTextContextMenu(
@@ -766,10 +779,12 @@ class _AnimatedDeleteWrapperState extends State<AnimatedDeleteWrapper>
 class DiaryBrushBackgroundPainter extends CustomPainter {
   final BuildContext context;
   final DiaryTextEditingController controller;
+  final Color? selectionColor;
 
   DiaryBrushBackgroundPainter({
     required this.context,
     required this.controller,
+    this.selectionColor,
   });
 
   @override
@@ -814,19 +829,68 @@ class DiaryBrushBackgroundPainter extends CustomPainter {
     canvas.save();
     canvas.translate(offset.dx, offset.dy);
 
-    for (var attr in controller.attributes) {
-      final bgColor = attr.backgroundColor;
-      if (bgColor == null) continue;
+    final List<Map<String, dynamic>> regionsToPaint = [];
 
-      final start = attr.start.clamp(0, controller.text.length);
-      final end = attr.end.clamp(0, controller.text.length);
+    for (var attr in controller.attributes) {
+      if (attr.backgroundColor != null) {
+        regionsToPaint.add({
+          'start': attr.start,
+          'end': attr.end,
+          'color': attr.backgroundColor,
+        });
+      }
+    }
+
+    final annotations = controller.annotations;
+    if (annotations != null) {
+      annotations.forEach((key, value) {
+        final parts = key.split('_');
+        if (parts.length == 3 && int.tryParse(parts[0]) == controller.blockIndex) {
+          final startVal = int.tryParse(parts[1]);
+          final endVal = int.tryParse(parts[2]);
+          if (startVal != null && endVal != null) {
+            int start = startVal;
+            int end = endVal;
+            while (end > start && end <= controller.text.length &&
+                (controller.text[end - 1] == '\n' ||
+                 controller.text[end - 1] == '\r' ||
+                 controller.text[end - 1] == ' ' ||
+                 controller.text[end - 1] == '\u200B')) {
+              end--;
+            }
+            if (start < end) {
+              Map<String, dynamic>? data;
+              try {
+                data = jsonDecode(value);
+              } catch (_) {}
+              final colorHex = data?['colorHex'] ?? '#F7E5B4';
+              final color = Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
+              regionsToPaint.add({
+                'start': start,
+                'end': end,
+                'color': color.withValues(alpha: 0.4),
+                'isAnnotation': true,
+              });
+            }
+          }
+        }
+      });
+    }
+
+    for (var region in regionsToPaint) {
+      final bgColor = region['color'] as Color;
+      final start = (region['start'] as int).clamp(0, controller.text.length);
+      final end = (region['end'] as int).clamp(0, controller.text.length);
       if (start >= end) continue;
 
       final boxes = re.getBoxesForSelection(
         TextSelection(baseOffset: start, extentOffset: end),
       );
 
-      for (var box in boxes) {
+      final isAnnotation = region['isAnnotation'] == true;
+
+      for (int i = 0; i < boxes.length; i++) {
+        final box = boxes[i];
         final rect = box.toRect();
         if (rect.isEmpty || rect.width < 2) continue;
 
@@ -834,7 +898,13 @@ class DiaryBrushBackgroundPainter extends CustomPainter {
         const double padX = 0.0;
         const double padY = 3.0;
         final double l = rect.left - padX;
-        final double r = rect.right + padX;
+        double r = rect.right + padX;
+
+        // 如果是批注，且是最后一个 box，需要减去气泡图标的宽度 (21px)，以免背景色涂到气泡上
+        if (isAnnotation && i == boxes.length - 1) {
+          r -= 21.0;
+        }
+
         final double t = rect.top + padY;
         final double b = rect.bottom - padY;
         final double h = b - t;
@@ -842,6 +912,50 @@ class DiaryBrushBackgroundPainter extends CustomPainter {
 
         _drawBrushStroke(canvas, l, r, t, b, h, bgColor);
       }
+    }
+
+    // 绘制自定义的文本选择高亮（为了避开批注的气泡）
+    if (selectionColor != null && controller.selection.isValid && !controller.selection.isCollapsed) {
+      final selection = controller.selection;
+      final selBoxes = re.getBoxesForSelection(selection);
+      final paint = Paint()..color = selectionColor!..style = PaintingStyle.fill;
+
+      Path selectionPath = Path();
+      for (var box in selBoxes) {
+        selectionPath.addRect(box.toRect());
+      }
+
+      final currentAnnotations = controller.annotations;
+      if (currentAnnotations != null) {
+        currentAnnotations.forEach((key, value) {
+          final parts = key.split('_');
+          if (parts.length == 3 && int.tryParse(parts[0]) == controller.blockIndex) {
+            final startVal = int.tryParse(parts[1]);
+            final endVal = int.tryParse(parts[2]);
+            if (startVal != null && endVal != null) {
+              int annEnd = endVal;
+              while (annEnd > startVal && annEnd <= controller.text.length &&
+                  (controller.text[annEnd - 1] == '\n' ||
+                   controller.text[annEnd - 1] == '\r' ||
+                   controller.text[annEnd - 1] == ' ' ||
+                   controller.text[annEnd - 1] == '\u200B')) {
+                annEnd--;
+              }
+              
+              if (annEnd > selection.start && annEnd <= selection.end) {
+                final bBoxes = re.getBoxesForSelection(TextSelection(baseOffset: annEnd - 1, extentOffset: annEnd));
+                if (bBoxes.isNotEmpty) {
+                  final bBox = bBoxes.last.toRect();
+                  // 气泡位于最后一个字符的右侧 21 像素区域，将其从选择高亮区域中挖掉
+                  final bubbleRect = Rect.fromLTRB(bBox.right - 21.0, bBox.top, bBox.right, bBox.bottom);
+                  selectionPath = Path.combine(PathOperation.difference, selectionPath, Path()..addRect(bubbleRect));
+                }
+              }
+            }
+          }
+        });
+      }
+      canvas.drawPath(selectionPath, paint);
     }
 
     canvas.restore();
@@ -1094,4 +1208,70 @@ class DiaryCirclePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant DiaryCirclePainter oldDelegate) => true;
+}
+
+class BubbleAwareSelectionControls extends MaterialTextSelectionControls {
+  final DiaryTextEditingController controller;
+  final int blockIndex;
+  final Function({
+    String? key,
+    required int blockIndex,
+    required int start,
+    required int end,
+    required String selectedText,
+  })? onAddAnnotation;
+  final Function(String key)? onDeleteAnnotation;
+  final String? paperStyle;
+
+  BubbleAwareSelectionControls({
+    required this.controller,
+    required this.blockIndex,
+    this.onAddAnnotation,
+    this.onDeleteAnnotation,
+    this.paperStyle,
+  });
+
+  @override
+  Widget buildHandle(BuildContext context, TextSelectionHandleType type, double textHeight, [VoidCallback? onTap]) {
+    Widget handle = super.buildHandle(context, type, textHeight, onTap);
+
+    bool isBubbleEnd = false;
+    final annotations = controller.annotations;
+    if (annotations != null) {
+      annotations.forEach((key, value) {
+        final parts = key.split('_');
+        if (parts.length == 3 && int.tryParse(parts[0]) == controller.blockIndex) {
+          final startVal = int.tryParse(parts[1]);
+          final endVal = int.tryParse(parts[2]);
+          if (startVal != null && endVal != null) {
+            int annEnd = endVal;
+            while (annEnd > startVal && annEnd <= controller.text.length &&
+                (controller.text[annEnd - 1] == '\n' ||
+                 controller.text[annEnd - 1] == '\r' ||
+                 controller.text[annEnd - 1] == ' ' ||
+                 controller.text[annEnd - 1] == '\u200B')) {
+              annEnd--;
+            }
+            if (type == TextSelectionHandleType.right && controller.selection.end == annEnd) {
+              isBubbleEnd = true;
+            }
+            if (type == TextSelectionHandleType.left && controller.selection.start == annEnd) {
+              isBubbleEnd = true;
+            }
+            if (type == TextSelectionHandleType.collapsed && controller.selection.extentOffset == annEnd) {
+              isBubbleEnd = true;
+            }
+          }
+        }
+      });
+    }
+
+    if (isBubbleEnd) {
+      return Transform.translate(
+        offset: const Offset(-21.0, 0),
+        child: handle,
+      );
+    }
+    return handle;
+  }
 }

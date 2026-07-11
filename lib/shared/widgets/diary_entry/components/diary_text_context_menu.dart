@@ -1,4 +1,3 @@
-import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
 import 'underline_picker_sheet.dart';
@@ -14,7 +13,8 @@ class DiaryTextContextMenu extends StatefulWidget {
     required int start,
     required int end,
     required String selectedText,
-  }) onAddAnnotation;
+  })
+  onAddAnnotation;
   final Function(String key)? onDeleteAnnotation;
   final bool showAnnotation;
   final bool showUnderline;
@@ -45,7 +45,6 @@ class DiaryTextContextMenu extends StatefulWidget {
 class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {
   int _colorMode = 0;
 
-
   @override
   Widget build(BuildContext context) {
     final selection = widget.editableTextState.textEditingValue.selection;
@@ -58,7 +57,8 @@ class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {
 
     // 如果选择的文本仅包含 Object Replacement Character (\uFFFC，代表 WidgetSpan，如小气泡或图片)
     // 则直接隐藏选区工具栏，不弹出 tooltip
-    if (selectedText.isEmpty || selectedText.trim().runes.every((r) => r == 0xFFFC)) {
+    if (selectedText.isEmpty ||
+        selectedText.trim().runes.every((r) => r == 0xFFFC)) {
       return const SizedBox.shrink();
     }
 
@@ -90,7 +90,10 @@ class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           widget.editableTextState.updateEditingValue(
             widget.editableTextState.textEditingValue.copyWith(
-              selection: TextSelection(baseOffset: annStart, extentOffset: annEnd),
+              selection: TextSelection(
+                baseOffset: annStart,
+                extentOffset: annEnd,
+              ),
             ),
           );
         });
@@ -99,355 +102,623 @@ class _DiaryTextContextMenuState extends State<DiaryTextContextMenu> {
     }
 
     final double screenWidth = MediaQuery.sizeOf(context).width;
-    final Offset primaryAnchor = widget.editableTextState.contextMenuAnchors.primaryAnchor;
-    final Offset? secondaryAnchor = widget.editableTextState.contextMenuAnchors.secondaryAnchor;
-    
-    // In some custom editors (like ExtendedText), primaryAnchor is the start of the selection 
+    final Offset primaryAnchor =
+        widget.editableTextState.contextMenuAnchors.primaryAnchor;
+    final Offset? secondaryAnchor =
+        widget.editableTextState.contextMenuAnchors.secondaryAnchor;
+
+    // In some custom editors (like ExtendedText), primaryAnchor is the start of the selection
     // and secondaryAnchor is the end. Averaging them gives the exact visual center.
     double anchorDx = primaryAnchor.dx;
-    if (secondaryAnchor != null && (secondaryAnchor.dx - primaryAnchor.dx).abs() > 0.1) {
+    if (secondaryAnchor != null &&
+        (secondaryAnchor.dx - primaryAnchor.dx).abs() > 0.1) {
       anchorDx = (primaryAnchor.dx + secondaryAnchor.dx) / 2.0;
     }
 
+    // 针对阅读模式和编辑模式光标计算差异，设置不同的偏移量
+    final double yOffset = widget.showUnderline ? 13 : 0;
+
     return CustomSingleChildLayout(
       delegate: TextSelectionToolbarLayoutDelegate(
-        anchorAbove: Offset(anchorDx, primaryAnchor.dy),
-        anchorBelow: secondaryAnchor != null 
-            ? Offset(anchorDx, secondaryAnchor.dy)
-            : Offset(anchorDx, primaryAnchor.dy),
+        anchorAbove: Offset(anchorDx, primaryAnchor.dy + yOffset),
+        anchorBelow: secondaryAnchor != null
+            ? Offset(anchorDx, secondaryAnchor.dy - 6)
+            : Offset(anchorDx, primaryAnchor.dy + yOffset),
       ),
       child: IntrinsicWidth(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2F2F2F),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const NeverScrollableScrollPhysics(),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    child: _colorMode != 0 ? const SizedBox.shrink() : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildToolbarButton(Icons.copy_rounded, () {
-                          widget.editableTextState.copySelection(SelectionChangedCause.toolbar);
-                          widget.editableTextState.hideToolbar();
-                        }, false),
-                        if (widget.showAnnotation) ...[
-                          const SizedBox(width: 4),
-                          _buildToolbarButton(Icons.add_comment_rounded, () {
-                            widget.editableTextState.hideToolbar();
-                            widget.onAddAnnotation(
-                              blockIndex: widget.blockIndex,
-                              start: selection.start,
-                              end: selection.end,
-                              selectedText: selectedText,
-                            );
-                          }, false),
-                          if (overlappingAnn != null && widget.onDeleteAnnotation != null) ...[
-                            const SizedBox(width: 4),
-                            _buildToolbarButton(Icons.delete_outline_rounded, () {
-                              widget.editableTextState.hideToolbar();
-                              widget.onDeleteAnnotation!(overlappingAnn!['key']);
-                            }, false),
-                          ],
-                        ],
-                      ],
-                    ),
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF38383A),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  if (widget.showUnderline) ...[
+                ],
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 1. 复制按钮
                     AnimatedSize(
                       duration: const Duration(milliseconds: 250),
                       curve: Curves.easeOutCubic,
-                      child: _colorMode == 2 ? const SizedBox.shrink() : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(width: 4),
-                          _buildToolbarButton(Icons.format_color_text_rounded, () {
-                            setState(() {
-                              _colorMode = _colorMode == 1 ? 0 : 1;
-                            });
-                          }, _colorMode == 1),
-                        ],
-                      ),
+                      child: _colorMode != 0
+                          ? const SizedBox.shrink()
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildToolbarButton(Icons.copy_rounded, () {
+                                  widget.editableTextState.copySelection(
+                                    SelectionChangedCause.toolbar,
+                                  );
+                                  widget.editableTextState.hideToolbar();
+                                }, false),
+                              ],
+                            ),
                     ),
+
+                    // 2. 文字样式 (加粗、下划线、圈线)
+                    if (widget.showUnderline)
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOutCubic,
+                        child: _colorMode != 0
+                            ? const SizedBox.shrink()
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(width: 4),
+                                _buildToolbarButton(
+                                  Icons.format_bold_rounded,
+                                  () {
+                                    final controller =
+                                        widget.controllerOverride ??
+                                        widget
+                                            .editableTextState
+                                            .widget
+                                            .controller;
+                                    if (controller
+                                        is DiaryTextEditingController) {
+                                      final targetSelection =
+                                          widget.selectionOffset != null &&
+                                              widget.selectionOffset! > 0
+                                          ? TextSelection(
+                                              baseOffset:
+                                                  selection.baseOffset +
+                                                  widget.selectionOffset!,
+                                              extentOffset:
+                                                  selection.extentOffset +
+                                                  widget.selectionOffset!,
+                                            )
+                                          : selection;
+                                      bool isBold = false;
+                                      for (var attr in controller.attributes) {
+                                        if (attr.bold == true &&
+                                            attr.start <=
+                                                targetSelection.start &&
+                                            attr.end >= targetSelection.end) {
+                                          isBold = true;
+                                          break;
+                                        }
+                                      }
+                                      if (isBold) {
+                                        controller.applyAttributeToSelection(
+                                          targetSelection,
+                                          clearBold: true,
+                                        );
+                                      } else {
+                                        controller.applyAttributeToSelection(
+                                          targetSelection,
+                                          bold: true,
+                                        );
+                                      }
+                                      widget.onAttributeApplied?.call();
+                                      widget.editableTextState.hideToolbar();
+                                    }
+                                  },
+                                  false,
+                                  iconSize: 22,
+                                ),
+                                const SizedBox(width: 4),
+                                _buildToolbarButton(
+                                  Icons.format_underlined_rounded,
+                                  () {
+                                    final controller =
+                                        widget.controllerOverride ??
+                                        widget
+                                            .editableTextState
+                                            .widget
+                                            .controller;
+                                    if (controller
+                                        is DiaryTextEditingController) {
+                                      final targetSelection =
+                                          widget.selectionOffset != null &&
+                                              widget.selectionOffset! > 0
+                                          ? TextSelection(
+                                              baseOffset:
+                                                  selection.baseOffset +
+                                                  widget.selectionOffset!,
+                                              extentOffset:
+                                                  selection.extentOffset +
+                                                  widget.selectionOffset!,
+                                            )
+                                          : selection;
+                                      String? currentStyle;
+                                      Color? currentColor;
+                                      for (var attr in controller.attributes) {
+                                        if (attr.underlineStyle != null &&
+                                            !attr.underlineStyle!.startsWith(
+                                              'circle',
+                                            ) &&
+                                            attr.start <=
+                                                targetSelection.start &&
+                                            attr.end >= targetSelection.end) {
+                                          currentStyle = attr.underlineStyle;
+                                          currentColor =
+                                              attr.underlineColor ?? attr.color;
+                                          break;
+                                        }
+                                      }
+                                      widget.editableTextState.hideToolbar();
+                                      showModalBottomSheet(
+                                        context: context,
+                                        backgroundColor: Colors.transparent,
+                                        barrierColor: Colors.transparent,
+                                        isScrollControlled: true,
+                                        builder: (ctx) => UnderlinePickerSheet(
+                                          currentStyle: currentStyle,
+                                          currentColor: currentColor,
+                                          paperStyle:
+                                              widget.paperStyle ?? 'classic',
+                                          onSelectStyle: (style, color) {
+                                            if (style == null ||
+                                                style.isEmpty) {
+                                              controller
+                                                  .applyAttributeToSelection(
+                                                    targetSelection,
+                                                    clearUnderline: true,
+                                                  );
+                                            } else {
+                                              controller
+                                                  .applyAttributeToSelection(
+                                                    targetSelection,
+                                                    underlineStyle: style,
+                                                    underlineColor: color,
+                                                  );
+                                            }
+                                            widget.onAttributeApplied?.call();
+                                          },
+                                        ),
+                                      ).then((_) {
+                                        if (controller.selection.baseOffset !=
+                                            controller.selection.extentOffset) {
+                                          controller.selection =
+                                              TextSelection.collapsed(
+                                                offset:
+                                                    controller.selection.end,
+                                              );
+                                        }
+                                      });
+                                    }
+                                  },
+                                  false,
+                                  iconSize: 22,
+                                ),
+                                if (widget.paperStyle != null &&
+                                    widget.paperStyle != 'classic' &&
+                                    widget.paperStyle != 'dark_paper' &&
+                                    widget.paperStyle != 'leather' &&
+                                    widget.paperStyle != 'starry') ...[
+                                  const SizedBox(width: 4),
+                                  _buildToolbarButton(
+                                    Icons.circle_outlined,
+                                    () {
+                                      final controller =
+                                          widget.controllerOverride ??
+                                          widget
+                                              .editableTextState
+                                              .widget
+                                              .controller;
+                                      if (controller
+                                          is DiaryTextEditingController) {
+                                        final targetSelection =
+                                            widget.selectionOffset != null &&
+                                                widget.selectionOffset! > 0
+                                            ? TextSelection(
+                                                baseOffset:
+                                                    selection.baseOffset +
+                                                    widget.selectionOffset!,
+                                                extentOffset:
+                                                    selection.extentOffset +
+                                                    widget.selectionOffset!,
+                                              )
+                                            : selection;
+                                        String? currentStyle;
+                                        Color? currentColor;
+                                        for (var attr
+                                            in controller.attributes) {
+                                          if (attr.underlineStyle != null &&
+                                              attr.underlineStyle!.startsWith(
+                                                'circle',
+                                              ) &&
+                                              attr.start <=
+                                                  targetSelection.start &&
+                                              attr.end >= targetSelection.end) {
+                                            currentStyle = attr.underlineStyle;
+                                            currentColor =
+                                                attr.underlineColor ??
+                                                attr.color;
+                                            break;
+                                          }
+                                        }
+                                        widget.editableTextState.hideToolbar();
+                                        showModalBottomSheet(
+                                          context: context,
+                                          backgroundColor: Colors.transparent,
+                                          barrierColor: Colors.transparent,
+                                          isScrollControlled: true,
+                                          builder: (ctx) => CirclePickerSheet(
+                                            currentStyle: currentStyle,
+                                            currentColor: currentColor,
+                                            paperStyle:
+                                                widget.paperStyle ?? 'classic',
+                                            onApply: (style, color) {
+                                              if (style == null ||
+                                                  style.isEmpty) {
+                                                controller
+                                                    .applyAttributeToSelection(
+                                                      targetSelection,
+                                                      clearUnderline: true,
+                                                    );
+                                              } else {
+                                                controller
+                                                    .applyAttributeToSelection(
+                                                      targetSelection,
+                                                      underlineStyle: style,
+                                                      underlineColor: color,
+                                                    );
+                                              }
+                                              widget.onAttributeApplied?.call();
+                                            },
+                                          ),
+                                        ).then((_) {
+                                          if (controller.selection.baseOffset !=
+                                              controller
+                                                  .selection
+                                                  .extentOffset) {
+                                            controller.selection =
+                                                TextSelection.collapsed(
+                                                  offset:
+                                                      controller.selection.end,
+                                                );
+                                          }
+                                        });
+                                      }
+                                    },
+                                    false,
+                                  ),
+                                ],
+                              ],
+                            ),
+                    ),
+
+                    // 3. 颜色设置 (文字颜色、背景颜色)
+                    if (widget.showUnderline) ...[
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOutCubic,
+                        child: _colorMode == 2
+                            ? const SizedBox.shrink()
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(width: 4),
+                                  _buildToolbarButton(
+                                    Icons.draw_rounded,
+                                    () {
+                                      setState(() {
+                                        _colorMode = _colorMode == 1 ? 0 : 1;
+                                      });
+                                    },
+                                    _colorMode == 1,
+                                    verticalPadding: _colorMode == 1 ? 14 : 8,
+                                    iconSize: 22,
+                                  ),
+                                ],
+                              ),
+                      ),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOutCubic,
+                        child: _colorMode == 1
+                            ? const SizedBox.shrink()
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(width: 4),
+                                  _buildToolbarButton(
+                                    Icons.format_paint_rounded,
+                                    () {
+                                      setState(() {
+                                        _colorMode = _colorMode == 2 ? 0 : 2;
+                                      });
+                                    },
+                                    _colorMode == 2,
+                                    verticalPadding: _colorMode == 2 ? 14 : 8,
+                                    iconSize: 20,
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ],
+
+                    // 4. 注释功能
                     AnimatedSize(
                       duration: const Duration(milliseconds: 250),
                       curve: Curves.easeOutCubic,
-                      child: _colorMode == 1 ? const SizedBox.shrink() : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(width: 4),
-                          _buildToolbarButton(Icons.format_color_fill_rounded, () {
-                            setState(() {
-                              _colorMode = _colorMode == 2 ? 0 : 2;
-                            });
-                          }, _colorMode == 2),
-                        ],
-                      ),
+                      child: _colorMode != 0
+                          ? const SizedBox.shrink()
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (widget.showAnnotation) ...[
+                                  const SizedBox(width: 4),
+                                  _buildToolbarButton(
+                                    Icons.add_comment_rounded,
+                                    () {
+                                      widget.editableTextState.hideToolbar();
+                                      widget.onAddAnnotation(
+                                        blockIndex: widget.blockIndex,
+                                        start: selection.start,
+                                        end: selection.end,
+                                        selectedText: selectedText,
+                                      );
+                                    },
+                                    false,
+                                  ),
+                                  if (overlappingAnn != null &&
+                                      widget.onDeleteAnnotation != null) ...[
+                                    const SizedBox(width: 4),
+                                    _buildToolbarButton(
+                                      Icons.delete_outline_rounded,
+                                      () {
+                                        widget.editableTextState.hideToolbar();
+                                        widget.onDeleteAnnotation!(
+                                          overlappingAnn!['key'],
+                                        );
+                                      },
+                                      false,
+                                    ),
+                                  ],
+                                ],
+                              ],
+                            ),
+                    ),
+
+                    // 5. 颜色展开盘
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic,
+                      alignment: Alignment.centerLeft,
+                      child: _colorMode == 0
+                          ? const SizedBox.shrink()
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(width: 8),
+                                ..._buildColorModeChildren(context),
+                              ],
+                            ),
                     ),
                   ],
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    child: _colorMode != 0 ? const SizedBox.shrink() : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(width: 4),
-                        _buildToolbarButton(Icons.format_bold_rounded, () {
-                          final controller = widget.controllerOverride ?? widget.editableTextState.widget.controller;
-                          if (controller is DiaryTextEditingController) {
-                            final targetSelection = widget.selectionOffset != null && widget.selectionOffset! > 0
-                                ? TextSelection(
-                                    baseOffset: selection.baseOffset + widget.selectionOffset!,
-                                    extentOffset: selection.extentOffset + widget.selectionOffset!,
-                                  )
-                                : selection;
-                            bool isBold = false;
-                            for (var attr in controller.attributes) {
-                              if (attr.bold == true &&
-                                  attr.start <= targetSelection.start &&
-                                  attr.end >= targetSelection.end) {
-                                isBold = true;
-                                break;
-                              }
-                            }
-                            if (isBold) {
-                              controller.applyAttributeToSelection(targetSelection, clearBold: true);
-                            } else {
-                              controller.applyAttributeToSelection(targetSelection, bold: true);
-                            }
-                            widget.onAttributeApplied?.call();
-                            widget.editableTextState.hideToolbar();
-                          }
-                        }, false),
-                        const SizedBox(width: 4),
-                        _buildToolbarButton(Icons.format_underlined_rounded, () {
-                          final controller = widget.controllerOverride ?? widget.editableTextState.widget.controller;
-                          if (controller is DiaryTextEditingController) {
-                            final targetSelection = widget.selectionOffset != null && widget.selectionOffset! > 0
-                                ? TextSelection(
-                                    baseOffset: selection.baseOffset + widget.selectionOffset!,
-                                    extentOffset: selection.extentOffset + widget.selectionOffset!,
-                                  )
-                                : selection;
-                            String? currentStyle;
-                            for (var attr in controller.attributes) {
-                              if (attr.underlineStyle != null &&
-                                  !attr.underlineStyle!.startsWith('circle') &&
-                                  attr.start <= targetSelection.start &&
-                                  attr.end >= targetSelection.end) {
-                                currentStyle = attr.underlineStyle;
-                                break;
-                              }
-                            }
-                            widget.editableTextState.hideToolbar();
-                            showModalBottomSheet(
-                              context: context,
-                              backgroundColor: Colors.transparent,
-                              isScrollControlled: true,
-                              builder: (ctx) => UnderlinePickerSheet(
-                                currentStyle: currentStyle,
-                                paperStyle: widget.paperStyle ?? 'classic',
-                                onSelectStyle: (style) {
-                                  if (style == null || style.isEmpty) {
-                                    controller.applyAttributeToSelection(
-                                      targetSelection,
-                                      clearUnderline: true,
-                                    );
-                                  } else {
-                                    controller.applyAttributeToSelection(
-                                      targetSelection,
-                                      underlineStyle: style,
-                                    );
-                                  }
-                                  Navigator.pop(ctx);
-                                  widget.onAttributeApplied?.call();
-                                },
-                              ),
-                            );
-                          }
-                        }, false),
-                        if (widget.paperStyle != null &&
-                            widget.paperStyle != 'classic' &&
-                            widget.paperStyle != 'dark_paper' &&
-                            widget.paperStyle != 'leather' &&
-                            widget.paperStyle != 'starry') ...[
-                          const SizedBox(width: 4),
-                          _buildToolbarButton(Icons.circle_outlined, () {
-                            final controller = widget.controllerOverride ?? widget.editableTextState.widget.controller;
-                            if (controller is DiaryTextEditingController) {
-                              final targetSelection = widget.selectionOffset != null && widget.selectionOffset! > 0
-                                  ? TextSelection(
-                                      baseOffset: selection.baseOffset + widget.selectionOffset!,
-                                      extentOffset: selection.extentOffset + widget.selectionOffset!,
-                                    )
-                                  : selection;
-                              String? currentStyle;
-                              Color? currentColor;
-                              for (var attr in controller.attributes) {
-                                if (attr.underlineStyle != null &&
-                                    attr.underlineStyle!.startsWith('circle') &&
-                                    attr.start <= targetSelection.start &&
-                                    attr.end >= targetSelection.end) {
-                                  currentStyle = attr.underlineStyle;
-                                  currentColor = attr.color;
-                                  break;
-                                }
-                              }
-                              widget.editableTextState.hideToolbar();
-                              showModalBottomSheet(
-                                context: context,
-                                backgroundColor: Colors.transparent,
-                                isScrollControlled: true,
-                                builder: (ctx) => CirclePickerSheet(
-                                  currentStyle: currentStyle,
-                                  currentColor: currentColor,
-                                  paperStyle: widget.paperStyle ?? 'classic',
-                                  onApply: (style, color) {
-                                    controller.applyAttributeToSelection(
-                                      targetSelection,
-                                      underlineStyle: style,
-                                      color: color,
-                                    );
-                                    Navigator.pop(ctx);
-                                    widget.onAttributeApplied?.call();
-                                  },
-                                  onClear: () {
-                                    controller.applyAttributeToSelection(
-                                      targetSelection,
-                                      clearUnderline: true,
-                                    );
-                                    Navigator.pop(ctx);
-                                    widget.onAttributeApplied?.call();
-                                  },
-                                ),
-                              );
-                            }
-                          }, false),
-                        ],
-                      ],
-                    ),
-                  ),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    alignment: Alignment.centerLeft,
-                    child: _colorMode == 0 ? const SizedBox.shrink() : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(width: 8),
-                        ..._buildColorModeChildren(context),
-                      ],
-                    ),
-                  ),              ],
+                ),
               ),
             ),
-          ),
-          CustomPaint(
-            size: const Size(double.infinity, 6),
-            painter: _ToolbarArrowPainter(anchorDx, screenWidth),
-          ),
-        ],
-      ),
+            CustomPaint(
+              size: const Size(double.infinity, 6),
+              painter: _ToolbarArrowPainter(anchorDx, screenWidth),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildToolbarButton(IconData icon, VoidCallback onTap, bool isHighlighted) {
+  Widget _buildToolbarButton(
+    IconData icon,
+    VoidCallback onTap,
+    bool isHighlighted, {
+    double verticalPadding = 8,
+    double iconSize = 20,
+  }) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: verticalPadding,
+        ),
         decoration: BoxDecoration(
-          color: isHighlighted ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
+          color: isHighlighted
+              ? Colors.white.withValues(alpha: 0.15)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: Colors.white,
-        ),
+        child: Icon(icon, size: iconSize, color: Colors.white),
       ),
     );
   }
 
   List<Widget> _buildColorModeChildren(BuildContext context) {
     final selection = widget.editableTextState.textEditingValue.selection;
-    final targetSelection = widget.selectionOffset != null && widget.selectionOffset! > 0
+    final targetSelection =
+        widget.selectionOffset != null && widget.selectionOffset! > 0
         ? TextSelection(
             baseOffset: selection.baseOffset + widget.selectionOffset!,
             extentOffset: selection.extentOffset + widget.selectionOffset!,
           )
         : selection;
-    final controller = widget.controllerOverride ?? widget.editableTextState.widget.controller;
-    
-    final List<Color> colors = DiaryUtils.presetTextColors.sublist(0, 5);
-    
+    final controller =
+        widget.controllerOverride ?? widget.editableTextState.widget.controller;
+
+    final bool isBackground = _colorMode == 2;
+
+    // Unified 2x6 custom colors for both text and background
+    final List<Color> customColors = [
+      const Color(0xFFFC2E1F),
+      const Color(0xFFFE9027),
+      const Color(0xFFFECE34),
+      const Color(0xFF93D140),
+      const Color(0xFF28C0B5),
+      const Color(0xFF3A8AFD),
+      const Color(0xFF9168FA),
+      const Color(0xFFFC7CBA),
+      const Color(0xFFFB7774),
+      const Color(0xFFFCC286),
+      const Color(0xFFB3B2B4),
+      const Color(0xFF4D4D4D),
+    ];
+
     return [
-      ...colors.map((color) => GestureDetector(
-        onTap: () {
-          if (controller is DiaryTextEditingController) {
-             if (_colorMode == 1) {
-               controller.applyAttributeToSelection(targetSelection, color: color);
-             } else {
-               controller.applyAttributeToSelection(targetSelection, bgColor: color);
-             }
-             widget.onAttributeApplied?.call();
-             widget.editableTextState.hideToolbar();
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6.0),
-          child: Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
-            ),
+      const SizedBox(width: 4),
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: customColors
+                .sublist(0, 6)
+                .map(
+                  (color) => _buildColorCircle(
+                    color,
+                    controller,
+                    targetSelection,
+                    isBackground,
+                  ),
+                )
+                .toList(),
           ),
-        ),
-      )),
-      const SizedBox(width: 8),
-      GestureDetector(
-        onTap: () {
-          if (controller is DiaryTextEditingController) {
-             if (_colorMode == 1) {
-               controller.applyAttributeToSelection(targetSelection, clearColor: true);
-             } else {
-               controller.applyAttributeToSelection(targetSelection, clearBgColor: true);
-             }
-             widget.onAttributeApplied?.call();
-             widget.editableTextState.hideToolbar();
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-          child: Icon(Icons.format_color_reset_rounded, color: Colors.white.withValues(alpha: 0.54), size: 20),
-        ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: customColors
+                .sublist(6, 12)
+                .map(
+                  (color) => _buildColorCircle(
+                    color,
+                    controller,
+                    targetSelection,
+                    isBackground,
+                  ),
+                )
+                .toList(),
+          ),
+        ],
       ),
       const SizedBox(width: 4),
+      _buildClearFormatIcon(controller, targetSelection, isBackground),
+      const SizedBox(width: 4),
     ];
+  }
+
+  Widget _buildColorCircle(
+    Color color,
+    TextEditingController controller,
+    TextSelection targetSelection,
+    bool isBackground,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        if (controller is DiaryTextEditingController) {
+          if (!isBackground) {
+            controller.applyAttributeToSelection(targetSelection, color: color);
+          } else {
+            controller.applyAttributeToSelection(
+              targetSelection,
+              bgColor: color,
+            );
+          }
+          widget.onAttributeApplied?.call();
+          widget.editableTextState.hideToolbar();
+          if (controller.selection.baseOffset !=
+              controller.selection.extentOffset) {
+            controller.selection = TextSelection.collapsed(
+              offset: controller.selection.end,
+            );
+          }
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5.0),
+        child: Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClearFormatIcon(
+    TextEditingController controller,
+    TextSelection targetSelection,
+    bool isBackground,
+  ) {
+    return _buildToolbarButton(
+      Icons.not_interested_rounded,
+      () {
+        if (controller is DiaryTextEditingController) {
+          if (!isBackground) {
+            controller.applyAttributeToSelection(
+              targetSelection,
+              clearColor: true,
+            );
+          } else {
+            controller.applyAttributeToSelection(
+              targetSelection,
+              clearBgColor: true,
+            );
+          }
+          widget.onAttributeApplied?.call();
+          widget.editableTextState.hideToolbar();
+          if (controller.selection.baseOffset !=
+              controller.selection.extentOffset) {
+            controller.selection = TextSelection.collapsed(
+              offset: controller.selection.end,
+            );
+          }
+        }
+      },
+      false,
+      verticalPadding: 14,
+    );
   }
 }
 
@@ -460,21 +731,31 @@ class _ToolbarArrowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF2F2F2F)
+      ..color = const Color(0xFF38383A)
       ..style = PaintingStyle.fill;
-      
-    final double padding = 8.0; 
-    final double actualLeft = (anchorDx - size.width / 2).clamp(padding, screenWidth - padding - size.width);
-    final double arrowCenterX = (anchorDx - actualLeft).clamp(12.0, size.width - 12.0);
+
+    final double padding = 8.0;
+    final double actualLeft = (anchorDx - size.width / 2).clamp(
+      padding,
+      screenWidth - padding - size.width,
+    );
+    final double arrowCenterX = (anchorDx - actualLeft).clamp(
+      12.0,
+      size.width - 12.0,
+    );
 
     final double radius = 1.5;
     final double arrowWidth = 12.0;
-    
+
     final path = Path()
       ..moveTo(arrowCenterX - arrowWidth / 2, 0)
       ..lineTo(arrowCenterX - radius, size.height - radius)
       ..quadraticBezierTo(
-          arrowCenterX, size.height, arrowCenterX + radius, size.height - radius)
+        arrowCenterX,
+        size.height,
+        arrowCenterX + radius,
+        size.height - radius,
+      )
       ..lineTo(arrowCenterX + arrowWidth / 2, 0)
       ..close();
     canvas.drawPath(path, paint);
@@ -482,6 +763,7 @@ class _ToolbarArrowPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ToolbarArrowPainter oldDelegate) {
-    return oldDelegate.anchorDx != anchorDx || oldDelegate.screenWidth != screenWidth;
+    return oldDelegate.anchorDx != anchorDx ||
+        oldDelegate.screenWidth != screenWidth;
   }
 }

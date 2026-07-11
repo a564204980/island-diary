@@ -1,19 +1,46 @@
 import 'package:flutter/material.dart';
+
 import 'package:island_diary/core/state/user_state.dart';
 import '../utils/diary_utils.dart';
 import 'diary_bottom_sheet.dart';
+import 'style_color_picker.dart';
 
-class UnderlinePickerSheet extends StatelessWidget {
-  final ValueChanged<String?> onSelectStyle;
+class UnderlinePickerSheet extends StatefulWidget {
+  final void Function(String? style, Color? color) onSelectStyle;
   final String? currentStyle;
+  final Color? currentColor;
   final String paperStyle;
 
   const UnderlinePickerSheet({
     super.key,
     required this.onSelectStyle,
     this.currentStyle,
+    this.currentColor,
     this.paperStyle = 'standard',
   });
+
+  @override
+  State<UnderlinePickerSheet> createState() => _UnderlinePickerSheetState();
+}
+
+class _UnderlinePickerSheetState extends State<UnderlinePickerSheet> {
+  String? _selectedStyle;
+  late Color _selectedColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedStyle = widget.currentStyle;
+    _selectedColor = widget.currentColor ?? const Color(0xFFFC2E1F);
+
+    // 如果当前没有下划线样式，默认选中并应用“细直”
+    if (_selectedStyle == null) {
+      _selectedStyle = 'solid';
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onSelectStyle(_selectedStyle, _selectedColor);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,10 +58,10 @@ class UnderlinePickerSheet extends StatelessWidget {
     final bool isNight = UserState().isNight;
     final themeId = UserState().selectedIslandThemeId.value;
     final String fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
-    final Color textColor = DiaryUtils.getInkColor(paperStyle, isNight);
+    final Color textColor = DiaryUtils.getInkColor(widget.paperStyle, isNight);
 
     return DiaryBottomSheet(
-      paperStyle: paperStyle,
+      paperStyle: widget.paperStyle,
       isDiary: true,
       showDragHandle: true,
       child: Column(
@@ -53,6 +80,8 @@ class UnderlinePickerSheet extends StatelessWidget {
                 ),
               ),
               IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
                 icon: Icon(
                   Icons.close_rounded,
                   color: textColor.withValues(alpha: 0.5),
@@ -64,6 +93,7 @@ class UnderlinePickerSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           GridView.builder(
+            padding: EdgeInsets.zero,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -78,28 +108,36 @@ class UnderlinePickerSheet extends StatelessWidget {
               final String val = item['value']!;
               final String label = item['label']!;
               final String previewText = item['text']!;
-              final Color indexColor = item['color']!;
-              final isSelected = currentStyle == val;
+
+              final isSelected = _selectedStyle == val;
 
               return GestureDetector(
                 onTap: () {
-                  if (isSelected) {
-                    onSelectStyle(null);
-                  } else {
-                    onSelectStyle(val);
-                  }
-                  Navigator.pop(context);
+                  setState(() {
+                    if (isSelected) {
+                      _selectedStyle = null;
+                    } else {
+                      _selectedStyle = val;
+                    }
+                  });
+                  widget.onSelectStyle(_selectedStyle, _selectedColor);
                 },
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
                     color: isNight 
                         ? (isSelected ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.02))
-                        : (isSelected ? indexColor.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.03)),
+                        : (isSelected 
+                            ? (val == 'gradient' ? Colors.black.withValues(alpha: 0.08) : _selectedColor.withValues(alpha: 0.08)) 
+                            : Colors.black.withValues(alpha: 0.03)),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSelected ? indexColor : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
-                      width: isSelected ? 1.5 : 1.0,
+                      color: isSelected 
+                          ? (val == 'gradient' ? (isNight ? Colors.white : Colors.black) : _selectedColor) 
+                          : (isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
+                      width: 1.5, // 统一宽度，避免因为边框粗细变化导致内部元素发生位移（类似 box-sizing: border-box 效果）
                     ),
                   ),
                   child: Row(
@@ -134,7 +172,7 @@ class UnderlinePickerSheet extends StatelessWidget {
                                 ),
                                 Positioned.fill(
                                   child: CustomPaint(
-                                    painter: _CirclePreviewPainter(val, indexColor),
+                                    painter: _CirclePreviewPainter(val, _selectedColor),
                                   ),
                                 ),
                               ],
@@ -155,22 +193,44 @@ class UnderlinePickerSheet extends StatelessWidget {
                                 const SizedBox(height: 2),
                                 CustomPaint(
                                   size: const Size(69, 6),
-                                  painter: _UnderlinePreviewPainter(val, indexColor),
+                                  painter: _UnderlinePreviewPainter(val, _selectedColor),
                                 ),
                               ],
                             ),
                       const Spacer(),
-                      if (isSelected)
-                        Icon(
-                          Icons.check_circle_rounded,
-                          color: indexColor,
-                          size: 15,
+                      AnimatedOpacity(
+                        opacity: isSelected ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: AnimatedScale(
+                          scale: isSelected ? 1.0 : 0.5,
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOutBack,
+                          child: Icon(
+                            Icons.check_circle_rounded,
+                            color: val == 'gradient' ? (isNight ? Colors.white : Colors.black) : _selectedColor,
+                            size: 16,
+                          ),
                         ),
+                      ),
                     ],
                   ),
                 ),
               );
             },
+          ),
+          const SizedBox(height: 16),
+          StyleColorPicker(
+            selectedColor: _selectedColor,
+            onColorChanged: (color) {
+              setState(() {
+                _selectedColor = color;
+              });
+              widget.onSelectStyle(_selectedStyle, _selectedColor);
+            },
+            fontFamily: fontFamily,
+            textColor: textColor,
+            isNight: isNight,
+            disableColorSelection: _selectedStyle == 'gradient',
           ),
         ],
       ),

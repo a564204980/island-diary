@@ -42,7 +42,11 @@ class _ElementSelectionBuilderState extends State<_ElementSelectionBuilder> {
 
   @override
   void dispose() {
-    widget.notifier.removeListener(_listener);
+    try {
+      widget.notifier.removeListener(_listener);
+    } catch (_) {
+      // Ignored: The notifier might have been disposed by the parent widget already.
+    }
     super.dispose();
   }
 

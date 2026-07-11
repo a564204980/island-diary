@@ -1071,19 +1071,30 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                 valueListenable: controller,
                 builder: (builderContext, value, child) {
                   return CustomPaint(
-                    painter: DiaryCirclePainter(
+                    foregroundPainter: DiaryCirclePainter(
                       context: builderContext,
                       controller: controller,
                       inkColor: textStyle.color ?? Colors.black,
                       blockIndex: blockIndex,
+                    ),
+                    painter: DiaryBrushBackgroundPainter(
+                      context: builderContext,
+                      controller: controller,
+                      selectionColor: (textStyle.color ?? Colors.black).withValues(alpha: 0.28),
                     ),
                   );
                 },
               ),
             ),
           ),
-        SelectableText.rich(
-          span,
+        Theme(
+          data: Theme.of(context).copyWith(
+            textSelectionTheme: const TextSelectionThemeData(
+              selectionHandleColor: Color(0xFF38383A),
+            ),
+          ),
+          child: SelectableText.rich(
+            span,
           style: textStyle,
           selectionHeightStyle: BoxHeightStyle.tight,
           selectionWidthStyle: BoxWidthStyle.tight,
@@ -1112,6 +1123,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
               },
             );
           },
+        ),
         ),
       ],
     );

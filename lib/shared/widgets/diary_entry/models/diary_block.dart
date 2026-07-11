@@ -143,6 +143,7 @@ class TextAttribute {
   final double? fontSize;
   final bool? underline;
   final String? underlineStyle; // 新增下划线样式: solid, double, dashed, dotted, wavy, marker
+  final Color? underlineColor; // 新增单独的下划线颜色
   final bool? bold;
 
   TextAttribute({
@@ -153,6 +154,7 @@ class TextAttribute {
     this.fontSize,
     this.underline,
     this.underlineStyle,
+    this.underlineColor,
     this.bold,
   });
 
@@ -164,6 +166,7 @@ class TextAttribute {
     if (fontSize != null) 'fontSize': fontSize,
     if (underline != null) 'underline': underline,
     if (underlineStyle != null) 'underlineStyle': underlineStyle,
+    if (underlineColor != null) 'underlineColor': underlineColor!.toARGB32(),
     if (bold != null) 'bold': bold,
   };
 
@@ -177,6 +180,7 @@ class TextAttribute {
     fontSize: map['fontSize']?.toDouble(),
     underline: map['underline'],
     underlineStyle: map['underlineStyle']?.toString(),
+    underlineColor: map['underlineColor'] != null ? Color(map['underlineColor']) : null,
     bold: map['bold'],
   );
 }
@@ -740,6 +744,7 @@ class DiaryTextEditingController extends TextEditingController {
     double? fontSize,
     bool? underline,
     String? underlineStyle,
+    Color? underlineColor,
     bool? bold,
     bool clearColor = false,
     bool clearBgColor = false,
@@ -814,6 +819,7 @@ class DiaryTextEditingController extends TextEditingController {
             end: end,
             underline: true,
             underlineStyle: underlineStyle,
+            underlineColor: underlineColor ?? color, // 兼容旧代码，优先使用 underlineColor
           ),
         );
       } else if (underline == true) {
@@ -823,6 +829,7 @@ class DiaryTextEditingController extends TextEditingController {
             end: end,
             underline: true,
             underlineStyle: 'solid',
+            underlineColor: underlineColor ?? color,
           ),
         );
       }
@@ -1199,13 +1206,15 @@ class DiaryTextEditingController extends TextEditingController {
                 final String style = attr.underlineStyle ?? 'solid';
                 if (style.startsWith('circle')) {
                   return TextStyle(
-                    color: attr.color ?? baseColor,
+                    // 对于 circle 样式，文本颜色保持不变或者跟随 underlineColor？
+                    // circle 实际上是一个包裹文字的图形。为了不影响文字本身的颜色，这里不再覆盖文字颜色。
+                    // 但是如果要兼顾兼容性，我们不覆盖它
                     fontSize: attr.fontSize,
                     fontWeight: (attr.bold == true) ? FontWeight.bold : null,
                     height: 1.8,
                   );
                 }
-                final lineColor = attr.color ?? () {
+                final lineColor = attr.underlineColor ?? attr.color ?? () {
                   switch (style) {
                     case 'solid': return const Color(0xFF4A90E2);
                     case 'thick': return const Color(0xFF2ECC71);
@@ -1220,7 +1229,8 @@ class DiaryTextEditingController extends TextEditingController {
                   }
                 }();
                 return TextStyle(
-                  color: attr.color ?? baseColor,
+                  // 移除 color: attr.color ?? baseColor, 避免下划线颜色强制改变文字颜色！
+                  // 文字颜色由普通的 TextAttribute(color) 单独控制
                   fontSize: attr.fontSize,
                   fontWeight: (attr.bold == true) ? FontWeight.bold : null,
                   height: 1.8,
@@ -1342,7 +1352,6 @@ class DiaryTextEditingController extends TextEditingController {
 
       final TextStyle finalStyle = activeAnnotation != null
           ? combinedStyle.copyWith(
-              backgroundColor: (activeAnnotation['color'] as Color).withValues(alpha: 0.4),
               height: 1.15,
             )
           : combinedStyle;

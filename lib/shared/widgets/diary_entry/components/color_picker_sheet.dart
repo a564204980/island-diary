@@ -48,7 +48,7 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
     final Color accentColor = DiaryUtils.getAccentColor(widget.paperStyle, isNight);
     final Color textColor = DiaryUtils.getInkColor(widget.paperStyle, isNight).withValues(alpha: 0.9);
 
-    final List<Color> currentColors = DiaryUtils.presetTextColors;
+    final List<Color> currentColors = DiaryUtils.getPresetTextColors(isNight);
     
     final Color effectiveCurrentColor = isBackground 
         ? widget.currentBgColor 
@@ -186,16 +186,34 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         // 动态获取宽度，保证在各种大小的屏幕上，横向拖动条都能被完美包裹，不再发生溢出和跑偏
-                        return ColorPicker(
-                          pickerColor: pickerColor,
-                          onColorChanged: (color) => setState(() => pickerColor = color),
-                          pickerAreaHeightPercent: 0.55,
-                          enableAlpha: false,
-                          displayThumbColor: true,
-                          labelTypes: const [],
-                          paletteType: PaletteType.hsvWithHue,
-                          colorPickerWidth: constraints.maxWidth,
-                          pickerAreaBorderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        final hsvColor = HSVColor.fromColor(pickerColor);
+                        return Column(
+                          children: [
+                            ClipRRect(
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                              child: SizedBox(
+                                width: constraints.maxWidth,
+                                height: constraints.maxWidth * 0.55,
+                                child: ColorPickerArea(
+                                  hsvColor,
+                                  (hsv) => setState(() => pickerColor = hsv.toColor()),
+                                  PaletteType.hsvWithHue,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 40,
+                              width: constraints.maxWidth,
+                              child: ColorPickerSlider(
+                                TrackType.hue,
+                                hsvColor,
+                                (hsv) => setState(() => pickerColor = hsv.toColor()),
+                                displayThumbColor: true,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
                         );
                       },
                     ),
