@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/top_toast.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 // ignore: depend_on_referenced_packages
 import 'package:photo_manager/photo_manager.dart';
 import '../../utils/camera_image_processor.dart';
@@ -26,10 +27,11 @@ class CameraEditOverlay extends StatefulWidget {
   final String initialMattingMode;
   final VoidCallback onReTake;
   final Function(String editedPath, String? mattedPath) onConfirm;
+  final bool isTransitioning;
 
   const CameraEditOverlay({
     super.key,
-    required this.isFromAlbum,
+    this.isFromAlbum = false,
     required this.capturedRawPath,
     this.initialMattedPath,
     required this.initialRatio,
@@ -39,6 +41,7 @@ class CameraEditOverlay extends StatefulWidget {
     required this.initialMattingMode,
     required this.onReTake,
     required this.onConfirm,
+    this.isTransitioning = false,
   });
 
   @override
@@ -74,6 +77,7 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
 
   String _currentSubPanel = 'ratio';
   String _selectedAdjustKey = 'exposure';
+  bool _isCropBoxVisible = false;
 
   late AnimationController _slideInController;
   late Animation<Offset> _slideInAnimation;
@@ -171,6 +175,7 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
   @override
   void initState() {
     super.initState();
+    _isCropBoxVisible = !widget.isTransitioning;
     _capturedRawPath = widget.capturedRawPath;
     _currentRatio = 'free';
     _watermarkStyle = widget.initialWatermarkStyle;
@@ -219,6 +224,20 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
   }
 
   @override
+  void didUpdateWidget(CameraEditOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 当全屏过渡动画（打印落下/放大）结束时
+    if (oldWidget.isTransitioning && !widget.isTransitioning) {
+      if (_currentSubPanel == 'ratio') {
+        // 让裁剪框和遮罩层开始淡入
+        setState(() {
+          _isCropBoxVisible = true;
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _slideInController.dispose();
     _strokeAnimationController.dispose();
@@ -238,8 +257,8 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
             children: [
               // 1. 顶部栏 (退出/编辑照片)
               Container(
+                height: 64.0,
                 padding: const EdgeInsets.symmetric(
-                  vertical: 8,
                   horizontal: 16,
                 ),
                 child: Row(
@@ -382,10 +401,12 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
 
               // 2. 中间照片预览区
               Expanded(
-                child: ClipRect(
-                  child: Center(
+                child: Opacity(
+                  opacity: widget.isTransitioning ? 0.0 : 1.0,
+                  child: ClipRect(
+                    child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(32.0),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           if (_previewUiImage == null) {
@@ -449,25 +470,23 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
 
                           double margin = displayW * 0.04;
                           double imgScale = (displayW - margin * 2) / displayW;
-                          double fgW = (isBlurBorder || isRatioMode)
+                          double fgW = isBlurBorder
                               ? (displayW - margin * 2)
                               : displayW;
-                          double fgH = (isBlurBorder || isRatioMode)
+                          double fgH = isBlurBorder
                               ? (displayH * imgScale)
                               : displayH;
 
-                          final double topPos = (isBlurBorder || isRatioMode)
+                          final double topPos = isBlurBorder
                               ? (displayH - fgH) / 2
                               : 0.0;
-                          final double leftPos = (isBlurBorder || isRatioMode)
+                          final double leftPos = isBlurBorder
                               ? (displayW - fgW) / 2
                               : 0.0;
 
                           final Widget mainContent = AnimatedContainer(
-                            duration: _currentSubPanel == 'ratio'
-                                ? Duration.zero
-                                : const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOutCubic,
                             color:
                                 (_mattingMode == 'cloud' ||
                                     _currentSubPanel == 'ratio')
@@ -510,28 +529,9 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                                     ),
                                   ),
 
-                                if (isRatioMode)
-                                  Positioned(
-                                    top: topPos,
-                                    left: leftPos,
-                                    width: fgW,
-                                    height: fgH,
-                                    child: SlideTransition(
-                                      position: _slideInAnimation,
-                                      child: _buildStrokedPreviewImage(
-                                        imagePath: _capturedRawPath,
-                                        strokeWidth: _strokeWidth,
-                                        strokeColor: _strokeColor,
-                                        fgW: fgW,
-                                        fgH: fgH,
-                                        repaint: _cropRepaintNotifier,
-                                      ),
-                                    ),
-                                  )
-                                else
                                   AnimatedPositioned(
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOut,
+                                    duration: const Duration(milliseconds: 200),
+                                    curve: Curves.easeOutCubic,
                                     top: topPos,
                                     left: leftPos,
                                     width: fgW,
@@ -554,27 +554,35 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                                     ),
                                   ),
 
-                                if (_currentSubPanel == 'ratio')
-                                  Positioned(
+                                  AnimatedPositioned(
+                                    duration: const Duration(milliseconds: 200),
+                                    curve: Curves.easeOutCubic,
                                     top: topPos - 24.0,
                                     left: leftPos - 24.0,
                                     width: fgW + 48.0,
                                     height: fgH + 48.0,
-                                    child: InteractiveCropOverlay(
-                                      key: _cropOverlayKey,
-                                      width: fgW,
-                                      height: fgH,
-                                      imgAspect: imgAspect,
-                                      ratio: _currentRatio,
-                                      initialCropRect: _normalizedCropRect,
-                                      onCropRectChanged: (cropBox, normalized, {bool isFinished = false}) {
-                                        _activeCropBoxRect = cropBox;
-                                        _normalizedCropRect = normalized;
-                                        _cropRepaintNotifier.value++;
-                                        if (isFinished) {
-                                          setState(() {});
-                                        }
-                                      },
+                                    child: IgnorePointer(
+                                      ignoring: !_isCropBoxVisible || _currentSubPanel != 'ratio',
+                                      child: AnimatedOpacity(
+                                        duration: Duration(milliseconds: (_currentSubPanel == 'ratio' && _isCropBoxVisible) ? 150 : 0),
+                                        opacity: (_currentSubPanel == 'ratio' && _isCropBoxVisible) ? 1.0 : 0.0,
+                                        child: InteractiveCropOverlay(
+                                          key: _cropOverlayKey,
+                                          width: fgW,
+                                          height: fgH,
+                                          imgAspect: imgAspect,
+                                          ratio: _currentRatio,
+                                          initialCropRect: _normalizedCropRect,
+                                          onCropRectChanged: (cropBox, normalized, {bool isFinished = false}) {
+                                            _activeCropBoxRect = cropBox;
+                                            _normalizedCropRect = normalized;
+                                            _cropRepaintNotifier.value++;
+                                            if (isFinished) {
+                                              setState(() {});
+                                            }
+                                          },
+                                        ),
+                                      ),
                                     ),
                                   ),
 
@@ -587,22 +595,16 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                             ),
                           );
 
-                          if (isRatioMode) {
-                            return mainContent;
-                          } else {
-                            return ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: mainContent,
-                            );
-                          }
+                          return mainContent;
                         },
                       ),
                     ),
                   ),
                 ),
               ),
+            ),
 
-              // 3. 编辑子面板
+            // 3. 编辑子面板
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 height: _currentSubPanel == 'stroke'
@@ -617,11 +619,13 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
               const SizedBox(height: 12),
 
               // 4. 一级参数分类菜单
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
+              SizedBox(
+                height: 56.0,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
                     _buildCategoryItem('ratio', Icons.crop_rounded, '裁剪'),
                     _buildCategoryItem('adjust', Icons.tune_rounded, '调节'),
                     _buildCategoryItem(
@@ -641,16 +645,19 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                     ),
                   ],
                 ),
+                ),
               ),
 
               const SizedBox(height: 12),
 
               // 5. 底部操作按钮
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24.0,
-                  vertical: 12.0,
-                ),
+              SizedBox(
+                height: 74.0,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0,
+                    vertical: 12.0,
+                  ),
                 child: Row(
                   children: [
                     Expanded(
@@ -801,11 +808,12 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                     ),
                   ],
                 ),
+                ),
               ),
             ],
           ),
         ),
-      ),
+      ).animate().fadeIn(duration: 400.ms, curve: Curves.easeOut),
     );
   }
 }

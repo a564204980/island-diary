@@ -193,9 +193,38 @@ class InteractiveCropOverlayState extends State<InteractiveCropOverlay>
         if (oldWidget.ratio != widget.ratio) {
           debugPrint("InteractiveCropOverlay: Ratio changed, starting animation");
           _startRatioTransitionAnimation(oldWidget, widget);
+        } else if (oldWidget.width != widget.width || oldWidget.height != widget.height || oldWidget.imgAspect != widget.imgAspect) {
+          // 容器尺寸或图片比例发生变化（例如动画导致布局改变），但比例模式未变，此时需要根据当前的归一化坐标重新计算物理坐标
+          _updatePhysicalRectFromCurrent();
         }
       }
     }
+  }
+
+  void _updatePhysicalRectFromCurrent() {
+    if (widget.width <= 0 || widget.height <= 0) return;
+
+    final double containerAspect = widget.width / widget.height;
+    double imgW = widget.width;
+    double imgH = widget.height;
+    if (widget.imgAspect > containerAspect) {
+      imgW = widget.width;
+      imgH = widget.width / widget.imgAspect;
+    } else {
+      imgH = widget.height;
+      imgW = widget.height * widget.imgAspect;
+    }
+    final double imgLeft = (widget.width - imgW) / 2;
+    final double imgTop = (widget.height - imgH) / 2;
+
+    double left = imgLeft + _currentNormalizedRect.left * imgW;
+    double top = imgTop + _currentNormalizedRect.top * imgH;
+    double width = _currentNormalizedRect.width * imgW;
+    double height = _currentNormalizedRect.height * imgH;
+
+    setState(() {
+      _physicalRect = Rect.fromLTWH(left, top, width, height);
+    });
   }
 
   void triggerResetAnimation() {

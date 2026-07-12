@@ -204,6 +204,11 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
   late Animation<Offset> _slideOutAnimation;
   String? _slideOutPath;
 
+  // 打印动画相关 (灵动取景相框专属)
+  late AnimationController _printAnimationController;
+  bool _isPrintingAnimationRunning = false;
+  String? _printPhotoPath;
+
   @override
   void initState() {
     super.initState();
@@ -243,6 +248,11 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
     _slideOutController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
+    );
+    
+    _printAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5500),
     );
     _slideOutAnimation = Tween<Offset>(
       begin: Offset.zero,
@@ -300,6 +310,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
     _focusAnimationController.dispose();
     _zoomAnimationController.dispose();
     _slideOutController.dispose();
+    _printAnimationController.dispose();
     _countdownTimer?.cancel();
     _exposureTimer?.cancel();
     super.dispose();
@@ -564,7 +575,11 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
               iconColor: const Color(0xFFD4A373),
             );
           }
-          _runTransition(mattedPath);
+          if (widget.enableDynamicViewfinder) {
+            _runPrintAnimation(mattedPath);
+          } else {
+            _runTransition(mattedPath);
+          }
         }
       } catch (e) {
         debugPrint("抠图错误: $e");
@@ -577,7 +592,43 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
       }
     } else {
       final String rawPath = _tempCapturedPaths.first;
-      _runTransition(rawPath);
+      if (widget.enableDynamicViewfinder) {
+        _runPrintAnimation(rawPath);
+      } else {
+        _runTransition(rawPath);
+      }
+    }
+  }
+
+  /// 灵动岛“吐相纸”打印动画
+  Future<void> _runPrintAnimation(String resultPath) async {
+    setState(() {
+      _printPhotoPath = resultPath;
+      _isPrintingAnimationRunning = true;
+    });
+    
+    // 开始播放打印动效
+    _printAnimationController.forward(from: 0.0);
+    
+    // 等待打印动画前面部分的播放（吐纸 + 掉落 + 悬停），共 5000ms
+    await Future.delayed(const Duration(milliseconds: 5000));
+    
+    if (mounted) {
+      setState(() {
+        _capturedRawPath = resultPath;
+        _previewPath = resultPath; // 这会触发 CameraEditOverlay 显示并开始 400ms 的淡入
+      });
+      
+      // 等待最后 500ms 放大动画结束（此时编辑界面也在同步淡入）
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      if (mounted) {
+        setState(() {
+          _printPhotoPath = null;
+          _isPrintingAnimationRunning = false;
+          _cachedMattedPath = null;
+        });
+      }
     }
   }
 
@@ -631,6 +682,133 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
     ]);
   }
 
+  Widget _buildPrintingPhoto(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return AnimatedBuilder(
+      animation: _printAnimationController,
+      builder: (context, child) {
+        final t = _printAnimationController.value;
+        
+        final startWidth = 250.0; // 宽胶囊形态
+        
+        // 确保计算出正确的高比例 (避免因设备方向导致 targetHeight 过小而被 BoxFit.cover 剧烈放大裁切)
+        final cameraAspect = _controller?.value.aspectRatio ?? (4 / 3);
+        final realAspect = cameraAspect > 1.0 ? cameraAspect : 1.0 / cameraAspect;
+        
+        // --- 严格模拟 CameraEditOverlay 的布局逻辑，确保像素级对齐 ---
+        final topOffset = MediaQuery.of(context).padding.top + 64.0; // 编辑页顶部栏约 64px
+        final bottomOffset = MediaQuery.of(context).padding.bottom + 207.0; // 编辑页底部菜单栏总计 EXACTLY 207px
+        final expandedHeight = MediaQuery.of(context).size.height - topOffset - bottomOffset;
+
+        final maxW = screenWidth - 64.0;
+        final maxH = expandedHeight - 64.0;
+
+        double displayW = maxW;
+        double displayH = maxW * realAspect;
+        if (displayH > maxH) {
+          displayH = maxH;
+          displayW = maxH / realAspect;
+        }
+
+        // 匹配 CameraEditOverlay 实际尺寸
+        final targetWidth = displayW;
+        final targetHeight = displayH;
+
+        final capsuleClosedTop = 11.0;
+        
+        double photoTop;
+        double photoScale;
+        double opacity = 1.0;
+        double shadowOpacity = 0.3;
+        double heightFactor = 1.0;
+
+        if (t < 0.245) { // 5500ms * 0.245 ≈ 1350ms (350ms收缩 + 1000ms停顿)
+          photoTop = capsuleClosedTop + 15;
+          photoScale = startWidth / targetWidth;
+          opacity = 0.0;
+          shadowOpacity = 0.0;
+          heightFactor = 0.0;
+        } else if (t < 0.70) { // 5500ms * 0.455 ≈ 2500ms 的缓慢出纸时间
+          final slideProgress = (t - 0.245) / 0.455;
+          photoTop = capsuleClosedTop + 15;
+          photoScale = startWidth / targetWidth;
+          opacity = 1.0;
+          shadowOpacity = 0.3;
+          heightFactor = slideProgress.clamp(0.001, 1.0);
+        } else if (t < 0.818) { // 5500ms * 0.118 ≈ 650ms 的掉落时间
+          final scaleProgress = Curves.easeOutBack.transform(((t - 0.70) / 0.118).clamp(0.0, 1.0));
+          final startDrop = capsuleClosedTop + 15;
+          final finalTop = MediaQuery.of(context).size.height / 2 - (targetHeight / 2);
+          photoTop = lerpDouble(startDrop, finalTop, scaleProgress)!;
+          photoScale = startWidth / targetWidth; // 保持原有大小不放大
+          opacity = 1.0;
+          shadowOpacity = 0.3;
+          heightFactor = 1.0;
+        } else if (t < 0.909) { // 5500ms * 0.091 ≈ 500ms 的悬停停留时间
+          photoTop = MediaQuery.of(context).size.height / 2 - (targetHeight / 2);
+          photoScale = startWidth / targetWidth; // 保持原有大小不放大
+          opacity = 1.0;
+          shadowOpacity = 0.3;
+          heightFactor = 1.0;
+        } else { // 最后的 500ms (5500ms - 5000ms)，执行放大和位移动画，严格对齐编辑界面的位置
+          final scaleProgress = Curves.easeInOutCubic.transform(((t - 0.909) / 0.091).clamp(0.0, 1.0));
+          final startTop = MediaQuery.of(context).size.height / 2 - (targetHeight / 2);
+          // 计算编辑界面中照片的实际居中位置
+          final finalTop = topOffset + (expandedHeight / 2) - (targetHeight / 2);
+          
+          photoTop = lerpDouble(startTop, finalTop, scaleProgress)!;
+          photoScale = lerpDouble(startWidth / targetWidth, 1.0, scaleProgress)!;
+          opacity = 1.0;
+          shadowOpacity = lerpDouble(0.3, 0.0, scaleProgress)!;
+          heightFactor = 1.0;
+        }
+
+        return Positioned(
+          top: photoTop,
+          left: (screenWidth - targetWidth) / 2,
+          width: targetWidth,
+          // height 必须移除，以便让 Align 根据 heightFactor 自由决定容器在垂直方向的渲染尺寸
+          child: Transform.scale(
+            scale: photoScale,
+            alignment: Alignment.topCenter,
+            child: Opacity(
+              opacity: opacity,
+              child: ClipRect(
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  heightFactor: heightFactor,
+                  child: Container(
+                    width: targetWidth,
+                    height: targetHeight,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.zero,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: shadowOpacity),
+                          blurRadius: 15,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.zero,
+                      child: Image.file(
+                        File(_printPhotoPath!),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_hasPermission) {
@@ -672,11 +850,14 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                   ).animate().fadeIn(duration: 800.ms),
                 ),
 
+
+
+
               // 1. Dynamic Viewfinder centered
               TweenAnimationBuilder<double>(
                 // Run animation from 0 to 1 only after route transition finishes
-                tween: Tween<double>(begin: 0.0, end: _startUnfoldAnimation ? 1.0 : 0.0),
-                duration: const Duration(milliseconds: 800),
+                tween: Tween<double>(begin: 0.0, end: (_startUnfoldAnimation && !_isPrintingAnimationRunning) ? 1.0 : 0.0),
+                duration: Duration(milliseconds: (_startUnfoldAnimation && !_isPrintingAnimationRunning) ? 800 : 350),
                 curve: Curves.easeOutCubic,
                 builder: (context, tValue, child) {
                   final t = widget.enableDynamicViewfinder ? tValue : 1.0;
@@ -684,7 +865,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                   final endTop = MediaQuery.of(context).padding.top + 70;
                   final currentTop = widget.enableDynamicViewfinder ? lerpDouble(startTop, endTop, t)! : 0.0;
 
-                  final startWidth = 125.0; // Dynamic island width
+                  final startWidth = _isPrintingAnimationRunning ? 250.0 : 125.0; // 打印时胶囊变宽
                   final endWidth = viewfinderWidth;
                   final currentWidth = widget.enableDynamicViewfinder ? lerpDouble(startWidth, endWidth, t)! : screenWidth;
 
@@ -887,7 +1068,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                       ),
                     );
                   }).toList(),
-                ).animate(target: _startUnfoldAnimation ? 1 : 0)
+                ).animate(target: (_startUnfoldAnimation && !_isPrintingAnimationRunning) ? 1 : 0)
                  .slideY(begin: 0.2, end: 0, delay: 200.ms, duration: 500.ms, curve: Curves.easeOutQuad)
                  .fadeIn(delay: 200.ms, duration: 400.ms),
               ),
@@ -906,7 +1087,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                   onToggleFlash: _toggleFlashMode,
                   onToggleGrid: () => setState(() => _showGrid = !_showGrid),
                   onToggleSelfTimer: _toggleSelfTimer,
-                ).animate(target: _startUnfoldAnimation ? 1 : 0).fadeIn(delay: 300.ms, duration: 400.ms),
+                ).animate(target: (_startUnfoldAnimation && !_isPrintingAnimationRunning) ? 1 : 0).fadeIn(delay: 300.ms, duration: 400.ms),
               ),
 
               // 3. 悬浮底栏
@@ -923,7 +1104,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                   }),
                   onTakePicture: _takePicture,
                   onToggleCamera: _toggleCamera,
-                ).animate(target: _startUnfoldAnimation ? 1 : 0)
+                ).animate(target: (_startUnfoldAnimation && !_isPrintingAnimationRunning) ? 1 : 0)
                  .slideY(begin: 0.2, end: 0, delay: 200.ms, duration: 500.ms, curve: Curves.easeOutQuad)
                  .fadeIn(delay: 200.ms, duration: 400.ms),
               ),
@@ -940,6 +1121,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
             initialFilter: _currentFilter,
             initialAdjustParams: _adjustParams,
             initialMattingMode: _mattingMode,
+            isTransitioning: _isPrintingAnimationRunning, // 在放大动画期间隐藏自带的照片
             onReTake: () {
               if (widget.initialImagePath != null) {
                 Navigator.pop(context);
@@ -958,6 +1140,10 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
               });
             },
           ),
+        
+        // 0.5 The printing photo (Animated Polaroid sliding out) - Kept in outer Stack to prevent Image widget reload
+        if (_isPrintingAnimationRunning && _printPhotoPath != null)
+          _buildPrintingPhoto(context),
       ],
     );
   }

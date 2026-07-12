@@ -65,7 +65,8 @@ class StrokePreviewPainter extends CustomPainter {
   final Rect Function() getNormalizedCropRect;
   final Rect Function() getActiveCropBoxRect;
   final bool isRatioMode;
-
+  final double cropBoxOpacity;
+  
   StrokePreviewPainter({
     required this.image,
     required this.strokeWidth,
@@ -77,6 +78,7 @@ class StrokePreviewPainter extends CustomPainter {
     required this.getNormalizedCropRect,
     required this.getActiveCropBoxRect,
     this.isRatioMode = false,
+    this.cropBoxOpacity = 1.0,
     super.repaint,
   });
 
@@ -131,6 +133,9 @@ class StrokePreviewPainter extends CustomPainter {
         );
 
     Rect dstDrawRect;
+    final double containerAspect = size.width / size.height;
+    final double srcAspect = srcRect.width / srcRect.height;
+    
     if (isRatioMode) {
       final double imgAspect = srcW / srcH;
       final double iw = (activeCropBoxRect.width * size.width) / normalizedCropRect.width;
@@ -143,7 +148,15 @@ class StrokePreviewPainter extends CustomPainter {
       final double it = (py + ph / 2) - (normalizedCropRect.top + normalizedCropRect.height / 2) * ih;
       dstDrawRect = Rect.fromLTWH(il, it, iw, ih);
     } else {
-      dstDrawRect = dstRect;
+      if (srcAspect > containerAspect) {
+        final double w = size.width;
+        final double h = w / srcAspect;
+        dstDrawRect = Rect.fromLTWH(0, (size.height - h) / 2, w, h);
+      } else {
+        final double h = size.height;
+        final double w = h * srcAspect;
+        dstDrawRect = Rect.fromLTWH((size.width - w) / 2, 0, w, h);
+      }
     }
 
     // 1. 先在最底层绘制清晰图
@@ -164,12 +177,12 @@ class StrokePreviewPainter extends CustomPainter {
       final Rect overlayRect = dstRect.expandToInclude(dstDrawRect);
       canvas.drawRect(
         overlayRect,
-        Paint()..color = Colors.black.withValues(alpha: 0.55),
+        Paint()..color = Colors.black.withValues(alpha: 0.55 * cropBoxOpacity),
       );
       canvas.restore();
     }
 
-    if (strokeWidth > 0) {
+    if (strokeWidth > 0 && !isRatioMode) {
       canvas.save();
       // 开启生成动画裁切
       if (animationProgress < 1.0) {

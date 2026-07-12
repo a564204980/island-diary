@@ -12,13 +12,32 @@ extension _CameraEditOverlayWidgets on _CameraEditOverlayState {
             _mattingMode = _mattingMode == 'none' ? 'cloud' : 'none';
             if (_mattingMode == 'cloud') {
               _currentSubPanel = 'matting';
+              _isCropBoxVisible = false;
             } else {
               _currentSubPanel = 'ratio';
+              _isCropBoxVisible = false;
+              Future.delayed(const Duration(milliseconds: 350), () {
+                if (mounted && _currentSubPanel == 'ratio') {
+                  setState(() => _isCropBoxVisible = true);
+                }
+              });
             }
           });
         } else {
           _update(() {
-            _currentSubPanel = panel;
+            if (_currentSubPanel != panel) {
+              _currentSubPanel = panel;
+              if (panel == 'ratio') {
+                _isCropBoxVisible = false;
+                Future.delayed(const Duration(milliseconds: 350), () {
+                  if (mounted && _currentSubPanel == 'ratio') {
+                    setState(() => _isCropBoxVisible = true);
+                  }
+                });
+              } else {
+                _isCropBoxVisible = false;
+              }
+            }
           });
           if (panel == 'stroke') {
             _strokeAnimationController.forward(from: 0.0);
@@ -692,40 +711,51 @@ extension _CameraEditOverlayWidgets on _CameraEditOverlayState {
       colorFilter: ColorFilter.matrix(_calculateColorMatrix()),
       child: ColorFiltered(
         colorFilter: _getCurrentColorFilter(),
-        child: CustomPaint(
-          size: Size(fgW, fgH),
-          painter: StrokePreviewPainter(
-            image: _previewUiImage!,
-            strokeWidth: strokeWidth,
-            strokeColor: strokeColor,
-            strokeStyle: _strokeStyle,
-            animationProgress: _strokeAnimationController.value,
-            contourPoints: _contourPoints,
-            strokeDistance: _strokeDistance,
-            getNormalizedCropRect: () => _normalizedCropRect,
-            getActiveCropBoxRect: () {
-              Rect effective = _activeCropBoxRect;
-              if (effective == const Rect.fromLTWH(0, 0, 1, 1)) {
-                double imgAspect = 1.0;
-                if (_previewUiImage != null) {
-                  imgAspect = _previewUiImage!.width / _previewUiImage!.height;
-                }
-                final double containerAspect = fgW / fgH;
-                if (imgAspect > containerAspect) {
-                  double w = 1.0;
-                  double h = containerAspect / imgAspect;
-                  effective = Rect.fromLTWH(0, (1.0 - h) / 2, w, h);
-                } else {
-                  double h = 1.0;
-                  double w = imgAspect / containerAspect;
-                  effective = Rect.fromLTWH((1.0 - w) / 2, 0, w, h);
-                }
-              }
-              return effective;
-            },
-            isRatioMode: _currentSubPanel == 'ratio',
-            repaint: repaint,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(
+            begin: 0.0,
+            end: _isCropBoxVisible ? 1.0 : 0.0,
           ),
+          duration: Duration(milliseconds: _isCropBoxVisible ? 200 : 0),
+          curve: Curves.easeOut,
+          builder: (context, opacityValue, child) {
+            return CustomPaint(
+              size: Size(fgW, fgH),
+              painter: StrokePreviewPainter(
+                image: _previewUiImage!,
+                strokeWidth: strokeWidth,
+                strokeColor: strokeColor,
+                strokeStyle: _strokeStyle,
+                animationProgress: _strokeAnimationController.value,
+                contourPoints: _contourPoints,
+                strokeDistance: _strokeDistance,
+                getNormalizedCropRect: () => _normalizedCropRect,
+                getActiveCropBoxRect: () {
+                  Rect effective = _activeCropBoxRect;
+                  if (effective == const Rect.fromLTWH(0, 0, 1, 1)) {
+                    double imgAspect = 1.0;
+                    if (_previewUiImage != null) {
+                      imgAspect = _previewUiImage!.width / _previewUiImage!.height;
+                    }
+                    final double containerAspect = fgW / fgH;
+                    if (imgAspect > containerAspect) {
+                      double w = 1.0;
+                      double h = containerAspect / imgAspect;
+                      effective = Rect.fromLTWH(0, (1.0 - h) / 2, w, h);
+                    } else {
+                      double h = 1.0;
+                      double w = imgAspect / containerAspect;
+                      effective = Rect.fromLTWH((1.0 - w) / 2, 0, w, h);
+                    }
+                  }
+                  return effective;
+                },
+                isRatioMode: _isCropBoxVisible,
+                cropBoxOpacity: opacityValue,
+                repaint: repaint,
+              ),
+            );
+          },
         ),
       ),
     );
