@@ -405,12 +405,11 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
 
   void onTagClick() {
     FocusScope.of(context).unfocus();
-    setState(() => isColorPickerOpen = true);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      showDragHandle: false, // 禁用系统默认的外部悬浮拖拽条，确保仅显示自定义组件内高保真把手
+      showDragHandle: false,
       builder: (context) => DiaryTagPickerSheet(
         paperStyle: currentPaperStyle,
         initialTags: currentTags,
@@ -424,7 +423,6 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     ).then((_) {
       if (mounted) {
         FocusManager.instance.primaryFocus?.unfocus();
-        setState(() => isColorPickerOpen = false);
       }
     });
   }

@@ -98,6 +98,7 @@ class EditorBottomBar extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const SizedBox(height: 6), // 底部工具栏与正文之间的分隔间距
             // 标签 chip 行（仅有标签时显示）
             if (currentTags.isNotEmpty) _buildTagBar(),
 
@@ -107,7 +108,7 @@ class EditorBottomBar extends StatelessWidget {
               
             // 工具栏主内容
             Container(
-              height: 52,
+              height: 46,
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Row(
                 children: [
@@ -636,8 +637,8 @@ class _AnimatedTagListState extends State<AnimatedTagList> {
   Widget build(BuildContext context) {
     // 外层保留相同高度和边距，确保布局稳定性
     return Container(
-      height: 26,
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 2),
+      height: 22,
+      margin: const EdgeInsets.fromLTRB(16, 6, 16, 0), // 标签行上下边距
       child: AnimatedList(
         key: _listKey,
         scrollDirection: Axis.horizontal,

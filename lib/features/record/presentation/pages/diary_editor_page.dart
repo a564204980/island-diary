@@ -121,8 +121,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                     final bool hasTags = currentTags.where((t) => !t.startsWith('mood:') && !t.startsWith('mood_icon:')).isNotEmpty;
                     final bool hasImages = !isMixedLayout && blocks.whereType<ImageBlock>().isNotEmpty;
                     
-                    double baseBottomBarHeight = 52.0 + 32.0; // 52.0 是工具栏高度，32.0 是“收纳至”指示栏高度
-                    if (hasTags) baseBottomBarHeight += 26.0;
+                    double baseBottomBarHeight = 46.0 + 32.0; // 46工具栏 + 32收纳至胶囊
+                    if (hasTags) baseBottomBarHeight += 22.0 + 12.0; // 22标签高度 + 12期望间隙（控制图片与标签之间的留白）
                     if (hasImages) baseBottomBarHeight += 50.0;
                     
                     final double toolbarOnlyHeight = baseBottomBarHeight - 32.0;
@@ -285,8 +285,10 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                             (b) => b.id == currentBookId,
                             orElse: () => DiaryBook(id: 'default', name: '未分类'),
                           );
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 2.0),
+                          return Transform.translate(
+                            offset: const Offset(0, -12), // 视觉上往上嵌入封面图片区域
+                            child: Padding(
+                            padding: const EdgeInsets.only(top: 4.0, bottom: 2.0),
                             child: GestureDetector(
                               onTap: _showBookSelector,
                               child: Container(
@@ -355,7 +357,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                               Icons.keyboard_arrow_down_rounded,
                                               size: 14,
                                               color: isNight ? Colors.white30 : Colors.black38,
-                                            ),
+                                             ),
                                           ],
                                         ),
                                       ),
@@ -364,6 +366,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                                 ),
                               ),
                             ),
+                            ), // Transform.translate 结束
                           );
                         },
                       ),
