@@ -2,7 +2,6 @@ part of '../../diary_book_export_page.dart';
 
 final Map<String, ui.Shader> _exportShaderCache = {};
 
-final Map<int, Widget> _exportCanvasElementWidgetCache = {};
 
 class _ElementSelectionBuilder extends StatefulWidget {
   final ValueNotifier<String?> notifier;
@@ -138,8 +137,8 @@ extension _ExportCanvasExtension on _DiaryBookExportPageState {
     const double handlePadding = 12.0;
     final widget = Positioned(
       key: ValueKey(element.id),
-      left: element.x - handlePadding,
-      top: getScreenY(element.y) - handlePadding,
+      left: element.x - handlePadding - 4.0,
+      top: getScreenY(element.y) - handlePadding - 4.0,
       child: _ElementSelectionBuilder(
         notifier: _selectionNotifier,
         elementId: element.id,

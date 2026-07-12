@@ -446,9 +446,8 @@ class _DiaryBookDetailPageState extends State<DiaryBookDetailPage> {
                 if (bookDiaries.isNotEmpty)
                   Builder(
                     builder: (context) {
-                      // 导出时按时间升序排序，从第一篇到最后一篇
-                      final exportList = List<DiaryEntry>.from(bookDiaries)
-                        ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+                      // 导出时保持与当前书籍目录页面的排序状态一致
+                      final exportList = List<DiaryEntry>.from(bookDiaries);
                       return Padding(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
                         child: _buildExportBtn(

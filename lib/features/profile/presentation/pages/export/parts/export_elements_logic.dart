@@ -233,23 +233,58 @@ extension _ExportElementsLogic on _DiaryBookExportPageState {
 
       currentY = tagTexts.isEmpty ? currentY : (currentTagY + 36);
 
-      final rawContent = diary.content;
+      final List<DiaryBlock> diaryBlocks = diary.blocks.map((b) => DiaryBlock.fromMap(b)).toList();
+      final List<DiaryBlock> processedBlocks = ImageGroupBlock.preprocess(
+        diaryBlocks,
+        isMixedLayout: true,
+        isImageGrid: true,
+      );
 
-      final List<String> sentences = splitIntoSentences(rawContent);
+      int textElementIndex = 0;
+      for (var block in processedBlocks) {
+        if (block is TextBlock) {
+          final String blockText = block.controller.text;
+          final RegExp regExp = RegExp(r'[^。？！;\n]+[。？！;\n]?');
+          final Iterable<Match> matches = regExp.allMatches(blockText);
+          
+          List<TextAttribute> attrs = [];
+          if (block.controller is DiaryTextEditingController) {
+            attrs = (block.controller as DiaryTextEditingController).attributes;
+          }
 
-      for (int i = 0; i < sentences.length; i++) {
-        final sentence = sentences[i];
-        final sentenceElement = ExportElement(
-          id: 'diary_content_${diary.id}_$i',
-          type: 'text',
-          x: _margin.left,
-          y: currentY,
-          width: availableWidth,
-          height: 30,
-          content: sentence,
-          fontSize: 15,
-          color: Colors.black87,
-        );
+          for (final match in matches) {
+            final matchText = match.group(0)!;
+            final sentence = matchText.trim();
+            if (sentence.isEmpty) continue;
+
+            final int leadingSpaces = matchText.indexOf(sentence);
+            final int sentenceStart = match.start + leadingSpaces;
+            final int sentenceEnd = sentenceStart + sentence.length;
+
+            List<Map<String, dynamic>> mappedAttributes = [];
+            for (var attr in attrs) {
+              int maxStart = max(sentenceStart, attr.start);
+              int minEnd = min(sentenceEnd, attr.end);
+              if (maxStart < minEnd) {
+                var mappedAttr = attr.toMap();
+                mappedAttr['start'] = maxStart - sentenceStart;
+                mappedAttr['end'] = minEnd - sentenceStart;
+                mappedAttributes.add(mappedAttr);
+              }
+            }
+
+            final sentenceElement = ExportElement(
+              id: 'diary_content_${diary.id}_${textElementIndex++}',
+              type: 'text',
+              x: _margin.left,
+              y: currentY,
+              width: availableWidth,
+              height: 30,
+              content: sentence,
+              fontSize: 15,
+              color: Colors.black87,
+              textAttributes: mappedAttributes.isNotEmpty ? mappedAttributes : null,
+            );
 
         _adjustTextElementWidth(sentenceElement);
 
@@ -270,17 +305,14 @@ extension _ExportElementsLogic on _DiaryBookExportPageState {
         sentenceElement.y = currentY;
         _elements.add(sentenceElement);
 
-        // 每句话留 12 像素的段落句间距
-        currentY += sentenceElement.height + 12;
+            // 每句话留 12 像素的段落句间距
+            currentY += sentenceElement.height + 12;
+          }
+        }
       }
 
       // 6. 解析日记的 blocks 数据并计算图片坐标
-      final List<DiaryBlock> diaryBlocks = diary.blocks.map((b) => DiaryBlock.fromMap(b)).toList();
-      final List<DiaryBlock> processedBlocks = ImageGroupBlock.preprocess(
-        diaryBlocks,
-        isMixedLayout: true,
-        isImageGrid: true,
-      );
+      // (diaryBlocks 和 processedBlocks 已在上方提取)
 
       for (var block in processedBlocks) {
         if (block is ImageBlock) {

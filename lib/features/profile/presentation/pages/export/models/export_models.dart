@@ -150,6 +150,7 @@ class ExportElement {
   double textBackgroundBorderRadius;
   double textBackgroundOpacity;
   double textBackgroundPadding;
+  List<Map<String, dynamic>>? textAttributes;
 
   ExportElement({
     required this.id,
@@ -178,6 +179,7 @@ class ExportElement {
     this.textBackgroundBorderRadius = 0.0,
     this.textBackgroundOpacity = 1.0,
     this.textBackgroundPadding = 0.0,
+    this.textAttributes,
   });
 
   ExportElement copy() => ExportElement(
@@ -207,6 +209,7 @@ class ExportElement {
         textBackgroundBorderRadius: textBackgroundBorderRadius,
         textBackgroundOpacity: textBackgroundOpacity,
         textBackgroundPadding: textBackgroundPadding,
+        textAttributes: textAttributes?.map((e) => Map<String, dynamic>.from(e)).toList(),
       );
 
   Map<String, dynamic> toMap() => {
@@ -236,6 +239,7 @@ class ExportElement {
         'textBackgroundBorderRadius': textBackgroundBorderRadius,
         'textBackgroundOpacity': textBackgroundOpacity,
         'textBackgroundPadding': textBackgroundPadding,
+        'textAttributes': textAttributes,
       };
 
   factory ExportElement.fromMap(Map<String, dynamic> map) {
@@ -268,6 +272,11 @@ class ExportElement {
       textBackgroundBorderRadius: (map['textBackgroundBorderRadius'] as num?)?.toDouble() ?? 0.0,
       textBackgroundOpacity: (map['textBackgroundOpacity'] as num?)?.toDouble() ?? 1.0,
       textBackgroundPadding: (map['textBackgroundPadding'] as num?)?.toDouble() ?? 0.0,
+      textAttributes: map['textAttributes'] != null
+          ? (map['textAttributes'] as List)
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList()
+          : null,
     );
   }
 }

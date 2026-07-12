@@ -242,8 +242,13 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                 ],
               ),
               // 文字样式
-              Row(
-                children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  reverse: true, // 靠右侧显示
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                   _buildIconButton(
                     icon: Icons.format_bold_rounded,
                     isSelected: element.fontWeight == 'bold',
@@ -280,6 +285,28 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                   ),
                   const SizedBox(width: 8),
                   _buildIconButton(
+                    icon: Icons.panorama_fish_eye_rounded,
+                    isSelected: element.textDecoration == 'circle',
+                    onTap: () {
+                      _saveToHistory();
+                      updateState(() {
+                        element.textDecoration = element.textDecoration == 'circle' ? 'none' : 'circle';
+                      });
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _buildIconButton(
+                    icon: Icons.brush_rounded,
+                    isSelected: element.textDecoration == 'marker',
+                    onTap: () {
+                      _saveToHistory();
+                      updateState(() {
+                        element.textDecoration = element.textDecoration == 'marker' ? 'none' : 'marker';
+                      });
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _buildIconButton(
                     icon: Icons.format_strikethrough_rounded,
                     isSelected: element.textDecoration == 'line-through',
                     onTap: () {
@@ -291,6 +318,8 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                   ),
                 ],
               ),
+            ),
+          ),
             ],
           ),
           const SizedBox(height: 12),
@@ -392,104 +421,99 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                     },
                   );
                 },
-                child: Container(
+                child: SizedBox(
                   width: 28,
                   height: 28,
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: (element.textBackgroundColor != null &&
-                              !const [
-                                Colors.white,
-                                Color(0xFFFEE2E2),
-                                Color(0xFFFEF3C7),
-                                Color(0xFFD1FAE5),
-                                Color(0xFFDBEAFE),
-                                Color(0xFFF3E8FF)
-                              ].contains(element.textBackgroundColor))
-                          ? const Color(0xFF8A7A6E)
-                          : Colors.grey[300]!,
-                      width: (element.textBackgroundColor != null &&
-                              !const [
-                                Colors.white,
-                                Color(0xFFFEE2E2),
-                                Color(0xFFFEF3C7),
-                                Color(0xFFD1FAE5),
-                                Color(0xFFDBEAFE),
-                                Color(0xFFF3E8FF)
-                              ].contains(element.textBackgroundColor))
-                          ? 2
-                          : 1,
-                    ),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.colorize_rounded, size: 14, color: Color(0xFF8A7A6E)),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (element.textBackgroundColor != null &&
+                          !const [
+                            Color(0xFFFC2E1F),
+                            Color(0xFFFE9027),
+                            Color(0xFFFECE34),
+                            Color(0xFF93D140),
+                            Color(0xFF28C0B5),
+                            Color(0xFF3A8AFD),
+                            Color(0xFF9168FA),
+                            Color(0xFFFC7CBA),
+                            Color(0xFFFB7774),
+                            Color(0xFFFCC286),
+                            Color(0xFFB3B2B4),
+                            Color(0xFF4D4D4D),
+                          ].contains(element.textBackgroundColor))
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: element.textBackgroundColor!, width: 2),
+                          ),
+                        ),
+                      Container(
+                        margin: (element.textBackgroundColor != null &&
+                                !const [
+                                  Color(0xFFFC2E1F),
+                                  Color(0xFFFE9027),
+                                  Color(0xFFFECE34),
+                                  Color(0xFF93D140),
+                                  Color(0xFF28C0B5),
+                                  Color(0xFF3A8AFD),
+                                  Color(0xFF9168FA),
+                                  Color(0xFFFC7CBA),
+                                  Color(0xFFFB7774),
+                                  Color(0xFFFCC286),
+                                  Color(0xFFB3B2B4),
+                                  Color(0xFF4D4D4D),
+                                ].contains(element.textBackgroundColor))
+                            ? const EdgeInsets.all(3.0)
+                            : EdgeInsets.zero,
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey[300]!, width: 1),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.colorize_rounded, size: 14, color: Color(0xFF8A7A6E)),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              _ExportColorPicker(
-                colors: const [Colors.white, Color(0xFFFEE2E2), Color(0xFFFEF3C7), Color(0xFFD1FAE5), Color(0xFFDBEAFE), Color(0xFFF3E8FF)],
-                selectedColor: element.textBackgroundColor,
-                size: 28,
-                spacing: 10,
-                onColorSelected: (c) {
-                  _saveToHistory();
-                  updateState(() {
-                    element.textBackgroundColor = c;
-                    _adjustTextElementWidth(element);
-                  });
-                },
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: _ExportColorPicker(
+                    colors: const [
+                      Color(0xFFFC2E1F),
+                      Color(0xFFFE9027),
+                      Color(0xFFFECE34),
+                      Color(0xFF93D140),
+                      Color(0xFF28C0B5),
+                      Color(0xFF3A8AFD),
+                      Color(0xFF9168FA),
+                      Color(0xFFFC7CBA),
+                      Color(0xFFFB7774),
+                      Color(0xFFFCC286),
+                      Color(0xFFB3B2B4),
+                      Color(0xFF4D4D4D),
+                    ],
+                    selectedColor: element.textBackgroundColor,
+                    size: 28,
+                    spacing: 10,
+                    onColorSelected: (c) {
+                      _saveToHistory();
+                      updateState(() {
+                        element.textBackgroundColor = c;
+                        _adjustTextElementWidth(element);
+                      });
+                    },
+                  ),
+                ),
               ),
             ],
           ),
-          
-          if (element.textBackgroundColor != null) ...[
-            const SizedBox(height: 12),
-            _buildPropertySlider(
-              label: '背景圆角',
-              value: element.textBackgroundBorderRadius.clamp(0.0, 30.0),
-              min: 0.0,
-              max: 30.0,
-              displayValue: '${element.textBackgroundBorderRadius.toInt()}px',
-              onChanged: (val) {
-                _saveToHistory();
-                updateState(() {
-                  element.textBackgroundBorderRadius = val;
-                });
-              },
-            ),
-            const SizedBox(height: 4),
-            _buildPropertySlider(
-              label: '背景边距',
-              value: element.textBackgroundPadding.clamp(0.0, 30.0),
-              min: 0.0,
-              max: 30.0,
-              displayValue: '${element.textBackgroundPadding.toInt()}px',
-              onChanged: (val) {
-                _saveToHistory();
-                updateState(() {
-                  element.textBackgroundPadding = val;
-                  _adjustTextElementWidth(element);
-                });
-              },
-            ),
-            const SizedBox(height: 4),
-            _buildPropertySlider(
-              label: '背景透明',
-              value: element.textBackgroundOpacity.clamp(0.0, 1.0),
-              min: 0.0,
-              max: 1.0,
-              displayValue: '${(element.textBackgroundOpacity * 100).toInt()}%',
-              onChanged: (val) {
-                _saveToHistory();
-                updateState(() {
-                  element.textBackgroundOpacity = val;
-                });
-              },
-            ),
-          ],
+
         ],
         if (element.type == 'image') ...[
           // 圆角 Slider
@@ -661,10 +685,35 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
           Row(
             children: [
               const Text(
-                '颜色选择: ',
+                '文字颜色: ',
                 style: TextStyle(fontSize: 10, color: Color(0xFF8A7A6E), fontFamily: 'LXGWWenKai', fontWeight: FontWeight.bold),
               ),
               const SizedBox(width: 8),
+              // 默认颜色按钮 (恢复默认黑灰色)
+              GestureDetector(
+                onTap: () {
+                  _saveToHistory();
+                  updateState(() {
+                    element.color = Colors.black87;
+                  });
+                },
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: element.color == Colors.black87 ? const Color(0xFF8A7A6E) : Colors.grey[300]!,
+                      width: element.color == Colors.black87 ? 2 : 1,
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.do_not_disturb_alt_rounded, size: 14, color: Color(0xFF8A7A6E)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               // 自定义颜色选择按钮
               GestureDetector(
                 onTap: () {
@@ -679,54 +728,92 @@ extension _ExportPanelPropertiesExtension on _DiaryBookExportPageState {
                     },
                   );
                 },
-                child: Container(
+                child: SizedBox(
                   width: 28,
                   height: 28,
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: (!const [
-                                Colors.black87,
-                                Colors.teal,
-                                Colors.red,
-                                Colors.blue,
-                                Colors.orange,
-                                Colors.purple,
-                                Colors.green
-                              ].contains(element.color))
-                          ? const Color(0xFF8A7A6E)
-                          : Colors.grey[300]!,
-                      width: (!const [
-                                Colors.black87,
-                                Colors.teal,
-                                Colors.red,
-                                Colors.blue,
-                                Colors.orange,
-                                Colors.purple,
-                                Colors.green
-                              ].contains(element.color))
-                          ? 2
-                          : 1,
-                    ),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.colorize_rounded, size: 14, color: Color(0xFF8A7A6E)),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (!const [
+                        Color(0xFFFC2E1F),
+                        Color(0xFFFE9027),
+                        Color(0xFFFECE34),
+                        Color(0xFF93D140),
+                        Color(0xFF28C0B5),
+                        Color(0xFF3A8AFD),
+                        Color(0xFF9168FA),
+                        Color(0xFFFC7CBA),
+                        Color(0xFFFB7774),
+                        Color(0xFFFCC286),
+                        Color(0xFFB3B2B4),
+                        Color(0xFF4D4D4D),
+                      ].contains(element.color))
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: element.color, width: 2),
+                          ),
+                        ),
+                      Container(
+                        margin: (!const [
+                          Color(0xFFFC2E1F),
+                          Color(0xFFFE9027),
+                          Color(0xFFFECE34),
+                          Color(0xFF93D140),
+                          Color(0xFF28C0B5),
+                          Color(0xFF3A8AFD),
+                          Color(0xFF9168FA),
+                          Color(0xFFFC7CBA),
+                          Color(0xFFFB7774),
+                          Color(0xFFFCC286),
+                          Color(0xFFB3B2B4),
+                          Color(0xFF4D4D4D),
+                        ].contains(element.color))
+                            ? const EdgeInsets.all(3.0)
+                            : EdgeInsets.zero,
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey[300]!, width: 1),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.colorize_rounded, size: 14, color: Color(0xFF8A7A6E)),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              _ExportColorPicker(
-                colors: const [Colors.black87, Colors.teal, Colors.red, Colors.blue, Colors.orange, Colors.purple, Colors.green],
-                selectedColor: element.color,
-                size: 28,
-                spacing: 10,
-                onColorSelected: (c) {
-                  _saveToHistory();
-                  updateState(() {
-                    element.color = c;
-                  });
-                },
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: _ExportColorPicker(
+                    colors: const [
+                      Color(0xFFFC2E1F),
+                      Color(0xFFFE9027),
+                      Color(0xFFFECE34),
+                      Color(0xFF93D140),
+                      Color(0xFF28C0B5),
+                      Color(0xFF3A8AFD),
+                      Color(0xFF9168FA),
+                      Color(0xFFFC7CBA),
+                      Color(0xFFFB7774),
+                      Color(0xFFFCC286),
+                      Color(0xFFB3B2B4),
+                      Color(0xFF4D4D4D),
+                    ],
+                    selectedColor: element.color,
+                    size: 28,
+                    spacing: 10,
+                    onColorSelected: (c) {
+                      _saveToHistory();
+                      updateState(() {
+                        element.color = c;
+                      });
+                    },
+                  ),
+                ),
               ),
             ],
           ),

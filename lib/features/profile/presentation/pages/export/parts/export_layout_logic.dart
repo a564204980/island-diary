@@ -34,7 +34,8 @@ extension _ExportLayoutLogic on _DiaryBookExportPageState {
     final targetWidth = constraints.maxWidth - padding;
     final scale = targetWidth / _canvasWidth;
     
-    final dx = (constraints.maxWidth - _canvasWidth * scale) / 2;
+    // 等宽容器居中方案下，水平位移严格为 0
+    final dx = 0.0;
     final dy = 16.0;
     
     final targetMatrix = Matrix4.identity()
@@ -57,6 +58,14 @@ extension _ExportLayoutLogic on _DiaryBookExportPageState {
     updateState(() {
       _transformationController.value = matrix..scaleByDouble(finalFactor, finalFactor, 1.0, 1.0);
     });
+    // 按钮放大时：新 scale 超过初始比例 5% 则允许自由平移（可左右拖）；
+    // 按钮缩小时：回到接近初始比例则锁回只允许垂直拖动。
+    if (_initialScale != null) {
+      final bool shouldFree = newScale > _initialScale! * 1.05;
+      if (_isPanFreeNotifier.value != shouldFree) {
+        _isPanFreeNotifier.value = shouldFree;
+      }
+    }
   }
 
 
@@ -129,7 +138,8 @@ extension _ExportLayoutLogic on _DiaryBookExportPageState {
     
     // 如果缩小到默认级别附近，强制 X 轴回正
     if (scale <= _initialScale! + 0.05) {
-      final targetDx = (_lastConstraints!.maxWidth - _canvasWidth * scale) / 2;
+      // 现在的等宽结构下，目标永远是绝对的 0.0
+      final targetDx = 0.0;
       final currentDx = matrix.getTranslation().x;
       
       // 容差大于 1 px，认为发生了偏移，执行回弹动画

@@ -1,8 +1,6 @@
 part of '../../diary_book_export_page.dart';
 
 extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
-
-
   // 渲染单个画布元素与编辑控制点
   Widget _buildCanvasElement(ExportElement element, bool isSelected) {
     const double handlePadding = 12.0;
@@ -13,49 +11,83 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
     // 手势识别器的回调 closure 被替换为错误元素的回调。
     final double screenY = getScreenY(element.y);
 
+    // canMove：只在元素被选中且未锁定时，注册元素整体移动的 pan 回调。
+    // 未选中时传 null，pan 手势透传给 InteractiveViewer，实现页面滚动。
+    final bool canMove =
+        element.id == _selectedElementId &&
+        !element.isLocked &&
+        element.id != _editingElementId;
+
     return Listener(
-      // Listener.onPointerDown 是原始指针事件，在手势仲裁之前立即触发，
-      // 彻底绕过 InteractiveViewer / GestureDetector 的竞争延迟。
-          behavior: HitTestBehavior.opaque,
-          onPointerDown: (_) {
-            if (_selectedElementId != element.id) {
-              _selectElement(element.id);
-            }
-          },
-          child: GestureDetector(
-          // 外层 GestureDetector 仅处理 pan（移动）手势，不再参与选中。
-          behavior: HitTestBehavior.opaque,
-          onTap: () {
-            // 吞没 onTap 事件，防止其冒泡到画板背景的 GestureDetector 导致误触发 _selectElement(null)
-          },
-          onPanStart: (details) {
-              if (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId) return;
-              _saveToHistory();
-              updateState(() {
-                _activeHandle = 'move';
-                _dragX = element.x;
-                _dragY = screenY;
-              });
-            },
-          onPanEnd: (details) {
-              if (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId) return;
-              updateState(() {
-                _activeHandle = null;
-                _vGuidelines.clear();
-                _hGuidelines.clear();
-              });
-            },
-          onPanCancel: () {
-              if (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId) return;
-              updateState(() {
-                _activeHandle = null;
-                _vGuidelines.clear();
-                _hGuidelines.clear();
-              });
-            },
-          onPanUpdate: (details) {
-              if (element.isLocked || element.id == _editingElementId || element.id != _selectedElementId) return;
-              updateCanvasState(() {
+      behavior: HitTestBehavior.opaque,
+      // ─── 选中逻辑（延迟提交策略，完全基于原始指针事件）───
+      // onPointerDown：只记录"待选中"，不立刻选中（避免滑动闪烁）
+      // onPointerMove：累积位移超过阈值时取消待选中（判定为滑动）
+      // onPointerUp  ：若待选中未被取消（说明是点击），才提交选中
+      // onPointerCancel：清除所有追踪状态
+      onPointerDown: (event) {
+        _tapDownPosition = event.position;
+        _pendingSelectElementId = element.id; // 仅标记，不立刻选中
+      },
+      onPointerMove: (event) {
+        // 累积移动距离超过 18px（Flutter kTouchSlop），判定为滑动，取消待选中
+        if (_tapDownPosition != null && _pendingSelectElementId != null) {
+          final double distance = (event.position - _tapDownPosition!).distance;
+          if (distance > 18.0) {
+            _pendingSelectElementId = null; // 取消，不会在 onPointerUp 提交
+            _tapDownPosition = null;
+          }
+        }
+      },
+      onPointerUp: (event) {
+        // 移动未超阈值（点击操作），提交选中
+        if (_pendingSelectElementId == element.id &&
+            _selectedElementId != element.id) {
+          _selectElement(element.id);
+        }
+        _pendingSelectElementId = null;
+        _tapDownPosition = null;
+      },
+      onPointerCancel: (_) {
+        _pendingSelectElementId = null;
+        _tapDownPosition = null;
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          // 吸收 tap 事件，防止冒泡到画板背景触发 _selectElement(null) 取消选中
+        },
+        onPanStart: canMove
+            ? (details) {
+                _saveToHistory();
+                updateState(() {
+                  _activeHandle = 'move';
+                  _dragX = element.x;
+                  _dragY = screenY;
+                });
+              }
+            : null,
+        onPanEnd: canMove
+            ? (details) {
+                updateState(() {
+                  _activeHandle = null;
+                  _vGuidelines.clear();
+                  _hGuidelines.clear();
+                });
+              }
+            : null,
+        onPanCancel: canMove
+            ? () {
+                updateState(() {
+                  _activeHandle = null;
+                  _vGuidelines.clear();
+                  _hGuidelines.clear();
+                });
+              }
+            : null,
+        onPanUpdate: canMove
+            ? (details) {
+                updateCanvasState(() {
                   // 此处 delta 已是屏幕坐标系（GestureDetector 在 Transform.rotate 外），
                   // 虚拟拖拽坐标累加 delta（保留没有被磁吸强制修正的真实手势轨迹）
                   _dragX += details.delta.dx;
@@ -69,7 +101,8 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
 
                   // 页边距与相邻元素磁吸对齐（仅在元素基本未旋转时才做磁吸，旋转后对齐参考线没有意义）
                   final double rotationMod = element.rotation % (2 * pi);
-                  final bool nearNoRotation = rotationMod < 0.1 || rotationMod > (2 * pi - 0.1);
+                  final bool nearNoRotation =
+                      rotationMod < 0.1 || rotationMod > (2 * pi - 0.1);
                   if (nearNoRotation) {
                     const double snapThreshold = 8.0;
 
@@ -77,14 +110,22 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                     if ((_dragX - _margin.left).abs() < snapThreshold) {
                       newX = _margin.left;
                       _vGuidelines.add(newX);
-                    } else if ((_dragX + element.width - (_canvasWidth - _margin.right)).abs() < snapThreshold) {
+                    } else if ((_dragX +
+                                element.width -
+                                (_canvasWidth - _margin.right))
+                            .abs() <
+                        snapThreshold) {
                       newX = _canvasWidth - _margin.right - element.width;
                       _vGuidelines.add(newX + element.width);
                     }
                     if ((_dragY - _margin.top).abs() < snapThreshold) {
                       newY = _margin.top;
                       _hGuidelines.add(newY);
-                    } else if ((_dragY + element.height - (_canvasHeight - _margin.bottom)).abs() < snapThreshold) {
+                    } else if ((_dragY +
+                                element.height -
+                                (_canvasHeight - _margin.bottom))
+                            .abs() <
+                        snapThreshold) {
                       newY = _canvasHeight - _margin.bottom - element.height;
                       _hGuidelines.add(newY + element.height);
                     }
@@ -94,7 +135,8 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                       if (other.id == element.id || !other.isVisible) continue;
 
                       final double otherRot = other.rotation % (2 * pi);
-                      final bool otherNearNoRotation = otherRot < 0.1 || otherRot > (2 * pi - 0.1);
+                      final bool otherNearNoRotation =
+                          otherRot < 0.1 || otherRot > (2 * pi - 0.1);
                       if (!otherNearNoRotation) continue;
 
                       // --- Y 轴方向对齐吸附 ---
@@ -104,21 +146,29 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                         _hGuidelines.add(newY);
                       }
                       // 底部对齐
-                      else if ((_dragY + element.height - (other.y + other.height)).abs() < snapThreshold) {
+                      else if ((_dragY +
+                                  element.height -
+                                  (other.y + other.height))
+                              .abs() <
+                          snapThreshold) {
                         newY = other.y + other.height - element.height;
                         _hGuidelines.add(newY + element.height);
                       }
                       // 垂直居中对齐
-                      else if (((_dragY + element.height / 2) - (other.y + other.height / 2)).abs() < snapThreshold) {
+                      else if (((_dragY + element.height / 2) -
+                                  (other.y + other.height / 2))
+                              .abs() <
+                          snapThreshold) {
                         newY = other.y + other.height / 2 - element.height / 2;
                         _hGuidelines.add(newY + element.height / 2);
                       }
                       // 纵向首尾相连邻接
-                      else if ((_dragY - (other.y + other.height)).abs() < snapThreshold) {
+                      else if ((_dragY - (other.y + other.height)).abs() <
+                          snapThreshold) {
                         newY = other.y + other.height;
                         _hGuidelines.add(newY);
-                      }
-                      else if (((_dragY + element.height) - other.y).abs() < snapThreshold) {
+                      } else if (((_dragY + element.height) - other.y).abs() <
+                          snapThreshold) {
                         newY = other.y - element.height;
                         _hGuidelines.add(other.y);
                       }
@@ -130,21 +180,29 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                         _vGuidelines.add(newX);
                       }
                       // 右侧对齐
-                      else if ((_dragX + element.width - (other.x + other.width)).abs() < snapThreshold) {
+                      else if ((_dragX +
+                                  element.width -
+                                  (other.x + other.width))
+                              .abs() <
+                          snapThreshold) {
                         newX = other.x + other.width - element.width;
                         _vGuidelines.add(newX + element.width);
                       }
                       // 水平居中对齐
-                      else if (((_dragX + element.width / 2) - (other.x + other.width / 2)).abs() < snapThreshold) {
+                      else if (((_dragX + element.width / 2) -
+                                  (other.x + other.width / 2))
+                              .abs() <
+                          snapThreshold) {
                         newX = other.x + other.width / 2 - element.width / 2;
                         _vGuidelines.add(newX + element.width / 2);
                       }
                       // 横向首尾并排邻接
-                      else if ((_dragX - (other.x + other.width)).abs() < snapThreshold) {
+                      else if ((_dragX - (other.x + other.width)).abs() <
+                          snapThreshold) {
                         newX = other.x + other.width;
                         _vGuidelines.add(newX);
-                      }
-                      else if (((_dragX + element.width) - other.x).abs() < snapThreshold) {
+                      } else if (((_dragX + element.width) - other.x).abs() <
+                          snapThreshold) {
                         newX = other.x - element.width;
                         _vGuidelines.add(other.x);
                       }
@@ -156,371 +214,493 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
                   // 以元素中心点做 clamp，确保旋转后四个角均不超出纸张。
                   final double abscos = cos(element.rotation).abs();
                   final double abssin = sin(element.rotation).abs();
-                  final double rotatedHalfW = (element.width * abscos + element.height * abssin) / 2;
-                  final double rotatedHalfH = (element.width * abssin + element.height * abscos) / 2;
+                  final double rotatedHalfW =
+                      (element.width * abscos + element.height * abssin) / 2;
+                  final double rotatedHalfH =
+                      (element.width * abssin + element.height * abscos) / 2;
 
-                  final double cx = (newX + element.width / 2)
-                      .clamp(rotatedHalfW, (_canvasWidth - rotatedHalfW).clamp(rotatedHalfW, _canvasWidth));
-                  final double cy = (newY + element.height / 2)
-                      .clamp(rotatedHalfH, (_totalCanvasHeight - rotatedHalfH).clamp(rotatedHalfH, _totalCanvasHeight));
+                  // 以边距线为硬边界（旋转感知：以旋转后包围盒半尺寸做偏移）
+                  // 计算当前元素所在页的边界
+                  final int pageIndex = (element.y / _canvasHeight)
+                      .floor()
+                      .clamp(0, _pageCount - 1);
+                  final double minY = pageIndex * _canvasHeight + _margin.top;
+                  final double maxY =
+                      (pageIndex + 1) * _canvasHeight - _margin.bottom;
+
+                  final double cx = (newX + element.width / 2).clamp(
+                    _margin.left + rotatedHalfW,
+                    (_canvasWidth - _margin.right - rotatedHalfW).clamp(
+                      _margin.left + rotatedHalfW,
+                      _canvasWidth - _margin.right,
+                    ),
+                  );
+                  final double cy = (newY + element.height / 2).clamp(
+                    minY + rotatedHalfH,
+                    (maxY - rotatedHalfH).clamp(minY + rotatedHalfH, maxY),
+                  );
 
                   element.x = cx - element.width / 2;
                   element.y = getLayoutY(cy - element.height / 2);
                 });
+              }
+            : null,
 
-              },
         child: Transform.rotate(
           angle: element.rotation,
           child: GestureDetector(
-            // 仅处理内层特有手势：已选中时的再次选中确认（备用）和双击编辑
-            onTapDown: (_) {
-              // 空实现，仅用于占位竞争手势
-            },
+            // 内层 GestureDetector：仅处理双击（进入编辑模式）。
+            // 选中逻辑已移至外层 Listener 的 onPointerDown（即时、不走竞技场）。
+            // 不注册任何 tap/tapDown 回调，避免干扰 handle 的 PanGestureRecognizer。
             onDoubleTap: () {
-                    if (element.isLocked) return;
-                    _selectElement(element.id);
-                    if (element.type == 'text') {
-                      updateState(() {
-                        _editingElementId = element.id;
-                        _inlineFocusNode.requestFocus();
-                      });
-                    } else if (element.type == 'image') {
-                      _showImageEditDialog(element);
-                    }
-                  },
+              if (element.isLocked) return;
+              _selectElement(element.id);
+              if (element.type == 'text') {
+                updateState(() {
+                  _editingElementId = element.id;
+                  _inlineFocusNode.requestFocus();
+                });
+              } else if (element.type == 'image') {
+                _showImageEditDialog(element);
+              }
+            },
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-            // 元素本尊（作为唯一的非 Positioned 子项，用于撑起 Stack 的大小）
-            Padding(
-              padding: const EdgeInsets.only(left: handlePadding, right: handlePadding, top: handlePadding, bottom: handlePadding + 50.0),
-              child: Container(
-                width: element.width + 8.0,
-                height: (element.type == 'text' || element.type == 'diary_header')
-                    ? null
-                    : ((element.type == 'line' ? (element.height < 30.0 ? 30.0 : element.height) : element.height) + 8.0),
-                alignment: element.type == 'line' ? Alignment.center : null,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  border: isSelected
-                      ? Border.all(color: const Color(0xFF8B5CF6), width: 1.5)
-                      : null,
-                ),
-                child: _renderElementContent(element),
-              ),
-            ),
-
-            // 选中状态下的四个角拉伸手势点、两侧胶囊手柄和悬浮条
-            if (isSelected && !element.isLocked) ...[
-              // 1. 左上角
-              Positioned(
-                left: handlePadding - 30,
-                top: handlePadding - 30,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanStart: (_) {
-                    _saveToHistory();
-                    updateState(() {
-                      _activeHandle = 'topLeft';
-                    });
-                  },
-                  onPanEnd: (_) {
-                    updateState(() {
-                      _activeHandle = null;
-                    });
-                  },
-                  onPanCancel: () {
-                    updateState(() {
-                      _activeHandle = null;
-                    });
-                  },
-                  onPanUpdate: (details) {
-                    updateCanvasState(() {
-                      final double newX = (element.x + details.delta.dx).clamp(0.0, element.x + element.width - 30.0);
-                      final double dx = newX - element.x;
-                      element.x = newX;
-                      element.width -= dx;
-
-                      final double newY = (element.y + details.delta.dy).clamp(0.0, element.y + element.height - 10.0);
-                      final double dy = newY - element.y;
-                      element.y = newY;
-                      element.height -= dy;
-                    });
-                  },
-                  child: _buildControlPoint(isActive: _activeHandle == 'topLeft'),
-                ),
-              ),
-              // 2. 右上角
-              Positioned(
-                right: handlePadding - 30,
-                top: handlePadding - 30,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanStart: (_) {
-                    _saveToHistory();
-                    updateState(() {
-                      _activeHandle = 'topRight';
-                    });
-                  },
-                  onPanEnd: (_) {
-                    updateState(() {
-                      _activeHandle = null;
-                    });
-                  },
-                  onPanCancel: () {
-                    updateState(() {
-                      _activeHandle = null;
-                    });
-                  },
-                  onPanUpdate: (details) {
-                    updateCanvasState(() {
-                      element.width = (element.width + details.delta.dx).clamp(30.0, (_canvasWidth - element.x).clamp(30.0, _canvasWidth));
-                      
-                      final double newY = (element.y + details.delta.dy).clamp(0.0, element.y + element.height - 10.0);
-                      final double dy = newY - element.y;
-                      element.y = newY;
-                      element.height -= dy;
-                    });
-                  },
-                  child: _buildControlPoint(isActive: _activeHandle == 'topRight'),
-                ),
-              ),
-              // 3. 左下角
-              Positioned(
-                left: handlePadding - 30,
-                bottom: handlePadding + 20,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanStart: (_) {
-                    _saveToHistory();
-                    updateState(() {
-                      _activeHandle = 'bottomLeft';
-                    });
-                  },
-                  onPanEnd: (_) {
-                    updateState(() {
-                      _activeHandle = null;
-                    });
-                  },
-                  onPanCancel: () {
-                    updateState(() {
-                      _activeHandle = null;
-                    });
-                  },
-                  onPanUpdate: (details) {
-                    updateCanvasState(() {
-                      final double newX = (element.x + details.delta.dx).clamp(0.0, element.x + element.width - 30.0);
-                      final double dx = newX - element.x;
-                      element.x = newX;
-                      element.width -= dx;
-
-                      element.height = (element.height + details.delta.dy).clamp(10.0, (_totalCanvasHeight - element.y).clamp(10.0, _totalCanvasHeight));
-                    });
-                  },
-                  child: _buildControlPoint(isActive: _activeHandle == 'bottomLeft'),
-                ),
-              ),
-              // 4. 右下角
-              Positioned(
-                right: handlePadding - 30,
-                bottom: handlePadding + 20,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanStart: (_) {
-                    _saveToHistory();
-                    updateState(() {
-                      _activeHandle = 'bottomRight';
-                    });
-                  },
-                  onPanEnd: (_) {
-                    updateState(() {
-                      _activeHandle = null;
-                    });
-                  },
-                  onPanCancel: () {
-                    updateState(() {
-                      _activeHandle = null;
-                    });
-                  },
-                  onPanUpdate: (details) {
-                    updateCanvasState(() {
-                      element.width = (element.width + details.delta.dx).clamp(30.0, (_canvasWidth - element.x).clamp(30.0, _canvasWidth));
-                      element.height = (element.height + details.delta.dy).clamp(10.0, (_totalCanvasHeight - element.y).clamp(10.0, _totalCanvasHeight));
-                    });
-                  },
-                  child: _buildControlPoint(isActive: _activeHandle == 'bottomRight'),
-                ),
-              ),
-              // 5. 左侧中点（仅拉伸宽度并联动 x，胶囊形状）
-              Positioned(
-                left: handlePadding - 30,
-                top: handlePadding,
-                bottom: handlePadding + 50.0,
-                child: Center(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onPanStart: (_) {
-                      _saveToHistory();
-                      updateState(() {
-                        _activeHandle = 'leftSide';
-                      });
-                    },
-                    onPanEnd: (_) {
-                      updateState(() {
-                        _activeHandle = null;
-                      });
-                    },
-                    onPanCancel: () {
-                      updateState(() {
-                        _activeHandle = null;
-                      });
-                    },
-                    onPanUpdate: (details) {
-                      updateCanvasState(() {
-                        final double newX = (element.x + details.delta.dx).clamp(0.0, element.x + element.width - 30.0);
-                        final double dx = newX - element.x;
-                        element.x = newX;
-                        element.width -= dx;
-                      });
-                    },
-                    child: _buildControlPoint(isCapsule: true, isActive: _activeHandle == 'leftSide'),
+                // 元素本尊（作为唯一的非 Positioned 子项，用于撑起 Stack 的大小）
+                Padding(
+                  padding: const EdgeInsets.only(
+                    left: handlePadding,
+                    right: handlePadding,
+                    top: handlePadding,
+                    bottom: handlePadding + 50.0,
+                  ),
+                  child: Container(
+                    width: element.width + 8.0,
+                    height:
+                        (element.type == 'text' ||
+                            element.type == 'diary_header')
+                        ? null
+                        : ((element.type == 'line'
+                                  ? (element.height < 30.0
+                                        ? 30.0
+                                        : element.height)
+                                  : element.height) +
+                              8.0),
+                    alignment: element.type == 'line' ? Alignment.center : null,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      border: isSelected
+                          ? Border.all(
+                              color: const Color(0xFF8B5CF6),
+                              width: 1.5,
+                            )
+                          : null,
+                    ),
+                    child: _renderElementContent(element),
                   ),
                 ),
-              ),
-              // 6. 右侧中点（仅拉伸宽度，胶囊形状）
-              Positioned(
-                right: handlePadding - 30,
-                top: handlePadding,
-                bottom: handlePadding + 50.0,
-                child: Center(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onPanStart: (_) {
-                      _saveToHistory();
-                      updateState(() {
-                        _activeHandle = 'rightSide';
-                      });
-                    },
-                    onPanEnd: (_) {
-                      updateState(() {
-                        _activeHandle = null;
-                      });
-                    },
-                    onPanCancel: () {
-                      updateState(() {
-                        _activeHandle = null;
-                      });
-                    },
-                    onPanUpdate: (details) {
-                      updateCanvasState(() {
-                        element.width = (element.width + details.delta.dx).clamp(30.0, (_canvasWidth - element.x).clamp(30.0, _canvasWidth));
-                      });
-                    },
-                    child: _buildControlPoint(isCapsule: true, isActive: _activeHandle == 'rightSide'),
-                  ),
-                ),
-              ),
-              // 7. 底部旋转手柄（圆形、白底紫边、中间为旋转箭头图标）
-              Positioned(
-                bottom: 8.0,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      _saveToHistory();
-                      updateState(() {
-                        element.rotation += pi / 2;
-                      });
-                    },
-                    onPanStart: (_) {
-                      _saveToHistory();
-                      updateState(() {
-                        _activeHandle = 'rotate';
-                      });
-                    },
-                    onPanEnd: (_) {
-                      updateState(() {
-                        _activeHandle = null;
-                      });
-                    },
-                    onPanCancel: () {
-                      updateState(() {
-                        _activeHandle = null;
-                      });
-                    },
-                    onPanUpdate: (details) {
-                      updateCanvasState(() {
-                        // 1. 取得旋转弧度逆向投影回本地的水平位移量 ldx
-                        final double cosA = cos(-element.rotation);
-                        final double sinA = sin(-element.rotation);
-                        final double ldx = details.delta.dx * cosA - details.delta.dy * sinA;
 
-                        // 2. 旋转半径
-                        final double ry = element.height / 2 + 30.0;
+                // 选中状态下的四个角拉伸手势点、两侧胶囊手柄和悬浮条
+                if (isSelected && !element.isLocked) ...[
+                  // 1. 左上角
+                  Positioned(
+                    left: handlePadding - 30,
+                    top: handlePadding - 30,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onPanStart: (_) {
+                        _saveToHistory();
+                        updateState(() {
+                          _activeHandle = 'topLeft';
+                        });
+                      },
+                      onPanEnd: (_) {
+                        updateState(() {
+                          _activeHandle = null;
+                        });
+                      },
+                      onPanCancel: () {
+                        updateState(() {
+                          _activeHandle = null;
+                        });
+                      },
+                      onPanUpdate: (details) {
+                        updateCanvasState(() {
+                          final int pageIndex = (element.y / _canvasHeight)
+                              .floor()
+                              .clamp(0, _pageCount - 1);
+                          final double minY =
+                              pageIndex * _canvasHeight + _margin.top;
 
-                        // 3. 计算旋转增量并更新
-                        final double dAngle = -ldx / ry;
-                        element.rotation += dAngle;
-                      });
-                    },
-                    child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF8B5CF6), width: 1.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 5,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.sync_rounded,
-                        color: Color(0xFF8B5CF6),
-                        size: 18,
+                          final double newX = (element.x + details.delta.dx)
+                              .clamp(
+                                element.x + 30.0,
+                                _canvasWidth - _margin.right,
+                              );
+                          final double dx = newX - (element.x + element.width);
+                          element.width += dx;
+
+                          final double newY = (element.y + details.delta.dy)
+                              .clamp(minY, element.y + element.height - 10.0);
+                          final double dy = newY - element.y;
+                          element.y = newY;
+                          element.height -= dy;
+                        });
+                      },
+                      child: _buildControlPoint(
+                        isActive: _activeHandle == 'topLeft',
                       ),
                     ),
                   ),
-                ),
-              ),
-            ],
+                  // 2. 右上角
+                  Positioned(
+                    right: handlePadding - 30,
+                    top: handlePadding - 30,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onPanStart: (_) {
+                        _saveToHistory();
+                        updateState(() {
+                          _activeHandle = 'topRight';
+                        });
+                      },
+                      onPanEnd: (_) {
+                        updateState(() {
+                          _activeHandle = null;
+                        });
+                      },
+                      onPanCancel: () {
+                        updateState(() {
+                          _activeHandle = null;
+                        });
+                      },
+                      onPanUpdate: (details) {
+                        updateCanvasState(() {
+                          final int pageIndex = (element.y / _canvasHeight)
+                              .floor()
+                              .clamp(0, _pageCount - 1);
+                          final double minY =
+                              pageIndex * _canvasHeight + _margin.top;
 
-            // 锁定状态的提示
-            if (isSelected && element.isLocked)
-              Positioned(
-                top: -30,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.orange,
-                    borderRadius: BorderRadius.circular(4),
+                          // 右边界以边距线为准
+                          element.width = (element.width + details.delta.dx)
+                              .clamp(
+                                30.0,
+                                (_canvasWidth - _margin.right - element.x)
+                                    .clamp(30.0, _canvasWidth - _margin.right),
+                              );
+
+                          // 上边界以边距线为准
+                          final double newY = (element.y + details.delta.dy)
+                              .clamp(minY, element.y + element.height - 10.0);
+                          final double dy = newY - element.y;
+                          element.y = newY;
+                          element.height -= dy;
+                        });
+                      },
+                      child: _buildControlPoint(
+                        isActive: _activeHandle == 'topRight',
+                      ),
+                    ),
                   ),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      updateState(() {
-                        element.isLocked = false;
-                      });
-                      _selectElement(element.id); // 解锁后保持选中当前元素，防止事件穿透导致选中底下重合的其他元素
-                    },
-                    child: const Icon(Icons.lock, color: Colors.white, size: 14),
+                  // 3. 左下角
+                  Positioned(
+                    left: handlePadding - 30,
+                    bottom: handlePadding + 20,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onPanStart: (_) {
+                        _saveToHistory();
+                        updateState(() {
+                          _activeHandle = 'bottomLeft';
+                        });
+                      },
+                      onPanEnd: (_) {
+                        updateState(() {
+                          _activeHandle = null;
+                        });
+                      },
+                      onPanCancel: () {
+                        updateState(() {
+                          _activeHandle = null;
+                        });
+                      },
+                      onPanUpdate: (details) {
+                        updateCanvasState(() {
+                          final int pageIndex = (element.y / _canvasHeight)
+                              .floor()
+                              .clamp(0, _pageCount - 1);
+                          final double maxY =
+                              (pageIndex + 1) * _canvasHeight - _margin.bottom;
+
+                          // 左边界以边距线为准
+                          final double newX = (element.x + details.delta.dx)
+                              .clamp(
+                                _margin.left,
+                                element.x + element.width - 30.0,
+                              );
+                          final double dx = newX - element.x;
+                          element.x = newX;
+                          element.width -= dx;
+
+                          // 下边界以当前页边距线为准
+                          element.height = (element.height + details.delta.dy)
+                              .clamp(10.0, maxY - element.y);
+                        });
+                      },
+                      child: _buildControlPoint(
+                        isActive: _activeHandle == 'bottomLeft',
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                  // 4. 右下角
+                  Positioned(
+                    right: handlePadding - 30,
+                    bottom: handlePadding + 20,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onPanStart: (_) {
+                        _saveToHistory();
+                        updateState(() {
+                          _activeHandle = 'bottomRight';
+                        });
+                      },
+                      onPanEnd: (_) {
+                        updateState(() {
+                          _activeHandle = null;
+                        });
+                      },
+                      onPanCancel: () {
+                        updateState(() {
+                          _activeHandle = null;
+                        });
+                      },
+                      onPanUpdate: (details) {
+                        updateCanvasState(() {
+                          final int pageIndex = (element.y / _canvasHeight)
+                              .floor()
+                              .clamp(0, _pageCount - 1);
+                          final double maxY =
+                              (pageIndex + 1) * _canvasHeight - _margin.bottom;
+
+                          // 右/下边界以边距线为准
+                          element.width = (element.width + details.delta.dx)
+                              .clamp(
+                                30.0,
+                                (_canvasWidth - _margin.right - element.x)
+                                    .clamp(30.0, _canvasWidth - _margin.right),
+                              );
+                          element.height = (element.height + details.delta.dy)
+                              .clamp(10.0, maxY - element.y);
+                        });
+                      },
+                      child: _buildControlPoint(
+                        isActive: _activeHandle == 'bottomRight',
+                      ),
+                    ),
+                  ),
+                  // 5. 左侧中点（仅拉伸宽度并联动 x，胶囊形状）
+                  Positioned(
+                    left: handlePadding - 30,
+                    top: handlePadding,
+                    bottom: handlePadding + 50.0,
+                    child: Center(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onPanStart: (_) {
+                          _saveToHistory();
+                          updateState(() {
+                            _activeHandle = 'leftSide';
+                          });
+                        },
+                        onPanEnd: (_) {
+                          updateState(() {
+                            _activeHandle = null;
+                          });
+                        },
+                        onPanCancel: () {
+                          updateState(() {
+                            _activeHandle = null;
+                          });
+                        },
+                        onPanUpdate: (details) {
+                          updateCanvasState(() {
+                            // 左边界以边距线为准
+                            final double newX = (element.x + details.delta.dx)
+                                .clamp(
+                                  _margin.left,
+                                  element.x + element.width - 30.0,
+                                );
+                            final double dx = newX - element.x;
+                            element.x = newX;
+                            element.width -= dx;
+                          });
+                        },
+                        child: _buildControlPoint(
+                          isCapsule: true,
+                          isActive: _activeHandle == 'leftSide',
+                        ),
+                      ),
+                    ),
+                  ),
+                  // 6. 右侧中点（仅拉伸宽度，胶囊形状）
+                  Positioned(
+                    right: handlePadding - 30,
+                    top: handlePadding,
+                    bottom: handlePadding + 50.0,
+                    child: Center(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onPanStart: (_) {
+                          _saveToHistory();
+                          updateState(() {
+                            _activeHandle = 'rightSide';
+                          });
+                        },
+                        onPanEnd: (_) {
+                          updateState(() {
+                            _activeHandle = null;
+                          });
+                        },
+                        onPanCancel: () {
+                          updateState(() {
+                            _activeHandle = null;
+                          });
+                        },
+                        onPanUpdate: (details) {
+                          updateCanvasState(() {
+                            // 右边界以边距线为准
+                            element.width = (element.width + details.delta.dx)
+                                .clamp(
+                                  30.0,
+                                  (_canvasWidth - _margin.right - element.x)
+                                      .clamp(
+                                        30.0,
+                                        _canvasWidth - _margin.right,
+                                      ),
+                                );
+                          });
+                        },
+                        child: _buildControlPoint(
+                          isCapsule: true,
+                          isActive: _activeHandle == 'rightSide',
+                        ),
+                      ),
+                    ),
+                  ),
+                  // 7. 底部旋转手柄（圆形、白底紫边、中间为旋转箭头图标）
+                  Positioned(
+                    bottom: 8.0,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          _saveToHistory();
+                          updateState(() {
+                            element.rotation += pi / 2;
+                          });
+                        },
+                        onPanStart: (_) {
+                          _saveToHistory();
+                          updateState(() {
+                            _activeHandle = 'rotate';
+                          });
+                        },
+                        onPanEnd: (_) {
+                          updateState(() {
+                            _activeHandle = null;
+                          });
+                        },
+                        onPanCancel: () {
+                          updateState(() {
+                            _activeHandle = null;
+                          });
+                        },
+                        onPanUpdate: (details) {
+                          updateCanvasState(() {
+                            // 1. 取得旋转弧度逆向投影回本地的水平位移量 ldx
+                            final double cosA = cos(-element.rotation);
+                            final double sinA = sin(-element.rotation);
+                            final double ldx =
+                                details.delta.dx * cosA -
+                                details.delta.dy * sinA;
+
+                            // 2. 旋转半径
+                            final double ry = element.height / 2 + 30.0;
+
+                            // 3. 计算旋转增量并更新
+                            final double dAngle = -ldx / ry;
+                            element.rotation += dAngle;
+                          });
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF8B5CF6),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.sync_rounded,
+                            color: Color(0xFF8B5CF6),
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+
+                // 锁定状态的提示
+                if (isSelected && element.isLocked)
+                  Positioned(
+                    top: -30,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          updateState(() {
+                            element.isLocked = false;
+                          });
+                          _selectElement(
+                            element.id,
+                          ); // 解锁后保持选中当前元素，防止事件穿透导致选中底下重合的其他元素
+                        },
+                        child: const Icon(
+                          Icons.lock,
+                          color: Colors.white,
+                          size: 14,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
-            ),        // Stack 结束
-          ),          // 内层 GestureDetector 结束
-        ),            // Transform.rotate 结束
-        ),              // 外层 GestureDetector 结束
-        );              // Listener 结束
+            ), // Stack 结束
+          ), // 内层 GestureDetector 结束
+        ), // Transform.rotate 结束
+      ), // 外层 GestureDetector 结束
+    ); // Listener 结束
   }
 
   Widget _buildControlPoint({bool isCapsule = false, bool isActive = false}) {
@@ -538,7 +718,9 @@ extension _ExportCanvasGestureExtension on _DiaryBookExportPageState {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: const Color(0xFF2DD4BF).withValues(alpha: 0.25), // 柔和半透明淡蓝绿色
+                color: const Color(
+                  0xFF2DD4BF,
+                ).withValues(alpha: 0.25), // 柔和半透明淡蓝绿色
                 shape: BoxShape.circle,
               ),
             ),

@@ -16,30 +16,171 @@ extension _ExportCanvasRenderExtension on _DiaryBookExportPageState {
       ..color = color
       ..style = PaintingStyle.stroke;
 
-    // 完美抵消居中排版带来的文本下沉量，并使用 clamp 限制坐标在图片高度内以防溢出消失
     final double y = (fontSize * 1.2 + (lineHeight - 1.0) * fontSize * 0.5).clamp(0.0, rectHeight - 2.5);
+
+    if (style == 'circle') {
+      paint.strokeWidth = 1.6;
+      paint.strokeCap = StrokeCap.round;
+      final double startY = rectHeight * 0.12;
+      final double endY = rectHeight * 0.94;
+      final double midY = startY + (endY - startY) / 2;
+      final path = Path();
+      path.moveTo(1.2, midY - 1);
+      path.quadraticBezierTo(2.0, startY + 0.5, 7.0, startY);
+      path.quadraticBezierTo(13.5, startY + 0.2, 13.5, midY + 0.8);
+      path.quadraticBezierTo(13.2, endY - 0.5, 7.0, endY);
+      path.quadraticBezierTo(1.0, endY - 0.2, 1.2, midY - 1);
+      path.close();
+      canvas.drawPath(path, paint);
+
+      final img = recorder.endRecording().toImageSync(14, rectHeight.clamp(1.0, 1000.0).toInt());
+      return _exportShaderCache[key] = ImageShader(img, TileMode.repeated, TileMode.repeated, Float64List.fromList([1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]));
+    } else if (style == 'marker') {
+      final shader = LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Colors.transparent, Colors.transparent, color.withValues(alpha: 0.35), color.withValues(alpha: 0.35), Colors.transparent, Colors.transparent],
+        stops: const [0.0, 0.28, 0.30, 0.58, 0.60, 1.0],
+        tileMode: TileMode.repeated,
+      ).createShader(Rect.fromLTWH(0, 0, 1, rectHeight));
+      return _exportShaderCache[key] = shader;
+    } else if (style == 'wavy') {
+      paint.strokeWidth = 2.6; paint.strokeCap = StrokeCap.round;
+      final path = Path(); path.moveTo(0, y); path.quadraticBezierTo(3, y - 2.2, 6, y); path.quadraticBezierTo(9, y + 2.2, 12, y);
+      canvas.drawPath(path, paint);
+      final img = recorder.endRecording().toImageSync(12, rectHeight.clamp(1.0, 1000.0).toInt());
+      return _exportShaderCache[key] = ImageShader(img, TileMode.repeated, TileMode.repeated, Float64List.fromList([1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]));
+    } else if (style == 'dashed') {
+      paint.strokeWidth = 2.6; paint.strokeCap = StrokeCap.round;
+      canvas.drawLine(Offset(1, y), Offset(6, y), paint);
+      final img = recorder.endRecording().toImageSync(10, rectHeight.clamp(1.0, 1000.0).toInt());
+      return _exportShaderCache[key] = ImageShader(img, TileMode.repeated, TileMode.repeated, Float64List.fromList([1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]));
+    } else if (style == 'dotted') {
+      paint.strokeWidth = 3.2; paint.strokeCap = StrokeCap.round;
+      canvas.drawLine(Offset(2, y), Offset(2.1, y), paint);
+      final img = recorder.endRecording().toImageSync(8, rectHeight.clamp(1.0, 1000.0).toInt());
+      return _exportShaderCache[key] = ImageShader(img, TileMode.repeated, TileMode.repeated, Float64List.fromList([1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]));
+    }
 
     paint.strokeWidth = 1.4;
     paint.strokeCap = StrokeCap.round;
     canvas.drawLine(Offset(0, y), Offset(10, y), paint);
 
-    final picture = recorder.endRecording();
-    final width = 10;
-    final height = rectHeight.clamp(1.0, 1000.0).toInt();
-    final img = picture.toImageSync(width, height);
-    final shader = ImageShader(
-      img,
-      TileMode.repeated,
-      TileMode.repeated,
-      Float64List.fromList([
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0,
-      ]),
-    );
-    _exportShaderCache[key] = shader;
-    return shader;
+    final img = recorder.endRecording().toImageSync(10, rectHeight.clamp(1.0, 1000.0).toInt());
+    return _exportShaderCache[key] = ImageShader(img, TileMode.repeated, TileMode.repeated, Float64List.fromList([1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]));
+  }
+
+  InlineSpan _buildRichTextSpanForElement(ExportElement element, TextStyle baseStyle, {List<Map<String, dynamic>>? bgHighlights}) {
+    final String text = element.content;
+    final List<Map<String, dynamic>> highlights = element.textAttributes ?? [];
+
+    if (highlights.isEmpty) {
+      return _buildRichTextSpan(text, baseStyle);
+    }
+
+    final int len = text.length;
+    final Set<int> boundaries = {0, len};
+    for (var h in highlights) {
+      final int s = (h['start'] as int).clamp(0, len);
+      final int e = (h['end'] as int).clamp(s, len);
+      boundaries.add(s);
+      boundaries.add(e);
+    }
+
+    final sortedBoundaries = boundaries.toList()..sort();
+    final List<int> safeBoundaries = [];
+    for (int b in sortedBoundaries) {
+      if (b > 0 && b < len) {
+        final prev = text.codeUnitAt(b - 1);
+        final next = text.codeUnitAt(b);
+        if (prev >= 0xD800 && prev <= 0xDBFF && next >= 0xDC00 && next <= 0xDFFF) continue;
+      }
+      safeBoundaries.add(b);
+    }
+
+    final List<InlineSpan> spans = [];
+    int plainTextOffset = 0;
+
+    for (int i = 0; i < safeBoundaries.length - 1; i++) {
+      final start = safeBoundaries[i];
+      final end = safeBoundaries[i + 1];
+      if (start >= end) continue;
+
+      final chunk = text.substring(start, end);
+      TextStyle combinedStyle = baseStyle;
+
+      Color? bgColor;
+
+      for (var h in highlights) {
+        final int s = (h['start'] as int).clamp(0, len);
+        final int e = (h['end'] as int).clamp(s, len);
+        if (s <= start && e >= end) {
+          final double fs = (h['fontSize'] as num?)?.toDouble() ?? baseStyle.fontSize ?? 18.0;
+          final Color? textColor = h['color'] != null ? Color((h['color'] as num).toInt()) : null;
+          final bool bold = h['bold'] == true;
+          final bool hasUnderline = h['underline'] == true;
+
+          if (hasUnderline) {
+             final String uStyle = h['underlineStyle'] ?? 'solid';
+             final Color uColor = h['underlineColor'] != null ? Color((h['underlineColor'] as num).toInt()) : (textColor ?? Colors.black);
+             combinedStyle = combinedStyle.copyWith(
+               fontSize: fs,
+               color: textColor ?? combinedStyle.color,
+               fontWeight: bold ? FontWeight.bold : combinedStyle.fontWeight,
+               background: Paint()..shader = _getExportUnderlineShader(uStyle, uColor, fs, baseStyle.height ?? 1.2),
+             );
+          } else {
+             combinedStyle = combinedStyle.copyWith(
+               fontSize: fs,
+               color: textColor ?? combinedStyle.color,
+               fontWeight: bold ? FontWeight.bold : combinedStyle.fontWeight,
+             );
+             if (h['backgroundColor'] != null) {
+               bgColor = Color((h['backgroundColor'] as num).toInt());
+             }
+          }
+        }
+      }
+      
+      final pattern = RegExp(r'\[mood_icon:(.*?)\]');
+      int lastEnd = 0;
+      final List<InlineSpan> chunkSpans = [];
+      int chunkPlainLen = 0;
+
+      for (final match in pattern.allMatches(chunk)) {
+        if (match.start > lastEnd) {
+          final sub = chunk.substring(lastEnd, match.start);
+          final parsed = _parseEmojiMapping(sub, combinedStyle);
+          chunkSpans.addAll(parsed);
+          for (var p in parsed) { chunkPlainLen += p.toPlainText().length; }
+        }
+        chunkSpans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 4.0),
+            child: Image.asset(match.group(1)!, width: (combinedStyle.fontSize ?? 18.0) * 1.2, height: (combinedStyle.fontSize ?? 18.0) * 1.2, fit: BoxFit.contain),
+          ),
+        ));
+        chunkPlainLen += 1; // WidgetSpan takes 1 char in plain text
+        lastEnd = match.end;
+      }
+      if (lastEnd < chunk.length) {
+        final sub = chunk.substring(lastEnd);
+        final parsed = _parseEmojiMapping(sub, combinedStyle);
+        chunkSpans.addAll(parsed);
+        for (var p in parsed) { chunkPlainLen += p.toPlainText().length; }
+      }
+
+      if (bgColor != null && bgHighlights != null) {
+        bgHighlights.add({
+          'start': plainTextOffset,
+          'end': plainTextOffset + chunkPlainLen,
+          'color': bgColor,
+        });
+      }
+      plainTextOffset += chunkPlainLen;
+      spans.addAll(chunkSpans);
+    }
+    return TextSpan(children: spans);
   }
 
   InlineSpan _buildRichTextSpan(String text, TextStyle baseStyle) {
@@ -105,9 +246,11 @@ extension _ExportCanvasRenderExtension on _DiaryBookExportPageState {
 
       case 'text':
         Paint? backgroundPaint;
-        if (element.textDecoration == 'underline') {
+        final validDecorations = ['underline', 'solid', 'circle', 'marker', 'wavy', 'dashed', 'dotted', 'double'];
+        if (validDecorations.contains(element.textDecoration)) {
+          final styleStr = element.textDecoration == 'underline' ? 'solid' : element.textDecoration;
           backgroundPaint = Paint()
-            ..shader = _getExportUnderlineShader('solid', element.color, element.fontSize, element.lineHeight);
+            ..shader = _getExportUnderlineShader(styleStr, element.color, element.fontSize, element.lineHeight);
         }
 
         final textStyle = TextStyle(
@@ -162,7 +305,8 @@ extension _ExportCanvasRenderExtension on _DiaryBookExportPageState {
             },
           );
 
-          if (element.textBackgroundColor != null) {
+          bool isSystemTag = element.id.startsWith('diary_metadata_tag_');
+          if (element.textBackgroundColor != null && isSystemTag) {
             editorWidget = Container(
               padding: EdgeInsets.all(element.textBackgroundPadding),
               decoration: BoxDecoration(
@@ -179,16 +323,36 @@ extension _ExportCanvasRenderExtension on _DiaryBookExportPageState {
           );
         }
 
+        List<Map<String, dynamic>> bgHighlights = [];
+        final TextSpan finalSpan = _buildRichTextSpanForElement(element, textStyle, bgHighlights: bgHighlights) as TextSpan;
+
+        bool isSystemTag = element.id.startsWith('diary_metadata_tag_');
+        if (element.textBackgroundColor != null && !isSystemTag) {
+          bgHighlights.insert(0, {
+            'start': 0,
+            'end': finalSpan.toPlainText().length,
+            'color': element.textBackgroundColor,
+          });
+        }
+
         Widget textWidget = SizedBox(
-          width: element.width - ((element.textBackgroundColor != null) ? (element.textBackgroundPadding * 2) : 0.0),
-          child: Text.rich(
-            _buildRichTextSpan(element.content, textStyle) as TextSpan,
-            textAlign: align,
-            strutStyle: strutStyle,
+          width: element.width - ((element.textBackgroundColor != null && isSystemTag) ? (element.textBackgroundPadding * 2) : 0.0),
+          child: CustomPaint(
+            painter: ExportBrushBackgroundPainter(
+              textSpan: finalSpan,
+              textAlign: align,
+              strutStyle: strutStyle,
+              bgHighlights: bgHighlights,
+            ),
+            child: Text.rich(
+              finalSpan,
+              textAlign: align,
+              strutStyle: strutStyle,
+            ),
           ),
         );
 
-        if (element.textBackgroundColor != null) {
+        if (element.textBackgroundColor != null && isSystemTag) {
           textWidget = Container(
             padding: EdgeInsets.all(element.textBackgroundPadding),
             decoration: BoxDecoration(
@@ -442,5 +606,69 @@ class ShapePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant ShapePainter oldDelegate) {
     return oldDelegate.shapeType != shapeType || oldDelegate.color != color;
+  }
+}
+
+class ExportBrushBackgroundPainter extends CustomPainter {
+  final TextSpan textSpan;
+  final TextAlign textAlign;
+  final StrutStyle? strutStyle;
+  final List<Map<String, dynamic>> bgHighlights;
+
+  ExportBrushBackgroundPainter({
+    required this.textSpan,
+    required this.textAlign,
+    this.strutStyle,
+    required this.bgHighlights,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (bgHighlights.isEmpty) return;
+
+    final textPainter = TextPainter(
+      text: textSpan,
+      textAlign: textAlign,
+      strutStyle: strutStyle,
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout(maxWidth: size.width);
+
+    for (var region in bgHighlights) {
+      final bgColor = region['color'] as Color;
+      final start = region['start'] as int;
+      final end = region['end'] as int;
+      if (start >= end) continue;
+
+      final boxes = textPainter.getBoxesForSelection(
+        TextSelection(baseOffset: start, extentOffset: end),
+      );
+
+      for (var box in boxes) {
+        final rect = box.toRect();
+        if (rect.isEmpty || rect.width < 2) continue;
+
+        final double padX = 0.0;
+        final double padY = 3.0;
+        final double l = rect.left - padX;
+        final double r = rect.right + padX;
+        final double t = rect.top + padY;
+        final double b = rect.bottom - padY;
+        final double h = b - t;
+        if (h <= 0) continue;
+
+        final paint = Paint()
+          ..style = PaintingStyle.fill
+          ..color = bgColor.withValues(alpha: 0.35);
+
+        final rRect = RRect.fromLTRBR(l, t + h * 0.1, r, b - h * 0.1, const Radius.circular(4.0));
+        canvas.drawRRect(rRect, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant ExportBrushBackgroundPainter oldDelegate) {
+    return oldDelegate.textSpan != textSpan || oldDelegate.bgHighlights != bgHighlights;
   }
 }

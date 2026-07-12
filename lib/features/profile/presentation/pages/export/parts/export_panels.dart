@@ -465,8 +465,20 @@ class _AnimatedColorThumbnailState extends State<_AnimatedColorThumbnail> with S
             fit: StackFit.expand,
             clipBehavior: Clip.none,
             children: [
-              // 1. 底色
+              // 1. 选中框
+              if (widget.isSelected)
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: widget.color,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              // 2. 底色
               Container(
+                margin: widget.isSelected ? const EdgeInsets.all(3.0) : EdgeInsets.zero,
                 decoration: BoxDecoration(
                   color: widget.color,
                   shape: BoxShape.circle,

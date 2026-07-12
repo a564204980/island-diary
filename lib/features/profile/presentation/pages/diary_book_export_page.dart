@@ -81,6 +81,7 @@ class DiaryBookExportPage extends StatefulWidget {
 
 class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerProviderStateMixin {
   Widget? _canvasSubtreeCache;
+  final Map<int, Widget> _exportCanvasElementWidgetCache = {};
   final ValueNotifier<int> _canvasRefreshTrigger = ValueNotifier<int>(0);
   List<Widget>? _cachedBackgroundWidgets;
 
@@ -140,6 +141,10 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   String? _selectedElementId;
   String? _editingElementId;
   String? _activeHandle;
+  /// 待提交的选中元素 ID（onPointerDown 记录，onPointerUp 提交；onPointerMove 超阈值时取消）
+  String? _pendingSelectElementId;
+  /// 触摸时记录指针起始全局坐标，用于判断累积移动量（配合 _pendingSelectElementId）
+  Offset? _tapDownPosition;
   double _dragX = 0.0;
   double _dragY = 0.0;
   final List<double> _vGuidelines = [];
@@ -153,6 +158,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
   bool _isZoomScaleInitialized = false; // 是否已经根据容器尺寸初始化了缩放比例
   double? _initialScale; // 新增：记录初始设定的完美铺满屏幕时的 scale
   final TransformationController _transformationController = TransformationController();
+  final ValueNotifier<bool> _isPanFreeNotifier = ValueNotifier(false);
 
   // 图表预渲染用 GlobalKey（Offstage + RepaintBoundary 截图）
   final GlobalKey _chartKeyRadar    = GlobalKey();
@@ -363,6 +369,22 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
     _exportSettings.fileName = '${widget.book.name}_导出';
     
     _transformationController.addListener(_onViewportChanged);
+    _transformationController.addListener(() {
+      // 底层保底：在非自由平移模式下，实时强制 X 轴归零，
+      // 防止双指手势或其他路径产生水平偏移。
+      // 纸张的水平居中由 Container(alignment: Alignment.topCenter) 负责，
+      // 矩阵 X 目标值始终为 0（与 _recenterCanvas、初始化保持一致）。
+      // 注意：_isPanFreeNotifier 只由按钮 _zoom() 主动控制，此处不再自动修改。
+      if (_initialScale != null && _lastConstraints != null && !_isPanFreeNotifier.value) {
+        final matrix = _transformationController.value;
+        const double targetDx = 0.0;
+        final currentDx = matrix.getTranslation().x;
+        if ((currentDx - targetDx).abs() > 0.001) {
+          final newMatrix = matrix.clone()..setTranslationRaw(targetDx, matrix.getTranslation().y, 0.0);
+          _transformationController.value = newMatrix;
+        }
+      }
+    });
     _loadLocalTemplates();
 
     // 延迟解析海量日记，让新页面的转场动画顺滑无阻
@@ -495,8 +517,7 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
 
 
   Widget _getCanvasSubtree() {
-    if (_canvasSubtreeCache != null) return _canvasSubtreeCache!;
-    _canvasSubtreeCache = Positioned.fill(
+    return Positioned.fill(
       child: GestureDetector(
         onTap: () {
           _selectElement(null);
@@ -514,8 +535,8 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
                 final scale = targetWidth / _canvasWidth;
                 _initialScale = scale;
                 
-                // 动态计算平移量，实现水平和垂直的绝对居中对齐
-                final dx = (constraints.maxWidth - _canvasWidth * scale) / 2;
+                // 由于将使用等宽容器强行居中，水平偏移必须为 0.0
+                final dx = 0.0;
                 final dy = 16.0;
                 
                 // 初始化 TransformationController 矩阵值（带平移补偿）
@@ -524,17 +545,44 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
                   ..scaleByDouble(scale, scale, 1.0, 1.0);
                 _isZoomScaleInitialized = true;
               }
-              return InteractiveViewer(
-                transformationController: _transformationController,
-                onInteractionEnd: _onInteractionEnd, // 新增：松手时自动磁吸回弹
-                minScale: 0.1,
-                maxScale: 3.0,
-                clipBehavior: Clip.none,
-                constrained: false, // 解锁视口高度约束，使 A4/A5 纸张恢复其原本真实的物理比例
-                boundaryMargin: const EdgeInsets.all(double.infinity), // 解除边界限制，允许超长画布自由平移和定位
-                interactionEndFrictionCoefficient: 0.00005, // 增加阻尼感，使滑动更加平稳厚重
-                child: Align(
-                  alignment: Alignment.topLeft,
+              return ValueListenableBuilder<bool>(
+                valueListenable: _isPanFreeNotifier,
+                builder: (context, isPanFree, child) {
+                  return ValueListenableBuilder<String?>(
+                    valueListenable: _selectionNotifier,
+                    builder: (context, selectedId, innerChild) {
+                      final bool shouldSwallow = !isPanFree && selectedId == null;
+                      return GestureDetector(
+                        // 【终极绝杀】：如果在未放大状态下，在外层手势竞技场直接强制接管并吞没所有的水平拖动事件！
+                        // 彻底切断 InteractiveViewer 在复杂生命周期中可能出现的各种水平拖拽穿透 Bug。
+                        onHorizontalDragDown: shouldSwallow ? (_) {} : null,
+                        onHorizontalDragStart: shouldSwallow ? (_) {} : null,
+                        onHorizontalDragUpdate: shouldSwallow ? (_) {} : null,
+                        onHorizontalDragEnd: shouldSwallow ? (_) {} : null,
+                        onHorizontalDragCancel: shouldSwallow ? () {} : null,
+                        child: InteractiveViewer(
+                          panAxis: isPanFree ? PanAxis.free : PanAxis.vertical,
+                          scaleEnabled: isPanFree, // 核心防线：未放大时关闭双指手势
+                          transformationController: _transformationController,
+                          onInteractionEnd: _onInteractionEnd, // 恢复：松手时自动磁吸回弹
+                          minScale: 0.1,
+                          maxScale: 3.0,
+                          clipBehavior: Clip.none,
+                          constrained: false, // 解锁视口高度约束，使 A4/A5 纸张恢复其原本真实的物理比例
+                          // InteractiveViewer 要求 boundaryMargin 要么全部 infinite，要么全部 finite，不能混用。
+                          // 水平锁定由 PanAxis.vertical + 外层 GestureDetector + listener X轴回正三重保障。
+                          boundaryMargin: const EdgeInsets.all(double.infinity),
+                          interactionEndFrictionCoefficient: 0.00005,
+                          child: innerChild!,
+                        ),
+                      );
+                    },
+                    child: child,
+                  );
+                },
+                child: Container(
+                  width: constraints.maxWidth / (_initialScale ?? 1.0),
+                  alignment: Alignment.topCenter,
                   child: SizedBox(
                     width: _canvasWidth,
                     child: RepaintBoundary(
@@ -552,7 +600,6 @@ class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerPr
         ),
       ),
     );
-    return _canvasSubtreeCache!;
   }
 
   @override
