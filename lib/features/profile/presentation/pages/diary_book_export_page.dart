@@ -80,7 +80,6 @@ class DiaryBookExportPage extends StatefulWidget {
 }
 
 class _DiaryBookExportPageState extends State<DiaryBookExportPage> with TickerProviderStateMixin {
-  Widget? _canvasSubtreeCache;
   final Map<int, Widget> _exportCanvasElementWidgetCache = {};
   final ValueNotifier<int> _canvasRefreshTrigger = ValueNotifier<int>(0);
   List<Widget>? _cachedBackgroundWidgets;

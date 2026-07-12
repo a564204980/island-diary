@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class CameraTopBar extends StatelessWidget {
+  final bool isNight;
   final String currentFlashMode;
+
   final bool showGrid;
   final int selfTimerSeconds;
   final VoidCallback onClose;
@@ -11,6 +13,7 @@ class CameraTopBar extends StatelessWidget {
 
   const CameraTopBar({
     super.key,
+    required this.isNight,
     required this.currentFlashMode,
     required this.showGrid,
     required this.selfTimerSeconds,
@@ -26,14 +29,10 @@ class CameraTopBar extends StatelessWidget {
     if (currentFlashMode == 'auto') flashIcon = Icons.flash_auto;
     if (currentFlashMode == 'torch') flashIcon = Icons.highlight;
 
+    final Color baseIconColor = isNight ? Colors.white : Colors.black87;
+    final Color disabledColor = isNight ? Colors.white54 : Colors.black38;
+
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.black54, Colors.transparent],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
       padding: EdgeInsets.only(
         top: MediaQuery.of(context).padding.top + 12,
         bottom: 24,
@@ -45,7 +44,7 @@ class CameraTopBar extends StatelessWidget {
         children: [
           // 退出按钮
           IconButton(
-            icon: const Icon(Icons.close, color: Colors.white, size: 26),
+            icon: Icon(Icons.close, color: baseIconColor, size: 26),
             onPressed: onClose,
           ),
 
@@ -56,7 +55,7 @@ class CameraTopBar extends StatelessWidget {
               IconButton(
                 icon: Icon(
                   selfTimerSeconds == 0 ? Icons.timer_outlined : Icons.timer,
-                  color: selfTimerSeconds > 0 ? const Color(0xFFD4A373) : Colors.white54,
+                  color: selfTimerSeconds > 0 ? const Color(0xFFD4A373) : disabledColor,
                   size: 24,
                 ),
                 onPressed: onToggleSelfTimer,
@@ -82,7 +81,7 @@ class CameraTopBar extends StatelessWidget {
 
           // 闪光灯
           IconButton(
-            icon: Icon(flashIcon, color: currentFlashMode == 'off' ? Colors.white54 : const Color(0xFFD4A373), size: 24),
+            icon: Icon(flashIcon, color: currentFlashMode == 'off' ? disabledColor : const Color(0xFFD4A373), size: 24),
             onPressed: onToggleFlash,
           ),
 
@@ -90,7 +89,7 @@ class CameraTopBar extends StatelessWidget {
           IconButton(
             icon: Icon(
               showGrid ? Icons.grid_on : Icons.grid_off,
-              color: showGrid ? const Color(0xFFD4A373) : Colors.white54,
+              color: showGrid ? const Color(0xFFD4A373) : disabledColor,
               size: 24,
             ),
             onPressed: onToggleGrid,

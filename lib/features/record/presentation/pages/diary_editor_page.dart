@@ -129,7 +129,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
 
                     final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
                     final double bottomBounds = (isEmojiOpen || isColorPickerOpen || isImagePickerOpen)
-                        ? keyboardHeight + toolbarOnlyHeight
+                        ? max(keyboardHeight, MediaQuery.paddingOf(context).bottom) + toolbarOnlyHeight
                         : bottomInset + toolbarOnlyHeight + MediaQuery.paddingOf(context).bottom;
 
                     return Positioned(

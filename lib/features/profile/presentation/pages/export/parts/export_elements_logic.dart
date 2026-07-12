@@ -20,25 +20,7 @@ extension _ExportElementsLogic on _DiaryBookExportPageState {
       return targetY;
     }
 
-    // 辅助方法：将正文切分成独立的句子，保留句末标点符号及处理换行
-    List<String> splitIntoSentences(String text) {
-      if (text.isEmpty) return [];
-      // 正则：匹配遇到标点（。？！；）或者换行符（\n）进行断句并保留标点
-      final RegExp regExp = RegExp(r'[^。？！;\n]+[。？！;\n]?');
-      final Iterable<Match> matches = regExp.allMatches(text);
-      
-      List<String> result = [];
-      for (final match in matches) {
-        final s = match.group(0)?.trim() ?? '';
-        if (s.isNotEmpty) {
-          result.add(s);
-        }
-      }
-      if (result.isEmpty) {
-        result.add(text);
-      }
-      return result;
-    }
+
 
     for (int diaryIdx = 0; diaryIdx < widget.diaries.length; diaryIdx++) {
       final diary = widget.diaries[diaryIdx];

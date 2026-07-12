@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
@@ -11,10 +12,18 @@ import '../widgets/camera_top_bar.dart';
 import '../widgets/camera_bottom_controls.dart';
 import '../widgets/camera_viewfinder.dart';
 
+import 'package:flutter_animate/flutter_animate.dart';
+
 class CustomCameraPage extends StatefulWidget {
   final String? initialImagePath;
   final String? initialMattedPath;
-  const CustomCameraPage({super.key, this.initialImagePath, this.initialMattedPath});
+  final bool enableDynamicViewfinder;
+  const CustomCameraPage({
+    super.key, 
+    this.initialImagePath, 
+    this.initialMattedPath,
+    this.enableDynamicViewfinder = false,
+  });
 
   @override
   State<CustomCameraPage> createState() => _CustomCameraPageState();
@@ -24,11 +33,11 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
   List<CameraDescription> _cameras = [];
   CameraController? _controller;
   bool _isCameraInitialized = false;
+  bool _startUnfoldAnimation = false; // Controls the entrance animation timing
   bool _hasPermission = false;
   int _selectedCameraIndex = 0;
 
-  // 画幅比例: '1:1', '4:3', '16:9'
-  final String _currentRatio = '1:1';
+  final String _currentRatio = '4:3';
 
   // 闪光灯模式: 'off', 'auto', 'torch'
   String _currentFlashMode = 'off';
@@ -52,9 +61,37 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
   
   // 变焦缩放控制
   double _currentZoom = 1.0;
+  double _targetZoom = 1.0;
   double _maxZoom = 1.0;
   double _minZoom = 1.0;
   double _baseZoom = 1.0;
+
+  // 动态计算变焦控制按钮的显示选项
+  List<double> get _availableZoomLevels {
+    if (_minZoom == 1.0 && _maxZoom == 1.0) return [1.0];
+    final levels = <double>{};
+    
+    // 超广角 (0.5x 或 0.6x)
+    if (_minZoom < 1.0) {
+      levels.add(double.parse(_minZoom.toStringAsFixed(1)));
+    }
+    // 主摄 1x
+    if (_minZoom <= 1.0 && _maxZoom >= 1.0) {
+      levels.add(1.0);
+    }
+    // 长焦 2x
+    if (_maxZoom >= 2.0) {
+      levels.add(2.0);
+    }
+    // 如果按钮太少（比如没有超广角）但支持高倍变焦，补充一个高倍选项
+    if (levels.length < 3 && _maxZoom >= 3.0) {
+      levels.add(3.0);
+    }
+    
+    final result = levels.toList();
+    result.sort();
+    return result.isEmpty ? [1.0] : result;
+  }
 
   // 延时倒计时拍照
   int _selfTimerSeconds = 0; // 0=关闭, 3=3s, 5=5s
@@ -160,6 +197,8 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
   // 动画相关
   late AnimationController _shutterAnimationController;
   late AnimationController _focusAnimationController;
+  late AnimationController _zoomAnimationController;
+  Animation<double>? _zoomAnimation;
   
   late AnimationController _slideOutController;
   late Animation<Offset> _slideOutAnimation;
@@ -168,6 +207,17 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
   @override
   void initState() {
     super.initState();
+    
+    // Extreme delay (1000ms) to ensure the user is completely ready to watch the animation
+    // This gives them 1 full second to stare at the black capsule over the dynamic island
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (mounted) {
+        setState(() {
+          _startUnfoldAnimation = true;
+        });
+      }
+    });
+
     _shutterAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 150),
@@ -176,6 +226,19 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
+    
+    _zoomAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _zoomAnimationController.addListener(() {
+      if (_controller == null || !_controller!.value.isInitialized || _zoomAnimation == null) return;
+      final target = _zoomAnimation!.value;
+      _controller!.setZoomLevel(target);
+      setState(() {
+        _currentZoom = target;
+      });
+    });
 
     _slideOutController = AnimationController(
       vsync: this,
@@ -235,6 +298,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
     _controller?.dispose();
     _shutterAnimationController.dispose();
     _focusAnimationController.dispose();
+    _zoomAnimationController.dispose();
     _slideOutController.dispose();
     _countdownTimer?.cancel();
     _exposureTimer?.cancel();
@@ -573,61 +637,268 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
       return const Scaffold(backgroundColor: Colors.black);
     }
 
+    // Force night mode for the camera page to ensure white icons on the dark blurred background
+    // Use dark grey background before camera initializes so the black capsule is visible
+    final bool isNight = true; 
+    final Color bgColor = const Color(0xFF272727);
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    // Viewfinder dimensions
+    final viewfinderWidth = screenWidth - 32; // 16 padding on each side
+    final viewfinderHeight = _currentRatio == '4:3' ? viewfinderWidth * 4 / 3 : viewfinderWidth;
+    
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: Colors.black,
+          backgroundColor: bgColor,
           body: Stack(
             children: [
-              // 1. 相机全屏取景框区域
-              Positioned.fill(
-                child: _isCameraInitialized && _controller != null
-                    ? CameraViewfinder(
-                        controller: _controller!,
-                        currentRatio: _currentRatio,
-                        watermarkStyle: _watermarkStyle,
-                        showGrid: _showGrid,
-                        isMattingMode: _mattingMode == 'cloud',
-                        isCountingDown: _isCountingDown,
-                        countdownValue: _countdownValue,
-                        focusPoint: _focusPoint,
-                        showExposureSlider: _showExposureSlider,
-                        currentExposure: _currentExposure,
-                        minExposure: _minExposure,
-                        maxExposure: _maxExposure,
-                        focusAnimation: _focusAnimationController,
-                        slideOutPath: _slideOutPath,
-                        slideOutAnimation: _slideOutAnimation,
-                        colorMatrix: _calculateColorMatrix(),
-                        colorFilter: _getCurrentColorFilter(),
-                        onTapToFocus: _handleTapToFocus,
-                        onScaleStart: (details) {
-                          _baseZoom = _currentZoom;
-                        },
-                        onScaleUpdate: (details) {
-                          if (_controller == null || !_controller!.value.isInitialized) return;
-                          final targetZoom = (_baseZoom * details.scale).clamp(_minZoom, _maxZoom);
-                          _controller!.setZoomLevel(targetZoom);
-                          setState(() => _currentZoom = targetZoom);
-                        },
-                        onExposureChanged: (val) {
-                          setState(() => _currentExposure = val);
-                          _controller?.setExposureOffset(val);
-                        },
-                      )
-                    : const Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4A373)),
+              // 0. Blurred Camera Background
+              if (_isCameraInitialized && _controller != null)
+                Positioned.fill(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Using raw CameraPreview for the background is lightweight
+                      CameraPreview(_controller!),
+                      BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 40.0, sigmaY: 40.0),
+                        child: Container(
+                          color: Colors.black.withValues(alpha: 0.6), // Dark overlay for contrast
                         ),
                       ),
+                    ],
+                  ).animate().fadeIn(duration: 800.ms),
+                ),
+
+              // 1. Dynamic Viewfinder centered
+              TweenAnimationBuilder<double>(
+                // Run animation from 0 to 1 only after route transition finishes
+                tween: Tween<double>(begin: 0.0, end: _startUnfoldAnimation ? 1.0 : 0.0),
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.easeOutCubic,
+                builder: (context, tValue, child) {
+                  final t = widget.enableDynamicViewfinder ? tValue : 1.0;
+                  final startTop = 11.0; 
+                  final endTop = MediaQuery.of(context).padding.top + 70;
+                  final currentTop = widget.enableDynamicViewfinder ? lerpDouble(startTop, endTop, t)! : 0.0;
+
+                  final startWidth = 125.0; // Dynamic island width
+                  final endWidth = viewfinderWidth;
+                  final currentWidth = widget.enableDynamicViewfinder ? lerpDouble(startWidth, endWidth, t)! : screenWidth;
+
+                  final startHeight = 37.0; // Dynamic island height
+                  final endHeight = viewfinderHeight;
+                  final currentHeight = widget.enableDynamicViewfinder ? lerpDouble(startHeight, endHeight, t)! : MediaQuery.of(context).size.height;
+
+                  final startRadius = 18.0;
+                  final endRadius = 32.0;
+                  final currentRadius = widget.enableDynamicViewfinder ? lerpDouble(startRadius, endRadius, t)! : 0.0;
+
+                  final startBorder = 0.0;
+                  final endBorder = 24.0;
+                  final currentBorder = widget.enableDynamicViewfinder ? lerpDouble(startBorder, endBorder, t)! : 0.0;
+
+                  final currentLeft = (screenWidth - currentWidth) / 2;
+
+                  double feedOpacity = 1.0;
+                  if (widget.enableDynamicViewfinder) {
+                    if (_isCameraInitialized && _controller != null) {
+                      // 提早淡入相机画面：动画前 50% 的进度中就完成 0 到 1 的透明度过渡
+                      feedOpacity = (t * 2.0).clamp(0.0, 1.0);
+                    } else {
+                      feedOpacity = 0.0;
+                    }
+                  }
+
+                  return Positioned(
+                    top: currentTop,
+                    left: currentLeft,
+                    width: currentWidth,
+                    height: currentHeight,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        // The capsule is pure black
+                        color: Colors.black, 
+                        borderRadius: BorderRadius.circular(currentRadius),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.5 * t),
+                            blurRadius: 24,
+                            offset: Offset(0, 8 * t),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(currentRadius),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            // Fade in camera feed ONLY when capsule is expanding and ready
+                            Opacity(
+                              opacity: feedOpacity,
+                              child: (_isCameraInitialized && _controller != null)
+                                  ? CameraViewfinder(
+                                      controller: _controller!,
+                                      currentRatio: _currentRatio,
+                                      watermarkStyle: _watermarkStyle,
+                                      showGrid: _showGrid,
+                                      isMattingMode: _mattingMode == 'cloud',
+                                      isCountingDown: _isCountingDown,
+                                      countdownValue: _countdownValue,
+                                      focusPoint: _focusPoint,
+                                      showExposureSlider: _showExposureSlider,
+                                      currentExposure: _currentExposure,
+                                      minExposure: _minExposure,
+                                      maxExposure: _maxExposure,
+                                      focusAnimation: _focusAnimationController,
+                                      slideOutPath: _slideOutPath,
+                                      slideOutAnimation: _slideOutAnimation,
+                                      colorMatrix: _calculateColorMatrix(),
+                                      colorFilter: _getCurrentColorFilter(),
+                                      onTapToFocus: _handleTapToFocus,
+                                      onScaleStart: (details) {
+                                        _baseZoom = _currentZoom;
+                                      },
+                                      onScaleUpdate: (details) {
+                                        if (_controller == null || !_controller!.value.isInitialized) return;
+                                        if (_zoomAnimationController.isAnimating) _zoomAnimationController.stop();
+                                        final targetZoom = (_baseZoom * details.scale).clamp(_minZoom, _maxZoom);
+                                        _controller!.setZoomLevel(targetZoom);
+                                        setState(() {
+                                          _currentZoom = targetZoom;
+                                          _targetZoom = targetZoom;
+                                        });
+                                      },
+                                      onExposureChanged: (val) {
+                                        setState(() => _currentExposure = val);
+                                        _controller?.setExposureOffset(val);
+                                      },
+                                    )
+                                  : const SizedBox(),
+                            ),
+                            // Border overlay to cover any gaps
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(currentRadius),
+                                border: Border.all(
+                                  color: Colors.black,
+                                  width: currentBorder,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
 
-              // 2. 悬浮顶栏
+              if (!widget.enableDynamicViewfinder) ...[
+                // Top Gradient for Top Bar
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: MediaQuery.of(context).padding.top + 100,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.6),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // Bottom Gradient for Zoom and Bottom Controls
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 280,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.8),
+                          Colors.black.withValues(alpha: 0.4),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
+              // 1.5 Zoom Controls (Capsules below viewfinder)
+              Positioned(
+                top: widget.enableDynamicViewfinder ? MediaQuery.of(context).padding.top + 70 + viewfinderHeight + 20 : null,
+                bottom: widget.enableDynamicViewfinder ? null : 160,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: _availableZoomLevels.map((zoom) {
+                    final isSelected = (_targetZoom - zoom).abs() < 0.1;
+                    return GestureDetector(
+                      onTap: () {
+                        if (_controller == null || !_controller!.value.isInitialized) return;
+                        if ((_currentZoom - zoom).abs() < 0.01) return;
+                        
+                        setState(() {
+                          _targetZoom = zoom;
+                        });
+                        
+                        _zoomAnimation = Tween<double>(begin: _currentZoom, end: zoom).animate(
+                          CurvedAnimation(parent: _zoomAnimationController, curve: Curves.easeOutQuad),
+                        );
+                        _zoomAnimationController.forward(from: 0.0);
+                        
+                        HapticFeedback.lightImpact();
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected 
+                              ? Colors.white24
+                              : Colors.white10,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white54,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 14,
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                          child: Text('${zoom == 1.0 || zoom % 1 == 0 ? zoom.toInt() : zoom}x'),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ).animate(target: _startUnfoldAnimation ? 1 : 0)
+                 .slideY(begin: 0.2, end: 0, delay: 200.ms, duration: 500.ms, curve: Curves.easeOutQuad)
+                 .fadeIn(delay: 200.ms, duration: 400.ms),
+              ),
+
+              // 2. 悬浮顶栏 (Fade in place)
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
                 child: CameraTopBar(
+                  isNight: isNight,
                   currentFlashMode: _currentFlashMode,
                   showGrid: _showGrid,
                   selfTimerSeconds: _selfTimerSeconds,
@@ -635,7 +906,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                   onToggleFlash: _toggleFlashMode,
                   onToggleGrid: () => setState(() => _showGrid = !_showGrid),
                   onToggleSelfTimer: _toggleSelfTimer,
-                ),
+                ).animate(target: _startUnfoldAnimation ? 1 : 0).fadeIn(delay: 300.ms, duration: 400.ms),
               ),
 
               // 3. 悬浮底栏
@@ -644,6 +915,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                 left: 0,
                 right: 0,
                 child: CameraBottomControls(
+                  isNight: isNight,
                   mattingMode: _mattingMode,
                   shutterAnimation: _shutterAnimationController,
                   onToggleMatting: () => setState(() {
@@ -651,7 +923,9 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                   }),
                   onTakePicture: _takePicture,
                   onToggleCamera: _toggleCamera,
-                ),
+                ).animate(target: _startUnfoldAnimation ? 1 : 0)
+                 .slideY(begin: 0.2, end: 0, delay: 200.ms, duration: 500.ms, curve: Curves.easeOutQuad)
+                 .fadeIn(delay: 200.ms, duration: 400.ms),
               ),
             ],
           ),

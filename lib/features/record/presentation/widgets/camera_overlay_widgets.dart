@@ -27,9 +27,7 @@ class CameraGridlines extends StatelessWidget {
     final double finalTop = topOffset + (isBlurBorder ? displayW * 0.04 : 0.0);
     final double finalLeft = leftOffset + (isBlurBorder ? displayW * 0.04 : 0.0);
 
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
+    return Positioned(
       top: finalTop,
       left: finalLeft,
       width: borderWidth,
@@ -113,9 +111,7 @@ class CameraBlurFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
+    return Positioned(
       top: top,
       left: left,
       width: width > 0 ? width : 0,

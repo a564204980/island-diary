@@ -1275,38 +1275,5 @@ class BubbleAwareSelectionControls extends MaterialTextSelectionControls {
     return handle;
   }
 
-  @override
-  Widget buildToolbar(
-    BuildContext context,
-    Rect globalEditableRegion,
-    double textLineHeight,
-    Offset selectionMidpoint,
-    List<TextSelectionPoint> endpoints,
-    TextSelectionDelegate delegate,
-    dynamic clipboardStatus,
-    Offset? lastSecondaryTapDownPosition,
-  ) {
-    if (onAddAnnotation == null) {
-      return super.buildToolbar(
-        context,
-        globalEditableRegion,
-        textLineHeight,
-        selectionMidpoint,
-        endpoints,
-        delegate,
-        clipboardStatus,
-        lastSecondaryTapDownPosition,
-      );
-    }
-    return DiaryTextContextMenu(
-      editableTextState: delegate as EditableTextState,
-      blockIndex: blockIndex,
-      annotations: controller.annotations ?? const {},
-      onAddAnnotation: onAddAnnotation!,
-      onDeleteAnnotation: onDeleteAnnotation,
-      showAnnotation: false,
-      showUnderline: true,
-      paperStyle: paperStyle,
-    );
-  }
+
 }

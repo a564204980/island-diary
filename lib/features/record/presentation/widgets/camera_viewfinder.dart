@@ -84,15 +84,14 @@ class CameraViewfinder extends StatelessWidget {
         final double leftOffset = (width - displayW) / 2;
 
         return GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTapUp: (details) => onTapToFocus(details, constraints),
           onScaleStart: onScaleStart,
           onScaleUpdate: onScaleUpdate,
           child: Stack(
             children: [
               // 原始相机取景器画面 (恒定满屏)
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
+              Positioned(
                 top: 0,
                 left: 0,
                 width: width,

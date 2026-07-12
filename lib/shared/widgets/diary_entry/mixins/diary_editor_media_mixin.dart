@@ -181,7 +181,11 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       // 相机拍摄单张处理（使用自定义拍照界面）
       final String? imagePath = await Navigator.push<String>(
         context,
-        MaterialPageRoute(builder: (context) => const CustomCameraPage()),
+        MaterialPageRoute(
+          builder: (context) => CustomCameraPage(
+            enableDynamicViewfinder: currentTags.contains('旅行'),
+          ),
+        ),
       );
       if (!mounted) {
         setState(() => isImagePickerOpen = false);
@@ -727,7 +731,11 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       if (!mounted) return null;
       final String? imagePath = await Navigator.push<String>(
         context,
-        MaterialPageRoute(builder: (context) => const CustomCameraPage()),
+        MaterialPageRoute(
+          builder: (context) => CustomCameraPage(
+            enableDynamicViewfinder: currentTags.contains('旅行'),
+          ),
+        ),
       );
       return imagePath;
     }
