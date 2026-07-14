@@ -13,6 +13,7 @@ import 'package:island_diary/shared/widgets/top_toast.dart';
 import 'package:island_diary/core/models/life_line_profile.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_drafts_page.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';
+import 'package:island_diary/features/profile/presentation/pages/plugin_store_page.dart';
 
 class BentoMenuGrid extends StatelessWidget {
   final bool isNight;
@@ -83,10 +84,20 @@ class BentoMenuGrid extends StatelessWidget {
                   Expanded(
                     child: _buildMenuActionBento(
                       context,
-                      title: '\u5173\u4e8e\u5c0f\u5c9b',
+                      title: '关于小岛',
                       icon: Icons.info_outline,
                       color: const Color(0xFFBA68C8),
                       targetPage: const AboutIslandPage(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMenuActionBento(
+                      context,
+                      title: '插件商店',
+                      icon: Icons.extension_rounded,
+                      color: const Color(0xFFFF7043),
+                      targetPage: const PluginStorePage(),
                     ),
                   ),
                 ],
@@ -165,10 +176,18 @@ class BentoMenuGrid extends StatelessWidget {
             const SizedBox(height: 12),
             _buildMenuActionBento(
               context,
-              title: '\u5173\u4e8e\u5c0f\u5c9b',
+              title: '关于小岛',
               icon: Icons.info_outline,
               color: const Color(0xFFBA68C8),
               targetPage: const AboutIslandPage(),
+            ),
+            const SizedBox(height: 12),
+            _buildMenuActionBento(
+              context,
+              title: '插件商店',
+              icon: Icons.extension_rounded,
+              color: const Color(0xFFFF7043),
+              targetPage: const PluginStorePage(),
             ),
           ],
         ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0);

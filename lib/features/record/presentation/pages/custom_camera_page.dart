@@ -13,6 +13,8 @@ import '../widgets/camera_bottom_controls.dart';
 import '../widgets/camera_viewfinder.dart';
 
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 
 class CustomCameraPage extends StatefulWidget {
   final String? initialImagePath;
@@ -33,7 +35,6 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
   List<CameraDescription> _cameras = [];
   CameraController? _controller;
   bool _isCameraInitialized = false;
-  bool _startUnfoldAnimation = false; // Controls the entrance animation timing
   bool _hasPermission = false;
   int _selectedCameraIndex = 0;
 
@@ -195,6 +196,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
 
 
   // 动画相关
+  late AnimationController _unfoldAnimationController;
   late AnimationController _shutterAnimationController;
   late AnimationController _focusAnimationController;
   late AnimationController _zoomAnimationController;
@@ -209,17 +211,54 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
   bool _isPrintingAnimationRunning = false;
   String? _printPhotoPath;
 
+  bool _hasCompletedInitialUnfold = false;
+
+  late CurvedAnimation _unfoldCurvedAnimation;
+
   @override
   void initState() {
     super.initState();
     
+    _hasCompletedInitialUnfold = !widget.enableDynamicViewfinder;
+
+    if (widget.enableDynamicViewfinder) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.bottom]);
+    } else {
+      // 通过把状态栏图标变成黑色 (dark)，在暗色的相机背景下会显得非常“暗淡”
+      // 从而在视觉上达到类似“降低透明度”的隐藏效果
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+      ));
+    }
+    
+    _unfoldAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600), // 稍微加快整体动画速度 800 -> 600
+      value: widget.enableDynamicViewfinder ? 0.0 : 1.0,
+    );
+
+    _unfoldCurvedAnimation = CurvedAnimation(
+      parent: _unfoldAnimationController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeOutCubic, // 使收起动画也呈现“先快后慢”的物理规律
+    );
+
+    _unfoldAnimationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed && !_hasCompletedInitialUnfold) {
+        if (mounted) {
+          setState(() {
+            _hasCompletedInitialUnfold = true;
+          });
+        }
+      }
+    });
+
     // Extreme delay (1000ms) to ensure the user is completely ready to watch the animation
     // This gives them 1 full second to stare at the black capsule over the dynamic island
     Future.delayed(const Duration(milliseconds: 1000), () {
-      if (mounted) {
-        setState(() {
-          _startUnfoldAnimation = true;
-        });
+      if (mounted && widget.enableDynamicViewfinder) {
+        _unfoldAnimationController.forward();
       }
     });
 
@@ -306,6 +345,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
   @override
   void dispose() {
     _controller?.dispose();
+    _unfoldAnimationController.dispose();
     _shutterAnimationController.dispose();
     _focusAnimationController.dispose();
     _zoomAnimationController.dispose();
@@ -313,6 +353,12 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
     _printAnimationController.dispose();
     _countdownTimer?.cancel();
     _exposureTimer?.cancel();
+    
+    // 退出相机时恢复系统的暗黑/高亮状态栏样式，依靠外层页面的 Theme 自动接管
+    // 如果之前隐藏了状态栏，现在恢复显示
+    if (widget.enableDynamicViewfinder) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
     super.dispose();
   }
 
@@ -607,7 +653,8 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
       _isPrintingAnimationRunning = true;
     });
     
-    // 开始播放打印动效
+    // 收回取景器变成小岛，并开始播放打印动效
+    _unfoldAnimationController.reverse();
     _printAnimationController.forward(from: 0.0);
     
     // 等待打印动画前面部分的播放（吐纸 + 掉落 + 悬停），共 5000ms
@@ -826,40 +873,155 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
     final viewfinderWidth = screenWidth - 32; // 16 padding on each side
     final viewfinderHeight = _currentRatio == '4:3' ? viewfinderWidth * 4 / 3 : viewfinderWidth;
     
-    return Stack(
-      children: [
-        Scaffold(
-          backgroundColor: bgColor,
-          body: Stack(
-            children: [
-              // 0. Blurred Camera Background
-              if (_isCameraInitialized && _controller != null)
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.black, // 修复安卓底部的白边
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Colors.transparent,
+      ),
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: bgColor,
+            body: Stack(
+              children: [
+              // 0. Waterfall Album (Bottom layer, revealed when pushing up)
+              if (widget.enableDynamicViewfinder)
                 Positioned.fill(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Using raw CameraPreview for the background is lightweight
-                      CameraPreview(_controller!),
-                      BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 40.0, sigmaY: 40.0),
-                        child: Container(
-                          color: Colors.black.withValues(alpha: 0.6), // Dark overlay for contrast
-                        ),
+                  child: Visibility(
+                    visible: _hasCompletedInitialUnfold,
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        if (notification is OverscrollNotification) {
+                          if (notification.overscroll < 0 && notification.dragDetails != null) {
+                            final double dragDelta = notification.dragDetails!.primaryDelta! / 500.0;
+                            _unfoldAnimationController.value += dragDelta;
+                          }
+                        } else if (notification is ScrollUpdateNotification) {
+                          if (_unfoldAnimationController.value > 0.0 && notification.dragDetails != null) {
+                            final double dragDelta = notification.dragDetails!.primaryDelta! / 500.0;
+                            _unfoldAnimationController.value += dragDelta;
+                          }
+                        } else if (notification is ScrollEndNotification) {
+                          if (_unfoldAnimationController.value > 0.0 && _unfoldAnimationController.value < 1.0) {
+                            if (_unfoldAnimationController.value > 0.5) {
+                              _unfoldAnimationController.forward();
+                            } else {
+                              _unfoldAnimationController.reverse();
+                            }
+                          }
+                        }
+                        return false;
+                      },
+                      child: WaterfallAlbumGallery(
+                        animation: _unfoldCurvedAnimation,
+                        viewfinderHeight: viewfinderHeight,
                       ),
-                    ],
-                  ).animate().fadeIn(duration: 800.ms),
+                    ),
+                  ),
                 ),
 
+              // 0.5 Top Fade Bar for Gallery (Smooth fade into background color)
+              if (widget.enableDynamicViewfinder)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 90, // 给定 90px 的渐变空间，拉长过渡距离
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            bgColor, // 0px
+                            bgColor.withValues(alpha: 0.85), // 约 20px (胶囊中上部)
+                            bgColor.withValues(alpha: 0.25), // 约 55px (胶囊底部稍下)
+                            bgColor.withValues(alpha: 0.0),  // 90px (完全透明)
+                          ],
+                          stops: const [0.0, 0.2, 0.6, 1.0], // 非线性渐变，模拟真实的物理消融感
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
 
-
-
+              // 1. Blurred Camera Background (Fades out when pushing up)
+              if (_isCameraInitialized && _controller != null)
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: _unfoldAnimationController,
+                    builder: (context, child) {
+                      final isCollapsed = _unfoldAnimationController.value < 0.01;
+                      return Visibility(
+                        visible: !isCollapsed,
+                        child: IgnorePointer(
+                          ignoring: _unfoldAnimationController.value < 0.5,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: FadeTransition(
+                      opacity: _unfoldAnimationController,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Using raw CameraPreview for the background is lightweight
+                          CameraPreview(_controller!),
+                          BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 40.0, sigmaY: 40.0),
+                            child: Container(
+                              color: Colors.black.withValues(alpha: 0.6), // Dark overlay for contrast
+                            ),
+                          ),
+                        ],
+                      ).animate().fadeIn(duration: 800.ms),
+                    ),
+                  ),
+                ),
+              // 0.5 Background Gesture Detector for dragging anywhere
+              if (widget.enableDynamicViewfinder)
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: _unfoldAnimationController,
+                    builder: (context, child) {
+                      return IgnorePointer(
+                        ignoring: _unfoldAnimationController.value < 0.5,
+                        child: child,
+                      );
+                    },
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onVerticalDragUpdate: (details) {
+                        if (_isPrintingAnimationRunning) return;
+                        final double dragDelta = details.primaryDelta! / 500.0;
+                        _unfoldAnimationController.value += dragDelta;
+                      },
+                      onVerticalDragEnd: (details) {
+                        if (_isPrintingAnimationRunning) return;
+                        final velocity = details.primaryVelocity!;
+                        if (velocity > 300) {
+                          _unfoldAnimationController.forward();
+                        } else if (velocity < -300) {
+                          _unfoldAnimationController.reverse();
+                        } else {
+                          if (_unfoldAnimationController.value > 0.5) {
+                            _unfoldAnimationController.forward();
+                          } else {
+                            _unfoldAnimationController.reverse();
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                ),
               // 1. Dynamic Viewfinder centered
-              TweenAnimationBuilder<double>(
-                // Run animation from 0 to 1 only after route transition finishes
-                tween: Tween<double>(begin: 0.0, end: (_startUnfoldAnimation && !_isPrintingAnimationRunning) ? 1.0 : 0.0),
-                duration: Duration(milliseconds: (_startUnfoldAnimation && !_isPrintingAnimationRunning) ? 800 : 350),
-                curve: Curves.easeOutCubic,
-                builder: (context, tValue, child) {
+              AnimatedBuilder(
+                animation: _unfoldAnimationController,
+                builder: (context, child) {
+                  final tValue = _unfoldCurvedAnimation.value;
                   final t = widget.enableDynamicViewfinder ? tValue : 1.0;
                   final startTop = 11.0; 
                   final endTop = MediaQuery.of(context).padding.top + 70;
@@ -898,8 +1060,38 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                     left: currentLeft,
                     width: currentWidth,
                     height: currentHeight,
-                    child: Container(
-                      decoration: BoxDecoration(
+                    child: GestureDetector(
+                      onTap: () {
+                        if (!widget.enableDynamicViewfinder || _isPrintingAnimationRunning) return;
+                        if (_unfoldAnimationController.value < 0.5) {
+                          _unfoldAnimationController.forward();
+                        }
+                      },
+                      onVerticalDragUpdate: (details) {
+                        if (!widget.enableDynamicViewfinder || _isPrintingAnimationRunning) return;
+                        final double dragDelta = details.primaryDelta! / 500.0;
+                        _unfoldAnimationController.value += dragDelta;
+                      },
+                      onVerticalDragEnd: (details) {
+                        if (!widget.enableDynamicViewfinder || _isPrintingAnimationRunning) return;
+                        final velocity = details.primaryVelocity!;
+                        if (velocity > 300) {
+                          // 快速下拉：展开
+                          _unfoldAnimationController.forward();
+                        } else if (velocity < -300) {
+                          // 快速上推：收起
+                          _unfoldAnimationController.reverse();
+                        } else {
+                          // 慢速拖动：根据松手时的位置决定
+                          if (_unfoldAnimationController.value > 0.5) {
+                            _unfoldAnimationController.forward();
+                          } else {
+                            _unfoldAnimationController.reverse();
+                          }
+                        }
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
                         // The capsule is pure black
                         color: Colors.black, 
                         borderRadius: BorderRadius.circular(currentRadius),
@@ -972,14 +1164,15 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                           ],
                         ),
                       ),
+                      ),
                     ),
                   );
                 },
-              ),
+              ),              if (!widget.enableDynamicViewfinder) ...[
 
-              if (!widget.enableDynamicViewfinder) ...[
+
                 // Top Gradient for Top Bar
-                Positioned(
+              Positioned(
                   top: 0,
                   left: 0,
                   right: 0,
@@ -1025,69 +1218,96 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                 bottom: widget.enableDynamicViewfinder ? null : 160,
                 left: 0,
                 right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: _availableZoomLevels.map((zoom) {
-                    final isSelected = (_targetZoom - zoom).abs() < 0.1;
-                    return GestureDetector(
-                      onTap: () {
-                        if (_controller == null || !_controller!.value.isInitialized) return;
-                        if ((_currentZoom - zoom).abs() < 0.01) return;
-                        
-                        setState(() {
-                          _targetZoom = zoom;
-                        });
-                        
-                        _zoomAnimation = Tween<double>(begin: _currentZoom, end: zoom).animate(
-                          CurvedAnimation(parent: _zoomAnimationController, curve: Curves.easeOutQuad),
-                        );
-                        _zoomAnimationController.forward(from: 0.0);
-                        
-                        HapticFeedback.lightImpact();
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isSelected 
-                              ? Colors.white24
-                              : Colors.white10,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white54,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 14,
-                            fontFamily: 'LXGWWenKai',
-                          ),
-                          child: Text('${zoom == 1.0 || zoom % 1 == 0 ? zoom.toInt() : zoom}x'),
-                        ),
-                      ),
+                child: AnimatedBuilder(
+                  animation: _unfoldAnimationController,
+                  builder: (context, child) {
+                    return IgnorePointer(
+                      ignoring: _unfoldAnimationController.value < 0.5,
+                      child: child,
                     );
-                  }).toList(),
-                ).animate(target: (_startUnfoldAnimation && !_isPrintingAnimationRunning) ? 1 : 0)
-                 .slideY(begin: 0.2, end: 0, delay: 200.ms, duration: 500.ms, curve: Curves.easeOutQuad)
-                 .fadeIn(delay: 200.ms, duration: 400.ms),
+                  },
+                  child: FadeTransition(
+                    opacity: _unfoldAnimationController,
+                    child: SlideTransition(
+                      position: Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+                        CurvedAnimation(parent: _unfoldAnimationController, curve: Curves.easeOutQuad),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                    children: _availableZoomLevels.map((zoom) {
+                      final isSelected = (_targetZoom - zoom).abs() < 0.1;
+                      return GestureDetector(
+                        onTap: () {
+                          if (_controller == null || !_controller!.value.isInitialized) return;
+                          if ((_currentZoom - zoom).abs() < 0.01) return;
+                          
+                          setState(() {
+                            _targetZoom = zoom;
+                          });
+                          
+                          _zoomAnimation = Tween<double>(begin: _currentZoom, end: zoom).animate(
+                            CurvedAnimation(parent: _zoomAnimationController, curve: Curves.easeOutQuad),
+                          );
+                          _zoomAnimationController.forward(from: 0.0);
+                          
+                          HapticFeedback.lightImpact();
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected 
+                                ? Colors.white24
+                                : Colors.white10,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 200),
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.white54,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 14,
+                              fontFamily: 'LXGWWenKai',
+                            ),
+                            child: Text('${zoom == 1.0 || zoom % 1 == 0 ? zoom.toInt() : zoom}x'),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+                ),
               ),
 
-              // 2. 悬浮顶栏 (Fade in place)
+              // 2. 悬浮顶栏
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                child: CameraTopBar(
-                  isNight: isNight,
-                  currentFlashMode: _currentFlashMode,
-                  showGrid: _showGrid,
-                  selfTimerSeconds: _selfTimerSeconds,
-                  onClose: () => Navigator.pop(context),
-                  onToggleFlash: _toggleFlashMode,
-                  onToggleGrid: () => setState(() => _showGrid = !_showGrid),
-                  onToggleSelfTimer: _toggleSelfTimer,
-                ).animate(target: (_startUnfoldAnimation && !_isPrintingAnimationRunning) ? 1 : 0).fadeIn(delay: 300.ms, duration: 400.ms),
+                child: AnimatedBuilder(
+                  animation: _unfoldAnimationController,
+                  builder: (context, child) {
+                    return IgnorePointer(
+                      ignoring: _unfoldAnimationController.value < 0.5,
+                      child: child,
+                    );
+                  },
+                  child: FadeTransition(
+                    opacity: _unfoldAnimationController,
+                    child: CameraTopBar(
+                      isNight: isNight,
+                      currentFlashMode: _currentFlashMode,
+                      showGrid: _showGrid,
+                      selfTimerSeconds: _selfTimerSeconds,
+                      onClose: () => Navigator.pop(context),
+                      onToggleFlash: _toggleFlashMode,
+                      onToggleGrid: () => setState(() => _showGrid = !_showGrid),
+                      onToggleSelfTimer: _toggleSelfTimer,
+                    ),
+                  ),
+                ),
               ),
 
               // 3. 悬浮底栏
@@ -1095,18 +1315,28 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                 bottom: 0,
                 left: 0,
                 right: 0,
-                child: CameraBottomControls(
-                  isNight: isNight,
-                  mattingMode: _mattingMode,
-                  shutterAnimation: _shutterAnimationController,
-                  onToggleMatting: () => setState(() {
-                    _mattingMode = _mattingMode == 'none' ? 'cloud' : 'none';
-                  }),
-                  onTakePicture: _takePicture,
-                  onToggleCamera: _toggleCamera,
-                ).animate(target: (_startUnfoldAnimation && !_isPrintingAnimationRunning) ? 1 : 0)
-                 .slideY(begin: 0.2, end: 0, delay: 200.ms, duration: 500.ms, curve: Curves.easeOutQuad)
-                 .fadeIn(delay: 200.ms, duration: 400.ms),
+                child: AnimatedBuilder(
+                  animation: _unfoldAnimationController,
+                  builder: (context, child) {
+                    return IgnorePointer(
+                      ignoring: _unfoldAnimationController.value < 0.5,
+                      child: child,
+                    );
+                  },
+                  child: FadeTransition(
+                    opacity: _unfoldAnimationController,
+                    child: CameraBottomControls(
+                      isNight: isNight,
+                      mattingMode: _mattingMode,
+                      shutterAnimation: _shutterAnimationController,
+                      onToggleMatting: () => setState(() {
+                        _mattingMode = _mattingMode == 'none' ? 'cloud' : 'none';
+                      }),
+                      onTakePicture: _takePicture,
+                      onToggleCamera: _toggleCamera,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1145,6 +1375,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
         if (_isPrintingAnimationRunning && _printPhotoPath != null)
           _buildPrintingPhoto(context),
       ],
+    ),
     );
   }
 
@@ -1152,6 +1383,316 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
 
 
 
+}
+
+abstract class GalleryItem {}
+
+class PhotoItem extends GalleryItem {
+  final AssetEntity asset;
+  PhotoItem(this.asset);
+}
+
+class MonthCardItem extends GalleryItem {
+  final String title;
+  final String subtitle;
+  final Color bgColor;
+  MonthCardItem(this.title, this.subtitle, this.bgColor);
+}
+
+class WaterfallAlbumGallery extends StatefulWidget {
+  final Animation<double> animation;
+  final double viewfinderHeight;
+
+  const WaterfallAlbumGallery({
+    super.key,
+    required this.animation,
+    required this.viewfinderHeight,
+  });
+
+  @override
+  State<WaterfallAlbumGallery> createState() => _WaterfallAlbumGalleryState();
+}
+
+class _WaterfallAlbumGalleryState extends State<WaterfallAlbumGallery> {
+  List<GalleryItem> _items = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGalleryData();
+  }
+
+  Future<void> _loadGalleryData() async {
+    final PermissionState ps = await PhotoManager.requestPermissionExtend();
+    if (!ps.isAuth) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final FilterOptionGroup filterOptionGroup = FilterOptionGroup(
+      orders: [
+        const OrderOption(
+          type: OrderOptionType.createDate,
+          asc: false,
+        ),
+      ],
+    );
+
+    final List<AssetPathEntity> paths = await PhotoManager.getAssetPathList(
+      type: RequestType.image,
+      hasAll: true,
+      filterOption: filterOptionGroup,
+    );
+
+    if (paths.isEmpty) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final AssetPathEntity recentPath = paths.first;
+    // Get recent 30 photos
+    final List<AssetEntity> entities = await recentPath.getAssetListPaged(page: 0, size: 30);
+    
+    final List<GalleryItem> newItems = [];
+    int? lastMonth;
+
+    final List<Color> monthColors = [
+      const Color(0xFFC5B8A5),
+      const Color(0xFF788394),
+      const Color(0xFF9E928A),
+      const Color(0xFF8BA59B),
+    ];
+    int colorIndex = 0;
+
+    for (var entity in entities) {
+      final date = entity.createDateTime;
+      if (lastMonth != date.month) {
+        lastMonth = date.month;
+        
+        final monthStr = '${date.year}年${date.month}月';
+        final monthEnStr = _getMonthZh(date.month);
+        
+        newItems.add(MonthCardItem(
+          monthStr,
+          monthEnStr,
+          monthColors[colorIndex % monthColors.length],
+        ));
+        colorIndex++;
+      }
+      newItems.add(PhotoItem(entity));
+    }
+
+    if (mounted) {
+      setState(() {
+        _items = newItems;
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _getMonthZh(int month) {
+    const months = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+    if (month >= 1 && month <= 12) return months[month - 1];
+    return '';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: widget.animation,
+      builder: (context, child) {
+        final t = widget.animation.value;
+        
+        final startTop = 11.0; 
+        final endTop = MediaQuery.of(context).padding.top + 70;
+        final currentTop = lerpDouble(startTop, endTop, t)!;
+
+        final startHeight = 37.0; 
+        final endHeight = widget.viewfinderHeight;
+        final currentHeight = lerpDouble(startHeight, endHeight, t)!;
+
+        final viewfinderBottom = currentTop + currentHeight;
+        final capsuleBottom = 11.0 + 37.0; // 48.0
+        
+        // 当 t=0 时，translateY = 0，让容器铺满屏幕，照片可以穿越胶囊底部
+        // 当 t=1 时，translateY 把照片推到取景器下方
+        final translateY = viewfinderBottom - capsuleBottom;
+
+        return Transform.translate(
+          offset: Offset(0, translateY),
+          child: child,
+        );
+      },
+      child: Container(
+        color: Colors.transparent,
+        child: _isLoading 
+          ? const Center(child: CircularProgressIndicator(color: Colors.white54))
+          : MasonryGridView.count(
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          padding: EdgeInsets.only(
+            top: 11.0 + 37.0 + 24.0, // 初始位置位于胶囊下方 gap(24) 处
+            left: 12,
+            right: 12,
+            bottom: MediaQuery.of(context).size.height * 0.8,
+          ),
+          itemCount: _items.length,
+          itemBuilder: (context, index) {
+            final item = _items[index];
+            if (item is MonthCardItem) {
+              return _buildMonthCard(item);
+            } else if (item is PhotoItem) {
+              return _buildPhotoCard(item);
+            }
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthCard(MonthCardItem item) {
+    return Container(
+      decoration: BoxDecoration(
+        color: item.bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: AspectRatio(
+        aspectRatio: 1.0, // 正方形的月份卡，和旁边的照片错落
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                item.subtitle,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  item.title,
+                  style: const TextStyle(
+                    fontFamily: 'LXGWWenKai',
+                    fontSize: 14,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhotoCard(PhotoItem item) {
+    // 默认给个比例，如果原本照片没有比例则给正方形
+    double ratio = 1.0;
+    if (item.asset.width > 0 && item.asset.height > 0) {
+      ratio = item.asset.width / item.asset.height;
+    }
+
+    return GestureDetector(
+      onTap: () async {
+        // 先给点触控反馈
+        HapticFeedback.selectionClick();
+        
+        final file = await item.asset.file;
+        if (file != null && context.mounted) {
+          final result = await Navigator.push<Map<String, dynamic>>(
+            context,
+            PageRouteBuilder(
+              transitionDuration: const Duration(milliseconds: 350),
+              reverseTransitionDuration: const Duration(milliseconds: 350),
+              pageBuilder: (context, animation, secondaryAnimation) {
+                return Scaffold(
+                  backgroundColor: Colors.black,
+                  body: CameraEditOverlay(
+                    heroTag: 'gallery_photo_${item.asset.id}',
+                    isFromAlbum: true,
+                    capturedRawPath: file.path,
+                    initialRatio: '4:3',
+                    initialWatermarkStyle: 'none',
+                    initialFilter: 'none',
+                    initialAdjustParams: {
+                      'exposure': 0.0,
+                      'highlights': 0.0,
+                      'shadows': 0.0,
+                      'brightness': 0.0,
+                      'contrast': 0.0,
+                      'whites': 0.0,
+                      'blacks': 0.0,
+                      'saturation': 0.0,
+                      'vibrance': 0.0,
+                      'temp': 0.0,
+                      'sharpness': 0.0,
+                      'fade': 0.0,
+                    },
+                    initialMattingMode: 'none',
+                    onReTake: () => Navigator.pop(context),
+                    onConfirm: (editedPath, mattedPath) {
+                      Navigator.pop(context, {
+                        'editedPath': editedPath,
+                        'mattedPath': mattedPath,
+                      });
+                    },
+                  ),
+                );
+              },
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+            ),
+          );
+
+          if (result != null && context.mounted) {
+            Navigator.pop(context, result);
+          }
+        }
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[800],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: AspectRatio(
+            aspectRatio: ratio,
+            child: Hero(
+              tag: 'gallery_photo_${item.asset.id}',
+              child: AssetEntityImage(
+                item.asset,
+                isOriginal: false,
+                thumbnailSize: const ThumbnailSize.square(250),
+                thumbnailFormat: ThumbnailFormat.jpeg,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const Center(
+                  child: Icon(Icons.image, color: Colors.white54),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 

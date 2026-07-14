@@ -15,8 +15,21 @@ import '../components/diary_image_source_sheet.dart';
 import '../components/redbook_asset_picker.dart';
 import '../utils/diary_utils.dart';
 import 'package:island_diary/features/record/presentation/pages/custom_camera_page.dart';
+import '../../../../core/plugins/plugin_manager.dart';
+import '../../../../core/plugins/island_plugin.dart';
 
 mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
+  Widget _buildPluginCameraPage(BuildContext context, {String? initialImagePath, String? initialMattedPath}) {
+    final activeCamera = PluginManager.instance.getActivePlugin<CameraPlugin>(PluginCategory.camera);
+    if (activeCamera != null) {
+      return activeCamera.buildCameraPage(context, initialImagePath: initialImagePath, initialMattedPath: initialMattedPath);
+    }
+    return CustomCameraPage(
+      initialImagePath: initialImagePath,
+      initialMattedPath: initialMattedPath,
+    );
+  }
+
   void onImageButtonPressed() async {
     FocusManager.instance.primaryFocus?.unfocus();
     
@@ -95,7 +108,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
           final dynamic routeResult = await Navigator.push<dynamic>(
             context,
             MaterialPageRoute(
-              builder: (context) => CustomCameraPage(initialImagePath: file.path),
+              builder: (context) => _buildPluginCameraPage(context, initialImagePath: file.path),
             ),
           );
           if (routeResult != null && mounted) {
@@ -182,9 +195,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       final String? imagePath = await Navigator.push<String>(
         context,
         MaterialPageRoute(
-          builder: (context) => CustomCameraPage(
-            enableDynamicViewfinder: currentTags.contains('旅行'),
-          ),
+          builder: (context) => _buildPluginCameraPage(context),
         ),
       );
       if (!mounted) {
@@ -213,7 +224,8 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
     final dynamic result = await Navigator.push<dynamic>(
       context,
       MaterialPageRoute(
-        builder: (context) => CustomCameraPage(
+        builder: (context) => _buildPluginCameraPage(
+          context,
           initialImagePath: initialPath,
           initialMattedPath: block.mattedPath,
         ),
@@ -732,9 +744,7 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       final String? imagePath = await Navigator.push<String>(
         context,
         MaterialPageRoute(
-          builder: (context) => CustomCameraPage(
-            enableDynamicViewfinder: currentTags.contains('旅行'),
-          ),
+          builder: (context) => _buildPluginCameraPage(context),
         ),
       );
       return imagePath;

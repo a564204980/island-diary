@@ -18,7 +18,7 @@ extension _CameraEditOverlayWidgets on _CameraEditOverlayState {
               _isCropBoxVisible = false;
               Future.delayed(const Duration(milliseconds: 350), () {
                 if (mounted && _currentSubPanel == 'ratio') {
-                  setState(() => _isCropBoxVisible = true);
+                  _update(() => _isCropBoxVisible = true);
                 }
               });
             }
@@ -31,7 +31,7 @@ extension _CameraEditOverlayWidgets on _CameraEditOverlayState {
                 _isCropBoxVisible = false;
                 Future.delayed(const Duration(milliseconds: 350), () {
                   if (mounted && _currentSubPanel == 'ratio') {
-                    setState(() => _isCropBoxVisible = true);
+                    _update(() => _isCropBoxVisible = true);
                   }
                 });
               } else {

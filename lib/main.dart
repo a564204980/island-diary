@@ -6,6 +6,10 @@ import 'package:island_diary/features/home/presentation/pages/home_page.dart';
 import 'package:island_diary/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:island_diary/shared/widgets/security/security_guard.dart';
 import 'package:island_diary/core/theme/app_theme.dart';
+import 'package:island_diary/core/plugins/plugin_manager.dart';
+import 'package:island_diary/core/plugins/island_plugin.dart';
+import 'package:island_diary/features/record/presentation/plugins/standard_camera_plugin.dart';
+import 'package:island_diary/features/record/presentation/plugins/dynamic_island_camera_plugin.dart';
 
 void main() {
   // 确保 Flutter 底层绑定初始化完毕
@@ -14,6 +18,23 @@ void main() {
   // 完全不 await 任何内容，立即启动所有加载并 runApp
   // isMinimalDataLoaded 信号会在 userName 等基础数据就绪后触发 UI 切换
   UserState().loadFromStorage();
+
+  // 预埋（注册）系统支持的插件
+  final pm = PluginManager.instance;
+  final standardCam = StandardCameraPlugin();
+  pm.registerPlugin(standardCam);
+  pm.registerPlugin(DynamicIslandCameraPlugin());
+  
+  // 从本地存储加载插件状态
+  pm.init().then((_) {
+    // 初始化默认插件状态 (如果是初次运行，或者没有任何相机插件被激活)
+    if (pm.getActivePlugin(PluginCategory.camera) == null) {
+      // 静默安装并激活基础版
+      pm.installPlugin(standardCam.pluginId).then((_) {
+        pm.enablePlugin(standardCam.pluginId);
+      });
+    }
+  });
 
   runApp(const IslandDiaryApp());
 }

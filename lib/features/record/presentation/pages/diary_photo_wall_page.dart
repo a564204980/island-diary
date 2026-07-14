@@ -250,8 +250,58 @@ class _DiaryPhotoWallPageState extends State<DiaryPhotoWallPage> {
               );
             }
 
+            // ================= 新增：方案 B 原生 Sliver 灵动岛 =================
+            slivers.insert(0, SliverAppBar(
+              pinned: true,       // 保持在顶部悬浮不跑出屏幕
+              stretch: true,      // 允许下拉弹性放大
+              expandedHeight: 60.0,
+              collapsedHeight: 60.0,
+              backgroundColor: Colors.transparent, // 透明底色，让列表从胶囊底下穿过去
+              elevation: 0,
+              surfaceTintColor: Colors.transparent,
+              flexibleSpace: FlexibleSpaceBar(
+                stretchModes: const [StretchMode.zoomBackground],
+                background: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // constraints.maxHeight 默认是 60，下拉越界时会变大
+                    final currentHeight = constraints.maxHeight;
+                    final extraHeight = (currentHeight - 60.0).clamp(0.0, 180.0);
+                    final progress = (extraHeight / 180.0).clamp(0.0, 1.0);
+                    
+                    return Container(
+                      alignment: Alignment.bottomCenter,
+                      child: Container(
+                        // 随着下拉拉伸，高度也会随之微增
+                        height: 44.0 + (extraHeight * 0.8),
+                        margin: EdgeInsets.symmetric(
+                          horizontal: 24.0 + (1.0 - progress) * 80,
+                          vertical: 8.0,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isNight ? Colors.white10 : Colors.black87,
+                          borderRadius: BorderRadius.circular(40),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          progress == 0 ? "MAY (往下拉)" : "完全展开模式",
+                          style: TextStyle(
+                            color: isNight ? Colors.white70 : Colors.white,
+                            fontFamily: 'LXGWWenKai',
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                ),
+              ),
+            ));
+
             return CustomScrollView(
-              physics: const BouncingScrollPhysics(),
+              // 这里用 AlwaysScrollable 保证即使没有照片也一定能越界触发拉伸
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               slivers: slivers,
             );
           },

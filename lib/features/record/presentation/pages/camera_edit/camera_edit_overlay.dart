@@ -28,6 +28,7 @@ class CameraEditOverlay extends StatefulWidget {
   final VoidCallback onReTake;
   final Function(String editedPath, String? mattedPath) onConfirm;
   final bool isTransitioning;
+  final String? heroTag;
 
   const CameraEditOverlay({
     super.key,
@@ -42,6 +43,7 @@ class CameraEditOverlay extends StatefulWidget {
     required this.onReTake,
     required this.onConfirm,
     this.isTransitioning = false,
+    this.heroTag,
   });
 
   @override
@@ -83,7 +85,8 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
   late Animation<Offset> _slideInAnimation;
   late AnimationController _strokeAnimationController;
   final ValueNotifier<int> _cropRepaintNotifier = ValueNotifier<int>(0);
-  final GlobalKey<InteractiveCropOverlayState> _cropOverlayKey = GlobalKey<InteractiveCropOverlayState>();
+  final GlobalKey<InteractiveCropOverlayState> _cropOverlayKey =
+      GlobalKey<InteractiveCropOverlayState>();
 
   final List<Map<String, dynamic>> _adjustItems = [
     {
@@ -249,463 +252,68 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
   Widget build(BuildContext context) {
     if (_previewPath == null) return const SizedBox.shrink();
 
-    return Positioned.fill(
-      child: Material(
-        color: Colors.black,
-        child: SafeArea(
-          child: Column(
-            children: [
-              // 1. 顶部栏 (退出/编辑照片)
-              Container(
-                height: 64.0,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 26,
-                      ),
-                      onPressed: () {
-                        try {
-                          File(_previewPath!).deleteSync();
-                        } catch (_) {}
-                        if (_cachedMattedPath != null &&
-                            _cachedMattedPath != _previewPath) {
-                          try {
-                            File(_cachedMattedPath!).deleteSync();
-                          } catch (_) {}
-                        }
-                        widget.onReTake();
-                      },
-                    ),
-                    const Text(
-                      '编辑照片',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'LXGWWenKai',
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.download_rounded,
-                        color: Colors.white,
-                        size: 26,
-                      ),
-                      onPressed: () async {
-                        HapticFeedback.mediumImpact();
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (context) => Center(
-                            child: Card(
-                              color: Colors.black87,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24.0,
-                                  vertical: 16.0,
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Color(0xFFD4A373),
-                                      ),
-                                    ),
-                                    SizedBox(height: 12),
-                                    Text(
-                                      '保存到相册...',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 13,
-                                        fontFamily: 'LXGWWenKai',
-                                        decoration: TextDecoration.none,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-
-                        try {
-                          final finalResultPath =
-                              await CameraImageProcessor.processSingleImage(
-                                imagePath: _capturedRawPath,
-                                ratio: _currentRatio,
-                                watermarkStyle: _watermarkStyle,
-                                filterName: _currentFilter,
-                                mosaicMode: _mosaicMode,
-                                colorMatrix: _calculateColorMatrix(),
-                                strokeWidth: _strokeWidth,
-                                strokeColor: _strokeColor,
-                                strokeStyle: _strokeStyle,
-                                strokeDistance: _strokeDistance,
-                              );
-
-                          final PermissionState ps =
-                              await PhotoManager.requestPermissionExtend();
-                          if (!context.mounted) return;
-                          if (!ps.isAuth) {
-                            Navigator.pop(context);
-                            showTopToast(
-                              context,
-                              '保存失败：未获得相册访问权限',
-                              icon: Icons.error_outline_rounded,
-                              iconColor: Colors.redAccent,
-                            );
-                            return;
-                          }
-
-                          await PhotoManager.editor.saveImageWithPath(
-                            finalResultPath,
-                            title:
-                                'diary_cam_${DateTime.now().millisecondsSinceEpoch}.png',
-                          );
-
-                          if (!context.mounted) return;
-                          Navigator.pop(context);
-
-                            showTopToast(
-                              context,
-                              '已成功保存到相册',
-                              icon: Icons.check_circle_outline_rounded,
-                              iconColor: const Color(0xFFD4A373),
-                            );
-                          } catch (e) {
-                          debugPrint("保存相册失败: $e");
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            showTopToast(
-                              context,
-                              '保存出错：$e',
-                              icon: Icons.error_outline_rounded,
-                              iconColor: Colors.redAccent,
-                            );
-                          }
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              // 2. 中间照片预览区
-              Expanded(
-                child: Opacity(
-                  opacity: widget.isTransitioning ? 0.0 : 1.0,
-                  child: ClipRect(
-                    child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          if (_previewUiImage == null) {
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color(0xFFD4A373),
-                                ),
-                              ),
-                            );
-                          }
-                          final bool isPolaroid = _watermarkStyle == 'polaroid';
-                          final bool isBlurBorder =
-                              _watermarkStyle == 'blur_border';
-
-                          double previewAspect = 1.0;
-                          double imgAspect = 1.0;
-                          if (_previewUiImage != null) {
-                            imgAspect =
-                                _previewUiImage!.width /
-                                _previewUiImage!.height;
-                          }
-
-                          if (_currentSubPanel == 'ratio') {
-                            previewAspect = imgAspect;
-                          } else {
-                            previewAspect =
-                                (_normalizedCropRect.width /
-                                    _normalizedCropRect.height) *
-                                imgAspect;
-                          }
-
-                          final double maxW = constraints.maxWidth;
-                          double maxH = constraints.maxHeight;
-                          if (isPolaroid) {
-                            maxH -= 44.0;
-                          } else if (isBlurBorder) {
-                            maxH = constraints.maxHeight / 1.15;
-                          }
-
-                          double displayW = maxW;
-                          double displayH = maxW / previewAspect;
-                          if (displayH > maxH) {
-                            displayH = maxH;
-                            displayW = maxH * previewAspect;
-                          }
-
-                          double extraHeight = 0.0;
-                          if (isPolaroid) {
-                            extraHeight = 44.0;
-                          } else if (isBlurBorder) {
-                            extraHeight = displayH * 0.15;
-                          }
-
-                          final bool isRatioMode = _currentSubPanel == 'ratio';
-                          if (isRatioMode) {
-                            displayW = maxW;
-                            displayH = maxH;
-                            extraHeight = 0.0;
-                          }
-
-                          double margin = displayW * 0.04;
-                          double imgScale = (displayW - margin * 2) / displayW;
-                          double fgW = isBlurBorder
-                              ? (displayW - margin * 2)
-                              : displayW;
-                          double fgH = isBlurBorder
-                              ? (displayH * imgScale)
-                              : displayH;
-
-                          final double topPos = isBlurBorder
-                              ? (displayH - fgH) / 2
-                              : 0.0;
-                          final double leftPos = isBlurBorder
-                              ? (displayW - fgW) / 2
-                              : 0.0;
-
-                          final Widget mainContent = AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeOutCubic,
-                            color:
-                                (_mattingMode == 'cloud' ||
-                                    _currentSubPanel == 'ratio')
-                                ? Colors.transparent
-                                : const Color(0xFF1E1E1E),
-                            width: displayW,
-                            height: displayH + extraHeight,
-                            child: Stack(
-                              clipBehavior: isRatioMode
-                                  ? Clip.none
-                                  : Clip.hardEdge,
-                              children: [
-                                if (isBlurBorder)
-                                  Positioned.fill(
-                                    child: Image.file(
-                                      File(_capturedRawPath),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                if (isBlurBorder)
-                                  Positioned.fill(
-                                    child: ClipRect(
-                                      child: BackdropFilter(
-                                        filter: ui.ImageFilter.blur(
-                                          sigmaX: 25.0,
-                                          sigmaY: 25.0,
-                                        ),
-                                        child: Container(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.15,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                if (isPolaroid)
-                                  Positioned.fill(
-                                    child: Container(
-                                      color: const Color(0xFFFDFBF7),
-                                    ),
-                                  ),
-
-                                  AnimatedPositioned(
-                                    duration: const Duration(milliseconds: 200),
-                                    curve: Curves.easeOutCubic,
-                                    top: topPos,
-                                    left: leftPos,
-                                    width: fgW,
-                                    height: fgH,
-                                    child: SlideTransition(
-                                      position: _slideInAnimation,
-                                      child: ClipRRect(
-                                        borderRadius: isBlurBorder
-                                            ? BorderRadius.circular(4)
-                                            : BorderRadius.zero,
-                                        child: _buildStrokedPreviewImage(
-                                          imagePath: _capturedRawPath,
-                                          strokeWidth: _strokeWidth,
-                                          strokeColor: _strokeColor,
-                                          fgW: fgW,
-                                          fgH: fgH,
-                                          repaint: _cropRepaintNotifier,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-
-                                  AnimatedPositioned(
-                                    duration: const Duration(milliseconds: 200),
-                                    curve: Curves.easeOutCubic,
-                                    top: topPos - 24.0,
-                                    left: leftPos - 24.0,
-                                    width: fgW + 48.0,
-                                    height: fgH + 48.0,
-                                    child: IgnorePointer(
-                                      ignoring: !_isCropBoxVisible || _currentSubPanel != 'ratio',
-                                      child: AnimatedOpacity(
-                                        duration: Duration(milliseconds: (_currentSubPanel == 'ratio' && _isCropBoxVisible) ? 150 : 0),
-                                        opacity: (_currentSubPanel == 'ratio' && _isCropBoxVisible) ? 1.0 : 0.0,
-                                        child: InteractiveCropOverlay(
-                                          key: _cropOverlayKey,
-                                          width: fgW,
-                                          height: fgH,
-                                          imgAspect: imgAspect,
-                                          ratio: _currentRatio,
-                                          initialCropRect: _normalizedCropRect,
-                                          onCropRectChanged: (cropBox, normalized, {bool isFinished = false}) {
-                                            _activeCropBoxRect = cropBox;
-                                            _normalizedCropRect = normalized;
-                                            _cropRepaintNotifier.value++;
-                                            if (isFinished) {
-                                              setState(() {});
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-
-                                _buildConfirmPageWatermark(
-                                  displayW,
-                                  displayH,
-                                  extraHeight,
-                                ),
-                              ],
-                            ),
-                          );
-
-                          return mainContent;
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // 3. 编辑子面板
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                height: _currentSubPanel == 'stroke'
-                    ? 208.0
-                    : (_currentSubPanel == 'adjust' ? 96.0 : 52.0),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                alignment: Alignment.center,
-                child: ClipRect(child: _buildSubPanel()),
-              ),
-
-              const Divider(color: Colors.white10, height: 1, thickness: 0.5),
-              const SizedBox(height: 12),
-
-              // 4. 一级参数分类菜单
-              SizedBox(
-                height: 56.0,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (mounted && _isCropBoxVisible) {
+          setState(() {
+            _isCropBoxVisible = false;
+          });
+        }
+      },
+      child: Positioned.fill(
+        child: Material(
+          color: Colors.black,
+          child: SafeArea(
+            child: Column(
+              children: [
+                // 1. 顶部栏 (退出/编辑照片)
+                Container(
+                  height: 64.0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                    _buildCategoryItem('ratio', Icons.crop_rounded, '裁剪'),
-                    _buildCategoryItem('adjust', Icons.tune_rounded, '调节'),
-                    _buildCategoryItem(
-                      'filter',
-                      Icons.color_lens_rounded,
-                      '滤镜',
-                    ),
-                    _buildCategoryItem(
-                      'watermark',
-                      Icons.closed_caption_rounded,
-                      '水印',
-                    ),
-                    _buildCategoryItem(
-                      'stroke',
-                      Icons.border_outer_rounded,
-                      '描边',
-                    ),
-                  ],
-                ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // 5. 底部操作按钮
-              SizedBox(
-                height: 74.0,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24.0,
-                    vertical: 12.0,
-                  ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          if (widget.isFromAlbum) {
-                            _resetAllOptions();
-                          } else {
-                            try {
-                              File(_previewPath!).deleteSync();
-                            } catch (_) {}
-                            if (_cachedMattedPath != null &&
-                                _cachedMattedPath != _previewPath) {
-                              try {
-                                File(_cachedMattedPath!).deleteSync();
-                              } catch (_) {}
-                            }
-                            widget.onReTake();
-                          }
-                          HapticFeedback.mediumImpact();
-                        },
+                      IconButton(
                         icon: const Icon(
-                          Icons.refresh_rounded,
-                          color: Colors.white70,
+                          Icons.close,
+                          color: Colors.white,
+                          size: 26,
                         ),
-                        label: Text(
-                          widget.isFromAlbum ? '重置' : '重拍',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontFamily: 'LXGWWenKai',
-                            fontSize: 16,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                            color: Colors.white30,
-                            width: 1.5,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
+                        onPressed: () {
+                          try {
+                            File(_previewPath!).deleteSync();
+                          } catch (_) {}
+                          if (_cachedMattedPath != null &&
+                              _cachedMattedPath != _previewPath) {
+                            try {
+                              File(_cachedMattedPath!).deleteSync();
+                            } catch (_) {}
+                          }
+                          if (mounted) {
+                            setState(() {
+                              _isCropBoxVisible = false;
+                            });
+                          }
+                          widget.onReTake();
+                        },
+                      ),
+                      const Text(
+                        '编辑照片',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'LXGWWenKai',
+                          decoration: TextDecoration.none,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: ElevatedButton.icon(
+                      IconButton(
+                        icon: const Icon(
+                          Icons.download_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
                         onPressed: () async {
                           HapticFeedback.mediumImpact();
                           showDialog(
@@ -730,7 +338,7 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                                       ),
                                       SizedBox(height: 12),
                                       Text(
-                                        '时光洗印中...',
+                                        '保存到相册...',
                                         style: TextStyle(
                                           color: Colors.white70,
                                           fontSize: 13,
@@ -748,7 +356,7 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                           try {
                             final finalResultPath =
                                 await CameraImageProcessor.processSingleImage(
-                                  imagePath: _previewPath!,
+                                  imagePath: _capturedRawPath,
                                   ratio: _currentRatio,
                                   watermarkStyle: _watermarkStyle,
                                   filterName: _currentFilter,
@@ -758,59 +366,523 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
                                   strokeColor: _strokeColor,
                                   strokeStyle: _strokeStyle,
                                   strokeDistance: _strokeDistance,
-                                  normalizedCropRect: _normalizedCropRect,
                                 );
-                            if (context.mounted) {
+
+                            final PermissionState ps =
+                                await PhotoManager.requestPermissionExtend();
+                            if (!context.mounted) return;
+                            if (!ps.isAuth) {
                               Navigator.pop(context);
-                              widget.onConfirm(
-                                finalResultPath,
-                                _mattingMode == 'cloud'
-                                    ? _cachedMattedPath
-                                    : null,
+                              showTopToast(
+                                context,
+                                '保存失败：未获得相册访问权限',
+                                icon: Icons.error_outline_rounded,
+                                iconColor: Colors.redAccent,
                               );
+                              return;
                             }
+
+                            await PhotoManager.editor.saveImageWithPath(
+                              finalResultPath,
+                              title:
+                                  'diary_cam_${DateTime.now().millisecondsSinceEpoch}.png',
+                            );
+
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
+
+                            showTopToast(
+                              context,
+                              '已成功保存到相册',
+                              icon: Icons.check_circle_outline_rounded,
+                              iconColor: const Color(0xFFD4A373),
+                            );
                           } catch (e) {
-                            debugPrint("图像处理失败: $e");
+                            debugPrint("保存相册失败: $e");
                             if (context.mounted) {
                               Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    '图片处理失败，请重试',
-                                    style: TextStyle(fontFamily: 'LXGWWenKai'),
-                                  ),
-                                ),
+                              showTopToast(
+                                context,
+                                '保存出错：$e',
+                                icon: Icons.error_outline_rounded,
+                                iconColor: Colors.redAccent,
                               );
                             }
                           }
                         },
-                        icon: const Icon(
-                          Icons.check_rounded,
-                          color: Colors.white,
-                        ),
-                        label: const Text(
-                          '确认使用',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontFamily: 'LXGWWenKai',
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD4A373),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 2. 中间照片预览区
+                Expanded(
+                  child: Opacity(
+                    opacity: widget.isTransitioning ? 0.0 : 1.0,
+                    child: ClipRect(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              if (_previewUiImage == null) {
+                                return const Center(
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Color(0xFFD4A373),
+                                    ),
+                                  ),
+                                );
+                              }
+                              final bool isPolaroid =
+                                  _watermarkStyle == 'polaroid';
+                              final bool isBlurBorder =
+                                  _watermarkStyle == 'blur_border';
+
+                              double previewAspect = 1.0;
+                              double imgAspect = 1.0;
+                              if (_previewUiImage != null) {
+                                imgAspect =
+                                    _previewUiImage!.width /
+                                    _previewUiImage!.height;
+                              }
+
+                              if (_currentSubPanel == 'ratio') {
+                                previewAspect = imgAspect;
+                              } else {
+                                previewAspect =
+                                    (_normalizedCropRect.width /
+                                        _normalizedCropRect.height) *
+                                    imgAspect;
+                              }
+
+                              final double maxW = constraints.maxWidth;
+                              double maxH = constraints.maxHeight;
+                              if (isPolaroid) {
+                                maxH -= 44.0;
+                              } else if (isBlurBorder) {
+                                maxH = constraints.maxHeight / 1.15;
+                              }
+
+                              double displayW = maxW;
+                              double displayH = maxW / previewAspect;
+                              if (displayH > maxH) {
+                                displayH = maxH;
+                                displayW = maxH * previewAspect;
+                              }
+
+                              double extraHeight = 0.0;
+                              if (isPolaroid) {
+                                extraHeight = 44.0;
+                              } else if (isBlurBorder) {
+                                extraHeight = displayH * 0.15;
+                              }
+
+                              final bool isRatioMode =
+                                  _currentSubPanel == 'ratio';
+                              if (isRatioMode) {
+                                displayW = maxW;
+                                displayH = maxH;
+                                extraHeight = 0.0;
+                              }
+
+                              double margin = displayW * 0.04;
+                              double imgScale =
+                                  (displayW - margin * 2) / displayW;
+                              double fgW = isBlurBorder
+                                  ? (displayW - margin * 2)
+                                  : displayW;
+                              double fgH = isBlurBorder
+                                  ? (displayH * imgScale)
+                                  : displayH;
+
+                              final double topPos = isBlurBorder
+                                  ? (displayH - fgH) / 2
+                                  : 0.0;
+                              final double leftPos = isBlurBorder
+                                  ? (displayW - fgW) / 2
+                                  : 0.0;
+
+                              final Widget mainContent = AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeOutCubic,
+                                color:
+                                    (_mattingMode == 'cloud' ||
+                                        _currentSubPanel == 'ratio')
+                                    ? Colors.transparent
+                                    : const Color(0xFF1E1E1E),
+                                width: displayW,
+                                height: displayH + extraHeight,
+                                child: Stack(
+                                  clipBehavior: isRatioMode
+                                      ? Clip.none
+                                      : Clip.hardEdge,
+                                  children: [
+                                    if (isBlurBorder)
+                                      Positioned.fill(
+                                        child: Image.file(
+                                          File(_capturedRawPath),
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    if (isBlurBorder)
+                                      Positioned.fill(
+                                        child: ClipRect(
+                                          child: BackdropFilter(
+                                            filter: ui.ImageFilter.blur(
+                                              sigmaX: 25.0,
+                                              sigmaY: 25.0,
+                                            ),
+                                            child: Container(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.15,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    if (isPolaroid)
+                                      Positioned.fill(
+                                        child: Container(
+                                          color: const Color(0xFFFDFBF7),
+                                        ),
+                                      ),
+
+                                    AnimatedPositioned(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      curve: Curves.easeOutCubic,
+                                      top: topPos,
+                                      left: leftPos,
+                                      width: fgW,
+                                      height: fgH,
+                                      child: SlideTransition(
+                                        position: _slideInAnimation,
+                                        child: ClipRRect(
+                                          borderRadius: isBlurBorder
+                                              ? BorderRadius.circular(4)
+                                              : BorderRadius.zero,
+                                          child: widget.heroTag != null
+                                              ? Hero(
+                                                  tag: widget.heroTag!,
+                                                  child:
+                                                      _buildStrokedPreviewImage(
+                                                        imagePath:
+                                                            _capturedRawPath,
+                                                        strokeWidth:
+                                                            _strokeWidth,
+                                                        strokeColor:
+                                                            _strokeColor,
+                                                        fgW: fgW,
+                                                        fgH: fgH,
+                                                        repaint:
+                                                            _cropRepaintNotifier,
+                                                      ),
+                                                )
+                                              : _buildStrokedPreviewImage(
+                                                  imagePath: _capturedRawPath,
+                                                  strokeWidth: _strokeWidth,
+                                                  strokeColor: _strokeColor,
+                                                  fgW: fgW,
+                                                  fgH: fgH,
+                                                  repaint: _cropRepaintNotifier,
+                                                ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    AnimatedPositioned(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      curve: Curves.easeOutCubic,
+                                      top: topPos - 24.0,
+                                      left: leftPos - 24.0,
+                                      width: fgW + 48.0,
+                                      height: fgH + 48.0,
+                                      child: IgnorePointer(
+                                        ignoring:
+                                            !_isCropBoxVisible ||
+                                            _currentSubPanel != 'ratio',
+                                        child: AnimatedOpacity(
+                                          duration: Duration(
+                                            milliseconds:
+                                                (_currentSubPanel == 'ratio' &&
+                                                    _isCropBoxVisible)
+                                                ? 150
+                                                : 0,
+                                          ),
+                                          opacity:
+                                              (_currentSubPanel == 'ratio' &&
+                                                  _isCropBoxVisible)
+                                              ? 1.0
+                                              : 0.0,
+                                          child: InteractiveCropOverlay(
+                                            key: _cropOverlayKey,
+                                            width: fgW,
+                                            height: fgH,
+                                            imgAspect: imgAspect,
+                                            ratio: _currentRatio,
+                                            initialCropRect:
+                                                _normalizedCropRect,
+                                            onCropRectChanged:
+                                                (
+                                                  cropBox,
+                                                  normalized, {
+                                                  bool isFinished = false,
+                                                }) {
+                                                  _activeCropBoxRect = cropBox;
+                                                  _normalizedCropRect =
+                                                      normalized;
+                                                  _cropRepaintNotifier.value++;
+                                                  if (isFinished) {
+                                                    setState(() {});
+                                                  }
+                                                },
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    _buildConfirmPageWatermark(
+                                      displayW,
+                                      displayH,
+                                      extraHeight,
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              return mainContent;
+                            },
                           ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
+
+                // 3. 编辑子面板
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  height: _currentSubPanel == 'stroke'
+                      ? 208.0
+                      : (_currentSubPanel == 'adjust' ? 96.0 : 52.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  alignment: Alignment.center,
+                  child: ClipRect(child: _buildSubPanel()),
                 ),
-              ),
-            ],
+
+                const Divider(color: Colors.white10, height: 1, thickness: 0.5),
+                const SizedBox(height: 12),
+
+                // 4. 一级参数分类菜单
+                SizedBox(
+                  height: 56.0,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildCategoryItem('ratio', Icons.crop_rounded, '裁剪'),
+                        _buildCategoryItem('adjust', Icons.tune_rounded, '调节'),
+                        _buildCategoryItem(
+                          'filter',
+                          Icons.color_lens_rounded,
+                          '滤镜',
+                        ),
+                        _buildCategoryItem(
+                          'watermark',
+                          Icons.closed_caption_rounded,
+                          '水印',
+                        ),
+                        _buildCategoryItem(
+                          'stroke',
+                          Icons.border_outer_rounded,
+                          '描边',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // 5. 底部操作按钮
+                SizedBox(
+                  height: 74.0,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24.0,
+                      vertical: 12.0,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              if (widget.isFromAlbum) {
+                                _resetAllOptions();
+                              } else {
+                                try {
+                                  File(_previewPath!).deleteSync();
+                                } catch (_) {}
+                                if (_cachedMattedPath != null &&
+                                    _cachedMattedPath != _previewPath) {
+                                  try {
+                                    File(_cachedMattedPath!).deleteSync();
+                                  } catch (_) {}
+                                }
+                                if (mounted) {
+                                  setState(() {
+                                    _isCropBoxVisible = false;
+                                  });
+                                }
+                                widget.onReTake();
+                              }
+                              HapticFeedback.mediumImpact();
+                            },
+                            icon: const Icon(
+                              Icons.refresh_rounded,
+                              color: Colors.white70,
+                            ),
+                            label: Text(
+                              widget.isFromAlbum ? '重置' : '重拍',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontFamily: 'LXGWWenKai',
+                                fontSize: 16,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                color: Colors.white30,
+                                width: 1.5,
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              HapticFeedback.mediumImpact();
+                              showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (context) => Center(
+                                  child: Card(
+                                    color: Colors.black87,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24.0,
+                                        vertical: 16.0,
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: const [
+                                          CircularProgressIndicator(
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Color(0xFFD4A373),
+                                                ),
+                                          ),
+                                          SizedBox(height: 12),
+                                          Text(
+                                            '时光洗印中...',
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 13,
+                                              fontFamily: 'LXGWWenKai',
+                                              decoration: TextDecoration.none,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+
+                              try {
+                                final finalResultPath =
+                                    await CameraImageProcessor.processSingleImage(
+                                      imagePath: _previewPath!,
+                                      ratio: _currentRatio,
+                                      watermarkStyle: _watermarkStyle,
+                                      filterName: _currentFilter,
+                                      mosaicMode: _mosaicMode,
+                                      colorMatrix: _calculateColorMatrix(),
+                                      strokeWidth: _strokeWidth,
+                                      strokeColor: _strokeColor,
+                                      strokeStyle: _strokeStyle,
+                                      strokeDistance: _strokeDistance,
+                                      normalizedCropRect: _normalizedCropRect,
+                                    );
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  if (mounted) {
+                                    setState(() {
+                                      _isCropBoxVisible = false;
+                                    });
+                                  }
+                                  widget.onConfirm(
+                                    finalResultPath,
+                                    _mattingMode == 'cloud'
+                                        ? _cachedMattedPath
+                                        : null,
+                                  );
+                                }
+                              } catch (e) {
+                                debugPrint("图像处理失败: $e");
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        '图片处理失败，请重试',
+                                        style: TextStyle(
+                                          fontFamily: 'LXGWWenKai',
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              '确认使用',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'LXGWWenKai',
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFD4A373),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ).animate().fadeIn(duration: 400.ms, curve: Curves.easeOut),
