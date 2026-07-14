@@ -261,10 +261,9 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
           });
         }
       },
-      child: Positioned.fill(
-        child: Material(
-          color: Colors.black,
-          child: SafeArea(
+      child: Material(
+        color: Colors.black,
+        child: SafeArea(
             child: Column(
               children: [
                 // 1. 顶部栏 (退出/编辑照片)
@@ -884,8 +883,7 @@ class _CameraEditOverlayState extends State<CameraEditOverlay>
               ],
             ),
           ),
-        ),
-      ).animate().fadeIn(duration: 400.ms, curve: Curves.easeOut),
+        ).animate().fadeIn(duration: 400.ms, curve: Curves.easeOut),
     );
   }
 }

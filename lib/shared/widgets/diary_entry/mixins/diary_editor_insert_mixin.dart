@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../utils/diary_utils.dart';
-import '../components/diary_date_picker_sheet.dart';
 import '../components/diary_time_picker_sheet.dart';
 import '../components/diary_weather_picker_sheet.dart';
 import '../components/paper_picker_sheet.dart';
@@ -12,6 +11,10 @@ import 'package:island_diary/features/record/presentation/pages/diary_editor_pag
 import 'package:island_diary/core/state/user_state.dart';
 import '../components/diary_tag_picker_sheet.dart';
 import './diary_editor_core_mixin.dart';
+import '../../../../core/plugins/plugin_manager.dart';
+import '../../../../core/plugins/island_plugin.dart';
+import 'package:island_diary/shared/widgets/date_picker/island_date_time_picker.dart';
+
 
 mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorCoreMixin<T> {
 
@@ -266,73 +269,69 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
     onBlocksChanged();
   }
 
-  void onDateClick() {
+  void onDateClick() async {
     final activeBlock = activeTextBlock;
     final bool hadFocus = activeBlock?.focusNode.hasFocus ?? false;
 
     FocusScope.of(context).unfocus();
     setState(() => isColorPickerOpen = true);
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      showDragHandle: false,
-      builder: (context) => DiaryDatePickerSheet(
-        initialDate: entryDateTime ?? DateTime.now(),
-        paperStyle: currentPaperStyle,
-        onConfirm: (date) {
-          final String insertion = DiaryUtils.getFormattedDateWithWeekday(date);
-          
-          if (hadFocus && activeBlock != null) {
-            final controller = activeBlock.controller;
-            final text = controller.text;
-            final selection = controller.selection;
-            
-            // 需求：内容插入时前后加个空格
-            final String spacedInsertion = " $insertion ";
+    
+    final date = await IslandDateTimePicker.show(
+      context,
+      initialDate: entryDateTime ?? DateTime.now(),
+    );
 
-            final newText = (selection.isValid)
-                ? text.replaceRange(
-                    selection.start.clamp(0, text.length),
-                    selection.end.clamp(0, text.length),
-                    spacedInsertion,
-                  )
-                : text + spacedInsertion;
+    if (mounted) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      setState(() => isColorPickerOpen = false);
+    }
 
-            setState(() {
-              controller.value = controller.value.copyWith(
-                text: newText,
-                selection: TextSelection.collapsed(
-                  offset: (selection.isValid ? selection.start : text.length) + spacedInsertion.length,
-                ),
-              );
-            });
-            activeBlock.focusNode.requestFocus();
-            onBlocksChanged();
-          } else {
-            // 无焦点模式：作为标签
-            setState(() {
-              final current = entryDateTime ?? DateTime.now();
-              entryDateTime = DateTime(
-                date.year,
-                date.month,
-                date.day,
-                current.hour,
-                current.minute,
-                current.second,
-              );
-              customDate = insertion;
-            });
-            onBlocksChanged();
-          }
-          Navigator.pop(context);
-        },
-      ),
-    ).then((_) {
-      if (mounted) {
-        FocusManager.instance.primaryFocus?.unfocus();
-        setState(() => isColorPickerOpen = false);
+    if (date != null && mounted) {
+      final String insertion = DiaryUtils.getFormattedDateWithWeekday(date);
+      
+      if (hadFocus && activeBlock != null) {
+        final controller = activeBlock.controller;
+        final text = controller.text;
+        final selection = controller.selection;
+        
+        // 需求：内容插入时前后加个空格
+        final String spacedInsertion = " $insertion ";
+
+        final newText = (selection.isValid)
+            ? text.replaceRange(
+                selection.start.clamp(0, text.length),
+                selection.end.clamp(0, text.length),
+                spacedInsertion,
+              )
+            : text + spacedInsertion;
+
+        setState(() {
+          controller.value = controller.value.copyWith(
+            text: newText,
+            selection: TextSelection.collapsed(
+              offset: (selection.isValid ? selection.start : text.length) + spacedInsertion.length,
+            ),
+          );
+        });
+        activeBlock.focusNode.requestFocus();
+        onBlocksChanged();
+      } else {
+        // 无焦点模式：作为标签
+        setState(() {
+          final current = entryDateTime ?? DateTime.now();
+          entryDateTime = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            current.hour,
+            current.minute,
+            current.second,
+          );
+          customDate = insertion;
+        });
+        onBlocksChanged();
       }
-    });
+    }
   }
 
   void onTimeClick() {
@@ -405,6 +404,10 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
 
   void onTagClick() {
     FocusScope.of(context).unfocus();
+    
+    // 记录打开面板前的标签
+    final initialTagsBeforeSheet = List<String>.from(currentTags);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -420,9 +423,31 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
           onBlocksChanged();
         },
       ),
-    ).then((_) {
+    ).then((_) async {
       if (mounted) {
         FocusManager.instance.primaryFocus?.unfocus();
+        
+        // 面板关闭后，计算新增的标签
+        final addedTags = currentTags.where((t) => !initialTagsBeforeSheet.contains(t)).toList();
+        if (addedTags.isNotEmpty) {
+          // 稍微延迟，等待底部面板完全收起，避免弹窗突兀
+          await Future.delayed(const Duration(milliseconds: 200));
+          if (!mounted) return;
+          
+          final expPlugin = PluginManager.instance.getActivePlugin<ExperiencePlugin>(PluginCategory.experience);
+          if (expPlugin != null) {
+            bool pluginTriggered = false;
+            for (final tag in addedTags) {
+              if (expPlugin.targetTags.contains(tag)) {
+                await expPlugin.onTagAdded(context, tag, currentAnnotations);
+                pluginTriggered = true;
+              }
+            }
+            if (pluginTriggered && mounted) {
+              setState(() {}); // Trigger rebuild to show footer
+            }
+          }
+        }
       }
     });
   }

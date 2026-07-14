@@ -14,7 +14,7 @@ import 'package:island_diary/core/state/user_state.dart';
 import '../components/diary_image_source_sheet.dart';
 import '../components/redbook_asset_picker.dart';
 import '../utils/diary_utils.dart';
-import 'package:island_diary/features/record/presentation/pages/custom_camera_page.dart';
+import 'package:island_diary/features/record/presentation/pages/custom_camera/custom_camera_page.dart';
 import '../../../../core/plugins/plugin_manager.dart';
 import '../../../../core/plugins/island_plugin.dart';
 

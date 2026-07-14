@@ -10,6 +10,7 @@ import 'package:island_diary/core/plugins/plugin_manager.dart';
 import 'package:island_diary/core/plugins/island_plugin.dart';
 import 'package:island_diary/features/record/presentation/plugins/standard_camera_plugin.dart';
 import 'package:island_diary/features/record/presentation/plugins/dynamic_island_camera_plugin.dart';
+import 'package:island_diary/plugins/travel_experience/travel_experience_plugin.dart';
 
 void main() {
   // 确保 Flutter 底层绑定初始化完毕
@@ -24,6 +25,8 @@ void main() {
   final standardCam = StandardCameraPlugin();
   pm.registerPlugin(standardCam);
   pm.registerPlugin(DynamicIslandCameraPlugin());
+  final travelExp = TravelExperiencePlugin();
+  pm.registerPlugin(travelExp);
   
   // 从本地存储加载插件状态
   pm.init().then((_) {
@@ -32,6 +35,11 @@ void main() {
       // 静默安装并激活基础版
       pm.installPlugin(standardCam.pluginId).then((_) {
         pm.enablePlugin(standardCam.pluginId);
+      });
+    }
+    if (pm.getActivePlugin(PluginCategory.experience) == null) {
+      pm.installPlugin(travelExp.pluginId).then((_) {
+        pm.enablePlugin(travelExp.pluginId);
       });
     }
   });

@@ -12,6 +12,8 @@ import '../utils/diary_utils.dart';
 import '../../../../core/state/user_state.dart';
 import '../../mood_picker/config/mood_config.dart';
 import '../../island_alert.dart';
+import '../../../../core/plugins/plugin_manager.dart';
+import '../../../../core/plugins/island_plugin.dart';
 
 mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   late String currentDraftId;
@@ -360,6 +362,28 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           .map((b) => b.controller.text)
           .join('\n');
 
+      // ===== 插件保存前拦截 (onBeforeSave) =====
+      final expPlugin = PluginManager.instance.getActivePlugin<ExperiencePlugin>(PluginCategory.experience);
+      if (expPlugin != null && currentTag != null && expPlugin.targetTags.contains(currentTag)) {
+        final dummyEntry = DiaryEntry(
+          dateTime: entryDateTime ?? DateTime.now(),
+          moodIndex: currentMoodIndex ?? 0,
+          intensity: currentIntensity,
+          content: content,
+          blocks: blocks.map((b) => b.toMap()).toList(),
+          tag: currentTag,
+          annotations: currentAnnotations,
+        );
+        final canSave = await expPlugin.onBeforeSave(context, dummyEntry);
+        if (!canSave) {
+          debugPrint("DIARY_EDITOR: 保存被插件拦截终止。");
+          return false;
+        }
+        // 同步可能的 annotation 修改
+        currentAnnotations = dummyEntry.annotations; 
+      }
+      // =====================================
+
       List<dynamic> achievements = [];
 
       if (widget.entry != null) {
@@ -411,6 +435,27 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
         await UserState().deleteDraftEntry(currentDraftId);
         debugPrint("DIARY_EDITOR: 新日记保存成功，获得成就数量: ${achievements.length}");
       }
+      
+      // ===== 插件保存后拦截 (onAfterSave) =====
+      if (!mounted) return true;
+      
+      final expPluginAfter = PluginManager.instance.getActivePlugin<ExperiencePlugin>(PluginCategory.experience);
+      if (expPluginAfter != null && currentTag != null && expPluginAfter.targetTags.contains(currentTag)) {
+        // 由于是新创建的，这里简化处理，传递一个带有基本信息的 Entry
+        final dummyEntry = DiaryEntry(
+          dateTime: entryDateTime ?? DateTime.now(),
+          moodIndex: currentMoodIndex ?? 0,
+          intensity: currentIntensity,
+          content: content,
+          blocks: blocks.map((b) => b.toMap()).toList(),
+          tag: currentTag,
+          annotations: currentAnnotations,
+          location: location,
+          weather: weather,
+        );
+        await expPluginAfter.onAfterSave(context, dummyEntry);
+      }
+      // ===================================
 
       if (mounted) {
         debugPrint("DIARY_EDITOR: 正在退出编辑器...");

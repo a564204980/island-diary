@@ -7,7 +7,7 @@ class AppTheme {
   static ThemeData lightTheme(String defaultFont) {
     final baseTheme = ThemeData(
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF0F172A),
+        seedColor: const Color(0xFFCDA661),
         brightness: Brightness.light,
       ),
       useMaterial3: true,
@@ -22,7 +22,7 @@ class AppTheme {
   static ThemeData darkTheme(String defaultFont) {
     final baseTheme = ThemeData(
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF0F172A),
+        seedColor: const Color(0xFFCDA661),
         brightness: Brightness.dark,
       ),
       useMaterial3: true,

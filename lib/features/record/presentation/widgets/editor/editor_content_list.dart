@@ -4,6 +4,8 @@ import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart'
 import 'package:island_diary/shared/widgets/diary_entry/models/image_group_block.dart';
 import 'package:island_diary/features/record/presentation/widgets/editor/mood_selector_header.dart';
 import 'package:island_diary/features/record/presentation/widgets/editor/editor_date_header.dart';
+import 'package:island_diary/core/plugins/plugin_manager.dart';
+import 'package:island_diary/core/plugins/island_plugin.dart';
 
 class EditorContentList extends StatefulWidget {
   final List<DiaryBlock> blocks;
@@ -103,12 +105,25 @@ class _EditorContentListState extends State<EditorContentList> {
           (context, index) {
             // 顶部大日期头部模块
             if (index == 0) {
-              return EditorDateHeader(
-                key: const ValueKey('date_header'),
-                dateTime: widget.dateTime,
-                paperStyle: widget.paperStyle,
-                isNight: widget.isNight,
-                onDateTap: widget.onDateTap,
+              final expPlugin = PluginManager.instance.getActivePlugin<ExperiencePlugin>(PluginCategory.experience);
+              final List<String> currentTagsList = widget.currentTag?.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList() ?? [];
+              final String? activeTag = currentTagsList.cast<String?>().firstWhere((t) => expPlugin?.targetTags.contains(t) == true, orElse: () => null);
+              final bool isPluginActive = expPlugin != null && activeTag != null;
+              final Widget? pluginHeader = isPluginActive ? expPlugin.buildEditorHeader(context, tag: activeTag) : null;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  EditorDateHeader(
+                    key: const ValueKey('date_header'),
+                    dateTime: widget.dateTime,
+                    paperStyle: widget.paperStyle,
+                    isNight: widget.isNight,
+                    onDateTap: widget.onDateTap,
+                  ),
+                  ?pluginHeader,
+                ]
               );
             }
 
@@ -134,21 +149,38 @@ class _EditorContentListState extends State<EditorContentList> {
               );
             }
 
-            final int contentIndex = index - 2;
+             final int contentIndex = index - 2;
+
+             // 底部插件扩展渲染逻辑
+             final int totalCount = (widget.isMixedLayout
+                  ? displayBlocks.length
+                  : widget.blocks.where((b) => b is! ImageBlock).length) + 3;
+             if (index == totalCount - 1) {
+               final expPlugin = PluginManager.instance.getActivePlugin<ExperiencePlugin>(PluginCategory.experience);
+               final List<String> currentTagsList = widget.currentTag?.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList() ?? [];
+               final String? activeTag = currentTagsList.cast<String?>().firstWhere((t) => expPlugin?.targetTags.contains(t) == true, orElse: () => null);
+               final bool isPluginActive = expPlugin != null && activeTag != null;
+               
+               if (isPluginActive && widget.annotations != null) {
+                 final footer = expPlugin.buildEditorFooter(context, tag: activeTag, annotations: widget.annotations!);
+                 if (footer != null) return footer;
+               }
+               return const SizedBox.shrink();
+             }
 
              // 如果关闭了图文混排模式，只渲染非图片块
              if (!widget.isMixedLayout) {
                final nonImageBlocks = widget.blocks
                    .where((b) => b is! ImageBlock)
                    .toList();
-               if (contentIndex >= nonImageBlocks.length) return null;
+               if (contentIndex >= nonImageBlocks.length) return const SizedBox.shrink();
 
                final block = nonImageBlocks[contentIndex];
                return _buildBlockItem(block, widget.blocks.indexOf(block));
              }
 
              // 混排模式下按序渲染
-             if (contentIndex >= displayBlocks.length) return null;
+             if (contentIndex >= displayBlocks.length) return const SizedBox.shrink();
              final block = displayBlocks[contentIndex];
              return _buildBlockItem(block, widget.blocks.indexOf(block));
           },
@@ -157,6 +189,11 @@ class _EditorContentListState extends State<EditorContentList> {
               final String val = key.value;
               if (val == 'date_header') return 0;
               if (val == 'mood_header') return 1;
+              if (val == 'plugin_footer') {
+                return (widget.isMixedLayout
+                  ? displayBlocks.length
+                  : widget.blocks.where((b) => b is! ImageBlock).length) + 2;
+              }
 
               if (widget.isMixedLayout) {
                 for (int i = 0; i < displayBlocks.length; i++) {
@@ -187,7 +224,7 @@ class _EditorContentListState extends State<EditorContentList> {
               (widget.isMixedLayout
                   ? displayBlocks.length
                   : widget.blocks.where((b) => b is! ImageBlock).length) +
-              2,
+              3,
         ),
       ),
     );

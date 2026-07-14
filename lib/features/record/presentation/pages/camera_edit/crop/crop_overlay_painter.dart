@@ -58,41 +58,51 @@ class CropOverlayPainter extends CustomPainter {
     final handlePaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
+      ..strokeWidth = 4.0 // 增加粗细
+      ..strokeJoin = StrokeJoin.round // 线条连接处圆润
       ..strokeCap = StrokeCap.round;
 
-    const double len = 16.0;
+    const double len = 24.0; // 增加四个角的把手长度
+    const double r = 6.0;    // 增加圆角半径，让四个角更圆润
 
+    // Top-Left
     canvas.drawPath(
       Path()
         ..moveTo(rect.left, rect.top + len)
-        ..lineTo(rect.left, rect.top)
+        ..lineTo(rect.left, rect.top + r)
+        ..arcToPoint(Offset(rect.left + r, rect.top), radius: const Radius.circular(r))
         ..lineTo(rect.left + len, rect.top),
       handlePaint,
     );
+    // Top-Right
     canvas.drawPath(
       Path()
         ..moveTo(rect.right - len, rect.top)
-        ..lineTo(rect.right, rect.top)
+        ..lineTo(rect.right - r, rect.top)
+        ..arcToPoint(Offset(rect.right, rect.top + r), radius: const Radius.circular(r))
         ..lineTo(rect.right, rect.top + len),
       handlePaint,
     );
+    // Bottom-Left
     canvas.drawPath(
       Path()
         ..moveTo(rect.left, rect.bottom - len)
-        ..lineTo(rect.left, rect.bottom)
+        ..lineTo(rect.left, rect.bottom - r)
+        ..arcToPoint(Offset(rect.left + r, rect.bottom), radius: const Radius.circular(r), clockwise: false)
         ..lineTo(rect.left + len, rect.bottom),
       handlePaint,
     );
+    // Bottom-Right
     canvas.drawPath(
       Path()
         ..moveTo(rect.right - len, rect.bottom)
-        ..lineTo(rect.right, rect.bottom)
+        ..lineTo(rect.right - r, rect.bottom)
+        ..arcToPoint(Offset(rect.right, rect.bottom - r), radius: const Radius.circular(r), clockwise: false)
         ..lineTo(rect.right, rect.bottom - len),
       handlePaint,
     );
 
-    const double sideLen = 14.0;
+    const double sideLen = 24.0; // 增加四周中点的把手长度
     final topMid = Offset(rect.left + rect.width / 2, rect.top);
     canvas.drawLine(
       Offset(topMid.dx - sideLen / 2, topMid.dy),

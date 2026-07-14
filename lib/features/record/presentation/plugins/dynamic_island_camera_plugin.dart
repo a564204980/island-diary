@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/plugins/island_plugin.dart';
-import '../pages/custom_camera_page.dart';
+import '../pages/custom_camera/custom_camera_page.dart';
 
 class DynamicIslandCameraPlugin extends CameraPlugin {
   @override
