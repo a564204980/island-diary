@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+
+import '../widgets/draft_save_dialog.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';
 import 'package:island_diary/features/record/domain/models/diary_book.dart';
@@ -18,6 +20,7 @@ import '../widgets/editor/editor_header.dart';
 import '../widgets/editor/editor_content_list.dart';
 import '../widgets/editor/editor_bottom_bar.dart';
 import 'package:island_diary/shared/widgets/mood_picker/custom_mood_picker_popup.dart';
+
 
 class DiaryEditorPage extends StatefulWidget {
   final int? moodIndex;
@@ -63,6 +66,22 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && inset > keyboardHeight) {
           setState(() => keyboardHeight = inset);
+
+          // 键盘弹起时，顺势将页面继续往上顶，隐藏顶部的时间与天气区域（约160像素）
+          // 让动画过渡自然，提供更加沉浸的输入空间
+          if (scrollController.hasClients) {
+            final double headerHeight = 160.0;
+            if (scrollController.offset < headerHeight) {
+              final targetOffset = headerHeight.clamp(0.0, scrollController.position.maxScrollExtent);
+              if (targetOffset > scrollController.offset) {
+                scrollController.animateTo(
+                  targetOffset,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                );
+              }
+            }
+          }
         }
       });
     } else if (inset < 10 && keyboardHeight > 0) {
@@ -160,7 +179,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                               blocks: blocks,
                               blockKeys: blockKeys,
                               isMixedLayout: isMixedLayout,
-                              isImageGrid: isImageGrid,
+                              imageLayoutStyle: imageLayoutStyle,
                               isEmojiOpen:
                                   isEmojiOpen ||
                                   isColorPickerOpen ||
@@ -776,21 +795,17 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       builder: (context) => DiaryBottomSheet(
         paperStyle: currentPaperStyle,
         showDragHandle: true,
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
         child: StatefulBuilder(
           builder: (context, setModalState) {
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "更多工具",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                    fontFamily: fontFamily,
-                  ),
+                DiaryBottomSheetHeader(
+                  title: "更多工具",
+                  fontFamily: fontFamily,
+                  textColor: textColor,
                 ),
                 const SizedBox(height: 20),
                 // 智能排版 (开发中)
@@ -1317,114 +1332,21 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
       return;
     }
 
-    final isNight = UserState().isNight;
-    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+    final shouldSave = await DraftSaveDialog.show(context);
 
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.6),
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: Container(
-          decoration: BoxDecoration(
-            color: isNight
-                ? const Color(0xFF2C2C2E)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isNight
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.05),
-              width: 0.5,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 32, bottom: 20, left: 24, right: 24),
-                child: Text(
-                  "是否将本次记录保存为草稿？",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: isNight
-                        ? Colors.white.withValues(alpha: 0.9)
-                        : const Color(0xFF2C2C2C),
-                    fontFamily: fontFamily,
-                  ),
-                ),
-              ),
-              Container(
-                height: 0.5,
-                color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        if (widget.entry == null) {
-                          UserState().deleteDraftEntry(currentDraftId);
-                        }
-                        Navigator.pop(ctx);
-                        Navigator.of(context).pop(false);
-                      },
-                      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Text(
-                          "丢弃",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: fontFamily,
-                            fontSize: 15,
-                            color: isNight ? Colors.white54 : const Color(0xFF8E8E93),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    width: 0.5,
-                    height: 50,
-                    color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                  ),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () async {
-                        await saveCurrentAsDraft();
-                        if (ctx.mounted) {
-                          Navigator.pop(ctx);
-                        }
-                        if (context.mounted) {
-                          Navigator.of(context).pop(false);
-                        }
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Text(
-                          "保存草稿",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: fontFamily,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFD4A373),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    if (shouldSave == true) {
+      await saveCurrentAsDraft();
+      if (context.mounted) {
+        Navigator.of(context).pop(false);
+      }
+    } else if (shouldSave == false) {
+      if (widget.entry == null) {
+        UserState().deleteDraftEntry(currentDraftId);
+      }
+      if (context.mounted) {
+        Navigator.of(context).pop(false);
+      }
+    }
   }
 }
 

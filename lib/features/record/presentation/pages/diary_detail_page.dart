@@ -3,14 +3,18 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/domain/models/diary_book.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+import 'package:island_diary/core/plugins/plugin_manager.dart';
+import 'package:island_diary/core/plugins/island_plugin.dart';
 // import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_text_context_menu.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_chunshan_layout.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
@@ -238,8 +242,16 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       widget.isNight,
     );
 
-    return Scaffold(
-      backgroundColor: bgColor,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        statusBarIconBrightness: _effectiveIsNight ? Brightness.light : Brightness.dark,
+        systemNavigationBarIconBrightness: _effectiveIsNight ? Brightness.light : Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: bgColor,
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
@@ -312,6 +324,12 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
                               _buildHeader(),
                               const SizedBox(height: 8),
                               ..._buildBlocksView(),
+                              Builder(
+                                builder: (context) {
+                                  final footer = _buildPluginFooter();
+                                  return footer ?? const SizedBox.shrink();
+                                },
+                              ),
                               if (_currentEntry.replies.isNotEmpty)
                                 const SizedBox(height: 48),
                               DiaryTimeline(
@@ -339,6 +357,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
           if (widget.showFloatingActions)
             _buildFloatingActions(_effectiveIsNight),
         ],
+      ),
       ),
     );
   }
@@ -894,7 +913,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
       fontFamily: 'LXGWWenKai',
     );
 
-    if (_currentEntry.isImageGrid && !_currentEntry.isMixedLayout) {
+    if (_currentEntry.imageLayoutStyle == 'grid' && !_currentEntry.isMixedLayout) {
       return [
         if (hasText) ...[
           _buildRichTextView(),
@@ -908,7 +927,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     final processedBlocks = ImageGroupBlock.preprocess(
       originalBlocks,
       isMixedLayout: _currentEntry.isMixedLayout,
-      isImageGrid: _currentEntry.isImageGrid,
+      imageLayoutStyle: _currentEntry.imageLayoutStyle,
     );
 
     final List<DiaryBlock> displayBlocks = processedBlocks;
@@ -986,24 +1005,30 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         final List<String> paths = block.images.map((img) => img.file.path).toList();
         final bool isWide = MediaQuery.of(context).size.width > 800;
 
-        list.add(
-          Center(
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: isWide
-                    ? 520
-                    : double.infinity,
-              ),
-              margin: EdgeInsets.only(top: isFirst ? 8 : 12, bottom: 12),
-              child: DiaryImageCollage(
-                imagePaths: paths,
-                onTapImage: (idx, _) {
-                  _showImagePreviewDialog(block.images[idx].file.path, block.images[idx].id);
-                },
+        if (_currentEntry.imageLayoutStyle == 'chunshan') {
+          list.add(
+            DiaryChunshanLayout(imagePaths: paths),
+          );
+        } else {
+          list.add(
+            Center(
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: isWide
+                      ? 520
+                      : double.infinity,
+                ),
+                margin: EdgeInsets.only(top: isFirst ? 8 : 12, bottom: 12),
+                child: DiaryImageCollage(
+                  imagePaths: paths,
+                  onTapImage: (idx, _) {
+                    _showImagePreviewDialog(block.images[idx].file.path, block.images[idx].id);
+                  },
+                ),
               ),
             ),
-          ),
-        );
+          );
+        }
         isFirst = false;
       }
     }
@@ -1058,6 +1083,21 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
     return _buildSelectableRichText(span, 0, textStyle, controller: controller)
         .animate()
         .fadeIn(delay: 300.ms, duration: 800.ms);
+  }
+
+  Widget? _buildPluginFooter() {
+    final expPlugin = PluginManager.instance.getActivePlugin<ExperiencePlugin>(PluginCategory.experience);
+    final List<String> currentTagsList = _currentEntry.tag?.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList() ?? [];
+    final String? activeTag = currentTagsList.cast<String?>().firstWhere(
+      (t) => expPlugin?.targetTags.contains(t) == true, 
+      orElse: () => null
+    );
+    final bool isPluginActive = expPlugin != null && activeTag != null;
+    
+    if (isPluginActive) {
+      return expPlugin.buildEditorFooter(context, tag: activeTag, annotations: _currentEntry.annotations, isReadOnly: true);
+    }
+    return null;
   }
 
   Widget _buildSelectableRichText(TextSpan span, int blockIndex, TextStyle textStyle, {DiaryTextEditingController? controller}) {

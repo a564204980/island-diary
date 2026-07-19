@@ -8,8 +8,10 @@ OverlayEntry showTopToast(
   IconData icon = Icons.info_rounded,
   Color? iconColor,
   Duration duration = const Duration(milliseconds: 2500),
+  OverlayState? overlayStateOverride,
 }) {
-  final overlayState = Overlay.of(context);
+  final overlayState = overlayStateOverride ?? Overlay.of(context);
+
   
   late OverlayEntry overlayEntry;
   overlayEntry = OverlayEntry(

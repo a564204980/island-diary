@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -220,6 +220,7 @@ class DiaryBlockItem extends StatelessWidget {
             TextField(
               controller: block.controller,
               focusNode: block.focusNode,
+              scrollPadding: EdgeInsets.zero,
               maxLines: null,
               readOnly: false,
               showCursor: true,
@@ -405,7 +406,7 @@ class DiaryBlockItem extends StatelessWidget {
               ),
             );
           },
-        ).animate(key: ValueKey('img_anim_${block.id}')).fadeIn().scale();
+        );
       },
     );
   }

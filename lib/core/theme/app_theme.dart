@@ -71,6 +71,13 @@ class AppTheme {
         displayColor: colors.textBody,
         fontFamily: font,
       ),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: baseTheme.brightness == Brightness.light ? const Color(0xFF323232) : Colors.white,
+        selectionHandleColor: baseTheme.brightness == Brightness.light ? const Color(0xFF323232) : Colors.white,
+        selectionColor: baseTheme.brightness == Brightness.light 
+            ? const Color(0xFF323232).withValues(alpha: 0.2) 
+            : Colors.white.withValues(alpha: 0.2),
+      ),
       bottomSheetTheme: BottomSheetThemeData(
         showDragHandle: false,
         backgroundColor: colors.cardBackground,

@@ -323,7 +323,7 @@ class _DiaryBookReaderPageState extends State<DiaryBookReaderPage> {
       ];
     }
 
-    if (entry.isImageGrid && !entry.isMixedLayout) {
+    if (entry.imageLayoutStyle == 'grid' && !entry.isMixedLayout) {
       final filteredContent = DiaryUtils.getFilteredContent(entry.content);
       return [
         if (filteredContent.trim().isNotEmpty)
@@ -336,7 +336,7 @@ class _DiaryBookReaderPageState extends State<DiaryBookReaderPage> {
     final processedBlocks = ImageGroupBlock.preprocess(
       originalBlocks,
       isMixedLayout: entry.isMixedLayout,
-      isImageGrid: entry.isImageGrid,
+      imageLayoutStyle: entry.imageLayoutStyle,
     );
 
     final List<Widget> list = [];

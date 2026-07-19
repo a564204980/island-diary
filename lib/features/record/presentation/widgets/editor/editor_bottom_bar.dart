@@ -131,8 +131,8 @@ class EditorBottomBar extends StatelessWidget {
                           _buildToolbarIcon(Icons.image_outlined, onImagePick, iconColor),
                           // 5. 地点定位
                           _buildToolbarIcon(Icons.location_on_outlined, onLocationClick, iconColor),
-                          // 6. 调色盘 (背景模板)
-                          _buildToolbarIcon(Icons.palette_outlined, onBgColorClick, iconColor),
+                          // 6. 背景模板 (信纸)
+                          _buildToolbarIcon(Icons.wallpaper_outlined, onBgColorClick, iconColor),
                           // 7. 太阳 (天气)
                           _buildToolbarIcon(Icons.wb_sunny_outlined, onWeatherClick, iconColor),
                           // 8. 设置

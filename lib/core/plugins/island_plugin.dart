@@ -69,7 +69,10 @@ abstract class ExperiencePlugin extends IslandPlugin {
   Widget? buildEditorHeader(BuildContext context, {required String tag}) => null;
 
   /// 构建编辑器底部
-  Widget? buildEditorFooter(BuildContext context, {required String tag, required Map<String, String> annotations}) => null;
+  Widget? buildEditorFooter(BuildContext context, {required String tag, required Map<String, String> annotations, bool isReadOnly = false}) => null;
+
+  /// 构建时间轴上的迷你组件 (简化的行程条等)
+  Widget? buildTimelineMiniWidget(BuildContext context, {required String tag, required Map<String, String> annotations}) => null;
 
   /// 构建编辑器背景
   Widget? buildEditorBackground(BuildContext context, {required String tag}) => null;

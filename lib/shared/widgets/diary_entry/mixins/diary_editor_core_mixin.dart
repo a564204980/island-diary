@@ -60,6 +60,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
   String currentPaperStyle = 'classic';
   bool isMixedLayout = true; // 是否开启图文混排
   bool isImageGrid = false; // 是否开启图片九宫格
+  String? imageLayoutStyle; // 排版样式
   String currentBookId = 'default'; // 当前选择的日记本ID
 
   String get fixedQuote => _fixedQuote ?? '';
@@ -94,6 +95,9 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     isMixedLayout = entry?.isMixedLayout ??
                     widget.draft?.isMixedLayout ??
                     (!isImageGrid && UserState().isVip.value); // 非会员默认关闭
+    imageLayoutStyle = entry?.imageLayoutStyle ??
+                       widget.draft?.imageLayoutStyle ??
+                       UserState().diaryDraft.value?.imageLayoutStyle;
     currentBookId = entry?.bookId ??
                     widget.bookId ??
                     widget.draft?.bookId ??
@@ -165,6 +169,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     currentPaperStyle = entry.paperStyle;
     isImageGrid = entry.isImageGrid;
     isMixedLayout = entry.isMixedLayout;
+    imageLayoutStyle = entry.imageLayoutStyle;
     currentBookId = entry.bookId ?? 'default';
   }
 
@@ -232,6 +237,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       isImageGrid = customDraft?.isImageGrid ?? false;
       isMixedLayout = customDraft?.isMixedLayout ?? 
                       (!isImageGrid && UserState().isVip.value);
+      imageLayoutStyle = customDraft?.imageLayoutStyle;
       currentBookId = customDraft?.bookId ?? 'default';
 
       if (draftModified) {
@@ -267,6 +273,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       paperStyle: currentPaperStyle,
       isImageGrid: isImageGrid,
       isMixedLayout: isMixedLayout,
+      imageLayoutStyle: imageLayoutStyle,
       bookId: currentBookId,
     );
 
@@ -345,7 +352,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
       return false;
     }
 
-    final hasMood = (currentMoodIndex != null && currentMoodIndex! >= 0) || (currentTag != null && currentTag!.isNotEmpty);
+    final hasMood = (currentMoodIndex != null && currentMoodIndex! >= 0);
     if (!hasMood) {
       FocusScope.of(context).unfocus();
       if (isEmojiOpen) setState(() => isEmojiOpen = false);
@@ -405,6 +412,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           paperStyle: currentPaperStyle,
           isImageGrid: isImageGrid,
           isMixedLayout: isMixedLayout,
+          imageLayoutStyle: imageLayoutStyle,
           annotations: currentAnnotations,
           bookId: currentBookId,
         );
@@ -429,6 +437,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
           paperStyle: currentPaperStyle,
           isImageGrid: isImageGrid,
           isMixedLayout: isMixedLayout,
+          imageLayoutStyle: imageLayoutStyle,
           bookId: currentBookId,
         );
         achievements = await UserState().saveDiary(annotations: currentAnnotations);

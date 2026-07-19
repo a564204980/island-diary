@@ -12,6 +12,8 @@ import 'package:island_diary/features/record/presentation/plugins/standard_camer
 import 'package:island_diary/features/record/presentation/plugins/dynamic_island_camera_plugin.dart';
 import 'package:island_diary/plugins/travel_experience/travel_experience_plugin.dart';
 
+final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
   // 确保 Flutter 底层绑定初始化完毕
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,6 +78,7 @@ class IslandDiaryApp extends StatelessWidget {
 
         return MaterialApp(
           key: const ValueKey('IslandDiaryAppRoot'),
+          navigatorKey: globalNavigatorKey,
           title: '岛屿日记',
           debugShowCheckedModeBanner: false,
           scrollBehavior: AppScrollBehavior(),

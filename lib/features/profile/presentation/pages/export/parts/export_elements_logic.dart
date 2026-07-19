@@ -219,7 +219,7 @@ extension _ExportElementsLogic on _DiaryBookExportPageState {
       final List<DiaryBlock> processedBlocks = ImageGroupBlock.preprocess(
         diaryBlocks,
         isMixedLayout: true,
-        isImageGrid: true,
+        imageLayoutStyle: 'grid',
       );
 
       int textElementIndex = 0;

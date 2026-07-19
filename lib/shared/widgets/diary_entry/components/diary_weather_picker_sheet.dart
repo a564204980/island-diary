@@ -232,27 +232,10 @@ class _DiaryWeatherPickerSheetState extends State<DiaryWeatherPickerSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '选择天气',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: fontFamily,
-                  color: inkColor.withValues(alpha: 0.9),
-                ),
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.close_rounded, 
-                  color: inkColor.withValues(alpha: 0.5),
-                  size: 20,
-                ),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
+          DiaryBottomSheetHeader(
+            title: '选择天气',
+            fontFamily: fontFamily,
+            textColor: inkColor.withValues(alpha: 0.9),
           ),
           const SizedBox(height: 12),
           

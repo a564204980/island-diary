@@ -71,47 +71,31 @@ class _DiaryColorPickerSheetState extends State<DiaryColorPickerSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                showCustom ? '自定义取色' : '色彩工具',
-                style: TextStyle(
-                  fontFamily: 'LXGWWenKai',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
+          DiaryBottomSheetHeader(
+            title: showCustom ? '自定义取色' : '色彩工具',
+            fontFamily: 'LXGWWenKai',
+            textColor: textColor,
+            trailing: Row(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    showCustom ? Icons.grid_view_rounded : Icons.colorize_rounded,
+                    color: accentColor,
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      showCustom = !showCustom;
+                      if (showCustom) {
+                        pickerColor = effectiveCurrentColor;
+                      }
+                    });
+                  },
                 ),
-              ),
-              Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      showCustom ? Icons.grid_view_rounded : Icons.colorize_rounded,
-                      color: accentColor,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        showCustom = !showCustom;
-                        if (showCustom) {
-                          pickerColor = effectiveCurrentColor;
-                        }
-                      });
-                    },
-                  ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    icon: Icon(
-                      Icons.close_rounded,
-                      color: textColor.withValues(alpha: 0.5),
-                      size: 20,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ],
+                const SizedBox(width: 4),
+                const DiaryBottomSheetCloseButton(),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           

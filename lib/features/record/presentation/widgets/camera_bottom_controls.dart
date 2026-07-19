@@ -9,6 +9,9 @@ class CameraBottomControls extends StatelessWidget {
   final VoidCallback onTakePicture;
   final VoidCallback onToggleCamera;
 
+  final bool isAutoMatting;
+  final VoidCallback onOpenAlbum;
+
   const CameraBottomControls({
     super.key,
     required this.isNight,
@@ -17,6 +20,8 @@ class CameraBottomControls extends StatelessWidget {
     required this.onToggleMatting,
     required this.onTakePicture,
     required this.onToggleCamera,
+    this.isAutoMatting = false,
+    required this.onOpenAlbum,
   });
 
   @override
@@ -33,7 +38,7 @@ class CameraBottomControls extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // 1. 抠像开关
+          // 1. 抠像开关或相册
           Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.center,
@@ -41,9 +46,9 @@ class CameraBottomControls extends StatelessWidget {
               Positioned(
                 top: -26,
                 child: Text(
-                  '抠图',
+                  isAutoMatting ? '相册' : '抠图',
                   style: TextStyle(
-                    color: mattingMode == 'cloud' ? const Color(0xFFD4A373) : baseIconColor.withValues(alpha: 0.7),
+                    color: isAutoMatting ? baseIconColor.withValues(alpha: 0.7) : (mattingMode == 'cloud' ? const Color(0xFFD4A373) : baseIconColor.withValues(alpha: 0.7)),
                     fontSize: 13,
                     fontFamily: 'LXGWWenKai',
                     fontWeight: FontWeight.w500,
@@ -52,25 +57,27 @@ class CameraBottomControls extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  onToggleMatting();
+                  if (isAutoMatting) {
+                    onOpenAlbum();
+                  } else {
+                    onToggleMatting();
+                  }
                   HapticFeedback.lightImpact();
                 },
                 child: Container(
                   height: 48,
                   width: 48,
                   decoration: BoxDecoration(
-                    color: mattingMode == 'cloud'
-                        ? const Color(0xFFD4A373).withValues(alpha: 0.25)
-                        : inactiveBg,
+                    color: isAutoMatting ? inactiveBg : (mattingMode == 'cloud' ? const Color(0xFFD4A373).withValues(alpha: 0.25) : inactiveBg),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: mattingMode == 'cloud' ? const Color(0xFFD4A373) : inactiveBorder,
+                      color: isAutoMatting ? inactiveBorder : (mattingMode == 'cloud' ? const Color(0xFFD4A373) : inactiveBorder),
                       width: 1.5,
                     ),
                   ),
                   child: Icon(
-                    Icons.auto_fix_high_rounded,
-                    color: mattingMode == 'cloud' ? const Color(0xFFD4A373) : baseIconColor.withValues(alpha: 0.7),
+                    isAutoMatting ? Icons.photo_library_outlined : Icons.auto_fix_high_rounded,
+                    color: isAutoMatting ? baseIconColor.withValues(alpha: 0.7) : (mattingMode == 'cloud' ? const Color(0xFFD4A373) : baseIconColor.withValues(alpha: 0.7)),
                     size: 24,
                   ),
                 ),

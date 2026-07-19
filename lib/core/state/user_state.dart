@@ -68,6 +68,7 @@ class _K {
   static const draftIsImageGrid = 'diary_draft_is_image_grid';
   static const draftIsMixedLayout = 'diary_draft_is_mixed_layout';
   static const draftBookId = 'diary_draft_book_id';
+  static const draftImageLayoutStyle = 'diary_draft_image_layout_style';
 
   static const wallColorLeft = 'wall_color_left';
   static const wallColorRight = 'wall_color_right';
@@ -113,6 +114,11 @@ class _K {
   static const homeDisplayMode = 'home_display_mode';
   static const selectedIslandThemeId = 'selected_island_theme_id';
   static const showPropObtainedPopup = 'show_prop_obtained_popup';
+  
+  static const chunshanBorderRadius = 'chunshan_border_radius';
+  static const chunshanSpacing = 'chunshan_spacing';
+  static const chunshanAspectRatio = 'chunshan_aspect_ratio';
+  static const chunshanHasBackground = 'chunshan_has_background';
 }
 
 /// 聚合状态管理类

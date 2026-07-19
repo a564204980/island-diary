@@ -12,6 +12,9 @@ import '../../widgets/camera_top_bar.dart';
 import '../../widgets/camera_bottom_controls.dart';
 import '../../widgets/camera_viewfinder.dart';
 import 'custom_camera_gallery.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/redbook_asset_picker.dart';
+import 'package:island_diary/core/theme/app_colors.dart';
 
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -20,11 +23,13 @@ class CustomCameraPage extends StatefulWidget {
   final String? initialImagePath;
   final String? initialMattedPath;
   final bool enableDynamicViewfinder;
+  final bool isAutoMatting;
   const CustomCameraPage({
     super.key, 
     this.initialImagePath, 
     this.initialMattedPath,
     this.enableDynamicViewfinder = false,
+    this.isAutoMatting = false,
   });
 
   @override
@@ -218,19 +223,20 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
   @override
   void initState() {
     super.initState();
+    if (widget.isAutoMatting) {
+      _mattingMode = 'cloud';
+    }
     
     _hasCompletedInitialUnfold = !widget.enableDynamicViewfinder;
 
-    if (widget.enableDynamicViewfinder) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.bottom]);
-    } else {
-      // 通过把状态栏图标变成黑色 (dark)，在暗色的相机背景下会显得非常“暗淡”
-      // 从而在视觉上达到类似“降低透明度”的隐藏效果
-      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-      ));
-    }
+    // 为了防止在进出相机时，因为全局隐藏状态栏导致外层页面（如日记编辑页）的 SafeArea 发生突变而上下跳动，
+    // 无论是灵动取景还是普通相机，都统一不使用 setEnabledSystemUIMode 去隐藏状态栏。
+    // 而是通过把状态栏图标变成黑色 (dark)，在暗色的相机背景下会显得非常“暗淡”
+    // 从而在视觉上达到类似“隐藏”的效果，同时不影响布局。
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ));
     
     _unfoldAnimationController = AnimationController(
       vsync: this,
@@ -354,11 +360,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
     _countdownTimer?.cancel();
     _exposureTimer?.cancel();
     
-    // 退出相机时恢复系统的暗黑/高亮状态栏样式，依靠外层页面的 Theme 自动接管
-    // 如果之前隐藏了状态栏，现在恢复显示
-    if (widget.enableDynamicViewfinder) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    }
+    // 退出相机时，由于没有改变 SystemUIMode，外层页面的状态栏会自动恢复显示，依靠 Theme 接管。
     super.dispose();
   }
 
@@ -582,6 +584,22 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
     }
   }
 
+  Future<void> _openAlbum() async {
+    final List<AssetEntity>? result = await RedBookAssetPicker.pick(
+      context,
+      maxAssets: 1,
+      requestType: RequestType.image,
+    );
+    if (result != null && result.isNotEmpty) {
+      final file = await result.first.file;
+      if (file != null) {
+        if (!mounted) return;
+        _tempCapturedPaths.add(file.path);
+        _processAndReturn();
+      }
+    }
+  }
+
   /// 后期图像处理与返回 (仅生成用于确认的底图)
   Future<void> _processAndReturn() async {
     if (_tempCapturedPaths.isEmpty) return;
@@ -612,7 +630,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
         String inputPath = _tempCapturedPaths.first;
         final mattedPath = await CameraMattingProcessor.processCloudMatting(inputPath);
         if (mounted) {
-          Navigator.pop(context); // 关 Loading
+          Navigator.of(context, rootNavigator: true).pop(); // 关 Loading
           if (mattedPath == inputPath) {
             showTopToast(
               context,
@@ -621,6 +639,14 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
               iconColor: const Color(0xFFD4A373),
             );
           }
+          if (widget.isAutoMatting) {
+            Navigator.pop(context, {
+              'editedPath': inputPath,
+              'mattedPath': mattedPath,
+            });
+            return;
+          }
+
           if (widget.enableDynamicViewfinder) {
             _runPrintAnimation(mattedPath);
           } else {
@@ -630,7 +656,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
       } catch (e) {
         debugPrint("抠图错误: $e");
         if (mounted) {
-          Navigator.pop(context); // 关 Loading
+          Navigator.of(context, rootNavigator: true).pop(); // 关 Loading
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('抠图失败，请重试', style: TextStyle(fontFamily: 'LXGWWenKai'))),
           );
@@ -638,6 +664,14 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
       }
     } else {
       final String rawPath = _tempCapturedPaths.first;
+      if (widget.isAutoMatting) {
+        Navigator.pop(context, {
+          'editedPath': rawPath,
+          'mattedPath': rawPath,
+        });
+        return;
+      }
+      
       if (widget.enableDynamicViewfinder) {
         _runPrintAnimation(rawPath);
       } else {
@@ -866,6 +900,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
     // Use dark grey background before camera initializes so the black capsule is visible
     final bool isNight = true; 
     final Color bgColor = const Color(0xFF272727);
+    final Color galleryBgColor = AppColorsExtension.of(context).cardBackground;
 
     final screenWidth = MediaQuery.of(context).size.width;
     
@@ -917,6 +952,13 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                       child: WaterfallAlbumGallery(
                         animation: _unfoldCurvedAnimation,
                         viewfinderHeight: viewfinderHeight,
+                        onCancel: () {
+                          // 当画廊展示时，_unfoldAnimationController.value 接近 0
+                          // 返回意味着要重新展开相机，即让 value 变回 1.0
+                          if (_unfoldAnimationController.value < 1.0) {
+                            _unfoldAnimationController.forward();
+                          }
+                        },
                       ),
                     ),
                   ),
@@ -929,17 +971,19 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                   left: 0,
                   right: 0,
                   height: 90, // 给定 90px 的渐变空间，拉长过渡距离
-                  child: IgnorePointer(
-                    child: Container(
+                  child: Visibility(
+                    visible: _hasCompletedInitialUnfold,
+                    child: IgnorePointer(
+                      child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            bgColor, // 0px
-                            bgColor.withValues(alpha: 0.85), // 约 20px (胶囊中上部)
-                            bgColor.withValues(alpha: 0.25), // 约 55px (胶囊底部稍下)
-                            bgColor.withValues(alpha: 0.0),  // 90px (完全透明)
+                            galleryBgColor, // 0px
+                            galleryBgColor.withValues(alpha: 0.85), // 约 20px (胶囊中上部)
+                            galleryBgColor.withValues(alpha: 0.25), // 约 55px (胶囊底部稍下)
+                            galleryBgColor.withValues(alpha: 0.0),  // 90px (完全透明)
                           ],
                           stops: const [0.0, 0.2, 0.6, 1.0], // 非线性渐变，模拟真实的物理消融感
                         ),
@@ -947,9 +991,10 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                     ),
                   ),
                 ),
+              ),
 
-              // 1. Blurred Camera Background (Fades out when pushing up)
-              if (_isCameraInitialized && _controller != null)
+              // 1. Solid Camera Background (Fades out when pushing up)
+              if (widget.enableDynamicViewfinder)
                 Positioned.fill(
                   child: AnimatedBuilder(
                     animation: _unfoldAnimationController,
@@ -965,19 +1010,9 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                     },
                     child: FadeTransition(
                       opacity: _unfoldAnimationController,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          // Using raw CameraPreview for the background is lightweight
-                          CameraPreview(_controller!),
-                          BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 40.0, sigmaY: 40.0),
-                            child: Container(
-                              color: Colors.black.withValues(alpha: 0.6), // Dark overlay for contrast
-                            ),
-                          ),
-                        ],
-                      ).animate().fadeIn(duration: 800.ms),
+                      child: Container(
+                        color: bgColor, // 使用纯色遮盖底层的相册
+                      ),
                     ),
                   ),
                 ),
@@ -1234,47 +1269,67 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                    children: _availableZoomLevels.map((zoom) {
-                      final isSelected = (_targetZoom - zoom).abs() < 0.1;
-                      return GestureDetector(
-                        onTap: () {
-                          if (_controller == null || !_controller!.value.isInitialized) return;
-                          if ((_currentZoom - zoom).abs() < 0.01) return;
-                          
-                          setState(() {
-                            _targetZoom = zoom;
-                          });
-                          
-                          _zoomAnimation = Tween<double>(begin: _currentZoom, end: zoom).animate(
-                            CurvedAnimation(parent: _zoomAnimationController, curve: Curves.easeOutQuad),
-                          );
-                          _zoomAnimationController.forward(from: 0.0);
-                          
-                          HapticFeedback.lightImpact();
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSelected 
-                                ? Colors.white24
-                                : Colors.white10,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: AnimatedDefaultTextStyle(
+                    children: [
+                      ..._availableZoomLevels.map((zoom) {
+                        final isSelected = (_targetZoom - zoom).abs() < 0.1;
+                        return GestureDetector(
+                          onTap: () {
+                            if (_controller == null || !_controller!.value.isInitialized) return;
+                            if ((_currentZoom - zoom).abs() < 0.01) return;
+                            
+                            setState(() {
+                              _targetZoom = zoom;
+                            });
+                            
+                            _zoomAnimation = Tween<double>(begin: _currentZoom, end: zoom).animate(
+                              CurvedAnimation(parent: _zoomAnimationController, curve: Curves.easeOutQuad),
+                            );
+                            _zoomAnimationController.forward(from: 0.0);
+                            
+                            HapticFeedback.lightImpact();
+                          },
+                          child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.white54,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: 14,
-                              fontFamily: 'LXGWWenKai',
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected 
+                                  ? Colors.white24
+                                  : Colors.white10,
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Text('${zoom == 1.0 || zoom % 1 == 0 ? zoom.toInt() : zoom}x'),
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 200),
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : Colors.white54,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                fontSize: 14,
+                                fontFamily: 'LXGWWenKai',
+                              ),
+                              child: Text('${zoom == 1.0 || zoom % 1 == 0 ? zoom.toInt() : zoom}x'),
+                            ),
+                          ),
+                        );
+                      }),
+                      if (widget.isAutoMatting)
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              const SizedBox(
+                                width: 36,
+                                height: 36,
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              const Icon(Icons.auto_fix_high_rounded, color: Colors.white, size: 20),
+                            ],
                           ),
                         ),
-                      );
-                    }).toList(),
+                    ],
                   ),
                 ),
               ),
@@ -1328,6 +1383,8 @@ class _CustomCameraPageState extends State<CustomCameraPage> with TickerProvider
                     child: CameraBottomControls(
                       isNight: isNight,
                       mattingMode: _mattingMode,
+                      isAutoMatting: widget.isAutoMatting,
+                      onOpenAlbum: _openAlbum,
                       shutterAnimation: _shutterAnimationController,
                       onToggleMatting: () => setState(() {
                         _mattingMode = _mattingMode == 'none' ? 'cloud' : 'none';

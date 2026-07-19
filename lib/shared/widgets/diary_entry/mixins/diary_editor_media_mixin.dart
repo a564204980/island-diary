@@ -63,16 +63,16 @@ mixin DiaryEditorMediaMixin<T extends DiaryEditorPage> on State<T>, DiaryEditorC
       builder: (context) => DiaryImageSourceSheet(
         paperStyle: currentPaperStyle,
         isMixedLayout: isMixedLayout,
-        isImageGrid: isImageGrid,
+        imageLayoutStyle: imageLayoutStyle,
         onMixedLayoutChanged: (val) {
           setState(() {
             isMixedLayout = val;
           });
           onBlocksChanged();
         },
-        onImageGridChanged: (val) {
+        onImageLayoutStyleChanged: (val) {
           setState(() {
-            isImageGrid = val;
+            imageLayoutStyle = val;
           });
           onBlocksChanged();
         },

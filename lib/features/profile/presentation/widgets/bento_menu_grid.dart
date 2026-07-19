@@ -90,16 +90,6 @@ class BentoMenuGrid extends StatelessWidget {
                       targetPage: const AboutIslandPage(),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildMenuActionBento(
-                      context,
-                      title: '插件商店',
-                      icon: Icons.extension_rounded,
-                      color: const Color(0xFFFF7043),
-                      targetPage: const PluginStorePage(),
-                    ),
-                  ),
                 ],
               ),
             ],
@@ -180,14 +170,6 @@ class BentoMenuGrid extends StatelessWidget {
               icon: Icons.info_outline,
               color: const Color(0xFFBA68C8),
               targetPage: const AboutIslandPage(),
-            ),
-            const SizedBox(height: 12),
-            _buildMenuActionBento(
-              context,
-              title: '插件商店',
-              icon: Icons.extension_rounded,
-              color: const Color(0xFFFF7043),
-              targetPage: const PluginStorePage(),
             ),
           ],
         ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0);
@@ -306,6 +288,7 @@ class BentoMenuGrid extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     '人生线',

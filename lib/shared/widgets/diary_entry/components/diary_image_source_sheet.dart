@@ -4,22 +4,23 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'diary_bottom_sheet.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/island_vip_guard_dialog.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_chunshan_config_sheet.dart';
 
 
 class DiaryImageSourceSheet extends StatefulWidget {
   final String paperStyle;
   final bool? isMixedLayout;
-  final bool? isImageGrid;
+  final String? imageLayoutStyle;
   final Function(bool)? onMixedLayoutChanged;
-  final Function(bool)? onImageGridChanged;
+  final Function(String)? onImageLayoutStyleChanged;
 
   const DiaryImageSourceSheet({
     super.key,
     this.paperStyle = 'standard',
     this.isMixedLayout,
-    this.isImageGrid,
+    this.imageLayoutStyle,
     this.onMixedLayoutChanged,
-    this.onImageGridChanged,
+    this.onImageLayoutStyleChanged,
   });
 
   @override
@@ -28,13 +29,13 @@ class DiaryImageSourceSheet extends StatefulWidget {
 
 class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
   late bool _localMixedLayout;
-  late bool _localImageGrid;
+  late String _localImageLayoutStyle;
 
   @override
   void initState() {
     super.initState();
     _localMixedLayout = widget.isMixedLayout ?? false;
-    _localImageGrid = widget.isImageGrid ?? false;
+    _localImageLayoutStyle = widget.imageLayoutStyle ?? 'stack';
   }
 
   @override
@@ -55,7 +56,7 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
       accentColor = themeId == 'cotton_candy' ? const Color(0xFF7C3AED) : const Color(0xFF9C785A);
     }
 
-    final showLayoutSettings = widget.onMixedLayoutChanged != null && widget.onImageGridChanged != null;
+    final showLayoutSettings = widget.onMixedLayoutChanged != null && widget.onImageLayoutStyleChanged != null;
 
     return DiaryBottomSheet(
       paperStyle: widget.paperStyle,
@@ -69,27 +70,10 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
             // Header
             Padding(
               padding: EdgeInsets.zero,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '选择照片来源',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: fontFamily,
-                      color: inkColor.withValues(alpha: 0.9),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.close_rounded,
-                      color: inkColor.withValues(alpha: 0.5),
-                      size: 20,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+              child: DiaryBottomSheetHeader(
+                title: '选择照片来源',
+                fontFamily: fontFamily,
+                textColor: inkColor.withValues(alpha: 0.9),
               ),
             ),
             const SizedBox(height: 12),
@@ -179,30 +163,60 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
                       color: inkColor.withValues(alpha: 0.75),
                     ),
                   ),
-                  _buildSlidingSegmentControl(
-                    firstLabel: '智能拼图',
-                    secondLabel: '单图直排',
-                    isFirstSelected: _localImageGrid,
-                    onFirstTap: () {
-                      if (!UserState().isVip.value) {
-                        _showVipDialog('解锁智能拼图排版', '“图片智能排版”功能属于“星光计划”会员专享。开启后，您的图片将以精致的海报拼图或网格形式呈现。');
-                        return;
-                      }
-                      setState(() {
-                        _localImageGrid = true;
-                      });
-                      widget.onImageGridChanged?.call(true);
-                    },
-                    onSecondTap: () {
-                      setState(() {
-                        _localImageGrid = false;
-                      });
-                      widget.onImageGridChanged?.call(false);
-                    },
-                    accentColor: accentColor,
-                    inkColor: inkColor,
-                    fontFamily: fontFamily,
-                    isNight: isNight,
+                  Row(
+                    children: [
+                      if (_localImageLayoutStyle == 'chunshan')
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              DiaryChunshanConfigSheet.show(
+                                context: context,
+                                fontFamily: fontFamily,
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.tune_rounded,
+                                size: 18,
+                                color: inkColor.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                        ),
+                      _buildThreeWaySlidingSegmentControl(
+                        labels: const ['智能拼图', '单图直排', '春山镜画集'],
+                        selectedIndex: _localImageLayoutStyle == 'grid' ? 0 : (_localImageLayoutStyle == 'chunshan' ? 2 : 1),
+                        onTap: (index) {
+                          if (index == 0 && !UserState().isVip.value) {
+                            _showVipDialog('解锁智能拼图排版', '“图片智能排版”功能属于“星光计划”会员专享。开启后，您的图片将以精致的海报拼图或网格形式呈现。');
+                            return;
+                          }
+                          setState(() {
+                            if (index == 0) {
+                              _localImageLayoutStyle = 'grid';
+                            } else if (index == 1) {
+                              _localImageLayoutStyle = 'stack';
+                            } else {
+                              _localImageLayoutStyle = 'chunshan';
+                            }
+                          });
+                          widget.onImageLayoutStyleChanged?.call(_localImageLayoutStyle);
+                        },
+                        accentColor: accentColor,
+                        inkColor: inkColor,
+                        fontFamily: fontFamily,
+                        isNight: isNight,
+                      ),
+                    ],
                   ),
                   ],
                 ),
@@ -552,6 +566,74 @@ class _DiaryImageSourceSheetState extends State<DiaryImageSourceSheet> {
             : inkColor.withValues(alpha: 0.4),
       ),
       child: Text(label),
+    );
+  }
+
+  Widget _buildThreeWaySlidingSegmentControl({
+    required List<String> labels,
+    required int selectedIndex,
+    required Function(int) onTap,
+    required Color accentColor,
+    required Color inkColor,
+    required String fontFamily,
+    required bool isNight,
+  }) {
+    return Container(
+      width: 210, // Wider for 3 options
+      height: 36,
+      decoration: BoxDecoration(
+        color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.all(2.5),
+      child: Stack(
+        children: [
+          // Sliding Thumb
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutCubic,
+            alignment: selectedIndex == 0 ? Alignment.centerLeft : (selectedIndex == 1 ? Alignment.center : Alignment.centerRight),
+            child: FractionallySizedBox(
+              widthFactor: 1 / 3,
+              heightFactor: 1.0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isNight ? Colors.white.withValues(alpha: 0.15) : Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isNight ? 0.2 : 0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Buttons
+          Row(
+            children: List.generate(labels.length, (index) {
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onTap(index),
+                  behavior: HitTestBehavior.opaque,
+                  child: Center(
+                    child: _buildSegmentButtonText(
+                      label: labels[index],
+                      isSelected: selectedIndex == index,
+                      accentColor: accentColor,
+                      inkColor: inkColor,
+                      fontFamily: fontFamily,
+                      isNight: isNight,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -4,6 +4,8 @@ import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/profile/presentation/widgets/profile_header.dart';
 import 'package:island_diary/features/profile/presentation/widgets/premium_bento_card.dart';
 import 'package:island_diary/features/profile/presentation/widgets/bento_menu_grid.dart';
+import 'package:island_diary/features/profile/presentation/pages/plugin_store_page.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:async';
 
 class ProfilePage extends StatefulWidget {
@@ -153,6 +155,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 24),
                         PremiumBentoCard(isVip: isVip, isNight: isNight),
                         const SizedBox(height: 24),
+
+
+                        _buildPluginStorePromoBento(context, isNight),
+                        const SizedBox(height: 24),
                         BentoMenuGrid(isNight: isNight),
                       ],
                     ),
@@ -168,5 +174,165 @@ class _ProfilePageState extends State<ProfilePage> {
 
   String _getFontFamily() {
     return UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+  }
+
+  Widget _buildPluginStorePromoBento(BuildContext context, bool isNight) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            opaque: true,
+            barrierColor: isNight ? Colors.black : const Color(0xFFFDFCF7),
+            pageBuilder: (context, animation, secondaryAnimation) => const PluginStorePage(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        );
+      },
+      child: Container(
+        height: 104,
+        margin: const EdgeInsets.symmetric(horizontal: 2), // 稍微往里缩一点，制造独立卡片的悬浮感
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          // 浅色模式下使用温暖柔和的橘粉色渐变，深色模式下使用深邃灰黑
+          gradient: LinearGradient(
+            colors: isNight
+                ? [const Color(0xFF2C2C30), const Color(0xFF1E1E22)]
+                : [const Color(0xFFFFF3E0), const Color(0xFFFFE0B2)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(
+            color: isNight ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isNight ? Colors.black26 : const Color(0xFFFFB74D).withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // 背景里的光晕点缀
+            Positioned(
+              right: -20,
+              top: -30,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFFFF9800).withValues(alpha: isNight ? 0.15 : 0.2),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  // 左侧超大质感圆角图标 (类似 iOS App 图标)
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFB74D), Color(0xFFFF7043)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFF7043).withValues(alpha: 0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.extension_rounded,
+                        size: 32,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  
+                  // 中间文案
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '插件商店',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: isNight ? Colors.white : const Color(0xFF3E2723),
+                            letterSpacing: 0.5,
+                            fontFamily: _getFontFamily(),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '扩展小岛的无限可能',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: isNight ? Colors.white.withValues(alpha: 0.6) : const Color(0xFF795548),
+                            fontFamily: _getFontFamily(),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // 右侧行动按钮 (App Store 'GET' 按钮风格)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isNight ? Colors.white.withValues(alpha: 0.15) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: isNight ? [] : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      '去探索',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: isNight ? Colors.white : const Color(0xFFFF7043),
+                        fontFamily: _getFontFamily(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ).animate().fadeIn(delay: 200.ms).slideX(),
+    );
   }
 }

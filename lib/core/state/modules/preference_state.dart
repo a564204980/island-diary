@@ -34,6 +34,12 @@ mixin PreferenceMixin on ProfileMixin {
   final ValueNotifier<bool> isImageCompressEnabled = ValueNotifier<bool>(true);
   final ValueNotifier<int> imageCompressQuality = ValueNotifier<int>(82);
 
+  // 春山镜画集配置
+  final ValueNotifier<double> chunshanBorderRadius = ValueNotifier<double>(8.0);
+  final ValueNotifier<double> chunshanSpacing = ValueNotifier<double>(6.0);
+  final ValueNotifier<double> chunshanAspectRatio = ValueNotifier<double>(2.35);
+  final ValueNotifier<bool> chunshanHasBackground = ValueNotifier<bool>(true);
+
   void loadPreference(SharedPreferences prefs) {
     isImageCompressEnabled.value = prefs.getBool(UserState().n(_K.isImageCompressEnabled)) ?? true;
     imageCompressQuality.value = prefs.getInt(UserState().n(_K.imageCompressQuality)) ?? 82;
@@ -87,6 +93,11 @@ mixin PreferenceMixin on ProfileMixin {
     selectedMascotType.value = prefs.getString(UserState().n(_K.mascotType)) ?? 'assets/images/emoji/marshmallow2.png';
     homeDisplayMode.value = prefs.getString(UserState().n(_K.homeDisplayMode)) ?? 'island';
     showPropObtainedPopup.value = prefs.getBool(UserState().n(_K.showPropObtainedPopup)) ?? true;
+
+    chunshanBorderRadius.value = prefs.getDouble(UserState().n(_K.chunshanBorderRadius)) ?? 8.0;
+    chunshanSpacing.value = prefs.getDouble(UserState().n(_K.chunshanSpacing)) ?? 6.0;
+    chunshanAspectRatio.value = prefs.getDouble(UserState().n(_K.chunshanAspectRatio)) ?? 2.35;
+    chunshanHasBackground.value = prefs.getBool(UserState().n(_K.chunshanHasBackground)) ?? true;
   }
 
 
@@ -289,5 +300,30 @@ mixin PreferenceMixin on ProfileMixin {
     imageCompressQuality.value = value;
     final p = await SharedPreferences.getInstance();
     await p.setInt(UserState().n(_K.imageCompressQuality), value);
+  }
+
+  Future<void> setChunshanConfig({
+    double? borderRadius,
+    double? spacing,
+    double? aspectRatio,
+    bool? hasBackground,
+  }) async {
+    final p = await SharedPreferences.getInstance();
+    if (borderRadius != null) {
+      chunshanBorderRadius.value = borderRadius;
+      await p.setDouble(UserState().n(_K.chunshanBorderRadius), borderRadius);
+    }
+    if (spacing != null) {
+      chunshanSpacing.value = spacing;
+      await p.setDouble(UserState().n(_K.chunshanSpacing), spacing);
+    }
+    if (aspectRatio != null) {
+      chunshanAspectRatio.value = aspectRatio;
+      await p.setDouble(UserState().n(_K.chunshanAspectRatio), aspectRatio);
+    }
+    if (hasBackground != null) {
+      chunshanHasBackground.value = hasBackground;
+      await p.setBool(UserState().n(_K.chunshanHasBackground), hasBackground);
+    }
   }
 }

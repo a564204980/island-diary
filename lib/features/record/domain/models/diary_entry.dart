@@ -24,6 +24,9 @@ class DiaryEntry {
   final Map<String, String> annotations; // 批注数据 (Key: 块索引_段落索引, Value: 批注内容)
   final String? bookId; // 所属日记本ID
   final String? title; // 日记目录小标题
+  final String? imageLayoutStyle; // 图片排版样式 (grid, stack, chunshan)
+
+  String get actualImageLayoutStyle => imageLayoutStyle ?? (isImageGrid ? 'grid' : 'stack');
 
   DiaryEntry({
     String? id,
@@ -47,6 +50,7 @@ class DiaryEntry {
     Map<String, String>? annotations,
     this.bookId = 'default',
     this.title,
+    this.imageLayoutStyle,
   }) : id = id ?? const Uuid().v4(),
        replies = replies ?? [],
        annotations = annotations ?? {};
@@ -74,6 +78,7 @@ class DiaryEntry {
       'annotations': annotations,
       'bookId': bookId,
       'title': title,
+      'imageLayoutStyle': imageLayoutStyle,
     };
   }
 
@@ -106,6 +111,7 @@ class DiaryEntry {
           : {},
       bookId: map['bookId'] ?? 'default',
       title: map['title'],
+      imageLayoutStyle: map['imageLayoutStyle'],
     );
   }
 
@@ -131,6 +137,7 @@ class DiaryEntry {
     Map<String, String>? annotations,
     String? bookId,
     String? title,
+    String? imageLayoutStyle,
   }) {
     return DiaryEntry(
       id: id ?? this.id,
@@ -154,6 +161,7 @@ class DiaryEntry {
       annotations: annotations ?? this.annotations,
       bookId: bookId ?? this.bookId,
       title: title ?? this.title,
+      imageLayoutStyle: imageLayoutStyle ?? this.imageLayoutStyle,
     );
   }
 

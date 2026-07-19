@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:island_diary/shared/widgets/date_picker/island_date_time_picker.dart';
+import 'package:island_diary/shared/widgets/top_toast.dart';
 
 class TravelTicketDialog extends StatefulWidget {
   final String? initialOrigin;
@@ -127,6 +128,24 @@ class _TravelTicketDialogState extends State<TravelTicketDialog> with SingleTick
   void _onConfirm() async {
     if (_isConfirmed) return;
     
+    if (_originCtrl.text.trim().isEmpty || _destCtrl.text.trim().isEmpty) {
+      showTopToast(context, '请填写出发地和目的地');
+      return;
+    }
+
+    final bool isEdit = widget.initialOrigin != null || widget.initialDestination != null;
+
+    if (isEdit) {
+      Navigator.of(context).pop({
+        'origin': _originCtrl.text.trim(),
+        'destination': _destCtrl.text.trim(),
+        'mode': _mode.name,
+        'departureTime': _departureTime.toIso8601String(),
+        'arrivalTime': _arrivalTime.toIso8601String(),
+      });
+      return;
+    }
+
     setState(() {
       _isConfirmed = true;
     });
@@ -246,7 +265,11 @@ class _TravelTicketDialogState extends State<TravelTicketDialog> with SingleTick
                                     angle: isSelected ? _vehicleShadowAngle : 0,
                                     child: SizedBox(
                                       width: 24, height: 24,
-                                      child: _buildSilhouette(mode, Colors.white),
+                                      child: mode == TransportMode.train 
+                                          ? const Icon(Icons.train_rounded, color: Colors.white, size: 24)
+                                          : mode == TransportMode.ship
+                                              ? const Icon(Icons.directions_boat_rounded, color: Colors.white, size: 24)
+                                              : _buildSilhouette(mode, Colors.white),
                                     ),
                                   ),
                                 ),
@@ -463,12 +486,19 @@ class _TravelTicketDialogState extends State<TravelTicketDialog> with SingleTick
       ),
     );
 
-    return SizedBox.expand(
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          AnimatedBuilder(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (!_isConfirmed) Navigator.of(context).pop();
+      },
+      child: SizedBox.expand(
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            GestureDetector(
+              onTap: () {},
+              child: AnimatedBuilder(
             animation: _stampController,
             builder: (context, child) {
               final progress = _stampController.value;
@@ -520,6 +550,7 @@ class _TravelTicketDialogState extends State<TravelTicketDialog> with SingleTick
               );
             },
           ),
+            ),
           
           if (_isConfirmed)
             AnimatedBuilder(
@@ -571,6 +602,7 @@ class _TravelTicketDialogState extends State<TravelTicketDialog> with SingleTick
               },
             ),
         ],
+      ),
       ),
     );
   }
@@ -685,29 +717,102 @@ class AirplaneSilhouettePainter extends CustomPainter {
 
 class TrainSilhouettePainter extends CustomPainter {
   final Color color;
-  TrainSilhouettePainter({this.color = Colors.black});
+  final int carriages;
+  TrainSilhouettePainter({this.color = Colors.black, this.carriages = 5});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
+    
     final path = Path();
+    path.fillType = PathFillType.evenOdd;
     
-    final double w = size.width;
-    final double h = size.height;
+    // 高铁（动车组）具有流线型的车头和车尾
+    double h = size.height;
+    double headWidth = size.width * 0.25; 
+    double gap = 1.0; 
     
-    double x(double val) => (val / 100.0) * w;
-    double y(double val) => (val / 100.0) * h;
+    int midCount = carriages > 2 ? carriages - 2 : 0;
+    double midWidth = midCount > 0 ? (size.width - 2 * headWidth - (carriages - 1) * gap) / midCount : 0;
     
-    // Bullet train side view facing right
-    path.moveTo(x(10), y(40)); // top left
-    path.lineTo(x(60), y(40)); // top flat
-    path.quadraticBezierTo(x(85), y(40), x(95), y(75)); // sloping nose
-    path.quadraticBezierTo(x(96), y(80), x(90), y(80)); // nose bottom
-    path.lineTo(x(10), y(80)); // bottom flat
-    path.lineTo(x(10), y(40)); // back flat
-    path.close();
+    double currentX = 0;
+    
+    for (int i = 0; i < carriages; i++) {
+       double w = (i == 0 || i == carriages - 1) ? headWidth : midWidth;
+       double x = currentX;
+       
+       // 车体
+       if (i == carriages - 1) { // 右侧车头
+          path.moveTo(x, h * 0.3);
+          path.lineTo(x + w * 0.4, h * 0.3);
+          // 流线型子弹头曲线
+          path.cubicTo(x + w * 0.7, h * 0.3, x + w * 0.95, h * 0.6, x + w, h * 0.9);
+          path.lineTo(x, h * 0.9);
+          path.close();
+          
+          // 驾驶舱挡风玻璃
+          path.moveTo(x + w * 0.45, h * 0.35);
+          path.cubicTo(x + w * 0.65, h * 0.35, x + w * 0.8, h * 0.5, x + w * 0.85, h * 0.6);
+          path.lineTo(x + w * 0.75, h * 0.65);
+          path.cubicTo(x + w * 0.7, h * 0.55, x + w * 0.55, h * 0.45, x + w * 0.45, h * 0.45);
+          path.close();
+          
+          // 乘客车窗
+          path.addRRect(RRect.fromRectAndRadius(
+             Rect.fromLTWH(x + w * 0.05, h * 0.45, w * 0.3, h * 0.15),
+             const Radius.circular(0.5)
+          ));
+       } else if (i == 0) { // 左侧车尾 (镜像)
+          path.moveTo(x + w, h * 0.3);
+          path.lineTo(x + w * 0.6, h * 0.3);
+          path.cubicTo(x + w * 0.3, h * 0.3, x + w * 0.05, h * 0.6, x, h * 0.9);
+          path.lineTo(x + w, h * 0.9);
+          path.close();
+          
+          // 驾驶舱挡风玻璃
+          path.moveTo(x + w * 0.55, h * 0.35);
+          path.cubicTo(x + w * 0.35, h * 0.35, x + w * 0.2, h * 0.5, x + w * 0.15, h * 0.6);
+          path.lineTo(x + w * 0.25, h * 0.65);
+          path.cubicTo(x + w * 0.3, h * 0.55, x + w * 0.45, h * 0.45, x + w * 0.55, h * 0.45);
+          path.close();
+          
+          // 乘客车窗
+          path.addRRect(RRect.fromRectAndRadius(
+             Rect.fromLTWH(x + w * 0.65, h * 0.45, w * 0.3, h * 0.15),
+             const Radius.circular(0.5)
+          ));
+       } else { // 中间车厢
+          path.addRRect(RRect.fromRectAndRadius(
+             Rect.fromLTWH(x, h * 0.3, w, h * 0.6),
+             const Radius.circular(1.0)
+          ));
+          
+          // 长条形连续车窗
+          path.addRRect(RRect.fromRectAndRadius(
+             Rect.fromLTWH(x + w * 0.1, h * 0.45, w * 0.8, h * 0.15),
+             const Radius.circular(0.5)
+          ));
+          
+          // 在最中间的车厢加上受电弓
+          if (i == carriages ~/ 2) {
+             path.moveTo(x + w * 0.45, h * 0.3);
+             path.lineTo(x + w * 0.5, h * 0.15);
+             path.lineTo(x + w * 0.6, h * 0.15);
+             path.lineTo(x + w * 0.55, h * 0.3);
+             path.close();
+             path.addRect(Rect.fromLTWH(x + w * 0.4, h * 0.12, w * 0.3, h * 0.03));
+          }
+       }
+       
+       // 车厢风挡连接处 (全封闭设计)
+       if (i < carriages - 1) {
+          path.addRect(Rect.fromLTWH(x + w, h * 0.4, gap, h * 0.4));
+       }
+       
+       currentX += w + gap;
+    }
     
     canvas.drawPath(path, paint);
   }
@@ -733,63 +838,51 @@ class BusSilhouettePainter extends CustomPainter {
     double x(double val) => (val / 100.0) * w;
     double y(double val) => (val / 100.0) * h;
     
-    // Cute Car side view facing right
     path.fillType = PathFillType.evenOdd;
     
     // 1. Main body
-    path.moveTo(x(10), y(50)); // Back middle
-    path.quadraticBezierTo(x(10), y(25), x(30), y(22)); // Back to roof
-    path.lineTo(x(50), y(22)); // Roof flat
-    path.lineTo(x(63), y(38)); // Windshield down to mirror
-    path.lineTo(x(65), y(34)); // Mirror top
-    path.lineTo(x(68), y(42)); // Mirror bottom right
-    path.lineTo(x(70), y(42)); // Windshield bottom
-    path.quadraticBezierTo(x(85), y(45), x(92), y(50)); // Hood
-    path.quadraticBezierTo(x(95), y(65), x(92), y(75)); // Front bumper
-    path.lineTo(x(85), y(75)); // Bottom front
-    path.arcToPoint(Offset(x(65), y(75)), radius: Radius.circular(x(10)), clockwise: false); // Front arch
-    path.lineTo(x(40), y(75)); // Bottom middle
-    path.arcToPoint(Offset(x(20), y(75)), radius: Radius.circular(x(10)), clockwise: false); // Back arch
-    path.lineTo(x(10), y(75)); // Bottom back
+    path.moveTo(x(7), y(70)); // Bottom rear
+    path.quadraticBezierTo(x(4), y(60), x(7), y(48)); // Rear bumper
+    path.quadraticBezierTo(x(12), y(42), x(18), y(38)); // Trunk
+    path.quadraticBezierTo(x(30), y(20), x(45), y(15)); // Roof back
+    path.quadraticBezierTo(x(55), y(15), x(75), y(30)); // Roof front & windshield
+    path.quadraticBezierTo(x(92), y(38), x(95), y(48)); // Hood
+    path.quadraticBezierTo(x(98), y(60), x(94), y(70)); // Front bumper
+    path.lineTo(x(85), y(70)); // To front arch
+    
+    // Front wheel arch (gap)
+    path.arcToPoint(Offset(x(55), y(70)), radius: Radius.circular(x(15)), clockwise: false);
+    
+    path.lineTo(x(45), y(70)); // Side skirt
+    
+    // Rear wheel arch (gap)
+    path.arcToPoint(Offset(x(15), y(70)), radius: Radius.circular(x(15)), clockwise: false);
+    
+    path.lineTo(x(7), y(70)); // To bottom rear
     path.close();
 
-    // 2. Back window
-    final Path backWindow = Path();
-    backWindow.moveTo(x(35), y(42));
-    backWindow.lineTo(x(16), y(42));
-    backWindow.quadraticBezierTo(x(16), y(28), x(30), y(26));
-    backWindow.lineTo(x(35), y(26));
-    backWindow.close();
-    path.addPath(backWindow, Offset.zero);
+    // 2. Windows (cutouts using evenOdd)
+    // Rear window
+    final Path rearWindow = Path();
+    rearWindow.moveTo(x(32), y(40));
+    rearWindow.lineTo(x(40), y(40));
+    rearWindow.lineTo(x(45), y(22));
+    rearWindow.lineTo(x(35), y(22));
+    rearWindow.close();
+    path.addPath(rearWindow, Offset.zero);
 
-    // 3. Front window
+    // Front window
     final Path frontWindow = Path();
-    frontWindow.moveTo(x(40), y(42));
-    frontWindow.lineTo(x(62), y(42));
-    frontWindow.lineTo(x(48), y(26));
-    frontWindow.lineTo(x(40), y(26));
+    frontWindow.moveTo(x(43), y(40));
+    frontWindow.lineTo(x(70), y(40));
+    frontWindow.lineTo(x(55), y(22));
+    frontWindow.lineTo(x(48), y(22));
     frontWindow.close();
     path.addPath(frontWindow, Offset.zero);
 
-    // 4. Side stripe
-    path.addRRect(RRect.fromRectAndRadius(
-      Rect.fromLTRB(x(22), y(54), x(72), y(58)),
-      Radius.circular(x(2))
-    ));
-
-    // 5. Headlight & Taillight
-    path.addRRect(RRect.fromRectAndRadius(
-      Rect.fromLTRB(x(88), y(48), x(93), y(56)),
-      Radius.circular(x(2))
-    ));
-    path.addRRect(RRect.fromRectAndRadius(
-      Rect.fromLTRB(x(10), y(45), x(13), y(56)),
-      Radius.circular(x(1.5))
-    ));
-
-    // 6. Wheels (Solid circles inside the arches)
-    path.addOval(Rect.fromCircle(center: Offset(x(30), y(75)), radius: x(7)));
-    path.addOval(Rect.fromCircle(center: Offset(x(75), y(75)), radius: x(7)));
+    // 3. Wheels
+    path.addOval(Rect.fromCircle(center: Offset(x(30), y(72)), radius: x(10))); // Rear wheel
+    path.addOval(Rect.fromCircle(center: Offset(x(70), y(72)), radius: x(10))); // Front wheel
     
     canvas.drawPath(path, paint);
   }
@@ -815,17 +908,52 @@ class ShipSilhouettePainter extends CustomPainter {
     double x(double val) => (val / 100.0) * w;
     double y(double val) => (val / 100.0) * h;
     
-    // Ship side view facing right
-    path.moveTo(x(10), y(30)); // top back
-    path.lineTo(x(30), y(30));
-    path.lineTo(x(30), y(45));
-    path.lineTo(x(70), y(45)); // cabin
-    path.lineTo(x(75), y(60)); // deck
-    path.lineTo(x(95), y(60)); // bow top
-    path.quadraticBezierTo(x(95), y(80), x(80), y(80)); // bow curve to bottom
-    path.lineTo(x(20), y(80)); // bottom flat
-    path.lineTo(x(10), y(60)); // stern curve
+    path.fillType = PathFillType.evenOdd;
+    
+    // 1. 船体 (Hull)
+    path.moveTo(x(15), y(75)); // 船尾底部
+    path.lineTo(x(75), y(75)); // 船首底部
+    path.quadraticBezierTo(x(90), y(75), x(95), y(50)); // 船首上扬弧线
+    path.lineTo(x(85), y(50)); // 前甲板
+    path.lineTo(x(10), y(50)); // 后甲板
+    path.lineTo(x(15), y(75)); // 船尾收边
     path.close();
+    
+    // 2. 上层建筑 (Superstructure)
+    // 第一层甲板
+    path.moveTo(x(15), y(50));
+    path.lineTo(x(80), y(50));
+    path.lineTo(x(75), y(35));
+    path.lineTo(x(20), y(35));
+    path.close();
+    
+    // 第二层甲板
+    path.moveTo(x(25), y(35));
+    path.lineTo(x(70), y(35));
+    path.lineTo(x(65), y(20));
+    path.lineTo(x(30), y(20));
+    path.close();
+    
+    // 驾驶舱玻璃/舰桥前倾造型
+    path.moveTo(x(65), y(20));
+    path.lineTo(x(73), y(35));
+    path.lineTo(x(70), y(35));
+    path.lineTo(x(61), y(20));
+    path.close();
+    
+    // 烟囱 (Funnel)
+    path.moveTo(x(40), y(20));
+    path.lineTo(x(45), y(5));
+    path.lineTo(x(55), y(5));
+    path.lineTo(x(50), y(20));
+    path.close();
+    
+    // 3. 舷窗 (Portholes) - 使用 evenOdd 镂空
+    double winY = y(62);
+    for (int i = 0; i < 5; i++) {
+       double wx = x(30 + i * 10);
+       path.addOval(Rect.fromCircle(center: Offset(wx, winY), radius: y(3.5)));
+    }
     
     canvas.drawPath(path, paint);
   }

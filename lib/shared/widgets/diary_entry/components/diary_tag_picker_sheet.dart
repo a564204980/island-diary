@@ -113,23 +113,10 @@ class _DiaryTagPickerSheetState extends State<DiaryTagPickerSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 标题栏
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '添加标签',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: fontFamily,
-                  color: inkColor.withValues(alpha: 0.9),
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.close_rounded, color: inkColor.withValues(alpha: 0.5)),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
+          DiaryBottomSheetHeader(
+            title: '添加标签',
+            fontFamily: fontFamily,
+            textColor: inkColor.withValues(alpha: 0.9),
           ),
           const SizedBox(height: 8),
 
@@ -139,6 +126,7 @@ class _DiaryTagPickerSheetState extends State<DiaryTagPickerSheet> {
               Expanded(
                 child: TextField(
                   controller: _inputCtrl,
+                  cursorColor: isNight ? Colors.white : accentColor,
                   maxLength: 8,
                   style: TextStyle(
                     fontFamily: fontFamily,

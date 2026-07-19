@@ -47,21 +47,16 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
         padding: EdgeInsets.only(
           left: 24,
           right: 24,
-          top: 16,
           bottom: 24 + MediaQuery.of(context).padding.bottom + MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              '记录你的足迹',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: inkColor,
-                fontFamily: fontFamily,
-              ),
+            DiaryBottomSheetHeader(
+              title: '记录你的足迹',
+              fontFamily: fontFamily,
+              textColor: inkColor,
             ),
             const SizedBox(height: 16),
             Container(
@@ -445,6 +440,15 @@ mixin DiaryEditorInsertMixin<T extends DiaryEditorPage> on State<T>, DiaryEditor
             }
             if (pluginTriggered && mounted) {
               setState(() {}); // Trigger rebuild to show footer
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && scrollController.hasClients) {
+                  scrollController.animateTo(
+                    scrollController.position.maxScrollExtent,
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOutCubic,
+                  );
+                }
+              });
             }
           }
         }

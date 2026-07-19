@@ -148,6 +148,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
 
             // 顶层内容
             GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 Navigator.push(
                   context,
@@ -202,6 +203,15 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                         ),
                       ),
                     ),
+                    if (widget.entry.imageLayoutStyle == 'chunshan')
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, top: 6),
+                        child: Icon(
+                          Icons.eco_rounded,
+                          size: 12,
+                          color: const Color(0xFF66BB6A),
+                        ),
+                      ),
                     const SizedBox(width: 6),
                     // 2. 中间：书脊装订轴
                     SizedBox(

@@ -4,6 +4,7 @@ import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart'
 import 'package:island_diary/shared/widgets/diary_entry/models/image_group_block.dart';
 import 'package:island_diary/features/record/presentation/widgets/editor/mood_selector_header.dart';
 import 'package:island_diary/features/record/presentation/widgets/editor/editor_date_header.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_chunshan_layout.dart';
 import 'package:island_diary/core/plugins/plugin_manager.dart';
 import 'package:island_diary/core/plugins/island_plugin.dart';
 
@@ -11,7 +12,7 @@ class EditorContentList extends StatefulWidget {
   final List<DiaryBlock> blocks;
   final Map<String, GlobalKey> blockKeys;
   final bool isMixedLayout;
-  final bool isImageGrid;
+  final String? imageLayoutStyle;
   final bool isEmojiOpen;
   final bool isNight;
   final String paperStyle;
@@ -53,7 +54,7 @@ class EditorContentList extends StatefulWidget {
     required this.blocks,
     required this.blockKeys,
     required this.isMixedLayout,
-    required this.isImageGrid,
+    required this.imageLayoutStyle,
     required this.isEmojiOpen,
     required this.isNight,
     required this.paperStyle,
@@ -93,7 +94,7 @@ class _EditorContentListState extends State<EditorContentList> {
     final processedBlocks = ImageGroupBlock.preprocess(
       widget.blocks,
       isMixedLayout: widget.isMixedLayout,
-      isImageGrid: widget.isImageGrid,
+      imageLayoutStyle: widget.imageLayoutStyle,
     );
 
     final displayBlocks = processedBlocks;
@@ -182,6 +183,17 @@ class _EditorContentListState extends State<EditorContentList> {
              // 混排模式下按序渲染
              if (contentIndex >= displayBlocks.length) return const SizedBox.shrink();
              final block = displayBlocks[contentIndex];
+             if (block is ImageGroupBlock && widget.imageLayoutStyle == 'chunshan') {
+               return DiaryChunshanLayout(
+                 imagePaths: block.images.map((img) => img.file.path).toList(),
+                 onDeleteImage: widget.onEditImageBlock != null 
+                      ? (idx) => widget.onRemoveImage(widget.blocks.indexOf(block.images[idx])) 
+                      : null,
+                 onTapImage: widget.onEditImageBlock != null 
+                      ? (idx) => widget.onShowPreview(block.images[idx])
+                      : null,
+               );
+             }
              return _buildBlockItem(block, widget.blocks.indexOf(block));
           },
           findChildIndexCallback: (Key key) {

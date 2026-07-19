@@ -54,6 +54,7 @@ mixin DiaryMixin on ProfileMixin {
         isImageGrid: prefs.getBool(UserState().n(_K.draftIsImageGrid)) ?? false,
         isMixedLayout: prefs.getBool(UserState().n(_K.draftIsMixedLayout)) ?? (isVip.value && !(prefs.getBool(UserState().n(_K.draftIsImageGrid)) ?? false)),
         bookId: prefs.getString(UserState().n(_K.draftBookId)) ?? 'default',
+        imageLayoutStyle: prefs.getString(UserState().n(_K.draftImageLayoutStyle)),
       );
       
       savedDrafts.value = [oldDraft, ...savedDrafts.value];
@@ -87,13 +88,14 @@ mixin DiaryMixin on ProfileMixin {
   Future<void> saveDraft({
     int? moodIndex, required double intensity, required String content, String? tag, String? weather, String? temp,
     String? location, String? customDate, String? customTime, DateTime? dateTime, List<Map<String, dynamic>>? blocks,
-    String? paperStyle, bool? isImageGrid, bool? isMixedLayout, String? bookId,
+    String? paperStyle, bool? isImageGrid, bool? isMixedLayout, String? bookId, String? imageLayoutStyle,
   }) async {
     diaryDraft.value = DiaryDraft(
       moodIndex: moodIndex, intensity: intensity, content: content, tag: tag, weather: weather, temp: temp,
       location: location, customDate: customDate, customTime: customTime, dateTime: dateTime, blocks: blocks,
       paperStyle: paperStyle ?? 'note1', isImageGrid: isImageGrid ?? false, isMixedLayout: isMixedLayout ?? (isVip.value && !(isImageGrid ?? false)),
       bookId: bookId ?? 'default',
+      imageLayoutStyle: imageLayoutStyle,
     );
     final sp = await SharedPreferences.getInstance();
     await sp.setString(UserState().n(_K.draftContent), content);
@@ -113,12 +115,13 @@ mixin DiaryMixin on ProfileMixin {
     isImageGrid != null ? await sp.setBool(UserState().n(_K.draftIsImageGrid), isImageGrid) : await sp.remove(UserState().n(_K.draftIsImageGrid));
     isMixedLayout != null ? await sp.setBool(UserState().n(_K.draftIsMixedLayout), isMixedLayout) : await sp.remove(UserState().n(_K.draftIsMixedLayout));
     bookId != null ? await sp.setString(UserState().n(_K.draftBookId), bookId) : await sp.remove(UserState().n(_K.draftBookId));
+    imageLayoutStyle != null ? await sp.setString(UserState().n(_K.draftImageLayoutStyle), imageLayoutStyle) : await sp.remove(UserState().n(_K.draftImageLayoutStyle));
   }
 
   Future<void> clearDraft() async {
     diaryDraft.value = null;
     final sp = await SharedPreferences.getInstance();
-    for (var key in [_K.draftContent, _K.draftBlocks, _K.draftMood, _K.draftIntensity, _K.draftTag, _K.draftWeather, _K.draftTemp, _K.draftLocation, _K.draftCustomDate, _K.draftCustomTime, _K.draftDateTime, _K.draftPaperStyle, _K.draftIsImageGrid, _K.draftIsMixedLayout, _K.draftBookId]) {
+    for (var key in [_K.draftContent, _K.draftBlocks, _K.draftMood, _K.draftIntensity, _K.draftTag, _K.draftWeather, _K.draftTemp, _K.draftLocation, _K.draftCustomDate, _K.draftCustomTime, _K.draftDateTime, _K.draftPaperStyle, _K.draftIsImageGrid, _K.draftIsMixedLayout, _K.draftBookId, _K.draftImageLayoutStyle]) {
       await sp.remove(UserState().n(key));
     }
   }
@@ -176,6 +179,7 @@ mixin DiaryMixin on ProfileMixin {
       isImageGrid: draft.isImageGrid,
       isMixedLayout: draft.isMixedLayout,
       bookId: draft.bookId,
+      imageLayoutStyle: draft.imageLayoutStyle,
       annotations: annotations ?? const {},
     );
     savedDiaries.value = [newEntry, ...savedDiaries.value];
@@ -199,6 +203,7 @@ mixin DiaryMixin on ProfileMixin {
       tag: entry.tag, blocks: entry.blocks, weather: entry.weather, temp: entry.temp, location: entry.location,
       customDate: entry.customDate, customTime: entry.customTime, replies: [...entry.replies, DiaryReply(content: content, dateTime: DateTime.now())],
       paperStyle: entry.paperStyle, isImageGrid: entry.isImageGrid, isMixedLayout: entry.isMixedLayout, isLiked: entry.isLiked,
+      imageLayoutStyle: entry.imageLayoutStyle,
       annotations: entry.annotations,
     );
     savedDiaries.value = List.from(savedDiaries.value)..[index] = updatedEntry;
@@ -216,6 +221,7 @@ mixin DiaryMixin on ProfileMixin {
       tag: entry.tag, blocks: entry.blocks, weather: entry.weather, temp: entry.temp, location: entry.location,
       customDate: entry.customDate, customTime: entry.customTime, replies: entry.replies, paperStyle: entry.paperStyle,
       isImageGrid: entry.isImageGrid, isMixedLayout: entry.isMixedLayout, isLiked: !entry.isLiked,
+      imageLayoutStyle: entry.imageLayoutStyle,
       annotations: entry.annotations,
     );
     await _saveDiariesToStorage();
@@ -233,6 +239,7 @@ mixin DiaryMixin on ProfileMixin {
       customDate: entry.customDate, customTime: entry.customTime, replies: entry.replies, paperStyle: entry.paperStyle,
       isImageGrid: entry.isImageGrid, isMixedLayout: entry.isMixedLayout, isLiked: entry.isLiked,
       isPinned: !entry.isPinned,
+      imageLayoutStyle: entry.imageLayoutStyle,
       annotations: entry.annotations,
     );
     await _saveDiariesToStorage();

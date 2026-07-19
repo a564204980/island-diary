@@ -69,7 +69,6 @@ class _DiaryTextStylePickerSheetState extends State<DiaryTextStylePickerSheet> {
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
-        top: 16,
         bottom: 32 + MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Column(
@@ -77,7 +76,11 @@ class _DiaryTextStylePickerSheetState extends State<DiaryTextStylePickerSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 第一部分：文字大小
-          _buildSectionTitle('设置文字大小', accentColor, inkColor, fontFamily),
+          DiaryBottomSheetHeader(
+            title: '设置文字大小',
+            fontFamily: fontFamily,
+            textColor: inkColor.withValues(alpha: 0.9),
+          ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(4),

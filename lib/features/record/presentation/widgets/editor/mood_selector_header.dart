@@ -178,10 +178,13 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                 crossFadeState: isSelected
                     ? CrossFadeState.showSecond
                     : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 400),
-                firstCurve: const Interval(0.0, 0.3, curve: Curves.easeIn),
-                secondCurve: const Interval(0.6, 1.0, curve: Curves.easeOut),
-                sizeCurve: Curves.easeInOutCubic,
+                duration: const Duration(milliseconds: 380),
+                // 展开：大内容整段淡入(0~1)，pill 后半段才开始淡入(0.5~1)
+                // 收起：大内容前半段快速淡出(0~0.6)，pill 后半段自然淡入(0.4~1)
+                // 这样收起时 size 和内容淡出保持同步，不会出现空白停顿
+                firstCurve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+                secondCurve: const Interval(0.4, 1.0, curve: Curves.easeOut),
+                sizeCurve: Curves.easeInOutQuart,
                 alignment: Alignment.topLeft,
                 layoutBuilder: (Widget topChild, Key topChildKey, Widget bottomChild, Key bottomChildKey) {
                   return Stack(
@@ -229,10 +232,21 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
           runSpacing: 6,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isSelected ? 220 : double.infinity,
+            TweenAnimationBuilder<double>(
+              // 展开时：目标宽度 = 全宽（screenWidth - 48）
+              // 收起时：目标宽度 = 220（pill 最大宽度上限）
+              tween: Tween<double>(
+                end: isSelected ? 220.0 : (screenWidth - 48),
               ),
+              duration: const Duration(milliseconds: 380),
+              curve: Curves.easeInOutQuart,
+              builder: (context, animatedWidth, child) {
+                // 用 maxWidth 而非 width，让 pill 可以小于 220px
+                return ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: animatedWidth),
+                  child: child,
+                );
+              },
               child: pillWidget,
             ),
             if (widget.weather != null && widget.weather!.isNotEmpty)

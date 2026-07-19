@@ -18,6 +18,9 @@ class DiaryDraft {
   final bool isImageGrid;
   final bool isMixedLayout;
   final String? bookId;
+  final String? imageLayoutStyle;
+
+  String get actualImageLayoutStyle => imageLayoutStyle ?? (isImageGrid ? 'grid' : 'stack');
 
   DiaryDraft({
     String? id,
@@ -37,6 +40,7 @@ class DiaryDraft {
     this.isImageGrid = false,
     this.isMixedLayout = true,
     this.bookId = 'default',
+    this.imageLayoutStyle,
   })  : id = id ?? 'draft_${DateTime.now().microsecondsSinceEpoch}',
         updatedAt = updatedAt ?? DateTime.now();
 
@@ -59,6 +63,7 @@ class DiaryDraft {
       'isImageGrid': isImageGrid,
       'isMixedLayout': isMixedLayout,
       'bookId': bookId,
+      'imageLayoutStyle': imageLayoutStyle,
     };
   }
 
@@ -83,6 +88,7 @@ class DiaryDraft {
       isImageGrid: map['isImageGrid'] as bool? ?? false,
       isMixedLayout: map['isMixedLayout'] as bool? ?? true,
       bookId: map['bookId'] as String? ?? 'default',
+      imageLayoutStyle: map['imageLayoutStyle'] as String?,
     );
   }
 
@@ -104,6 +110,7 @@ class DiaryDraft {
     bool? isImageGrid,
     bool? isMixedLayout,
     String? bookId,
+    String? imageLayoutStyle,
   }) {
     return DiaryDraft(
       id: id ?? this.id,
@@ -123,6 +130,7 @@ class DiaryDraft {
       isImageGrid: isImageGrid ?? this.isImageGrid,
       isMixedLayout: isMixedLayout ?? this.isMixedLayout,
       bookId: bookId ?? this.bookId,
+      imageLayoutStyle: imageLayoutStyle ?? this.imageLayoutStyle,
     );
   }
 }

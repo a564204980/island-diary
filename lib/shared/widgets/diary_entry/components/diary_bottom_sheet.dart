@@ -42,7 +42,7 @@ class DiaryBottomSheet extends StatelessWidget {
       if (isNight) {
         bgColor = themeId == 'cotton_candy' 
             ? const Color(0xFF1E1B2E)
-            : (themeId == 'lego' ? const Color(0xFF18181B) : const Color(0xFF1F1F1F));
+            : (themeId == 'lego' ? const Color(0xFF18181B) : const Color(0xFF1C1C1C));
         inkColor = Colors.white;
       } else {
         bgColor = themeId == 'cotton_candy' 
@@ -100,6 +100,71 @@ class DiaryBottomSheet extends StatelessWidget {
           ? MediaQuery.of(context)
           : MediaQueryData.fromView(View.of(context)).copyWith(viewInsets: EdgeInsets.zero),
       child: content,
+    );
+  }
+}
+
+class DiaryBottomSheetCloseButton extends StatelessWidget {
+  const DiaryBottomSheetCloseButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isNight = UserState().isNight;
+    
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isNight ? const Color(0xFF2A2A2C) : const Color(0xFFEBEBEB),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.close_rounded,
+          size: 18,
+          color: isNight ? const Color(0xFF999999) : const Color(0xFF1C1C1E),
+        ),
+      ),
+    );
+  }
+}
+
+class DiaryBottomSheetHeader extends StatelessWidget {
+  final String title;
+  final String? fontFamily;
+  final Color? textColor;
+  final Widget? trailing;
+
+  const DiaryBottomSheetHeader({
+    super.key,
+    required this.title,
+    this.fontFamily,
+    this.textColor,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isNight = UserState().isNight;
+    final defaultColor = isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF1C1C1E);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            fontFamily: fontFamily,
+            color: textColor ?? defaultColor,
+          ),
+        ),
+        trailing ?? const DiaryBottomSheetCloseButton(),
+      ],
     );
   }
 }

@@ -14,10 +14,10 @@ class ImageGroupBlock extends DiaryBlock {
     'images': images.map((img) => img.toMap()).toList(),
   };
 
-  /// 预处理块列表：在混排模式且开启智能排版时，将连续的 ImageBlock 归并为一个 ImageGroupBlock。
+  /// 预处理块列表：在混排模式且开启智能排版或春山镜时，将连续的 ImageBlock 归并为一个 ImageGroupBlock。
   /// 自动忽略夹在图片中间的空文本块，防止它们打断连续图片的合并排版。
-  static List<DiaryBlock> preprocess(List<DiaryBlock> originalBlocks, {required bool isMixedLayout, required bool isImageGrid}) {
-    if (!isMixedLayout || !isImageGrid) {
+  static List<DiaryBlock> preprocess(List<DiaryBlock> originalBlocks, {required bool isMixedLayout, required String? imageLayoutStyle}) {
+    if (!isMixedLayout || (imageLayoutStyle != 'grid' && imageLayoutStyle != 'chunshan')) {
       return originalBlocks;
     }
 
