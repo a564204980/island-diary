@@ -120,14 +120,7 @@ mixin DiaryEditorCoreMixin<T extends DiaryEditorPage> on State<T> {
     _isInitializing = false;
     isModified = false;
     initialEditorStateJson = getEditorStateJson();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && blocks.isNotEmpty) {
-        final firstText = blocks.whereType<TextBlock>().firstOrNull;
-        if (firstText != null) {
-          firstText.focusNode.requestFocus();
-        }
-      }
-    });
+    // 移除了默认的 requestFocus 逻辑，避免进入编辑页时键盘自动弹起
   }
 
   void updateMoodQuote() {

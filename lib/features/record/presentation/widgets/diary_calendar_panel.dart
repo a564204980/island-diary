@@ -705,9 +705,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
     final moodIdx = entry.moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
     final String moodLabel = parsed.customMood ?? mood.label;
-    final String iconPath = (entry.moodIndex >= 0 && entry.moodIndex <= 23)
-        ? 'assets/icons/custom${entry.moodIndex + 1}.png'
-        : (mood.iconPath ?? 'assets/icons/happy.png');
+    final String iconPath = mood.iconPath ?? 'assets/icons/happy.png';
 
     final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 

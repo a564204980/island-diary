@@ -8,7 +8,7 @@ import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart'
 import 'package:island_diary/features/home/presentation/widgets/random_memory_overlay.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
-
+import 'package:island_diary/shared/animations/bouncing_button.dart';
 class HomeDashboardView extends StatelessWidget {
   final bool isNight;
   final String themeId;
@@ -33,12 +33,13 @@ class HomeDashboardView extends StatelessWidget {
     return "夜深了，$name";
   }
 
-  void _openEditorWithMood(BuildContext context, int moodIndex) {
+  void _openEditorWithDate(BuildContext context, DateTime date, DiaryEntry? existingEntry) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => DiaryEditorPage(
-          moodIndex: moodIndex,
+          initialDate: date,
+          entry: existingEntry,
         ),
       ),
     );
@@ -50,17 +51,34 @@ class HomeDashboardView extends StatelessWidget {
     
     // 配色系统：融入海洋背景的清爽冷色调
     final textColor = isNight ? const Color(0xFFE3F2FD) : const Color(0xFF1E3A52);
-    final subtitleColor = isNight ? const Color(0xFF90CAF9) : const Color(0xFF4A6B82);
+    final subtitleColor = isNight ? Colors.white.withValues(alpha: 0.7) : const Color(0xFF4A6B82);
     final accentColor = isNight ? const Color(0xFFFFD54F) : const Color(0xFFD87C30);
+
+    // 计算过去7天的日期
+    final today = DateTime.now();
+    final List<DateTime> last7Days = List.generate(7, (i) {
+      final d = today.subtract(Duration(days: 6 - i));
+      return DateTime(d.year, d.month, d.day);
+    });
+
+    // 辅助方法：获取某天的第一条日记记录
+    DiaryEntry? getEntryForDate(DateTime date) {
+      for (var map in groupedEntries) {
+        final key = map.keys.first;
+        if (key.year == date.year && key.month == date.month && key.day == date.day) {
+          final entries = map.values.first;
+          if (entries.isNotEmpty) return entries.first;
+        }
+      }
+      return null;
+    }
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+        padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 24.0, bottom: 40.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Spacer(flex: 3),
-            
             // 顶部问候与登岛天数
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,10 +206,10 @@ class HomeDashboardView extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // 底部一键心情印章
+            // 底部横向扩展：近七日心情记录
             _buildGlassCard(
               onTap: null,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               isRow: true,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,13 +217,13 @@ class HomeDashboardView extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        Icons.edit_outlined,
+                        Icons.calendar_month_rounded,
                         size: 16,
-                        color: accentColor,
+                        color: textColor,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        "此刻心情...",
+                        "近七日心情",
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -218,40 +236,68 @@ class HomeDashboardView extends StatelessWidget {
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(5, (index) {
-                      final moodIndex = [0, 1, 2, 3, 4][index];
-                      final mood = kMoods[moodIndex];
-                      return GestureDetector(
-                        onTap: () => _openEditorWithMood(context, moodIndex),
-                        behavior: HitTestBehavior.opaque,
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isNight 
-                                    ? Colors.white.withValues(alpha: 0.08) 
-                                    : Colors.white.withValues(alpha: 0.4),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.25),
-                                  width: 1,
+                    children: List.generate(7, (index) {
+                      final date = last7Days[index];
+                      final entry = getEntryForDate(date);
+                      final moodIndex = entry?.moodIndex;
+                      final mood = (moodIndex != null && moodIndex >= 0 && moodIndex < kMoods.length) ? kMoods[moodIndex] : null;
+                      final bool isToday = index == 6;
+
+                      return BouncingButton(
+                        onTap: () async {
+                          // 等待按压回弹动画完成 (大概150ms左右)
+                          await Future.delayed(const Duration(milliseconds: 150));
+                          if (context.mounted) {
+                            _openEditorWithDate(context, date, entry);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            color: isNight 
+                                ? Colors.white.withValues(alpha: mood != null ? 0.12 : 0.04) 
+                                : Colors.white.withValues(alpha: mood != null ? 0.6 : 0.2),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: mood != null ? 0.4 : 0.15),
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                "${date.day}",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.normal,
+                                  fontFamily: fontFamily,
+                                  color: textColor.withValues(alpha: 0.8),
                                 ),
                               ),
-                              child: mood.iconPath != null
-                                  ? Image.asset(mood.iconPath!, width: 28, height: 28)
-                                  : const Icon(Icons.mood, size: 28),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              mood.label,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontFamily: fontFamily,
-                                color: subtitleColor,
+                              const SizedBox(height: 8),
+                              mood != null && mood.iconPath != null
+                                  ? Image.asset(mood.iconPath!, width: 34, height: 34)
+                                  : Container(
+                                      width: 34,
+                                      height: 34,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.white.withValues(alpha: 0.2),
+                                      ),
+                                      child: Icon(Icons.add, size: 20, color: subtitleColor.withValues(alpha: 0.6)),
+                                    ),
+                              const SizedBox(height: 6),
+                              Text(
+                                mood != null ? mood.label : " ",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontFamily: fontFamily,
+                                  color: subtitleColor,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       );
                     }),
@@ -470,7 +516,7 @@ class _PhotoThrowbackWidgetState extends State<_PhotoThrowbackWidget> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    "那年今日",
+                    "旧日拾光",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -480,7 +526,7 @@ class _PhotoThrowbackWidgetState extends State<_PhotoThrowbackWidget> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    "翻开记忆的旧相片",
+                    "随机掉落的记忆碎片",
                     style: TextStyle(
                       fontSize: 12,
                       fontFamily: widget.fontFamily,

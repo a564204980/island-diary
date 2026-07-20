@@ -608,9 +608,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     final moodIdx = moodIndex.clamp(0, kMoods.length - 1);
     final mood = kMoods[moodIdx];
     final String moodLabel = parsed.customMood ?? mood.label;
-    final String iconPath = (moodIndex >= 0 && moodIndex <= 23)
-        ? 'assets/icons/custom${moodIndex + 1}.png'
-        : (mood.iconPath ?? 'assets/icons/happy.png');
+    final String iconPath = mood.iconPath ?? 'assets/icons/happy.png';
 
     final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 

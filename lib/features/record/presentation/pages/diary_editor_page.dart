@@ -62,13 +62,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     super.didChangeDependencies();
     final double inset = MediaQuery.viewInsetsOf(context).bottom;
     if (inset > 100 && inset > keyboardHeight) {
+      final bool isFirstPop = keyboardHeight == 0; // 只在首次弹起时触发动画
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && inset > keyboardHeight) {
           setState(() => keyboardHeight = inset);
 
-          // 键盘弹起时，顺势将页面继续往上顶，隐藏顶部的时间与天气区域（约160像素）
-          // 让动画过渡自然，提供更加沉浸的输入空间
-          if (scrollController.hasClients) {
+          // 仅在键盘初次弹起时，顺势将页面往上顶，避免每帧重复调用 animateTo 导致卡顿
+          if (isFirstPop && scrollController.hasClients) {
             final double headerHeight = 160.0;
             if (scrollController.offset < headerHeight) {
               final targetOffset = headerHeight.clamp(

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/animations/bouncing_button.dart';
-
+import 'package:island_diary/shared/animations/zzz_animation.dart';
 
 class MoodSelectorHeader extends StatefulWidget {
   final int? currentMoodIndex;
@@ -94,75 +94,83 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final Color? containerBgColor = isCottonCandyDark
         ? null
         : (isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : const Color(0xFFFEF9F0).withValues(alpha: 0.2)); // 统一增加透明度以隐约呈现底纸纹理
+              ? Colors.white.withValues(alpha: 0.05)
+              : const Color(
+                  0xFFFEF9F0,
+                ).withValues(alpha: 0.2)); // 统一增加透明度以隐约呈现底纸纹理
 
     final pillWidget = Padding(
       key: const ValueKey('mood_selector_pill_widget'),
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: AnimatedContainer(
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOutCubic,
-          margin: isLego ? const EdgeInsets.only(bottom: 6) : null,
-          decoration: BoxDecoration(
-            color: containerBgColor,
-            gradient: isCottonCandyDark
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFFC0A6FF).withValues(alpha: 0.18),
-                      const Color(0xFFC0A6FF).withValues(alpha: 0.03),
-                    ],
-                  )
-                : null,
-            borderRadius: BorderRadius.circular(24),
-            border: isLego
-                ? null
-                : Border.all(
-                    color: isCottonCandyDark
-                        ? const Color(0xFFC0A6FF).withValues(alpha: 0.8)
-                        : inkColor.withValues(alpha: isDark ? 0.1 : 0.08),
-                    width: isCottonCandyDark ? 1.5 : 1,
-                  ),
-            boxShadow: isLego
-                ? [
-                    // 1. 固态 3D 积木厚度实色层（零羽化）
-                    BoxShadow(
-                      color: isDark ? const Color(0xFF1B160E) : const Color(0xFFEADAB9),
-                      blurRadius: 0,
-                      offset: const Offset(0, 4.0),
-                    ),
-                    // 2. 底层环境遮蔽软影
-                    BoxShadow(
-                      color: isDark ? Colors.black.withValues(alpha: 0.4) : const Color(0xFFDCC8A0).withValues(alpha: 0.4),
-                      blurRadius: 4.0,
-                      offset: const Offset(0, 5.0),
-                    ),
-                  ]
-                : [
-                    BoxShadow(
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            margin: isLego ? const EdgeInsets.only(bottom: 6) : null,
+            decoration: BoxDecoration(
+              color: containerBgColor,
+              gradient: isCottonCandyDark
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFFC0A6FF).withValues(alpha: 0.18),
+                        const Color(0xFFC0A6FF).withValues(alpha: 0.03),
+                      ],
+                    )
+                  : null,
+              borderRadius: BorderRadius.circular(24),
+              border: isLego
+                  ? null
+                  : Border.all(
                       color: isCottonCandyDark
-                          ? const Color(0xFFC0A6FF).withValues(alpha: 0.12)
-                          : const Color(0xFFC0A6FF).withValues(alpha: 0.0),
-                      blurRadius: isCottonCandyDark ? 16 : 0,
-                      spreadRadius: isCottonCandyDark ? 1 : 0,
+                          ? const Color(0xFFC0A6FF).withValues(alpha: 0.8)
+                          : inkColor.withValues(alpha: isDark ? 0.1 : 0.08),
+                      width: isCottonCandyDark ? 1.5 : 1,
                     ),
-                    const BoxShadow(
-                      color: Colors.transparent,
-                      blurRadius: 0,
-                      offset: Offset.zero,
-                    ),
-                  ],
-          ),
-          child: BouncingButton(
-            onTap: isSelected ? () => onClearMood?.call() : null,
-            child: AnimatedCrossFade(
+              boxShadow: isLego
+                  ? [
+                      // 1. 固态 3D 积木厚度实色层（零羽化）
+                      BoxShadow(
+                        color: isDark
+                            ? const Color(0xFF1B160E)
+                            : const Color(0xFFEADAB9),
+                        blurRadius: 0,
+                        offset: const Offset(0, 4.0),
+                      ),
+                      // 2. 底层环境遮蔽软影
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.black.withValues(alpha: 0.4)
+                            : const Color(0xFFDCC8A0).withValues(alpha: 0.4),
+                        blurRadius: 4.0,
+                        offset: const Offset(0, 5.0),
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: isCottonCandyDark
+                            ? const Color(0xFFC0A6FF).withValues(alpha: 0.12)
+                            : const Color(0xFFC0A6FF).withValues(alpha: 0.0),
+                        blurRadius: isCottonCandyDark ? 16 : 0,
+                        spreadRadius: isCottonCandyDark ? 1 : 0,
+                      ),
+                      const BoxShadow(
+                        color: Colors.transparent,
+                        blurRadius: 0,
+                        offset: Offset.zero,
+                      ),
+                    ],
+            ),
+            child: BouncingButton(
+              onTap: isSelected ? () => onClearMood?.call() : null,
+              child: AnimatedCrossFade(
                 firstChild: KeyedSubtree(
                   key: const ValueKey('expanded_content'),
                   child: SizedBox(
                     width: screenWidth - 48,
                     child: SingleChildScrollView(
+                      clipBehavior: Clip.none,
                       physics: const NeverScrollableScrollPhysics(),
                       child: _buildExpandedContent(context),
                     ),
@@ -171,6 +179,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                 secondChild: KeyedSubtree(
                   key: const ValueKey('pill_content'),
                   child: SingleChildScrollView(
+                    clipBehavior: Clip.none,
                     physics: const NeverScrollableScrollPhysics(),
                     child: _buildPillContent(context),
                   ),
@@ -179,38 +188,65 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                     ? CrossFadeState.showSecond
                     : CrossFadeState.showFirst,
                 duration: const Duration(milliseconds: 380),
-                // 展开：大内容整段淡入(0~1)，pill 后半段才开始淡入(0.5~1)
-                // 收起：大内容前半段快速淡出(0~0.6)，pill 后半段自然淡入(0.4~1)
-                // 这样收起时 size 和内容淡出保持同步，不会出现空白停顿
-                firstCurve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-                secondCurve: const Interval(0.4, 1.0, curve: Curves.easeOut),
-                sizeCurve: Curves.easeInOutQuart,
+                firstCurve: Curves.easeInOut,
+                secondCurve: Curves.easeInOut,
+                sizeCurve: Curves.easeInOutCubic,
                 alignment: Alignment.topLeft,
-                layoutBuilder: (Widget topChild, Key topChildKey, Widget bottomChild, Key bottomChildKey) {
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.topLeft,
-                    children: <Widget>[
-                      Positioned(
-                        key: bottomChildKey,
-                        left: 0.0,
-                        top: 0.0,
-                        // 不设置 right: 0.0，防止强制挤压底层组件宽度导致 Row 溢出
-                        child: bottomChild,
-                      ),
-                      Positioned(
-                        key: topChildKey,
-                        child: topChild,
-                      ),
-                    ],
-                  );
-                },
+                layoutBuilder:
+                    (
+                      Widget topChild,
+                      Key topChildKey,
+                      Widget bottomChild,
+                      Key bottomChildKey,
+                    ) {
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.topLeft,
+                        children: <Widget>[
+                          Positioned(
+                            key: bottomChildKey,
+                            left: 0.0,
+                            top: 0.0,
+                            // 不设置 right: 0.0，防止强制挤压底层组件宽度导致 Row 溢出
+                            child: bottomChild,
+                          ),
+                          // topChild 决定了 Stack 的固有尺寸。动画期间由外层 AnimatedSize 负责裁切
+                          topChild,
+                        ],
+                      );
+                    },
               ),
+            ),
           ),
-        ),
-      );
-
-
+          Positioned(
+            top: -51,
+            right: 6,
+            child: IgnorePointer(
+              child: AnimatedOpacity(
+                opacity: !isSelected ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 300),
+                child: Image.asset(
+                  'assets/images/emoji/shuangjian/bg/shuijiao_baitian.png',
+                  width: 145,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: -65,
+            right: 85,
+            child: IgnorePointer(
+              child: AnimatedOpacity(
+                opacity: !isSelected ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 300),
+                child: ZzzAnimation(color: inkColor.withValues(alpha: 0.6)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
 
     final weatherWidget = _buildWeatherPill(context);
     final locationWidget = _buildLocationPill(context);
@@ -239,7 +275,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                 end: isSelected ? 220.0 : (screenWidth - 48),
               ),
               duration: const Duration(milliseconds: 380),
-              curve: Curves.easeInOutQuart,
+              curve: Curves.easeInOutCubic,
               builder: (context, animatedWidth, child) {
                 // 用 maxWidth 而非 width，让 pill 可以小于 220px
                 return ConstrainedBox(
@@ -286,7 +322,8 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final bool isLego = themeId == 'lego';
     final bool isDark = isNight;
 
-    final bool hasWeather = widget.weather != null && widget.weather!.isNotEmpty;
+    final bool hasWeather =
+        widget.weather != null && widget.weather!.isNotEmpty;
 
     return GestureDetector(
       onTap: widget.onWeatherTap,
@@ -298,8 +335,8 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
           color: isCottonCandyDark
               ? null
               : (isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : const Color(0xFFFEF9F0).withValues(alpha: 0.2)),
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : const Color(0xFFFEF9F0).withValues(alpha: 0.2)),
           gradient: isCottonCandyDark
               ? LinearGradient(
                   begin: Alignment.topLeft,
@@ -322,12 +359,16 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
           boxShadow: isLego
               ? [
                   BoxShadow(
-                    color: isDark ? const Color(0xFF1B160E) : const Color(0xFFEADAB9),
+                    color: isDark
+                        ? const Color(0xFF1B160E)
+                        : const Color(0xFFEADAB9),
                     blurRadius: 0,
                     offset: const Offset(0, 4.0),
                   ),
                   BoxShadow(
-                    color: isDark ? Colors.black.withValues(alpha: 0.4) : const Color(0xFFDCC8A0).withValues(alpha: 0.4),
+                    color: isDark
+                        ? Colors.black.withValues(alpha: 0.4)
+                        : const Color(0xFFDCC8A0).withValues(alpha: 0.4),
                     blurRadius: 4.0,
                     offset: const Offset(0, 5.0),
                   ),
@@ -339,7 +380,9 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              hasWeather ? _getWeatherIcon(widget.weather) : Icons.wb_sunny_outlined,
+              hasWeather
+                  ? _getWeatherIcon(widget.weather)
+                  : Icons.wb_sunny_outlined,
               size: 18,
               color: hasWeather
                   ? (isDark ? Colors.white70 : inkColor.withValues(alpha: 0.5))
@@ -352,7 +395,9 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: hasWeather
-                    ? (isDark ? Colors.white.withValues(alpha: 0.9) : inkColor.withValues(alpha: 0.8))
+                    ? (isDark
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : inkColor.withValues(alpha: 0.8))
                     : inkColor.withValues(alpha: 0.4),
                 fontFamily: 'LXGWWenKai',
               ),
@@ -375,7 +420,9 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                   child: Icon(
                     Icons.close_rounded,
                     size: 12,
-                    color: isDark ? Colors.white70 : inkColor.withValues(alpha: 0.5),
+                    color: isDark
+                        ? Colors.white70
+                        : inkColor.withValues(alpha: 0.5),
                   ),
                 ),
               ),
@@ -393,7 +440,8 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final bool isLego = themeId == 'lego';
     final bool isDark = isNight;
 
-    final bool hasLocation = widget.location != null && widget.location!.isNotEmpty;
+    final bool hasLocation =
+        widget.location != null && widget.location!.isNotEmpty;
 
     return GestureDetector(
       onTap: widget.onLocationTap,
@@ -405,8 +453,8 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
           color: isCottonCandyDark
               ? null
               : (isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : const Color(0xFFFEF9F0).withValues(alpha: 0.2)),
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : const Color(0xFFFEF9F0).withValues(alpha: 0.2)),
           gradient: isCottonCandyDark
               ? LinearGradient(
                   begin: Alignment.topLeft,
@@ -429,12 +477,16 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
           boxShadow: isLego
               ? [
                   BoxShadow(
-                    color: isDark ? const Color(0xFF1B160E) : const Color(0xFFEADAB9),
+                    color: isDark
+                        ? const Color(0xFF1B160E)
+                        : const Color(0xFFEADAB9),
                     blurRadius: 0,
                     offset: const Offset(0, 4.0),
                   ),
                   BoxShadow(
-                    color: isDark ? Colors.black.withValues(alpha: 0.4) : const Color(0xFFDCC8A0).withValues(alpha: 0.4),
+                    color: isDark
+                        ? Colors.black.withValues(alpha: 0.4)
+                        : const Color(0xFFDCC8A0).withValues(alpha: 0.4),
                     blurRadius: 4.0,
                     offset: const Offset(0, 5.0),
                   ),
@@ -459,7 +511,9 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: hasLocation
-                    ? (isDark ? Colors.white.withValues(alpha: 0.9) : inkColor.withValues(alpha: 0.8))
+                    ? (isDark
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : inkColor.withValues(alpha: 0.8))
                     : inkColor.withValues(alpha: 0.4),
                 fontFamily: 'LXGWWenKai',
               ),
@@ -482,7 +536,9 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                   child: Icon(
                     Icons.close_rounded,
                     size: 12,
-                    color: isDark ? Colors.white70 : inkColor.withValues(alpha: 0.5),
+                    color: isDark
+                        ? Colors.white70
+                        : inkColor.withValues(alpha: 0.5),
                   ),
                 ),
               ),
@@ -493,8 +549,6 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     );
   }
 
-
-
   Widget _buildExpandedContent(BuildContext context) {
     final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
     final bool isDark = isNight;
@@ -504,10 +558,11 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final Color? containerBgColor = isCottonCandyDark
         ? null
         : (isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : (paperStyle.startsWith('note') || (paperStyle == 'classic' && themeId == 'cotton_candy')
-                ? const Color(0xFFFEF9F0).withValues(alpha: 0.45)
-                : const Color(0xFFFEF9F0)));
+              ? Colors.white.withValues(alpha: 0.05)
+              : (paperStyle.startsWith('note') ||
+                        (paperStyle == 'classic' && themeId == 'cotton_candy')
+                    ? const Color(0xFFFEF9F0).withValues(alpha: 0.45)
+                    : const Color(0xFFFEF9F0)));
 
     final double availableWidth = screenWidth - 40;
     final double itemWidth = availableWidth / 5.8;
@@ -541,40 +596,62 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                 ],
               ),
               const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    "选一个最接近的心情吧",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: inkColor.withValues(alpha: isDark ? 0.7 : 0.4),
-                      fontFamily: 'LXGWWenKai',
+              SizedBox(
+                height: 18,
+                child: Stack(
+                  clipBehavior: Clip.antiAlias,
+                  children: [
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: Text(
+                          "选一个最接近的心情吧",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: inkColor.withValues(
+                              alpha: isDark ? 0.7 : 0.4,
+                            ),
+                            fontFamily: 'LXGWWenKai',
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    "滑动查看更多",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: inkColor.withValues(alpha: 0.4),
-                      fontFamily: 'LXGWWenKai',
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            "滑动查看更多",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: inkColor.withValues(alpha: 0.4),
+                              fontFamily: 'LXGWWenKai',
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 10,
+                            color: inkColor.withValues(alpha: 0.4),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 10,
-                    color: inkColor.withValues(alpha: 0.4),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 2),
         SizedBox(
-          height: 115,
+          height: 106,
           child: Stack(
             children: [
               SingleChildScrollView(
@@ -585,24 +662,33 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                   children: [
                     ...List.generate(moods.length, (index) {
                       final mood = moods[index];
-                      final bool isSelected = currentMoodIndex == index;
-                      final Color moodColor = Color(
-                        int.parse(mood['color']!),
-                      );
+                      // 展开列表中的项目永远不需要显示选中状态，因为一旦选中面板就会立即收起
+                      final bool isSelected = false;
+                      final Color moodColor = Color(int.parse(mood['color']!));
                       return Container(
                         width: itemWidth,
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: InkWell(
-                          onTap: () => onMoodSelected(index),
-                          splashColor: Colors.transparent,
-                          highlightColor: Colors.transparent,
-                          hoverColor: Colors.transparent,
+                        margin: const EdgeInsets.symmetric(vertical: 2),
+                        child: BouncingButton(
+                          onTap: () {
+                            // 延迟 150 毫秒收起，让用户能完整看到按键的回弹物理反馈
+                            Future.delayed(
+                              const Duration(milliseconds: 150),
+                              () {
+                                if (mounted) {
+                                  onMoodSelected(index);
+                                }
+                              },
+                            );
+                          },
+                          scaleFactor: 0.85,
                           child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 500),
+                            duration: isSelected
+                                ? const Duration(milliseconds: 500)
+                                : Duration.zero,
                             curve: Curves.fastOutSlowIn,
                             margin: const EdgeInsets.symmetric(horizontal: 2),
                             padding: const EdgeInsets.symmetric(
-                              vertical: 12,
+                              vertical: 6,
                               horizontal: 4,
                             ),
                             transform: Matrix4.translationValues(
@@ -638,21 +724,23 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                               children: [
                                 AnimatedScale(
                                   scale: isSelected ? 1.15 : 1.0,
-                                  duration: const Duration(milliseconds: 400),
+                                  duration: isSelected
+                                      ? const Duration(milliseconds: 400)
+                                      : Duration.zero,
                                   curve: Curves.easeOutBack,
                                   child: SizedBox(
-                                    width: 44,
-                                    height: 44,
+                                    width: 52,
+                                    height: 52,
                                     child: Center(
                                       child: Image.asset(
                                         mood['icon']!,
-                                        width: 28,
-                                        height: 28,
+                                        width: 52,
+                                        height: 52,
                                       ),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 4),
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
@@ -680,11 +768,18 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                     Container(
                       width: itemWidth * 0.8,
                       margin: const EdgeInsets.only(left: 8, right: 16),
-                      child: InkWell(
-                        onTap: onCustomTap,
-                        splashColor: Colors.transparent,
-                        highlightColor: Colors.transparent,
-                        hoverColor: Colors.transparent,
+                      child: BouncingButton(
+                        onTap: () {
+                          if (onCustomTap != null) {
+                            Future.delayed(
+                              const Duration(milliseconds: 150),
+                              () {
+                                if (mounted) onCustomTap!();
+                              },
+                            );
+                          }
+                        },
+                        scaleFactor: 0.85,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -736,8 +831,19 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                         colors: [
-                          (containerBgColor ?? (isCottonCandyDark ? const Color(0xFFC0A6FF).withValues(alpha: 0.03) : Colors.transparent)).withValues(alpha: 0.0),
-                          containerBgColor ?? (isCottonCandyDark ? const Color(0xFFC0A6FF).withValues(alpha: 0.03) : Colors.transparent),
+                          (containerBgColor ??
+                                  (isCottonCandyDark
+                                      ? const Color(
+                                          0xFFC0A6FF,
+                                        ).withValues(alpha: 0.03)
+                                      : Colors.transparent))
+                              .withValues(alpha: 0.0),
+                          containerBgColor ??
+                              (isCottonCandyDark
+                                  ? const Color(
+                                      0xFFC0A6FF,
+                                    ).withValues(alpha: 0.03)
+                                  : Colors.transparent),
                         ],
                       ),
                     ),
@@ -747,7 +853,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 4),
         Padding(
           padding: const EdgeInsets.only(bottom: 14.0),
           child: Center(
@@ -801,7 +907,7 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
 
   Widget _buildPillContent(BuildContext context) {
     final Color inkColor = DiaryUtils.getInkColor(paperStyle, isNight);
-    
+
     String iconPath = 'assets/icons/happy.png';
     final parsed = ParsedTags.parse(_lastValidTag, _lastValidMoodIndex);
     String label = parsed.customMood ?? '开心';
@@ -811,7 +917,8 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
       if (_lastValidMoodIndex! >= 0 && _lastValidMoodIndex! <= 23) {
         iconPath = 'assets/icons/custom${_lastValidMoodIndex! + 1}.png';
       }
-    } else if (_lastValidMoodIndex != null && _lastValidMoodIndex! < moods.length) {
+    } else if (_lastValidMoodIndex != null &&
+        _lastValidMoodIndex! < moods.length) {
       iconPath = moods[_lastValidMoodIndex!]['icon']!;
       label = moods[_lastValidMoodIndex!]['label']!;
       moodColor = Color(int.parse(moods[_lastValidMoodIndex!]['color']!));
@@ -820,7 +927,9 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     final themeId = UserState().selectedIslandThemeId.value;
     final bool isCottonCandyDark = (themeId == 'cotton_candy') && isNight;
 
-    final bool hasCustomIconFile = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
+    final bool hasCustomIconFile =
+        parsed.customMoodIconPath != null &&
+        parsed.customMoodIconPath!.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
@@ -832,13 +941,15 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                   File(parsed.customMoodIconPath!),
                   width: 20,
                   height: 20,
-                  errorBuilder: (c, e, s) => Icon(Icons.mood, size: 20, color: moodColor),
+                  errorBuilder: (c, e, s) =>
+                      Icon(Icons.mood, size: 20, color: moodColor),
                 )
               : Image.asset(
                   iconPath,
                   width: 20,
                   height: 20,
-                  errorBuilder: (c, e, s) => Icon(Icons.mood, size: 20, color: moodColor),
+                  errorBuilder: (c, e, s) =>
+                      Icon(Icons.mood, size: 20, color: moodColor),
                 ),
           const SizedBox(width: 6),
           Text(
@@ -846,7 +957,9 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: isNight ? Colors.white.withValues(alpha: 0.9) : inkColor.withValues(alpha: 0.8),
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.9)
+                  : inkColor.withValues(alpha: 0.8),
               fontFamily: 'LXGWWenKai',
             ),
           ),
@@ -866,22 +979,27 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
     );
   }
 
-
-
-
-
   /// 渲染位于信纸顶部、整齐排布的乐高圆形凸起颗粒一排 (Top Studs Row)
   Widget _buildLegoTopStudsRow() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: List.generate(13, (index) => _buildLegoTopStud(UserState().isNight)),
+      children: List.generate(
+        13,
+        (index) => _buildLegoTopStud(UserState().isNight),
+      ),
     );
   }
 
   Widget _buildLegoTopStud(bool isNight) {
-    final Color studColor = isNight ? const Color(0xFF2C2518) : const Color(0xFFFCF0D5);
-    final Color highlightColor = isNight ? const Color(0xFF4C3E27) : const Color(0xFFFFFCE0);
-    final Color shadowColor = isNight ? const Color(0xFF1B160E) : const Color(0xFFDCC8A0);
+    final Color studColor = isNight
+        ? const Color(0xFF2C2518)
+        : const Color(0xFFFCF0D5);
+    final Color highlightColor = isNight
+        ? const Color(0xFF4C3E27)
+        : const Color(0xFFFFFCE0);
+    final Color shadowColor = isNight
+        ? const Color(0xFF1B160E)
+        : const Color(0xFFDCC8A0);
 
     return Container(
       width: 11,

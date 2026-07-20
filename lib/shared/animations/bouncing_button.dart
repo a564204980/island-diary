@@ -58,10 +58,16 @@ class _BouncingButtonState extends State<BouncingButton>
     }
   }
 
-  void _onTapUp(TapUpDetails details) {
+  void _onTapUp(TapUpDetails details) async {
     if (widget.onTap != null) {
-      _controller.reverse();
-      widget.onTap!();
+      if (_controller.value < 0.1) {
+        // 应对 ScrollView 中的快速点击：强制执行一小段缩放动画再回弹
+        await _controller.animateTo(1.0, duration: const Duration(milliseconds: 50));
+      }
+      if (mounted) {
+        _controller.reverse();
+        widget.onTap!();
+      }
     }
   }
 

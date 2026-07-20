@@ -623,9 +623,7 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
             (() {
               final parsed = ParsedTags.parse(_currentEntry.tag, _currentEntry.moodIndex);
               final String moodLabel = parsed.customMood ?? mood.label;
-              final String iconPath = (_currentEntry.moodIndex >= 0 && _currentEntry.moodIndex <= 23)
-                  ? 'assets/icons/custom${_currentEntry.moodIndex + 1}.png'
-                  : (mood.iconPath ?? 'assets/icons/happy.png');
+              final String iconPath = mood.iconPath ?? 'assets/icons/happy.png';
               final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 
               return Container(

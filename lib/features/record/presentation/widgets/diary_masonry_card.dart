@@ -526,11 +526,7 @@ class DiaryMasonryCard extends StatelessWidget {
 
     final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
     final String moodLabel = parsed.customMood ?? mood.label;
-    final String iconPath = parsed.customMood != null
-        ? (entry.moodIndex >= 0 && entry.moodIndex <= 23
-            ? 'assets/icons/custom${entry.moodIndex + 1}.png'
-            : 'assets/images/icons/custom.png')
-        : (mood.iconPath ?? 'assets/icons/happy.png');
+    final String iconPath = mood.iconPath ?? 'assets/icons/happy.png';
 
     tagWidgets.add(_buildTagPill(
       moodLabel,

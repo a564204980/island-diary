@@ -96,9 +96,6 @@ class CalendarDayCell extends StatelessWidget {
       if (parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty) {
         customMoodIconPath = parsed.customMoodIconPath;
       }
-      if (lastEntry.moodIndex >= 0 && lastEntry.moodIndex <= 23) {
-        customMoodIconAsset = 'assets/icons/custom${lastEntry.moodIndex + 1}.png';
-      }
       for (var entry in entries!) {
         for (var block in entry.blocks) {
           if (block['type'] == 'image' && block['path'] != null) {

@@ -963,9 +963,7 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
                                 if (mood != null || ParsedTags.parse(entry.tag, entry.moodIndex).customMood != null) (() {
                                   final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
                                   final String moodLabel = parsed.customMood ?? mood?.label ?? '未知心情';
-                                  final String iconPath = (entry.moodIndex >= 0 && entry.moodIndex <= 23)
-                                      ? 'assets/icons/custom${entry.moodIndex + 1}.png'
-                                      : (mood?.iconPath ?? 'assets/icons/happy.png');
+                                  final String iconPath = mood?.iconPath ?? 'assets/icons/happy.png';
                                   final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 
                                   return Container(
@@ -1156,9 +1154,7 @@ class _RandomMemoryOverlayState extends State<RandomMemoryOverlay>
                     if (mood != null || ParsedTags.parse(entry.tag, entry.moodIndex).customMood != null) (() {
                       final parsed = ParsedTags.parse(entry.tag, entry.moodIndex);
                       final String moodLabel = parsed.customMood ?? mood?.label ?? '未知心情';
-                      final String iconPath = (entry.moodIndex >= 0 && entry.moodIndex <= 23)
-                          ? 'assets/icons/custom${entry.moodIndex + 1}.png'
-                          : (mood?.iconPath ?? 'assets/icons/happy.png');
+                      final String iconPath = mood?.iconPath ?? 'assets/icons/happy.png';
                       final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 
                       return Container(
