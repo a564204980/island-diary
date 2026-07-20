@@ -170,9 +170,7 @@ class CalendarDayCell extends StatelessWidget {
         ? const BorderSide(color: Color(0xFFE1AF78), width: 2.2)
         : (isToday
             ? BorderSide(color: const Color(0xFFE1AF78).withValues(alpha: 0.6), width: 1.5)
-            : (hasEntry
-                ? BorderSide(color: isNight ? Colors.white12 : Colors.black.withValues(alpha: 0.12), width: 1.0)
-                : BorderSide(color: isNight ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06), width: 0.8)));
+            : BorderSide.none);
 
     final themeId = UserState().selectedIslandThemeId.value;
     final bool isLego = themeId == 'lego';
@@ -184,11 +182,9 @@ class CalendarDayCell extends StatelessWidget {
             ? const Color(0xFFD4A373).withValues(alpha: isNight ? 0.35 : 0.2)
             : (isToday
                   ? const Color(0xFFD4A373).withValues(alpha: isNight ? 0.2 : 0.1)
-                  : (hasEntry
-                        ? _getMoodMacaronColor(moodIdx, isNight)
-                        : (isNight
-                              ? Colors.white.withValues(alpha: 0.06)
-                              : Colors.white.withValues(alpha: 0.5)))),
+                  : (isNight
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : Colors.white.withValues(alpha: 0.5))),
         borderRadius: BorderRadius.circular(10),
       ),
       clipBehavior: hasPhotos ? Clip.antiAlias : Clip.none,
@@ -269,11 +265,9 @@ class CalendarDayCell extends StatelessWidget {
                             ? const Color(0xFFD4A373).withValues(alpha: isNight ? 0.35 : 0.2)
                             : (isToday
                                   ? const Color(0xFFD4A373).withValues(alpha: isNight ? 0.2 : 0.1)
-                                  : (hasEntry
-                                        ? _getMoodMacaronColor(moodIdx, isNight)
-                                        : (isNight
-                                              ? Colors.white.withValues(alpha: 0.06)
-                                              : Colors.white.withValues(alpha: 0.5)))),
+                                  : (isNight
+                                        ? Colors.white.withValues(alpha: 0.06)
+                                        : Colors.white.withValues(alpha: 0.5))),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       clipBehavior: hasPhotos ? Clip.antiAlias : Clip.none,
@@ -513,26 +507,5 @@ class CalendarDayCell extends StatelessWidget {
     }
   }
 
-  Color _getMoodMacaronColor(int? moodIdx, bool isNight) {
-    if (moodIdx == null) return isNight ? const Color(0xFF3B3E42) : Colors.white;
-    if (isNight) {
-      switch (moodIdx % 5) {
-        case 0: return const Color(0xFF3A382A);
-        case 1: return const Color(0xFF283832);
-        case 2: return const Color(0xFF2B333F);
-        case 3: return const Color(0xFF3E2B2B);
-        case 4: return const Color(0xFF3E2F35);
-        default: return const Color(0xFF3B3E42);
-      }
-    } else {
-      switch (moodIdx % 5) {
-        case 0: return const Color(0xFFFFF1C5).withValues(alpha: 0.85); // Macaron Yellow
-        case 1: return const Color(0xFFE2F5EE).withValues(alpha: 0.85); // Macaron Mint
-        case 2: return const Color(0xFFE0ECFC).withValues(alpha: 0.85); // Macaron Blue
-        case 3: return const Color(0xFFFFE0D6).withValues(alpha: 0.85); // Macaron Peach
-        case 4: return const Color(0xFFFFDDE2).withValues(alpha: 0.85); // Macaron Pink
-        default: return const Color(0xFFF3E7FC).withValues(alpha: 0.85); // Macaron Lavender
-      }
-    }
-  }
+
 }
