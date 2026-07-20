@@ -1,26 +1,24 @@
-import 'dart:convert';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_sheets_mixin.dart';
+import 'package:island_diary/features/record/presentation/widgets/editor/keyboard_follower.dart';
+import 'package:island_diary/features/record/presentation/widgets/editor/animated_paper_background.dart';
 
 import '../widgets/draft_save_dialog.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';
 import 'package:island_diary/features/record/domain/models/diary_book.dart';
 import 'package:island_diary/shared/widgets/diary_entry/models/diary_block.dart';
-import 'package:island_diary/shared/widgets/diary_entry/components/diary_painters.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_core_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_media_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_format_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/mixins/diary_editor_insert_mixin.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
-import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 import '../widgets/editor/editor_header.dart';
 import '../widgets/editor/editor_content_list.dart';
 import '../widgets/editor/editor_bottom_bar.dart';
-import 'package:island_diary/shared/widgets/mood_picker/custom_mood_picker_popup.dart';
-
 
 class DiaryEditorPage extends StatefulWidget {
   final int? moodIndex;
@@ -49,7 +47,8 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
         DiaryEditorCoreMixin<DiaryEditorPage>,
         DiaryEditorMediaMixin<DiaryEditorPage>,
         DiaryEditorFormatMixin<DiaryEditorPage>,
-        DiaryEditorInsertMixin<DiaryEditorPage> {
+        DiaryEditorInsertMixin<DiaryEditorPage>,
+        DiaryEditorSheetsMixin {
   @override
   void initState() {
     super.initState();
@@ -72,7 +71,10 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
           if (scrollController.hasClients) {
             final double headerHeight = 160.0;
             if (scrollController.offset < headerHeight) {
-              final targetOffset = headerHeight.clamp(0.0, scrollController.position.maxScrollExtent);
+              final targetOffset = headerHeight.clamp(
+                0.0,
+                scrollController.position.maxScrollExtent,
+              );
               if (targetOffset > scrollController.offset) {
                 scrollController.animateTo(
                   targetOffset,
@@ -110,9 +112,6 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                   ? const Color(0xFFFBF3E9)
                   : const Color(0xFFFAF8F5));
 
-
-
-
         return PopScope(
           canPop: false,
           onPopInvokedWithResult: (didPop, result) {
@@ -126,7 +125,7 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
               children: [
                 // 1. 信纸底色层与手绘边框装饰 (带切换扩散动画)
                 Positioned.fill(
-                  child: _AnimatedPaperBackground(
+                  child: AnimatedPaperBackground(
                     paperStyle: currentPaperStyle,
                     bgColor: bgColor,
                     isNight: isNight,
@@ -137,143 +136,185 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                 // 2. 主编辑区 (文字与图片块)
                 Builder(
                   builder: (context) {
-                    final bool hasTags = currentTags.where((t) => !t.startsWith('mood:') && !t.startsWith('mood_icon:')).isNotEmpty;
-                    final bool hasImages = !isMixedLayout && blocks.whereType<ImageBlock>().isNotEmpty;
-                    
+                    final bool hasTags = currentTags
+                        .where(
+                          (t) =>
+                              !t.startsWith('mood:') &&
+                              !t.startsWith('mood_icon:'),
+                        )
+                        .isNotEmpty;
+                    final bool hasImages =
+                        !isMixedLayout &&
+                        blocks.whereType<ImageBlock>().isNotEmpty;
+
                     double baseBottomBarHeight = 46.0 + 32.0; // 46工具栏 + 32收纳至胶囊
-                    if (hasTags) baseBottomBarHeight += 22.0 + 12.0; // 22标签高度 + 12期望间隙（控制图片与标签之间的留白）
-                    if (hasImages) baseBottomBarHeight += 50.0;
-                    
+                    if (hasTags) {
+                      baseBottomBarHeight +=
+                          22.0 + 12.0; // 22标签高度 + 12期望间隙（控制图片与标签之间的留白）
+                    }
+                    if (hasImages) {
+                      baseBottomBarHeight += 50.0;
+                    }
+
                     final double toolbarOnlyHeight = baseBottomBarHeight - 32.0;
 
-                    final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-                    final double bottomBounds = (isEmojiOpen || isColorPickerOpen || isImagePickerOpen)
-                        ? max(keyboardHeight, MediaQuery.paddingOf(context).bottom) + toolbarOnlyHeight
-                        : bottomInset + toolbarOnlyHeight + MediaQuery.paddingOf(context).bottom;
+                    final double bottomInset = MediaQuery.viewInsetsOf(
+                      context,
+                    ).bottom;
+                    final double bottomBounds =
+                        (isEmojiOpen || isColorPickerOpen || isImagePickerOpen)
+                        ? max(
+                                keyboardHeight,
+                                MediaQuery.paddingOf(context).bottom,
+                              ) +
+                              toolbarOnlyHeight
+                        : bottomInset +
+                              toolbarOnlyHeight +
+                              MediaQuery.paddingOf(context).bottom;
 
                     return Positioned(
                       top: MediaQuery.paddingOf(context).top + 56,
                       left: 0,
                       right: 0,
-                      bottom: bottomBounds, 
+                      bottom: bottomBounds,
                       child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      FocusScope.of(context).unfocus();
-                      if (isEmojiOpen) toggleEmoji();
-                    },
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 800),
-                        child: CustomScrollView(
-                          clipBehavior: Clip.hardEdge,
-                          controller: scrollController,
-                          physics: const BouncingScrollPhysics(),
-                          slivers: [
-                            // 顶部留白，给内容留出适当呼吸感
-                            const SliverToBoxAdapter(
-                              child: SizedBox(height: 0),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          FocusScope.of(context).unfocus();
+                          if (isEmojiOpen) toggleEmoji();
+                        },
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 800),
+                            child: CustomScrollView(
+                              clipBehavior: Clip.hardEdge,
+                              controller: scrollController,
+                              physics: const BouncingScrollPhysics(),
+                              slivers: [
+                                // 顶部留白，给内容留出适当呼吸感
+                                const SliverToBoxAdapter(
+                                  child: SizedBox(height: 0),
+                                ),
+                                // 编辑主体：内容块列表
+                                EditorContentList(
+                                  blocks: blocks,
+                                  blockKeys: blockKeys,
+                                  isMixedLayout: isMixedLayout,
+                                  imageLayoutStyle: imageLayoutStyle,
+                                  isEmojiOpen:
+                                      isEmojiOpen ||
+                                      isColorPickerOpen ||
+                                      isImagePickerOpen,
+                                  isNight: isNight,
+                                  paperStyle: currentPaperStyle,
+                                  accentColor: accentColor,
+                                  bottomPadding: 8,
+                                  currentMoodIndex: currentMoodIndex,
+                                  currentTag: currentTag,
+                                  weather: weather,
+                                  temp: temp,
+                                  onWeatherTap: onWeatherClick,
+                                  location: location,
+                                  onLocationTap: onLocationClick,
+                                  onClearLocation: () {
+                                    setState(() {
+                                      location = null;
+                                    });
+                                    onBlocksChanged();
+                                  },
+                                  dateTime: entryDateTime ?? DateTime.now(),
+                                  onDateTap: onDateClick,
+                                  onClearWeather: () {
+                                    setState(() {
+                                      weather = null;
+                                      temp = null;
+                                    });
+                                    onBlocksChanged();
+                                  },
+                                  onClearMood: () {
+                                    setState(() {
+                                      currentMoodIndex = null;
+                                      currentTags = currentTags
+                                          .where(
+                                            (t) =>
+                                                !t.startsWith('mood:') &&
+                                                !t.startsWith('mood_icon:'),
+                                          )
+                                          .toList();
+                                      updateMoodQuote();
+                                    });
+                                    onBlocksChanged();
+                                  },
+                                  onRemoveImage: removeImage,
+                                  onDeleteAtStart: handleBackspaceAtStart,
+                                  onShowPreview: showImagePreview,
+                                  onEditImageBlock: editImageBlock,
+                                  onMoodSelected: (index) {
+                                    setState(() {
+                                      currentMoodIndex = index;
+                                      updateMoodQuote();
+                                    });
+                                    onBlocksChanged();
+                                  },
+                                  onCustomTap: showCustomMoodPicker,
+                                  onRemoveTag: (tagToRemove) {
+                                    setState(() {
+                                      currentTags = currentTags
+                                          .where((t) => t != tagToRemove)
+                                          .toList();
+                                    });
+                                    onBlocksChanged();
+                                  },
+                                  annotations: currentAnnotations,
+                                  onAddAnnotation:
+                                      ({
+                                        key,
+                                        required blockIndex,
+                                        required start,
+                                        required end,
+                                        required selectedText,
+                                      }) {
+                                        showAnnotationSheet(
+                                          key: key,
+                                          blockIndex: blockIndex,
+                                          start: start,
+                                          end: end,
+                                          selectedText: selectedText,
+                                        );
+                                      },
+                                  onDeleteAnnotation: (key) {
+                                    setState(() {
+                                      currentAnnotations.remove(key);
+                                    });
+                                  },
+                                ),
+                                // 底部留白
+                                SliverToBoxAdapter(
+                                  child: SizedBox(
+                                    height:
+                                        100 +
+                                        baseBottomBarHeight +
+                                        MediaQuery.paddingOf(
+                                          context,
+                                        ).bottom, // 恢复合理的底部安全余量留白，确保最后一行能完全滚出悬浮底部工具栏
+                                  ),
+                                ),
+                              ],
                             ),
-                            // 编辑主体：内容块列表
-                            EditorContentList(
-                              blocks: blocks,
-                              blockKeys: blockKeys,
-                              isMixedLayout: isMixedLayout,
-                              imageLayoutStyle: imageLayoutStyle,
-                              isEmojiOpen:
-                                  isEmojiOpen ||
-                                  isColorPickerOpen ||
-                                  isImagePickerOpen,
-                              isNight: isNight,
-                              paperStyle: currentPaperStyle,
-                              accentColor: accentColor,
-                              bottomPadding: 8,
-                              currentMoodIndex: currentMoodIndex,
-                              currentTag: currentTag,
-                              weather: weather,
-                              temp: temp,
-                              onWeatherTap: onWeatherClick,
-                              location: location,
-                              onLocationTap: onLocationClick,
-                              onClearLocation: () {
-                                setState(() {
-                                  location = null;
-                                });
-                                onBlocksChanged();
-                              },
-                              dateTime: entryDateTime ?? DateTime.now(),
-                              onDateTap: onDateClick,
-                              onClearWeather: () {
-                                setState(() {
-                                  weather = null;
-                                  temp = null;
-                                });
-                                onBlocksChanged();
-                              },
-                              onClearMood: () {
-                                setState(() {
-                                  currentMoodIndex = null;
-                                  currentTags = currentTags.where((t) => !t.startsWith('mood:') && !t.startsWith('mood_icon:')).toList();
-                                  updateMoodQuote();
-                                });
-                                onBlocksChanged();
-                              },
-                              onRemoveImage: removeImage,
-                              onDeleteAtStart: handleBackspaceAtStart,
-                              onShowPreview: showImagePreview,
-                              onEditImageBlock: editImageBlock,
-                              onMoodSelected: (index) {
-                                setState(() {
-                                  currentMoodIndex = index;
-                                  updateMoodQuote();
-                                });
-                                onBlocksChanged();
-                              },
-                              onCustomTap: _showCustomMoodPicker,
-                              onRemoveTag: (tagToRemove) {
-                                setState(() {
-                                  currentTags = currentTags.where((t) => t != tagToRemove).toList();
-                                });
-                                onBlocksChanged();
-                              },
-                              annotations: currentAnnotations,
-                              onAddAnnotation: ({key, required blockIndex, required start, required end, required selectedText}) {
-                                _showAnnotationSheet(
-                                  key: key,
-                                  blockIndex: blockIndex,
-                                  start: start,
-                                  end: end,
-                                  selectedText: selectedText,
-                                );
-                              },
-                              onDeleteAnnotation: (key) {
-                                  setState(() {
-                                  currentAnnotations.remove(key);
-                                });
-                              },
-                            ),
-                            // 底部留白
-                            SliverToBoxAdapter(
-                              child: SizedBox(
-                                height: 100 + baseBottomBarHeight + MediaQuery.paddingOf(context).bottom, // 恢复合理的底部安全余量留白，确保最后一行能完全滚出悬浮底部工具栏
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
 
-                 // 2.5 固定页头层
-                 Positioned(
-                   top: 0,
-                   left: 0,
-                   right: 0,
-                   child: Container(
-                     color: Colors.transparent,
+                // 2.5 固定页头层
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    color: Colors.transparent,
                     child: SafeArea(
                       bottom: false,
                       child: Center(
@@ -293,12 +334,12 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                 ),
 
                 // 4. 底部工具栏
-                _KeyboardFollower(
+                KeyboardFollower(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ValueListenableBuilder<List<DiaryBook>>(
-                          valueListenable: UserState().savedBooks,
+                        valueListenable: UserState().savedBooks,
                         builder: (context, books, _) {
                           final currentBook = books.firstWhere(
                             (b) => b.id == currentBookId,
@@ -307,84 +348,109 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                           return Transform.translate(
                             offset: const Offset(0, -12), // 视觉上往上嵌入封面图片区域
                             child: Padding(
-                            padding: const EdgeInsets.only(top: 4.0, bottom: 2.0),
-                            child: GestureDetector(
-                              onTap: _showBookSelector,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.05),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(20),
-                                  child: Stack(
-                                    children: [
-                                      Positioned.fill(
-                                        child: BackdropFilter(
-                                          filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
-                                          child: const SizedBox.shrink(),
+                              padding: const EdgeInsets.only(
+                                top: 4.0,
+                                bottom: 2.0,
+                              ),
+                              child: GestureDetector(
+                                onTap: showBookSelector,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.05,
                                         ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isNight
-                                              ? const Color(0xFF2C2E30).withValues(alpha: 0.4)
-                                              : Colors.white.withValues(alpha: 0.4),
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(
-                                            color: isNight
-                                                ? Colors.white.withValues(alpha: 0.08)
-                                                : const Color(0xFFE6E1D5).withValues(alpha: 0.8),
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.menu_book_rounded,
-                                              size: 14,
-                                              color: isNight
-                                                  ? const Color(0xFFFFB74D)
-                                                  : const Color(0xFFD4A373),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              '收纳至：${currentBook.name}',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: isNight
-                                                    ? Colors.white70
-                                                    : Colors.black87,
-                                                fontFamily: UserState().selectedIslandThemeId.value == 'lego'
-                                                    ? 'SweiFistLeg'
-                                                    : 'LXGWWenKai',
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Icon(
-                                              Icons.keyboard_arrow_down_rounded,
-                                              size: 14,
-                                              color: isNight ? Colors.white30 : Colors.black38,
-                                             ),
-                                          ],
-                                        ),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Stack(
+                                      children: [
+                                        Positioned.fill(
+                                          child: BackdropFilter(
+                                            filter: ImageFilter.blur(
+                                              sigmaX: 12.0,
+                                              sigmaY: 12.0,
+                                            ),
+                                            child: const SizedBox.shrink(),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isNight
+                                                ? const Color(
+                                                    0xFF2C2E30,
+                                                  ).withValues(alpha: 0.4)
+                                                : Colors.white.withValues(
+                                                    alpha: 0.4,
+                                                  ),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                            border: Border.all(
+                                              color: isNight
+                                                  ? Colors.white.withValues(
+                                                      alpha: 0.08,
+                                                    )
+                                                  : const Color(
+                                                      0xFFE6E1D5,
+                                                    ).withValues(alpha: 0.8),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.menu_book_rounded,
+                                                size: 14,
+                                                color: isNight
+                                                    ? const Color(0xFFFFB74D)
+                                                    : const Color(0xFFD4A373),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                '收纳至：${currentBook.name}',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isNight
+                                                      ? Colors.white70
+                                                      : Colors.black87,
+                                                  fontFamily:
+                                                      UserState()
+                                                              .selectedIslandThemeId
+                                                              .value ==
+                                                          'lego'
+                                                      ? 'SweiFistLeg'
+                                                      : 'LXGWWenKai',
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Icon(
+                                                Icons
+                                                    .keyboard_arrow_down_rounded,
+                                                size: 14,
+                                                color: isNight
+                                                    ? Colors.white30
+                                                    : Colors.black38,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
                             ), // Transform.translate 结束
                           );
                         },
@@ -412,10 +478,18 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
                         onSave: onSave,
                         onTagClick: onTagClick,
                         onMusicPick: onMusicButtonPressed,
-                        currentTags: currentTags.where((t) => !t.startsWith('mood:') && !t.startsWith('mood_icon:')).toList(),
+                        currentTags: currentTags
+                            .where(
+                              (t) =>
+                                  !t.startsWith('mood:') &&
+                                  !t.startsWith('mood_icon:'),
+                            )
+                            .toList(),
                         onRemoveTag: (tag) {
                           setState(() {
-                            currentTags = currentTags.where((t) => t != tag).toList();
+                            currentTags = currentTags
+                                .where((t) => t != tag)
+                                .toList();
                           });
                           onBlocksChanged();
                         },
@@ -436,896 +510,13 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     );
   }
 
-  void _showBookSelector() {
-    final bool isNight = UserState().isNight;
-    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego'
-        ? 'SweiFistLeg'
-        : 'LXGWWenKai';
-    
-    void createNewBook() {
-      final TextEditingController nameController = TextEditingController();
-      showDialog(
-        context: context,
-        builder: (ctx) {
-          return AlertDialog(
-            backgroundColor: isNight ? const Color(0xFF2C2E30) : Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            alignment: const Alignment(0, -0.3),
-            title: Text(
-              '新建日记本',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isNight ? Colors.white : Colors.black87,
-                fontFamily: fontFamily,
-              ),
-            ),
-            content: TextField(
-              controller: nameController,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: '输入日记本名称...',
-                hintStyle: TextStyle(
-                  color: isNight ? Colors.white38 : Colors.black38,
-                  fontSize: 14,
-                  fontFamily: fontFamily,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(
-                    color: isNight ? Colors.white10 : Colors.black12,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(
-                    color: Color(0xFFD4A373),
-                  ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
-              style: TextStyle(
-                color: isNight ? Colors.white : Colors.black87,
-                fontFamily: fontFamily,
-                fontSize: 14,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(
-                  '取消',
-                  style: TextStyle(
-                    color: isNight ? Colors.white54 : Colors.black54,
-                    fontFamily: fontFamily,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  final name = nameController.text.trim();
-                  if (name.isNotEmpty) {
-                    final newBook = DiaryBook(name: name);
-                    await UserState().createBook(newBook);
-                    setState(() {
-                      currentBookId = newBook.id;
-                    });
-                    onBlocksChanged();
-                    if (ctx.mounted) {
-                      Navigator.pop(ctx);
-                    }
-                    if (mounted) {
-                      Navigator.pop(context);
-                    }
-                  }
-                },
-                child: Text(
-                  '创建',
-                  style: TextStyle(
-                    color: const Color(0xFFD4A373),
-                    fontWeight: FontWeight.bold,
-                    fontFamily: fontFamily,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    }
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      showDragHandle: false,
-      builder: (context) {
-        return DiaryBottomSheet(
-          paperStyle: currentPaperStyle,
-          showDragHandle: true,
-          isDiary: false,
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 12,
-            bottom: 20 + MediaQuery.of(context).padding.bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '选择归属的书籍',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isNight ? Colors.white : Colors.black87,
-                      fontFamily: fontFamily,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: createNewBook,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.add_rounded,
-                          size: 16,
-                          color: Color(0xFFD4A373),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '新建',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFD4A373),
-                            fontFamily: fontFamily,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '这篇日记会收纳到选中的书籍中',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  color: isNight ? Colors.white38 : Colors.black38,
-                  fontFamily: fontFamily,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ValueListenableBuilder<List<DiaryBook>>(
-                valueListenable: UserState().savedBooks,
-                builder: (context, books, _) {
-                  return Column(
-                    children: [
-                      if (books.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.library_books_outlined,
-                                size: 36,
-                                color: isNight ? Colors.white24 : Colors.black26,
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                '暂无日记本',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontFamily: fontFamily,
-                                  color: isNight ? Colors.white38 : Colors.black45,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '可到「岁月成书」页面创建自己的日记本',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontFamily: fontFamily,
-                                  color: isNight ? Colors.white24 : Colors.black26,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              OutlinedButton.icon(
-                                onPressed: createNewBook,
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Color(0xFFD4A373), width: 1),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                ),
-                                icon: const Icon(
-                                  Icons.add_rounded,
-                                  size: 16,
-                                  color: Color(0xFFD4A373),
-                                ),
-                                label: Text(
-                                  '直接在此创建',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontFamily: fontFamily,
-                                    color: const Color(0xFFD4A373),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        ...books.map<Widget>((book) {
-                        final bool isSelected = book.id == currentBookId;
-                      // 选中浅橙底，未选中极其轻微的透明度背景
-                      final Color itemBgColor = isSelected
-                          ? (isNight ? const Color(0xFF2C241E) : const Color(0xFFFFF5EA))
-                          : (isNight ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.015));
-                      // 未选中图标使用灰蓝色，选中则为主题橙色
-                      final Color iconColor = isSelected
-                          ? const Color(0xFFD4A373)
-                          : (isNight ? const Color(0xFF5E7588) : const Color(0xFF8BA3B5));
-                      
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        decoration: BoxDecoration(
-                          color: itemBgColor,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected
-                                ? (isNight ? const Color(0xFF4A3419) : const Color(0xFFFFE2C2))
-                                : (isNight ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04)),
-                            width: 1,
-                          ),
-                        ),
-                        child: ListTile(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                          leading: Icon(
-                            Icons.book_rounded,
-                            color: iconColor,
-                            size: 20,
-                          ),
-                          title: Text(
-                            book.name,
-                            style: TextStyle(
-                              color: isSelected
-                                  ? (isNight ? const Color(0xFFFFCC99) : const Color(0xFF8E5A30))
-                                  : (isNight ? Colors.white70 : Colors.black87),
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontFamily: fontFamily,
-                              fontSize: 14,
-                            ),
-                          ),
-                          trailing: isSelected
-                              ? Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFFFEAD2),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.check_rounded,
-                                    size: 14,
-                                    color: Color(0xFFD4A373),
-                                  ),
-                                )
-                              : null,
-                          onTap: () {
-                            setState(() {
-                              currentBookId = book.id;
-                            });
-                            onBlocksChanged();
-                            Navigator.pop(context);
-                          },
-                        ),
-                      );
-                        }),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showCustomMoodPicker() async {
-    final result = await Navigator.push<Map<String, dynamic>>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CustomMoodPickerPage(
-          paperStyle: currentPaperStyle,
-          isNight: UserState().isNight,
-        ),
-      ),
-    );
-    
-    if (result != null && mounted) {
-      setState(() {
-        currentMoodIndex = result['index'];
-        currentIntensity = result['intensity'];
-        if (result['tag'] != null) {
-          final generalTags = currentTags.where((t) => !t.startsWith('mood:') && !t.startsWith('mood_icon:')).toList();
-          if (result['customMoodIcon'] != null) {
-            currentTags = ['mood:${result['tag']}', 'mood_icon:${result['customMoodIcon']}', ...generalTags];
-          } else {
-            currentTags = ['mood:${result['tag']}', ...generalTags];
-          }
-        }
-        updateMoodQuote();
-      });
-      onBlocksChanged();
-    }
-  }
-
   void onMoreClick() {
-    _showMoreBottomSheet();
-  }
-
-  void _showMoreBottomSheet() {
-    final bool isNight = UserState().isNight;
-    final String themeId = UserState().selectedIslandThemeId.value;
-    final Color accentColor = themeId == 'cotton_candy'
-        ? (isNight ? const Color(0xFFC0A6FF) : const Color(0xFF7C3AED))
-        : (themeId == 'lego' ? const Color(0xFF3B82F6) : (isNight ? const Color(0xFFD4A373) : const Color(0xFF8B5E3C)));
-    final Color textColor = isNight
-        ? Colors.white.withValues(alpha: 0.9)
-        : DiaryUtils.getInkColor(
-            currentPaperStyle,
-            isNight,
-          ).withValues(alpha: 0.9);
-    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego'
-        ? 'SweiFistLeg'
-        : 'LXGWWenKai';
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      showDragHandle: false,
-      builder: (context) => DiaryBottomSheet(
-        paperStyle: currentPaperStyle,
-        showDragHandle: true,
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-        child: StatefulBuilder(
-          builder: (context, setModalState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DiaryBottomSheetHeader(
-                  title: "更多工具",
-                  fontFamily: fontFamily,
-                  textColor: textColor,
-                ),
-                const SizedBox(height: 20),
-                // 智能排版 (开发中)
-                _buildMoreMenuItem(
-                  icon: Icons.auto_awesome_motion_rounded,
-                  title: "智能排版 (开发中)",
-                  subtitle: "根据心情自动调整内容布局",
-                  trailing: Icon(
-                    Icons.lock_outline_rounded,
-                    size: 20,
-                    color: textColor.withValues(alpha: 0.3),
-                  ),
-                  accentColor: accentColor,
-                  textColor: textColor,
-                  onTap: () {},
-                ),
-                const SizedBox(height: 12),
-                _buildMoreMenuItem(
-                  icon: Icons.mood_rounded,
-                  title: "管理自定义心情",
-                  subtitle: "自定义表情、灵感标签与最近记录",
-                  trailing: Icon(
-                    Icons.chevron_right_rounded,
-                    size: 20,
-                    color: textColor.withValues(alpha: 0.3),
-                  ),
-                  accentColor: accentColor,
-                  textColor: textColor,
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CustomMoodPickerPage(
-                          paperStyle: currentPaperStyle,
-                          isNight: UserState().isNight,
-                          isFromEditor: false,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                
-                // 新增：图片压缩管理卡片
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: accentColor.withValues(alpha: 0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(Icons.image_aspect_ratio_rounded, color: accentColor, size: 18),
-                              ),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "上传前自动压缩图片",
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: textColor,
-                                      fontFamily: fontFamily,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    "开启后将有效节省云端空间",
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: textColor.withValues(alpha: 0.5),
-                                      fontFamily: fontFamily,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          Transform.scale(
-                            scale: 0.85,
-                            child: Switch(
-                              value: UserState().isImageCompressEnabled.value,
-                              activeThumbColor: accentColor,
-                              onChanged: (val) {
-                                setModalState(() {
-                                  UserState().setImageCompressEnabled(val);
-                                });
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (UserState().isImageCompressEnabled.value) ...[
-                        const SizedBox(height: 10),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Row(
-                            children: [
-                              Text(
-                                "压缩质量",
-                                style: TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: textColor.withValues(alpha: 0.7),
-                                  fontFamily: fontFamily,
-                                ),
-                              ),
-                              Expanded(
-                                child: SliderTheme(
-                                  data: SliderThemeData(
-                                    trackHeight: 3,
-                                    activeTrackColor: accentColor,
-                                    inactiveTrackColor: accentColor.withValues(alpha: 0.15),
-                                    thumbColor: accentColor,
-                                    overlayColor: accentColor.withValues(alpha: 0.1),
-                                    showValueIndicator: ShowValueIndicator.never,
-                                  ),
-                                  child: Slider(
-                                    value: UserState().imageCompressQuality.value.toDouble(),
-                                    min: 30,
-                                    max: 100,
-                                    divisions: 70, // 30% - 100% 步进为 1%
-                                    label: "${UserState().imageCompressQuality.value}%",
-                                    onChanged: (val) {
-                                      setModalState(() {
-                                        UserState().setImageCompressQuality(val.round());
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                "${UserState().imageCompressQuality.value}%",
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: accentColor,
-                                  fontFamily: fontFamily,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-            );
-          },
-        ),
-      ),
-    ).then((_) {
-      if (mounted) {
-        FocusManager.instance.primaryFocus?.unfocus();
-      }
-    });
-  }
-
-  Widget _buildMoreMenuItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Widget trailing,
-    required Color accentColor,
-    required Color textColor,
-    VoidCallback? onTap,
-  }) {
-    final String fontFamily = UserState().selectedIslandThemeId.value == 'lego'
-        ? 'SweiFistLeg'
-        : 'LXGWWenKai';
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: accentColor.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: accentColor, size: 20),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                      fontFamily: fontFamily,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: textColor.withValues(alpha: 0.5),
-                      fontFamily: fontFamily,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            trailing,
-          ],
-        ),
-      ),
-    );
-  }
-
-  static const List<Map<String, String>> _annotationColors = [
-    {'name': '经典黄', 'value': '#F7E5B4'},
-    {'name': '柔和粉', 'value': '#F7DAD3'},
-    {'name': '天空灰', 'value': '#DFE5E6'},
-  ];
-
-  void _showAnnotationSheet({
-    String? key,
-    int? blockIndex,
-    int? start,
-    int? end,
-    String? selectedText,
-  }) {
-    final bool isEdit = key != null;
-    final String actualKey = key ?? "${blockIndex}_${start}_$end";
-    
-    Map<String, dynamic>? annData;
-    if (isEdit) {
-      final jsonStr = currentAnnotations[actualKey] ?? '';
-      try {
-        annData = jsonDecode(jsonStr);
-      } catch (_) {}
-    }
-    
-    final String initialText = annData?['comment'] ?? (isEdit ? currentAnnotations[actualKey] ?? '' : '');
-    final String initialColor = annData?['colorHex'] ?? '#F7E5B4';
-    final String actualSelectedText = annData?['selectedText'] ?? selectedText ?? '';
-    
-    final textController = TextEditingController(text: initialText);
-    String selectedColorHex = initialColor;
- 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      showDragHandle: false,
-      builder: (context) {
-        final isNight = UserState().isNight;
-        final inkColor = DiaryUtils.getInkColor(currentPaperStyle, isNight);
-
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return DiaryBottomSheet(
-              paperStyle: currentPaperStyle,
-              showDragHandle: true,
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.edit_note_rounded,
-                          color: inkColor.withValues(alpha: 0.8),
-                          size: 24,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isEdit ? "修改批注" : "添加批注",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: inkColor,
-                            fontFamily: 'LXGWWenKai',
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (actualSelectedText.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                        decoration: BoxDecoration(
-                          color: isNight ? Colors.white.withValues(alpha: 0.02) : const Color(0xFFF7F5F0),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border(
-                            left: BorderSide(
-                              color: Color(int.parse(selectedColorHex.replaceFirst('#', '0xFF'))),
-                              width: 3.0,
-                            ),
-                          ),
-                        ),
-                        child: Text(
-                          "“$actualSelectedText”",
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            color: inkColor.withValues(alpha: 0.6),
-                            fontStyle: FontStyle.italic,
-                            fontFamily: 'LXGWWenKai',
-                            height: 1.6,
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isNight ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFFCFAF2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isNight ? Colors.white12 : const Color(0xFFE5DDD5),
-                          width: 1.0,
-                        ),
-                      ),
-                      child: TextField(
-                        controller: textController,
-                        autofocus: true,
-                        maxLines: 3,
-                        maxLength: 200,
-                        style: TextStyle(
-                          color: inkColor,
-                          fontSize: 15,
-                          fontFamily: 'LXGWWenKai',
-                        ),
-                        decoration: InputDecoration(
-                          hintText: "写下关于这一段的感悟或注解...",
-                          hintStyle: TextStyle(
-                            color: inkColor.withValues(alpha: 0.35),
-                            fontSize: 14.5,
-                            fontFamily: 'LXGWWenKai',
-                          ),
-                          border: InputBorder.none,
-                          counterStyle: TextStyle(
-                            color: inkColor.withValues(alpha: 0.4),
-                            fontFamily: 'LXGWWenKai',
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Text(
-                          "批注底色",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: inkColor.withValues(alpha: 0.7),
-                            fontFamily: 'LXGWWenKai',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: _annotationColors.map((colorMap) {
-                        final hex = colorMap['value']!;
-                        final isSelected = selectedColorHex == hex;
-                        final color = Color(int.parse(hex.replaceFirst('#', '0xFF')));
-
-                        return GestureDetector(
-                          onTap: () {
-                            setSheetState(() {
-                              selectedColorHex = hex;
-                            });
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 16.0),
-                            child: Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: isSelected
-                                      ? (isNight ? Colors.white : const Color(0xFF333333))
-                                      : (isNight ? Colors.white24 : Colors.black.withValues(alpha: 0.08)),
-                                  width: isSelected ? 3.0 : 1.0,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: color.withValues(alpha: isSelected ? 0.4 : 0.1),
-                                    blurRadius: isSelected ? 8 : 4,
-                                    spreadRadius: isSelected ? 1 : 0,
-                                  ),
-                                ],
-                              ),
-                              child: isSelected
-                                  ? const Icon(
-                                      Icons.check_rounded,
-                                      size: 18,
-                                      color: Color(0xFF333333),
-                                    )
-                                  : null,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 28),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            Navigator.pop(context);
-                          },
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            "取消",
-                            style: TextStyle(
-                              color: inkColor.withValues(alpha: 0.6),
-                              fontSize: 15,
-                              fontFamily: 'LXGWWenKai',
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton(
-                          onPressed: () {
-                            final text = textController.text.trim();
-                            if (text.isNotEmpty) {
-                              final newAnnotations = Map<String, String>.from(currentAnnotations);
-                              if (!isEdit && blockIndex != null && start != null && end != null) {
-                                newAnnotations.removeWhere((k, v) {
-                                  final parts = k.split('_');
-                                  if (parts.length == 3 && int.tryParse(parts[0]) == blockIndex) {
-                                    final annStart = int.tryParse(parts[1]);
-                                    final annEnd = int.tryParse(parts[2]);
-                                    if (annStart != null && annEnd != null) {
-                                      return start < annEnd && end > annStart;
-                                    }
-                                  }
-                                  return false;
-                                });
-                              }
-                              final data = {
-                                'selectedText': actualSelectedText,
-                                'comment': text,
-                                'colorHex': selectedColorHex,
-                              };
-                              setState(() {
-                                currentAnnotations[actualKey] = jsonEncode(data);
-                              });
-                            }
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            Navigator.pop(context);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFA68565),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                          ),
-                          child: Text(
-                            "确认",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'LXGWWenKai',
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-            );
-          },
-        );
-      },
-    );
+    showMoreBottomSheet();
   }
 
   void _handleBack(BuildContext context) async {
-    final bool isActuallyModified = initialEditorStateJson != getEditorStateJson();
+    final bool isActuallyModified =
+        initialEditorStateJson != getEditorStateJson();
 
     if (!isActuallyModified) {
       Navigator.of(context).pop(false);
@@ -1349,246 +540,3 @@ class _DiaryEditorPageState extends State<DiaryEditorPage>
     }
   }
 }
-
-/// 极轻量键盘跟随组件。
-/// 这是页面中**唯一**读取 viewInsets 的 widget，因此键盘动画的每一帧
-/// 只有此 widget 重建（仅更新一个 Positioned 的 bottom 值），
-/// 其 child（EditorBottomBar）作为外部传入，不会随之重建，彻底消除卡顿。
-class _KeyboardFollower extends StatefulWidget {
-  final Widget child;
-  const _KeyboardFollower({required this.child});
-
-  @override
-  State<_KeyboardFollower> createState() => _KeyboardFollowerState();
-}
-
-class _KeyboardFollowerState extends State<_KeyboardFollower> {
-  double _maxKeyboardHeight = 320; 
-  double _lastInset = 0;
-  bool _isOpening = false;
-  int _durationMs = 120;
-
-  @override
-  Widget build(BuildContext context) {
-    final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    
-    if (bottomInset > _maxKeyboardHeight) {
-      _maxKeyboardHeight = bottomInset;
-    }
-
-    final double jump = bottomInset - _lastInset;
-
-    // 状态机：精准识别正常动画 vs 被打断的闪现(Snap)
-    if (jump > 5) {
-      if (!_isOpening) {
-        _isOpening = true;
-        // 核心解法：如果是非0起步（说明中途被打断），或者单帧跳跃极大（说明系统放弃了动画直接弹），
-        // 那么我们也直接放弃动画，时间设为0，实现瞬间物理级贴合！
-        if (_lastInset > 0 || jump > _maxKeyboardHeight * 0.6) {
-          _durationMs = 0;
-        } else {
-          _durationMs = 120; // 正常超前动画
-        }
-      }
-    } else if (jump < -5) {
-      if (_isOpening) {
-        _isOpening = false;
-        // 收起时同理，如果被打断或跳变极大，直接归零
-        if (_lastInset < _maxKeyboardHeight * 0.9 || jump < -(_maxKeyboardHeight * 0.6)) {
-          _durationMs = 0;
-        } else {
-          _durationMs = 120;
-        }
-      }
-    }
-
-    if (bottomInset == 0) {
-      _isOpening = false;
-      _durationMs = 0;
-    }
-
-    _lastInset = bottomInset;
-    final double targetHeight = _isOpening ? _maxKeyboardHeight : 0;
-
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween<double>(end: targetHeight),
-        duration: Duration(milliseconds: _durationMs),
-        curve: Curves.easeOutCubic,
-        builder: (context, animatedValue, child) {
-          final double actualBottom = bottomInset > animatedValue ? bottomInset : animatedValue;
-          return Padding(
-            padding: EdgeInsets.only(bottom: actualBottom),
-            child: child,
-          );
-        },
-        child: widget.child,
-      ),
-    );
-  }
-}
-
-class _AnimatedPaperBackground extends StatefulWidget {
-  final String paperStyle;
-  final Color bgColor;
-  final bool isNight;
-  final Color accentColor;
-
-  const _AnimatedPaperBackground({
-    required this.paperStyle,
-    required this.bgColor,
-    required this.isNight,
-    required this.accentColor,
-  });
-
-  @override
-  State<_AnimatedPaperBackground> createState() => _AnimatedPaperBackgroundState();
-}
-
-class _AnimatedPaperBackgroundState extends State<_AnimatedPaperBackground> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  String? _oldPaperStyle;
-  Color? _oldBgColor;
-  bool? _oldIsNight;
-  Color? _oldAccentColor;
-
-  late String _currentPaperStyle;
-  late Color _currentBgColor;
-  late bool _currentIsNight;
-  late Color _currentAccentColor;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentPaperStyle = widget.paperStyle;
-    _currentBgColor = widget.bgColor;
-    _currentIsNight = widget.isNight;
-    _currentAccentColor = widget.accentColor;
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        if (mounted) {
-          setState(() {
-            _oldPaperStyle = null;
-          });
-        }
-      }
-    });
-    _controller.value = 1.0;
-  }
-
-  @override
-  void didUpdateWidget(_AnimatedPaperBackground oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.paperStyle != widget.paperStyle || 
-        oldWidget.isNight != widget.isNight) {
-      _oldPaperStyle = oldWidget.paperStyle;
-      _oldBgColor = oldWidget.bgColor;
-      _oldIsNight = oldWidget.isNight;
-      _oldAccentColor = oldWidget.accentColor;
-
-      _currentPaperStyle = widget.paperStyle;
-      _currentBgColor = widget.bgColor;
-      _currentIsNight = widget.isNight;
-      _currentAccentColor = widget.accentColor;
-      
-      _controller.forward(from: 0.0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Widget _buildLayer(String paperStyle, Color bgColor, bool isNight, Color accentColor) {
-    return Container(
-      color: bgColor,
-      child: Stack(
-        children: [
-          if (paperStyle.startsWith('note') || (paperStyle == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'))
-            Positioned.fill(
-              child: Image.asset(
-                paperStyle == 'classic'
-                    ? (isNight
-                        ? 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_night_bg.png'
-                        : 'assets/images/theme/miamhuadao/note/mianhuadao_note_defalut_bg.png')
-                    : DiaryUtils.getPaperBackgroundPath(paperStyle, isNight),
-                fit: BoxFit.cover,
-              ),
-            ),
-          Positioned.fill(
-            child: CustomPaint(
-              painter: PaperBackgroundPainter(
-                style: paperStyle,
-                isNight: isNight && 
-                    !paperStyle.startsWith('note') && 
-                    !(paperStyle == 'classic' && UserState().selectedIslandThemeId.value == 'cotton_candy'),
-                accentColor: accentColor,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isAnimating = _oldPaperStyle != null;
-
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // 1. 底层：新背景
-        _buildLayer(_currentPaperStyle, _currentBgColor, _currentIsNight, _currentAccentColor),
-
-        // 2. 中层：老背景带遮罩（在新图之上挖个扩大的洞）
-        if (isAnimating)
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              final curve = Curves.easeOutQuart;
-              final val = curve.transform(_controller.value);
-              
-              return ShaderMask(
-                blendMode: BlendMode.dstOut,
-                shaderCallback: (Rect bounds) {
-                  final maxRadius = sqrt(pow(bounds.width / 2, 2) + pow(bounds.height, 2));
-                  final currentRadius = maxRadius * val;
-                  final fuzzyRadius = currentRadius + (val * 180.0); 
-
-                  final shortestSide = min(bounds.width, bounds.height);
-                  final double effectiveRadius = maxRadius / shortestSide;
-                  
-                  final double stop1 = max((currentRadius / maxRadius).clamp(0.0, 1.0), 0.0001);
-                  final double stop2 = max((fuzzyRadius / maxRadius).clamp(0.0, 1.0), stop1 + 0.0001);
-
-                  return RadialGradient(
-                    center: Alignment.bottomCenter,
-                    radius: effectiveRadius,
-                    colors: const [
-                      Colors.black,
-                      Colors.black,
-                      Colors.transparent,
-                    ],
-                    stops: [0.0, stop1, stop2],
-                  ).createShader(bounds);
-                },
-                child: child,
-              );
-            },
-            child: _buildLayer(_oldPaperStyle!, _oldBgColor!, _oldIsNight!, _oldAccentColor!),
-          ),
-      ],
-    );
-  }
-}
-

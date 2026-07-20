@@ -13,7 +13,7 @@ import 'package:island_diary/shared/widgets/top_toast.dart';
 import 'package:island_diary/core/models/life_line_profile.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_drafts_page.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';
-import 'package:island_diary/features/profile/presentation/pages/plugin_store_page.dart';
+
 
 class BentoMenuGrid extends StatelessWidget {
   final bool isNight;

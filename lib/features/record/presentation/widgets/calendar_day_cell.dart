@@ -102,7 +102,12 @@ class CalendarDayCell extends StatelessWidget {
       for (var entry in entries!) {
         for (var block in entry.blocks) {
           if (block['type'] == 'image' && block['path'] != null) {
-            allImages.add(block['path'] as String);
+            final String path = block['path'] as String;
+            if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:') || path.startsWith('assets/')) {
+              allImages.add(path);
+            } else if (File(path).existsSync()) {
+              allImages.add(path);
+            }
           }
         }
       }

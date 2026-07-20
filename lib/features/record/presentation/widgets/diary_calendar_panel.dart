@@ -882,7 +882,12 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
         ? Colors.white38
         : (isCottonCandy ? const Color(0xFF8D7A84) : const Color(0xFF7E7570));
 
-    final images = entry.blocks.where((b) => b['type'] == 'image').toList();
+    final images = entry.blocks.where((b) {
+      if (b['type'] != 'image' || b['path'] == null) return false;
+      final String path = b['path'] as String;
+      if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:') || path.startsWith('assets/')) return true;
+      return File(path).existsSync();
+    }).toList();
 
     // 日记内容提取逻辑：将预览转换为单行文本（自然折行），彻底消除因回车或多余空行导致的垂直间距
     final String plainContent = DiaryUtils.getFilteredContent(entry.content)

@@ -298,13 +298,14 @@ class _RecordPageState extends State<RecordPage> {
                           alignment: Alignment.topCenter,
                           child: Container(
                             constraints: const BoxConstraints(maxWidth: 800),
-                            child: ValueListenableBuilder<List<DiaryEntry>>(
-                              valueListenable: UserState().savedDiaries,
-                              builder: (context, diaries, _) {
-                                Widget mainContent;
-
-                                if (isCalendar) {
-                                  mainContent = DiaryCalendarPanel(
+                            // 使用 Stack + Offstage 让日历和列表视图共存，
+                            // 避免切换模式时销毁再重建导致图片重新加载（产生空白闪烁）
+                            child: Stack(
+                              children: [
+                                // ── 日历面板（常驻，仅在 calendar 模式时可见）──
+                                Offstage(
+                                  offstage: !isCalendar,
+                                  child: DiaryCalendarPanel(
                                     key: const ValueKey('calendar'),
                                     isNight: isNight,
                                     onDateSelected: (date) {
@@ -345,256 +346,264 @@ class _RecordPageState extends State<RecordPage> {
                                        }
                                     },
                                     onShareMonth: _shareCurrentMonth,
-                                  );
-                                } else {
-                                  final filtered = diaries.where((d) {
-                                    final matchesDate =
-                                        _selectedDate == null ||
-                                        (d.dateTime.year == _selectedDate!.year &&
-                                            d.dateTime.month ==
-                                                _selectedDate!.month &&
-                                            d.dateTime.day == _selectedDate!.day);
-                                    final matchesSearch =
-                                        _searchQuery.isEmpty ||
-                                        d.content.contains(_searchQuery);
-                                    final matchesMood =
-                                        _filterMoodIndex == null ||
-                                        d.moodIndex == _filterMoodIndex;
-                                    return matchesDate &&
-                                        matchesSearch &&
-                                        matchesMood;
-                                  }).toList();
+                                  ),
+                                ),
 
-                                  if (filtered.isEmpty) {
-                                    mainContent = Center(
-                                      key: const ValueKey('empty'),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Image.asset(
-                                            'assets/images/sticker/bp_sweet_bunny3.png',
-                                            width: 160,
-                                            height: 160,
-                                          )
-                                          .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                                          .moveY(begin: 0, end: -5, duration: 2000.ms, curve: Curves.easeInOut)
-                                          .animate()
-                                          .fade(duration: 450.ms)
-                                          .scale(
-                                            begin: const Offset(0.75, 0.75),
-                                            end: const Offset(1.0, 1.0),
-                                            duration: 650.ms,
-                                            curve: Curves.elasticOut,
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            _searchQuery.isEmpty
-                                                ? "这一天还没有留下故事呢..."
-                                                : "没找到相关记录哦~",
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color: isNight
-                                                  ? Colors.white30
-                                                  : Colors.black38,
-                                              fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'ArphicKaiti',
-                                            ),
-                                          ).animate().fade(delay: 150.ms, duration: 400.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOut),
-                                          if (_searchQuery.isEmpty) ...[
-                                            const SizedBox(height: 28),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                if (_selectedDate != null) ...[
-                                                  _buildEmptyStateBtn(
-                                                    text: "清除筛选",
-                                                    isPrimary: false,
-                                                    isNight: isNight,
-                                                    onTap: () {
-                                                      setState(() {
-                                                        _selectedDate = null;
-                                                        _headerDate.value = DateTime.now();
-                                                      });
-                                                    },
-                                                  ),
-                                                  const SizedBox(width: 16),
-                                                ],
-                                                _buildEmptyStateBtn(
-                                                  text: "去写一篇",
-                                                  isPrimary: true,
-                                                  isNight: isNight,
-                                                  onTap: () => _openDiaryEntry(null, 6.0, preselectedDate: _selectedDate),
-                                                ),
-                                              ],
-                                            ).animate().fade(delay: 280.ms, duration: 450.ms).slideY(begin: 0.12, end: 0, curve: Curves.easeOutBack),
-                                          ],
-                                        ],
-                                      ),
-                                    );
-                                  } else {
-                                    final bool showFeatured =
-                                        filtered.isNotEmpty &&
-                                        filtered.first.blocks.any(
-                                          (b) => b['type'] == 'image',
-                                        );
+                                // ── 列表视图（timeline / masonry，非 calendar 模式时可见）──
+                                Offstage(
+                                  offstage: isCalendar,
+                                  child: ValueListenableBuilder<List<DiaryEntry>>(
+                                    valueListenable: UserState().savedDiaries,
+                                    builder: (context, diaries, _) {
+                                      final filtered = diaries.where((d) {
+                                        final matchesDate =
+                                            _selectedDate == null ||
+                                            (d.dateTime.year == _selectedDate!.year &&
+                                                d.dateTime.month ==
+                                                    _selectedDate!.month &&
+                                                d.dateTime.day == _selectedDate!.day);
+                                        final matchesSearch =
+                                            _searchQuery.isEmpty ||
+                                            d.content.contains(_searchQuery);
+                                        final matchesMood =
+                                            _filterMoodIndex == null ||
+                                            d.moodIndex == _filterMoodIndex;
+                                        return matchesDate &&
+                                            matchesSearch &&
+                                            matchesMood;
+                                      }).toList();
 
-                                    Widget listContent;
-                                    if (isTimeline) {
-                                      listContent = NotificationListener<ScrollNotification>(
-                                        onNotification: (notification) {
-                                          if (filtered.isEmpty) return false;
-                                          final double offset = _scrollController.offset;
-                                          int index = (offset / 230).floor();
-                                          if (index >= filtered.length) {
-                                            index = filtered.length - 1;
-                                          }
-                                          if (index < 0) {
-                                            index = 0;
-                                          }
-                                          final targetDate = filtered[index].dateTime;
-                                          if (_headerDate.value.year != targetDate.year ||
-                                              _headerDate.value.month != targetDate.month ||
-                                              _headerDate.value.day != targetDate.day) {
-                                            _headerDate.value = targetDate;
-                                          }
-                                          return false;
-                                        },
-                                        child: ListView.builder(
-                                          key: const ValueKey('timeline_list'),
-                                          controller: _scrollController,
-                                          padding: const EdgeInsets.only(top: 16, bottom: 120),
-                                          itemCount: filtered.length,
-                                          itemBuilder: (context, index) {
-                                            return Center(
-                                              child: ConstrainedBox(
-                                                constraints: const BoxConstraints(maxWidth: 800),
-                                                child: DiaryHistoryCard(
-                                                  entry: filtered[index],
-                                                  index: index,
-                                                  isNight: isNight,
-                                                  showDate: index == 0 ||
-                                                      filtered[index].dateTime.day !=
-                                                          filtered[index - 1].dateTime.day ||
-                                                      filtered[index].dateTime.month !=
-                                                          filtered[index - 1].dateTime.month,
-                                                  isFirst: index == 0,
-                                                  isLast: index == filtered.length - 1,
-                                                ),
+                                      if (filtered.isEmpty) {
+                                        return Center(
+                                          key: const ValueKey('empty'),
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Image.asset(
+                                                'assets/images/sticker/bp_sweet_bunny3.png',
+                                                width: 160,
+                                                height: 160,
+                                              )
+                                              .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                                              .moveY(begin: 0, end: -5, duration: 2000.ms, curve: Curves.easeInOut)
+                                              .animate()
+                                              .fade(duration: 450.ms)
+                                              .scale(
+                                                begin: const Offset(0.75, 0.75),
+                                                end: const Offset(1.0, 1.0),
+                                                duration: 650.ms,
+                                                curve: Curves.elasticOut,
                                               ),
-                                            );
-                                          },
-                                        ),
-                                      );
-                                    } else {
-                                      listContent = NotificationListener<ScrollNotification>(
-                                        key: const ValueKey('masonry_list'),
-                                        onNotification: (notification) {
-                                          if (filtered.isEmpty) return false;
-                                          final double offset =
-                                              _scrollController.offset;
-                                          final int crossAxisCount =
-                                              MediaQuery.of(context).size.width > 800
-                                              ? 3
-                                              : 2;
-                                          int index = 0;
-                                          if (offset < 260) {
-                                            index = 0;
-                                          } else {
-                                            double masonryOffset = offset - 260;
-                                            int row = (masonryOffset / 220).floor();
-                                            index = 1 + row * crossAxisCount;
-                                          }
-                                          if (index >= filtered.length) {
-                                            index = filtered.length - 1;
-                                          }
-                                          if (index < 0) {
-                                            index = 0;
-                                          }
-                                          final targetDate = filtered[index].dateTime;
-                                          if (_headerDate.value.year != targetDate.year ||
-                                              _headerDate.value.month != targetDate.month ||
-                                              _headerDate.value.day != targetDate.day) {
-                                            _headerDate.value = targetDate;
-                                          }
-                                          return false;
-                                        },
-                                        child: LayoutBuilder(
-                                          builder: (context, constraints) {
-                                            final double screenWidth = constraints.maxWidth;
-                                            return CustomScrollView(
-                                              controller: _scrollController,
-                                              slivers: [
-                                                if (showFeatured)
-                                                  SliverToBoxAdapter(
-                                                    child: DiaryFeaturedCard(
-                                                      entry: filtered.first,
+                                              const SizedBox(height: 16),
+                                              Text(
+                                                _searchQuery.isEmpty
+                                                    ? "这一天还没有留下故事呢..."
+                                                    : "没找到相关记录哦~",
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  color: isNight
+                                                      ? Colors.white30
+                                                      : Colors.black38,
+                                                  fontFamily: UserState().selectedIslandThemeId.value == 'lego' ? 'SweiFistLeg' : 'ArphicKaiti',
+                                                ),
+                                              ).animate().fade(delay: 150.ms, duration: 400.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOut),
+                                              if (_searchQuery.isEmpty) ...[
+                                                const SizedBox(height: 28),
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    if (_selectedDate != null) ...[
+                                                      _buildEmptyStateBtn(
+                                                        text: "清除筛选",
+                                                        isPrimary: false,
+                                                        isNight: isNight,
+                                                        onTap: () {
+                                                          setState(() {
+                                                            _selectedDate = null;
+                                                            _headerDate.value = DateTime.now();
+                                                          });
+                                                        },
+                                                      ),
+                                                      const SizedBox(width: 16),
+                                                    ],
+                                                    _buildEmptyStateBtn(
+                                                      text: "去写一篇",
+                                                      isPrimary: true,
                                                       isNight: isNight,
+                                                      onTap: () => _openDiaryEntry(null, 6.0, preselectedDate: _selectedDate),
                                                     ),
-                                                  ),
-                                                if (screenWidth <= 0)
-                                                  const SliverToBoxAdapter(child: SizedBox.shrink())
-                                                else
-                                                  SliverPadding(
-                                                    padding: const EdgeInsets.fromLTRB(
-                                                      16,
-                                                      0,
-                                                      16,
-                                                      120, // 增加底部 Padding，确保最后一张卡片可完全画过渐变淡出区域，清晰可见
-                                                    ),
-                                                    sliver: SliverMasonryGrid.count(
-                                                      crossAxisCount: screenWidth > 800 ? 3 : 2,
-                                                      crossAxisSpacing: 12,
-                                                      mainAxisSpacing: 12,
-                                                      childCount: showFeatured
-                                                          ? (filtered.length > 1
-                                                              ? filtered.length - 1
-                                                              : 0)
-                                                          : filtered.length,
-                                                      itemBuilder: (context, index) {
-                                                        final actualIndex = showFeatured
-                                                            ? index + 1
-                                                            : index;
-                                                        return DiaryMasonryCard(
-                                                          entry: filtered[actualIndex],
-                                                          isNight: isNight,
-                                                          index: actualIndex,
-                                                        );
-                                                      },
-                                                    ),
-                                                  ),
+                                                  ],
+                                                ).animate().fade(delay: 280.ms, duration: 450.ms).slideY(begin: 0.12, end: 0, curve: Curves.easeOutBack),
                                               ],
-                                            );
+                                            ],
+                                          ),
+                                        );
+                                      }
+
+                                      final bool showFeatured =
+                                          filtered.isNotEmpty &&
+                                          filtered.first.blocks.any(
+                                            (b) => b['type'] == 'image',
+                                          );
+
+                                      Widget listContent;
+                                      if (isTimeline) {
+                                        listContent = NotificationListener<ScrollNotification>(
+                                          onNotification: (notification) {
+                                            if (filtered.isEmpty) return false;
+                                            final double offset = _scrollController.offset;
+                                            int index = (offset / 230).floor();
+                                            if (index >= filtered.length) {
+                                              index = filtered.length - 1;
+                                            }
+                                            if (index < 0) {
+                                              index = 0;
+                                            }
+                                            final targetDate = filtered[index].dateTime;
+                                            if (_headerDate.value.year != targetDate.year ||
+                                                _headerDate.value.month != targetDate.month ||
+                                                _headerDate.value.day != targetDate.day) {
+                                              _headerDate.value = targetDate;
+                                            }
+                                            return false;
                                           },
+                                          child: ListView.builder(
+                                            key: const ValueKey('timeline_list'),
+                                            controller: _scrollController,
+                                            padding: const EdgeInsets.only(top: 16, bottom: 120),
+                                            itemCount: filtered.length,
+                                            itemBuilder: (context, index) {
+                                              return Center(
+                                                child: ConstrainedBox(
+                                                  constraints: const BoxConstraints(maxWidth: 800),
+                                                  child: DiaryHistoryCard(
+                                                    entry: filtered[index],
+                                                    index: index,
+                                                    isNight: isNight,
+                                                    showDate: index == 0 ||
+                                                        filtered[index].dateTime.day !=
+                                                            filtered[index - 1].dateTime.day ||
+                                                        filtered[index].dateTime.month !=
+                                                            filtered[index - 1].dateTime.month,
+                                                    isFirst: index == 0,
+                                                    isLast: index == filtered.length - 1,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        );
+                                      } else {
+                                        listContent = NotificationListener<ScrollNotification>(
+                                          key: const ValueKey('masonry_list'),
+                                          onNotification: (notification) {
+                                            if (filtered.isEmpty) return false;
+                                            final double offset =
+                                                _scrollController.offset;
+                                            final int crossAxisCount =
+                                                MediaQuery.of(context).size.width > 800
+                                                ? 3
+                                                : 2;
+                                            int index = 0;
+                                            if (offset < 260) {
+                                              index = 0;
+                                            } else {
+                                              double masonryOffset = offset - 260;
+                                              int row = (masonryOffset / 220).floor();
+                                              index = 1 + row * crossAxisCount;
+                                            }
+                                            if (index >= filtered.length) {
+                                              index = filtered.length - 1;
+                                            }
+                                            if (index < 0) {
+                                              index = 0;
+                                            }
+                                            final targetDate = filtered[index].dateTime;
+                                            if (_headerDate.value.year != targetDate.year ||
+                                                _headerDate.value.month != targetDate.month ||
+                                                _headerDate.value.day != targetDate.day) {
+                                              _headerDate.value = targetDate;
+                                            }
+                                            return false;
+                                          },
+                                          child: LayoutBuilder(
+                                            builder: (context, constraints) {
+                                              final double screenWidth = constraints.maxWidth;
+                                              return CustomScrollView(
+                                                controller: _scrollController,
+                                                slivers: [
+                                                  if (showFeatured)
+                                                    SliverToBoxAdapter(
+                                                      child: DiaryFeaturedCard(
+                                                        entry: filtered.first,
+                                                        isNight: isNight,
+                                                      ),
+                                                    ),
+                                                  if (screenWidth <= 0)
+                                                    const SliverToBoxAdapter(child: SizedBox.shrink())
+                                                  else
+                                                    SliverPadding(
+                                                      padding: const EdgeInsets.fromLTRB(
+                                                        16,
+                                                        0,
+                                                        16,
+                                                        120, // 增加底部 Padding，确保最后一张卡片可完全画过渐变淡出区域，清晰可见
+                                                      ),
+                                                      sliver: SliverMasonryGrid.count(
+                                                        crossAxisCount: screenWidth > 800 ? 3 : 2,
+                                                        crossAxisSpacing: 12,
+                                                        mainAxisSpacing: 12,
+                                                        childCount: showFeatured
+                                                            ? (filtered.length > 1
+                                                                ? filtered.length - 1
+                                                                : 0)
+                                                            : filtered.length,
+                                                        itemBuilder: (context, index) {
+                                                          final actualIndex = showFeatured
+                                                              ? index + 1
+                                                              : index;
+                                                          return DiaryMasonryCard(
+                                                            entry: filtered[actualIndex],
+                                                            isNight: isNight,
+                                                            index: actualIndex,
+                                                          );
+                                                        },
+                                                      ),
+                                                    ),
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                        );
+                                      }
+
+                                      return RepaintBoundary(
+                                        key: ValueKey('list_shader_$layoutIndex'),
+                                        child: ShaderMask(
+                                          shaderCallback: (Rect bounds) {
+                                            return LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: const [
+                                                Colors.white,       // 顶部完全不透明，不加任何遮罩或渐变
+                                                Colors.white,       // 底部 110px 处仍不透明
+                                                Colors.transparent, // 最底端透明过渡淡出
+                                              ],
+                                              stops: [
+                                                0.0,
+                                                (bounds.height - 110.0) / bounds.height,
+                                                1.0,
+                                              ],
+                                            ).createShader(bounds);
+                                          },
+                                          blendMode: BlendMode.dstIn,
+                                          child: listContent,
                                         ),
                                       );
-                                    }
-
-                                    mainContent = RepaintBoundary(
-                                      key: ValueKey('list_shader_$layoutIndex'),
-                                      child: ShaderMask(
-                                        shaderCallback: (Rect bounds) {
-                                          return LinearGradient(
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                            colors: const [
-                                              Colors.white,       // 顶部完全不透明，不加任何遮罩或渐变
-                                              Colors.white,       // 底部 110px 处仍不透明
-                                              Colors.transparent, // 最底端透明过渡淡出
-                                            ],
-                                            stops: [
-                                              0.0,
-                                              (bounds.height - 110.0) / bounds.height,
-                                              1.0,
-                                            ],
-                                          ).createShader(bounds);
-                                        },
-                                        blendMode: BlendMode.dstIn,
-                                        child: listContent,
-                                      ),
-                                    );
-                                  }
-                                }
-                                return mainContent;
-                              },
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

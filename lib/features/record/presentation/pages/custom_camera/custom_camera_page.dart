@@ -16,7 +16,7 @@ import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/redbook_asset_picker.dart';
 import 'package:island_diary/core/theme/app_colors.dart';
 
-import 'package:flutter_animate/flutter_animate.dart';
+
 
 
 class CustomCameraPage extends StatefulWidget {
