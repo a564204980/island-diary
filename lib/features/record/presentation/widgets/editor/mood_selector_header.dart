@@ -4,6 +4,8 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/animations/bouncing_button.dart';
 import 'package:island_diary/shared/animations/zzz_animation.dart';
+import 'package:island_diary/features/record/presentation/widgets/editor/webm_cat_animation.dart';
+import 'package:island_diary/shared/animations/frame_sequence_animation.dart';
 
 class MoodSelectorHeader extends StatefulWidget {
   final int? currentMoodIndex;
@@ -219,22 +221,26 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
             ),
           ),
           Positioned(
-            top: -51,
-            right: 6,
+            top: -41,
+            right: -16,
             child: IgnorePointer(
               child: AnimatedOpacity(
                 opacity: !isSelected ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 300),
-                child: Image.asset(
-                  'assets/images/emoji/shuangjian/bg/shuijiao_baitian.png',
+                child: const FrameSequenceAnimation(
+                  assetFolderPath: 'assets/images/animation/yunZhi/yyingDown',
+                  framePrefix: 'frame_',
+                  frameSuffix: '.png',
+                  frameCount: 61,
                   width: 145,
-                  fit: BoxFit.contain,
+                  fps: 18,
+                  loopIntervalSeconds: 5, // 动画间隔时间
                 ),
               ),
             ),
           ),
           Positioned(
-            top: -65,
+            top: -50,
             right: 85,
             child: IgnorePointer(
               child: AnimatedOpacity(

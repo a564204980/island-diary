@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
+import 'package:island_diary/features/home/presentation/widgets/treasure_gravity_box.dart';
 import 'package:island_diary/features/home/presentation/widgets/random_memory_overlay.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
@@ -191,11 +192,18 @@ class HomeDashboardView extends StatelessWidget {
                       const SizedBox(height: 16),
                       _buildGlassCard(
                         onTap: null,
-                        child: _MindfulBreathingWidget(
-                          textColor: textColor,
-                          subtitleColor: subtitleColor,
-                          accentColor: accentColor,
-                          fontFamily: fontFamily,
+                        padding: EdgeInsets.zero,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return TreasureGravityBoxWidget(
+                              width: constraints.maxWidth,
+                              height: 140, // 固定高度
+                              textColor: textColor,
+                              subtitleColor: subtitleColor,
+                              accentColor: accentColor,
+                              fontFamily: fontFamily,
+                            );
+                          }
                         ),
                       ).animate().fade(duration: 600.ms, delay: 300.ms).scale(begin: const Offset(0.97, 0.97)),
                     ],
@@ -243,6 +251,13 @@ class HomeDashboardView extends StatelessWidget {
                       final mood = (moodIndex != null && moodIndex >= 0 && moodIndex < kMoods.length) ? kMoods[moodIndex] : null;
                       final bool isToday = index == 6;
 
+                      double gradientStart = 0.7;
+                      if (entry != null && entry.content.isNotEmpty) {
+                        final length = entry.content.length;
+                        gradientStart = 0.7 - (length / 300) * 0.7;
+                        if (gradientStart < 0.0) gradientStart = 0.0;
+                      }
+
                       return BouncingButton(
                         onTap: () async {
                           // 等待按压回弹动画完成 (大概150ms左右)
@@ -255,11 +270,28 @@ class HomeDashboardView extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(24),
-                            color: isNight 
-                                ? Colors.white.withValues(alpha: mood != null ? 0.12 : 0.04) 
-                                : Colors.white.withValues(alpha: mood != null ? 0.6 : 0.2),
+                            color: mood != null
+                                ? null
+                                : (isNight
+                                    ? Colors.white.withValues(alpha: 0.04)
+                                    : Colors.white.withValues(alpha: 0.2)),
+                            gradient: mood != null
+                                ? LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    stops: [gradientStart, 1.0],
+                                    colors: [
+                                      isNight
+                                          ? Colors.white.withValues(alpha: 0.15)
+                                          : Colors.white.withValues(alpha: 0.65),
+                                      (mood.glowColor ?? Colors.grey).withValues(alpha: isNight ? 0.25 : 0.15),
+                                    ],
+                                  )
+                                : null,
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: mood != null ? 0.4 : 0.15),
+                              color: mood != null 
+                                  ? (mood.glowColor ?? Colors.grey).withValues(alpha: isNight ? 0.3 : 0.2)
+                                  : Colors.white.withValues(alpha: 0.15),
                               width: 1.0,
                             ),
                           ),

@@ -90,6 +90,8 @@ flutter:
     - assets/images/emoji/yunzhi/
     - assets/images/emoji/shuangjian/
     - assets/images/emoji/shuangjian/bg/
+    - assets/images/animation/yunZhi/yyingDown/
+    - assets/images/animation/yunZhi/walking/
     - assets/images/emoji/dushou/
     - assets/images/emoji/lingxi/
     - assets/images/sticker/

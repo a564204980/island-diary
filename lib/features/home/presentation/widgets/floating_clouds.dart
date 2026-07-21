@@ -87,18 +87,6 @@ class _SingleCloud extends StatefulWidget {
   State<_SingleCloud> createState() => _SingleCloudState();
 }
 
-class CloudRegistry {
-  static final Map<Key, Rect> activeClouds = {};
-
-  static bool hitTestClouds(Offset localPosition) {
-    for (final rect in activeClouds.values) {
-      if (rect.contains(localPosition)) {
-        return true;
-      }
-    }
-    return false;
-  }
-}
 
 class _SingleCloudState extends State<_SingleCloud>
     with SingleTickerProviderStateMixin {
@@ -106,7 +94,6 @@ class _SingleCloudState extends State<_SingleCloud>
   late double _currentTop;
   late int _currentIndex;
   final math.Random _random = math.Random();
-  final UniqueKey _cloudKey = UniqueKey();
 
   // 当前云朵在 1.0 倍速下走完一圈所需时长
   late Duration _currentBaseDuration;
@@ -233,7 +220,6 @@ class _SingleCloudState extends State<_SingleCloud>
     UserState().cloudSpeedMultiplier.removeListener(_onSpeedMultiplierChanged);
     _animationNotifier.dispose();
     _ticker.dispose();
-    CloudRegistry.activeClouds.remove(_cloudKey);
     super.dispose();
   }
 
@@ -259,25 +245,6 @@ class _SingleCloudState extends State<_SingleCloud>
       valueListenable: _animationNotifier,
       builder: (context, animValue, child) {
         final double xPos = screenWidth - (animValue * (screenWidth + cloudWidth));
-        
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          final renderBox = context.findRenderObject() as RenderBox?;
-          if (renderBox != null && renderBox.hasSize) {
-            final position = renderBox.localToGlobal(Offset.zero);
-            final size = renderBox.size;
-            final double scaledWidth = size.width * widget.scale;
-            final double scaledHeight = size.height * widget.scale;
-            final double visualLeft = position.dx + (size.width - scaledWidth) / 2;
-            final double visualTop = position.dy + (size.height - scaledHeight) / 2;
-            CloudRegistry.activeClouds[_cloudKey] = Rect.fromLTWH(
-              visualLeft,
-              visualTop,
-              scaledWidth,
-              scaledHeight,
-            );
-          }
-        });
 
         return Positioned(
           top: screenHeight * _currentTop,

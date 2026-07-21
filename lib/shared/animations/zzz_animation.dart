@@ -48,13 +48,13 @@ class _ZzzAnimationState extends State<ZzzAnimation> with TickerProviderStateMix
       animation: controller,
       builder: (context, child) {
         final t = controller.value;
-        // Fade in quickly, then fade out slowly
+        // 快速淡入，然后缓慢淡出
         final opacity = t < 0.2 ? (t / 0.2) : (1.0 - (t - 0.2) / 0.8);
         final scale = 0.5 + t * 0.8;
         
         return Positioned(
-          left: 18 + t * 35 + sin(t * pi * 4) * 4, // start away from edge, drift right and wobble
-          bottom: 12 + t * 45, // start higher, drift upwards
+          left: 18 + t * 35 + sin(t * pi * 4) * 4, // 从稍远的位置开始，向右漂移并伴随轻微摆动
+          bottom: 12 + t * 45, // 从较高处开始，向上漂移
           child: Opacity(
             opacity: opacity,
             child: Transform.scale(

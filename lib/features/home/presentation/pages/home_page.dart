@@ -28,7 +28,6 @@ import 'package:island_diary/features/home/presentation/widgets/backup_reminder_
 import 'package:island_diary/features/home/presentation/widgets/restore_overlays.dart';
 import 'package:island_diary/features/home/presentation/widgets/layout_quick_switcher.dart';
 
-import 'package:island_diary/features/home/presentation/widgets/random_memory_overlay.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -48,8 +47,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Timer? _thoughtTimer;
   bool _isRestoring = false;
 
-  Offset? _pointerDownPos;
-  DateTime? _pointerDownTime;
+
 
 
   // 弹幕相关
@@ -298,50 +296,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ? const Color(0xFF0D1B2A)
               : const Color(0xFFE6F3F5),
           resizeToAvoidBottomInset: false,
-          body: Listener(
-            onPointerDown: (event) {
-              _pointerDownPos = event.position;
-              _pointerDownTime = DateTime.now();
-            },
-            onPointerUp: (event) {
-              if (_pointerDownPos != null && _pointerDownTime != null) {
-                final diff = event.position - _pointerDownPos!;
-                final duration = DateTime.now().difference(_pointerDownTime!);
-                if (diff.distance < 15 && duration.inMilliseconds < 300) {
-                  final screenHeight = MediaQuery.sizeOf(context).height;
-                  if (event.position.dy < 120 || event.position.dy > screenHeight - 120) {
-                    return;
-                  }
-                  // 检查是否点击在小岛核心实体区域内（使用圆形区域判定，避免巨大的图片矩形边框阻挡周围的云层点击）
-                  final screenWidth = MediaQuery.sizeOf(context).width;
-                  final Offset islandCenter = Offset(
-                    screenWidth / 2,
-                    screenHeight / 2 + 15, // 结合浮动与小岛微调偏移
-                  );
-                  final double distance = (event.position - islandCenter).distance;
-                  final double blockRadius = screenWidth > 600 ? 180 : 130;
-                  if (distance < blockRadius) {
-                    return; // 忽略小岛实体范围内的点击
-                  }
-                  if (_currentNavIndex == 0) {
-                    debugPrint('Tap detected at ${event.position}. Active clouds:');
-                    for (final entry in CloudRegistry.activeClouds.entries) {
-                      debugPrint('  Cloud ${entry.key}: ${entry.value}');
-                    }
-                  }
-                  if (_currentNavIndex == 0 &&
-                      UserState().homeDisplayMode.value == 'island') {
-                    if (CloudRegistry.hitTestClouds(event.position)) {
-                      debugPrint('Cloud HIT!');
-                      RandomMemoryOverlay.show(context, isNight: _isNight);
-                    } else {
-                      debugPrint('Cloud MISS');
-                    }
-                  }
-                }
-              }
-            },
-            child: Stack(
+          body: Stack(
               children: [
                 Positioned.fill(
                   child: Stack(
@@ -519,7 +474,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
             ],
           ),
-        ),
       );
       },
     );
