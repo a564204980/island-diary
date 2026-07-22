@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
 import 'dart:io';
 import 'dart:convert';
 import 'package:archive/archive.dart';
@@ -22,11 +21,11 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/statistics/presentation/pages/statistics_page.dart';
 import 'package:island_diary/shared/widgets/frosted_rainbow.dart';
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
-import 'package:island_diary/features/home/presentation/widgets/island_theme_picker.dart';
 
 import 'package:island_diary/features/home/presentation/widgets/backup_reminder_dialog.dart';
 import 'package:island_diary/features/home/presentation/widgets/restore_overlays.dart';
 import 'package:island_diary/features/home/presentation/widgets/layout_quick_switcher.dart';
+import 'package:island_diary/core/services/wind_service.dart';
 
 
 
@@ -78,6 +77,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    // 随机分配本次进入首页的海岛风速
+    WindService.randomizeWind();
+
     // 强制初始化为竖屏，防止热重启后残留横屏设置
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -384,23 +386,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
                           Row(
                             children: [
-                              if (_currentNavIndex == 0) ...[
-                                _buildTopIconButton(
-                                  icon: Icons.auto_fix_high_rounded,
-                                   isNight: isNight,
-                                   onTap: () {
-                                     showModalBottomSheet(
-                                       context: context,
-                                       backgroundColor:
-                                           Colors.transparent,
-                                       isScrollControlled: true,
-                                       showDragHandle: false,
-                                       builder: (context) =>
-                                           const IslandThemePicker(),
-                                     );
-                                   },
-                                 ),
-                              ],
                               if (_currentNavIndex == 1) ...[
                                 LayoutQuickSwitcher(isNight: isNight),
                               ],
@@ -629,53 +614,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
 
 
-
-  Widget _buildTopIconButton({
-    required IconData icon,
-    required bool isNight,
-    required VoidCallback onTap,
-    bool animate = true,
-  }) {
-    final button = GestureDetector(
-          onTap: onTap,
-          child: RepaintBoundary(
-            child: ClipOval(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isNight
-                        ? Colors.white.withValues(alpha: 0.15)
-                        : Colors.black.withValues(alpha: 0.25),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isNight
-                          ? const Color(0xFFD4A373).withValues(alpha: 0.25)
-                          : Colors.black.withValues(alpha: 0.05),
-                      width: 0.8,
-                    ),
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 24,
-                    color: Colors.white.withValues(alpha: 0.95),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-    if (!animate) return button;
-    return button
-        .animate(onPlay: (controller) => controller.repeat(reverse: true))
-        .scale(
-          begin: const Offset(1, 1),
-          end: const Offset(1.05, 1.05),
-          duration: 3.seconds,
-          curve: Curves.easeInOut,
-        );
-  }
 
   Future<void> _handleReceivedFile(String path) async {
     final file = File(path);

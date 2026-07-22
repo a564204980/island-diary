@@ -4,7 +4,6 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/animations/bouncing_button.dart';
 import 'package:island_diary/shared/animations/zzz_animation.dart';
-import 'package:island_diary/features/record/presentation/widgets/editor/webm_cat_animation.dart';
 import 'package:island_diary/shared/animations/frame_sequence_animation.dart';
 
 class MoodSelectorHeader extends StatefulWidget {
@@ -668,8 +667,8 @@ class _MoodSelectorHeaderState extends State<MoodSelectorHeader> {
                   children: [
                     ...List.generate(moods.length, (index) {
                       final mood = moods[index];
-                      // 展开列表中的项目永远不需要显示选中状态，因为一旦选中面板就会立即收起
-                      final bool isSelected = false;
+                      // 判断当前项是否为选中的情绪
+                      final bool isSelected = widget.currentMoodIndex == index;
                       final Color moodColor = Color(int.parse(mood['color']!));
                       return Container(
                         width: itemWidth,

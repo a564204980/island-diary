@@ -27,3 +27,8 @@ When developing new pages, components, or features for the Island Diary project,
 
 ## 5. 组件化与复用
 - 尽可能将通用的动画逻辑（如悬浮动画包裹器、标准按钮点击包裹器）抽离到专门的共享组件目录（如 `lib/shared/animations/`）中，确保整个 App 的物理规律和阻尼感高度一致。
+
+## 6. 物理重力盒与传感器互动规范 (Gravity Box & Sensors Physics)
+- **冲量物理解算 (Impulse Physics Model)**：对于包含物品下落、碰撞排斥、旋转拥抱重力的场景，必须采用基于显式速度 `(vx, vy)` 的标准 2D 冲量碰撞模型与动量守恒，严禁使用依赖固定倒计时 (`duration: 1800ms`) 硬锁休眠的逻辑。
+- **360 度各向同性重力**：直接使用 `sensors_plus` 传入的 `(_gx, _gy)` 原始分量，确保手机竖屏、倒置、左/右横屏 360 度任意旋转时，物理碰撞修正和重力加速度完全对称方向响应。
+- **自然休眠与省电**：仅当物品速度小于极低阈值（如速度平方 `< 15.0`）连续多帧时，才锁死 `isSleeping = true` 归零速度。全员休眠时暂停 Ticker (`_tickerController.stop()`) 省电；监测到重力矢量改变 (`Δgx > 0.5 || Δgy > 0.5`) 或屏幕尺寸旋转变化时，及时唤醒物品继续滚动。

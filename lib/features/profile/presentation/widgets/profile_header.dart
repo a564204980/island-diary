@@ -7,6 +7,7 @@ import 'package:island_diary/shared/widgets/time_warp_overlay.dart';
 import 'package:island_diary/shared/widgets/top_toast.dart';
 import 'package:island_diary/features/profile/presentation/pages/profile_edit_page.dart';
 import 'package:island_diary/features/profile/presentation/pages/settings_page.dart';
+import 'package:island_diary/features/home/presentation/widgets/card_repository_sheet.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
@@ -199,7 +200,19 @@ class ProfileHeader extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
+            _buildActionIcon(
+              onTap: () {
+                HomeCardManagerSheet.show(
+                  context,
+                  isNight: isNight,
+                  fontFamily: _getFontFamily(),
+                );
+              },
+              icon: Icons.auto_awesome_rounded,
+              isNight: isNight,
+            ),
+            const SizedBox(width: 8),
             _buildActionIcon(
               onTap: () {
                 Navigator.push(

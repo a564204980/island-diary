@@ -5,15 +5,16 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
 
+/// 2D 物理重力盒内部贴纸项（基于标准速度与动量物理模型）
 class TreasureItem {
   double x;
   double y;
-  double lastX = 0;
-  double lastY = 0;
+  double vx;
+  double vy;
   double angle;
+  double angularVelocity;
   final double radius;
   final String imagePath;
-  final double mass;
 
   bool isSleeping = false;
   int sleepCounter = 0;
@@ -23,12 +24,11 @@ class TreasureItem {
     required this.y,
     required this.radius,
     required this.imagePath,
-    double vx = 0.0,
-    double vy = 0.0,
+    this.vx = 0.0,
+    this.vy = 0.0,
     this.angle = 0.0,
-    this.mass = 1.0,
-  }) : lastX = x - vx * 0.016,
-       lastY = y - vy * 0.016;
+    this.angularVelocity = 0.0,
+  });
 }
 
 class TreasureGravityBoxWidget extends StatefulWidget {
@@ -59,6 +59,7 @@ class _TreasureGravityBoxWidgetState extends State<TreasureGravityBoxWidget>
   late AnimationController _tickerController;
   StreamSubscription<AccelerometerEvent>? _accelSubscription;
 
+  // 重力感应分量（单位：m/s²）
   double _gx = 0.0;
   double _gy = 9.8;
 
@@ -68,27 +69,34 @@ class _TreasureGravityBoxWidgetState extends State<TreasureGravityBoxWidget>
   final List<TreasureItem> _items = [];
   final math.Random _random = math.Random();
 
+  /// 全局持久保存的物理饰品列表与高矮形态标识，
+  /// 保证长按、拖拽手势、Rebuild 以及卸载重新挂载时 100% 保持饰品物理位置，绝对不误触发掉落刷新
+  static List<TreasureItem>? _persistentItems;
+  static bool? _persistentIsTall;
+
   @override
   void initState() {
     super.initState();
 
-    // 动画控制器设置为 900 毫秒 (确保所有高空掉落物品全部落到底部平稳堆叠)
-    _tickerController =
-        AnimationController(
-            vsync: this,
-            duration: const Duration(milliseconds: 900),
-          )
-          ..addListener(_onTick)
-          ..addStatusListener((status) {
-            if (status == AnimationStatus.completed) {
-              _onAnimationComplete();
-            }
-          });
+    // 持续物理循环 Ticker
+    _tickerController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..addListener(_onTick);
 
-    _initItems();
-    _tickerController.forward();
+    final bool currentIsTall = widget.height > 200;
 
-    // 监听重力感应
+    // 只要高/矮形态没有发生改变，一律无缝继承现有的饰品列表及其当前位置/速度！
+    if (_persistentItems != null &&
+        _persistentItems!.isNotEmpty &&
+        _persistentIsTall == currentIsTall) {
+      _items.addAll(_persistentItems!);
+    } else {
+      _initItems();
+    }
+    _startPhysicsEngine();
+
+    // 监听设备加速度传感器：实时感知手机 360 度任意角度倾斜与旋转
     _accelSubscription = accelerometerEventStream().listen((
       AccelerometerEvent event,
     ) {
@@ -96,16 +104,58 @@ class _TreasureGravityBoxWidgetState extends State<TreasureGravityBoxWidget>
         _gx = -event.x;
         _gy = event.y;
 
-        // 手机大幅晃动倾斜时，唤醒动画重新播放
-        if ((_gx - _lastGx).abs() > 3.0 || (_gy - _lastGy).abs() > 3.0) {
-          if (!_tickerController.isAnimating) {
-            _replayDropAnimation();
-          }
+        // 当倾斜角度发生明显改变 (> 0.5) 时唤醒物理引擎
+        if ((_gx - _lastGx).abs() > 0.5 || (_gy - _lastGy).abs() > 0.5) {
+          _wakeUpPhysics();
         }
         _lastGx = _gx;
         _lastGy = _gy;
       }
     });
+  }
+
+  @override
+  void dispose() {
+    // 卸载时把最新的物品运动位置写回全局持久缓存
+    if (_items.isNotEmpty) {
+      _persistentItems = _items;
+      _persistentIsTall = widget.height > 200;
+    }
+    _tickerController.dispose();
+    _accelSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(TreasureGravityBoxWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 只在明确的高/矮形态切换时才重新掉落物品；长按/拖拽/setState 刷新绝对静默
+    final bool heightModeChanged =
+        (widget.height > 200) != (oldWidget.height > 200);
+
+    if (heightModeChanged) {
+      _replayDropAnimation();
+    }
+  }
+
+  void _startPhysicsEngine() {
+    if (!_tickerController.isAnimating) {
+      _tickerController.repeat();
+    }
+  }
+
+  void _wakeUpPhysics() {
+    bool hasAwakened = false;
+    for (var item in _items) {
+      if (item.isSleeping) {
+        item.isSleeping = false;
+        item.sleepCounter = 0;
+        hasAwakened = true;
+      }
+    }
+    if (hasAwakened || !_tickerController.isAnimating) {
+      _startPhysicsEngine();
+    }
   }
 
   void _replayDropAnimation() {
@@ -114,33 +164,7 @@ class _TreasureGravityBoxWidgetState extends State<TreasureGravityBoxWidget>
       _items.clear();
       _initItems();
     });
-    _tickerController.reset();
-    _tickerController.forward();
-  }
-
-  void _onAnimationComplete() {
-    if (!mounted) return;
-
-    final double boxHeight = widget.height > 50.0 ? widget.height : 140.0;
-    // 刚性防挂起安全校验：如果页面路由切换/延迟导致动画在半空 (y < boxHeight - 75) 提前完成，
-    // 绝对禁止在半空 (y = 10) 锁死休眠！重置控制器继续下落直至全员安全落底！
-    bool anyMidAir = _items.any((item) => item.y < boxHeight - 75.0);
-    if (anyMidAir) {
-      _tickerController.reset();
-      _tickerController.forward();
-      return;
-    }
-
-    // 全员安全触底后，将坐标四舍五入精确锁定，彻底断电休眠
-    for (var item in _items) {
-      item.isSleeping = true;
-      item.x = item.x.roundToDouble();
-      item.y = item.y.roundToDouble();
-      item.lastX = item.x;
-      item.lastY = item.y;
-    }
-    // 触发最后一次 setState 呈现完美静态图，此后 tickerController 彻底停止，零刷新！
-    setState(() {});
+    _startPhysicsEngine();
   }
 
   void _initItems() {
@@ -149,24 +173,29 @@ class _TreasureGravityBoxWidgetState extends State<TreasureGravityBoxWidget>
 
     List<String> unlockedAssetPaths = [];
 
-    // 从全局饰品注册表中获取用户已拥有的各类装饰道具 (眼镜/发型/帽子/头饰/耳饰)
-    // 排除小软本体形象 (marshmallow)
+    // 获取已解锁的装饰道具
     for (var deco in MascotDecoration.allDecorations) {
       if (ownedIds.contains(deco.id) && !deco.path.contains('marshmallow')) {
         unlockedAssetPaths.add(deco.path);
       }
     }
 
-    // 道具全品类兜底资源池 (纯装饰道具：眼镜、发型、头饰、耳饰)
+    // 兜底丰富资源池
     final List<String> fallbackPool = [
       'assets/images/emoji/glasses/glasses1.png',
       'assets/images/emoji/glasses/glasses2.png',
       'assets/images/emoji/glasses/glasses3.png',
       'assets/images/emoji/hairstyle/hairstyle1.png',
       'assets/images/emoji/hairstyle/hairstyle2.png',
+      'assets/images/emoji/hairstyle/hairstyle3.png',
       'assets/images/emoji/decorate/decorate1.png',
       'assets/images/emoji/decorate/decorate2.png',
       'assets/images/emoji/arrings/arrings2.png',
+      'assets/images/sticker/bp_sweet_bunny1.png',
+      'assets/images/sticker/bp_sweet_bunny2.png',
+      'assets/images/sticker/bp_sweet_bunny3.png',
+      'assets/images/sticker/bp_sweet_bunny4.png',
+      'assets/images/sticker/bp_sweet_bunny5.png',
     ];
 
     for (var fallback in fallbackPool) {
@@ -175,28 +204,34 @@ class _TreasureGravityBoxWidgetState extends State<TreasureGravityBoxWidget>
       }
     }
 
-    // 随机打乱，抽取 9 个获得装饰道具入盒掉落
     unlockedAssetPaths.shuffle(_random);
-    final int count = math.min(unlockedAssetPaths.length, 18);
 
-    // 尺寸防御：防止初始化首帧尺寸未就绪导致计算负坐标
+    final bool isTall = widget.height > 200;
+    final int count = isTall ? 25 : 9; // 当高度为长方块时，物品数量增加到 3 倍(25个)！
     final double safeWidth = widget.width > 50.0 ? widget.width : 160.0;
 
+    _items.clear();
     for (int i = 0; i < count; i++) {
-      final radius = 14.0 + _random.nextDouble() * 4.0;
+      final radius = 13.0 + _random.nextDouble() * 4.0;
+      final assetPath = unlockedAssetPaths[i % unlockedAssetPaths.length];
+
       _items.add(
         TreasureItem(
-          // 紧贴盒顶 (-15 ~ -45) 顺序排列，进入页面 0.01 秒内立刻显示并向下掉落
-          x: 25.0 + (i % 3) * ((safeWidth - 50.0) / 2),
-          y: -15.0 - (i % 3) * 12.0 - (i ~/ 3) * 10.0,
-          vx: (_random.nextDouble() - 0.5) * 15.0,
-          vy: 220.0 + _random.nextDouble() * 40.0,
-          angle: (_random.nextDouble() - 0.5) * 0.8,
+          x: 22.0 + (i % 4) * ((safeWidth - 44.0) / 3),
+          y: -15.0 - (i % 4) * 15.0 - (i ~/ 4) * 12.0,
+          vx: (_random.nextDouble() - 0.5) * 25.0,
+          vy: 60.0 + _random.nextDouble() * 40.0,
+          angle: (_random.nextDouble() - 0.5) * 1.0,
+          angularVelocity: (_random.nextDouble() - 0.5) * 0.12,
           radius: radius,
-          imagePath: unlockedAssetPaths[i],
+          imagePath: assetPath,
         ),
       );
     }
+
+    // 保存最新物理物品集合到持久化缓存
+    _persistentItems = _items;
+    _persistentIsTall = isTall;
   }
 
   void _onTick() {
@@ -207,47 +242,43 @@ class _TreasureGravityBoxWidgetState extends State<TreasureGravityBoxWidget>
   }
 
   void _updatePhysics() {
-    double dt = 0.016;
+    const double dt = 0.016; // 固定 60fps 时间步长
+    const double gravityScale = 120.0; // 重力加速度缩放
+    const double damping = 0.96; // 空气阻尼
+    const double bounce = 0.25; // 碰撞恢复系数
 
     final double boxWidth = widget.width;
     final double boxHeight = widget.height;
-    final double adjustedGravityScale = 2500.0;
 
-    // 1. Verlet Integration
+    // 1. 动力学更新 (位置与速度集成)
     for (int i = 0; i < _items.length; i++) {
       final item = _items[i];
       if (item.isSleeping) continue;
 
-      double appliedGx = _gx.abs() > 3.0 ? _gx : 0.0;
-      double appliedGy = 9.8;
+      // 施加重力加速度
+      item.vx += _gx * gravityScale * dt;
+      item.vy += _gy * gravityScale * dt;
 
-      double vx = item.x - item.lastX;
-      double vy = item.y - item.lastY;
+      // 空气阻尼
+      item.vx *= damping;
+      item.vy *= damping;
 
-      // 道具在半空中高速顺畅下落 (0.98)，只有落到底部堆叠区 (y > boxHeight - 70) 才开启强动能吸收
-      if (item.y > boxHeight - 70.0) {
-        vx *= 0.85;
-        vy *= 0.85;
-      } else {
-        vx *= 0.98;
-        vy *= 0.98;
-      }
-
-      double nextX = item.x + vx + appliedGx * adjustedGravityScale * dt * dt;
-      double nextY = item.y + vy + appliedGy * adjustedGravityScale * dt * dt;
-
-      item.lastX = item.x;
-      item.lastY = item.y;
-      item.x = nextX;
-      item.y = nextY;
+      // 更新位置与自转角
+      item.x += item.vx * dt;
+      item.y += item.vy * dt;
+      item.angle += item.angularVelocity;
+      item.angularVelocity *= 0.95;
     }
 
-    // 2. Constraint Solving
-    for (int iter = 0; iter < 8; iter++) {
+    // 2. 约束与碰撞求解 (迭代 5 次以保证坚固堆叠)
+    for (int iter = 0; iter < 5; iter++) {
+      // 2.1 物品与物品碰撞检测及冲量解算
       for (int i = 0; i < _items.length; i++) {
         for (int j = i + 1; j < _items.length; j++) {
           final a = _items[i];
           final b = _items[j];
+
+          if (a.isSleeping && b.isSleeping) continue;
 
           final dx = b.x - a.x;
           final dy = b.y - a.y;
@@ -255,182 +286,113 @@ class _TreasureGravityBoxWidgetState extends State<TreasureGravityBoxWidget>
           final minDist = a.radius + b.radius;
 
           if (distSq < minDist * minDist && distSq > 0.0001) {
-            if (a.isSleeping && b.isSleeping) continue;
-
             final dist = math.sqrt(distSq);
             final overlap = minDist - dist;
 
+            // 碰撞法线向量
             final nx = dx / dist;
             final ny = dy / dist;
 
-            // 睡眠物品质量无穷大：完全由活动物品承担 100% 的排斥位移，睡眠物品纹丝不动！
+            // 1) 位置分离 (防止重叠重叠穿模)
             if (a.isSleeping) {
-              double corrYB = ny < 0 ? ny * overlap * 0.2 : ny * overlap;
               b.x += nx * overlap;
-              b.y += corrYB;
-              b.lastX += nx * overlap;
-              b.lastY += corrYB;
+              b.y += ny * overlap;
             } else if (b.isSleeping) {
-              double corrYA = ny > 0 ? ny * overlap * 0.2 : ny * overlap;
               a.x -= nx * overlap;
-              a.y -= corrYA;
-              a.lastX -= nx * overlap;
-              a.lastY -= corrYA;
+              a.y -= ny * overlap;
             } else {
-              // 双方都未睡眠，各退一半
-              final percent = 0.45;
-              final correction = overlap * percent;
-
-              double corrYB = ny < 0 ? ny * correction * 0.2 : ny * correction;
-              double corrYA = ny > 0 ? ny * correction * 0.2 : ny * correction;
-
-              a.x -= nx * correction;
-              a.y -= corrYA;
-              a.lastX -= nx * correction;
-              a.lastY -= corrYA;
-
-              b.x += nx * correction;
-              b.y += corrYB;
-              b.lastX += nx * correction;
-              b.lastY += corrYB;
+              a.x -= nx * overlap * 0.5;
+              a.y -= ny * overlap * 0.5;
+              b.x += nx * overlap * 0.5;
+              b.y += ny * overlap * 0.5;
             }
 
-            // 2. 表面魔术贴切向摩擦力：不论是否碰撞睡眠物体，切向滑动动能必须被吸收
-            double tx = -ny;
-            double ty = nx;
-            double vax = a.x - a.lastX;
-            double vay = a.y - a.lastY;
-            double vbx = b.x - b.lastX;
-            double vby = b.y - b.lastY;
+            // 2) 动量与冲量交换
+            final dvx = b.vx - a.vx;
+            final dvy = b.vy - a.vy;
+            final velAlongNormal = dvx * nx + dvy * ny;
 
-            double dvx = vbx - vax;
-            double dvy = vby - vay;
-            double velTangent = dvx * tx + dvy * ty;
-
-            double dampT = (velTangent.abs() > 4.0) ? 0.4 : 1.0;
-            double friction = velTangent * dampT;
-
-            if (!a.isSleeping) {
-              a.lastX -= tx * friction * 0.5;
-              a.lastY -= ty * friction * 0.5;
-            }
-            if (!b.isSleeping) {
-              b.lastX += tx * friction * 0.5;
-              b.lastY += ty * friction * 0.5;
-            }
-
-            // 3. 法向动能吸收：当物品砸在底部的睡眠堆叠区，必须强行抹平弹性动能！
-            double velNormal = dvx * nx + dvy * ny;
-            if (velNormal < 0 &&
-                (a.y > boxHeight - 70 || b.y > boxHeight - 70)) {
-              double dampN = (velNormal.abs() > 3.0) ? 0.3 : 1.0;
-              double impulseN = velNormal * dampN;
-
-              // 修复符号：为了减速，b.last 必须加上 nx * impulseN (因为 n 是从 a 指向 b，impulseN 是负值)
-              // 如果其中一个是睡眠的“硬地面”，则另一个承担 100% 的动能吸收 (1.0)
+            // 仅在物品相互靠近时解算碰撞响应
+            if (velAlongNormal < 0) {
+              final impulse = -(1.0 + bounce) * velAlongNormal * 0.5;
               if (!a.isSleeping) {
-                a.lastX -= nx * impulseN * (b.isSleeping ? 1.0 : 0.5);
-                a.lastY -= ny * impulseN * (b.isSleeping ? 1.0 : 0.5);
+                a.vx -= nx * impulse;
+                a.vy -= ny * impulse;
               }
               if (!b.isSleeping) {
-                b.lastX += nx * impulseN * (a.isSleeping ? 1.0 : 0.5);
-                b.lastY += ny * impulseN * (a.isSleeping ? 1.0 : 0.5);
+                b.vx += nx * impulse;
+                b.vy += ny * impulse;
               }
             }
           }
         }
       }
 
-      // 边界碰撞 (左、右、下三向全包围防裁剪限制)
+      // 2.2 4 向墙壁边界碰撞解算
       for (int i = 0; i < _items.length; i++) {
         final item = _items[i];
+        if (item.isSleeping) continue;
 
-        // 恢复真实视觉半径，避免过度向内挤压导致全部堆在中心
         final double visualRadius = item.radius * 1.3;
+        const double safePadding = 14.0; // 舒适的安全内边距
+        final double minX = visualRadius + safePadding;
+        final double maxX = boxWidth - visualRadius - safePadding;
+        final double minY = visualRadius + safePadding;
+        final double maxY = boxHeight - visualRadius - safePadding;
 
-        // 左边界：保留 8px 留白，留出足够宽度让道具平铺
-        final double minX = visualRadius + 8.0;
+        // 左边界
         if (item.x < minX) {
           item.x = minX;
-          if (!item.isSleeping) {
-            double vx = item.x - item.lastX;
-            item.lastX = item.x + vx * 0.4;
-          }
+          if (item.vx < 0) item.vx = -item.vx * bounce;
         }
-
-        // 右边界：保留 8px 留白，留出足够宽度让道具平铺
-        final double maxX = boxWidth - visualRadius - 8.0;
-        if (item.x > maxX) {
+        // 右边界
+        else if (item.x > maxX) {
           item.x = maxX;
-          if (!item.isSleeping) {
-            double vx = item.x - item.lastX;
-            item.lastX = item.x - vx * 0.4;
-          }
+          if (item.vx > 0) item.vx = -item.vx * bounce;
         }
 
-        // 下边界：真实视觉半径 + 8px 留白，刚好悬停在底边上方
-        final double floorY = boxHeight - visualRadius - 8.0;
-        final double topBound = -600.0;
-
-        if (item.y - item.radius < topBound) {
-          item.y = topBound + item.radius;
-          if (!item.isSleeping) {
-            double vy = item.y - item.lastY;
-            item.lastY = item.y + vy * 0.5;
-          }
-        } else if (item.y > floorY) {
-          item.y = floorY;
-          if (!item.isSleeping) {
-            double vy = item.y - item.lastY;
-            item.lastY = item.y + (vy > 2.0 ? vy * 0.4 : 0.0);
-            double vx = item.x - item.lastX;
-            item.lastX = item.x - vx * 0.4;
-          }
+        // 上边界
+        if (item.y < minY) {
+          item.y = minY;
+          if (item.vy < 0) item.vy = -item.vy * bounce;
         }
-
-        if (item.isSleeping) continue;
+        // 下边界
+        else if (item.y > maxY) {
+          item.y = maxY;
+          if (item.vy > 0) item.vy = -item.vy * bounce;
+        }
       }
     }
 
-    // 3. 落地瞬发磁吸锁 (触底或落到底部堆叠区 2 帧内强制锁死，零延迟静止)
+    // 3. 静止检测与自动休眠 (只有连续 12 帧极微速时，才锁死休眠)
     for (int i = 0; i < _items.length; i++) {
       final item = _items[i];
       if (item.isSleeping) continue;
 
-      final double speed =
-          (item.x - item.lastX).abs() + (item.y - item.lastY).abs();
-      final double visualRadius = item.radius * 1.3;
-      final double floorY = boxHeight - visualRadius - 10.0;
+      final double speedSq = item.vx * item.vx + item.vy * item.vy;
 
-      // 触底 (item.y >= floorY) 或在堆叠区低速 (speed < 1.5)，2 帧 (0.03s) 磁吸锁死！
-      if (item.y >= floorY || (item.y > boxHeight - 75.0 && speed < 1.5)) {
+      // 速度平方 < 15.0 (速度约 < 3.8px/s) 时判定为趋于静止
+      if (speedSq < 15.0) {
         item.sleepCounter++;
-        if (item.sleepCounter >= 2) {
+        if (item.sleepCounter >= 12) {
           item.isSleeping = true;
+          item.vx = 0.0;
+          item.vy = 0.0;
           item.x = item.x.roundToDouble();
           item.y = item.y.roundToDouble();
-          item.lastX = item.x;
-          item.lastY = item.y;
         }
       } else {
         item.sleepCounter = 0;
       }
     }
 
-    // 4. 如果全员已锁死休眠，强行关闭控制器切断 UI 刷新
+    // 4. 当全部物品皆处于稳定休眠状态时，自动暂停物理引擎 Ticker 节约 CPU
     if (_items.isNotEmpty && _items.every((item) => item.isSleeping)) {
       if (_tickerController.isAnimating) {
         _tickerController.stop();
         setState(() {});
       }
     }
-  }
-
-  @override
-  void dispose() {
-    _tickerController.dispose();
-    _accelSubscription?.cancel();
-    super.dispose();
   }
 
   @override
@@ -447,53 +409,88 @@ class _TreasureGravityBoxWidgetState extends State<TreasureGravityBoxWidget>
       const Offset(strokeWidth, strokeWidth),
     ];
 
-    return GestureDetector(
-      onTap: _replayDropAnimation,
-      behavior: HitTestBehavior.opaque,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // 物理渲染层
-          ..._items.map((item) {
-            final visualRadius = item.radius * 1.3;
-            final size = visualRadius * 2;
-
-            return Positioned(
-              left: item.x - visualRadius,
-              top: item.y - visualRadius,
-              child: Transform.rotate(
-                angle: item.angle,
-                child: Stack(
-                  clipBehavior: Clip.none,
+    return SizedBox(
+      width: widget.width,
+      height: widget.height,
+      child: GestureDetector(
+        onTap: _replayDropAnimation,
+        behavior: HitTestBehavior.opaque,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // 统一在卡片顶端展示精炼引导描述信息（无遮挡）
+            Positioned(
+              top: 14,
+              left: 14,
+              right: 14,
+              child: IgnorePointer(
+                child: Row(
                   children: [
-                    // 白色贴纸描边效果
-                    ...strokeOffsets.map(
-                      (offset) => Positioned(
-                        left: offset.dx,
-                        top: offset.dy,
-                        child: SizedBox(
-                          width: size,
-                          height: size,
-                          child: Image.asset(
-                            item.imagePath,
-                            color: Colors.white,
-                            colorBlendMode: BlendMode.srcIn,
-                          ),
+                    Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 13,
+                      color: widget.accentColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        "倾斜手机 · 打捞配件",
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 11.0,
+                          fontFamily: widget.fontFamily,
+                          color: widget.subtitleColor,
+                          letterSpacing: 0.1,
                         ),
                       ),
-                    ),
-                    // 实体图片
-                    SizedBox(
-                      width: size,
-                      height: size,
-                      child: Image.asset(item.imagePath),
                     ),
                   ],
                 ),
               ),
-            );
-          }),
-        ],
+            ),
+
+            // 物理渲染层
+            ..._items.map((item) {
+              final visualRadius = item.radius * 1.3;
+              final size = visualRadius * 2;
+
+              return Positioned(
+                left: item.x - visualRadius,
+                top: item.y - visualRadius,
+                child: Transform.rotate(
+                  angle: item.angle,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // 白色描边效果
+                      ...strokeOffsets.map(
+                        (offset) => Positioned(
+                          left: offset.dx,
+                          top: offset.dy,
+                          child: SizedBox(
+                            width: size,
+                            height: size,
+                            child: Image.asset(
+                              item.imagePath,
+                              color: Colors.white,
+                              colorBlendMode: BlendMode.srcIn,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 实体贴纸图片
+                      SizedBox(
+                        width: size,
+                        height: size,
+                        child: Image.asset(item.imagePath),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

@@ -9,6 +9,7 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 
 // Models
 import 'package:island_diary/core/models/daily_task.dart';
+import 'package:island_diary/core/models/home_module_config.dart';
 import 'package:island_diary/core/models/mascot_achievement.dart';
 import 'package:island_diary/core/models/mascot_decoration.dart';
 import 'package:island_diary/core/models/mascot_event.dart';
@@ -98,6 +99,7 @@ class _K {
   static const imageCompressQuality = 'image_compress_quality';
   static const diaryLayoutMode = 'diary_layout_mode';
   static const moodTagHistory = 'mood_tag_history';
+  static const homeModuleConfigs = 'home_module_configs_v1';
   static const statsOrderWeek = 'stats_order_week';
   static const statsOrderMonth = 'stats_order_month';
   static const statsOrderAll = 'stats_order_all';

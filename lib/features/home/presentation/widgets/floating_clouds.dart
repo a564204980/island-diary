@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart'; // 用于 Ticker 定义
 import 'dart:math' as math;
 import 'package:island_diary/core/state/user_state.dart'; // 导入 UserState
-import 'package:island_diary/features/home/presentation/widgets/random_memory_overlay.dart';
 
 class FloatingClouds extends StatelessWidget {
   final bool isNight;
@@ -249,11 +248,7 @@ class _SingleCloudState extends State<_SingleCloud>
         return Positioned(
           top: screenHeight * _currentTop,
           left: xPos,
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () {
-              RandomMemoryOverlay.show(context, isNight: widget.isNight);
-            },
+          child: IgnorePointer(
             child: Transform.scale(
               scale: widget.scale,
               child: Image.asset(

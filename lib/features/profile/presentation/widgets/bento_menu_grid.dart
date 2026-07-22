@@ -13,6 +13,7 @@ import 'package:island_diary/shared/widgets/top_toast.dart';
 import 'package:island_diary/core/models/life_line_profile.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_drafts_page.dart';
 import 'package:island_diary/features/record/domain/models/diary_draft.dart';
+import 'package:island_diary/features/home/presentation/widgets/card_repository_sheet.dart';
 
 
 class BentoMenuGrid extends StatelessWidget {
@@ -164,6 +165,8 @@ class BentoMenuGrid extends StatelessWidget {
             const SizedBox(height: 12),
             _buildDraftsBentoAction(context),
             const SizedBox(height: 12),
+            _buildHomeCardConfigBento(context),
+            const SizedBox(height: 12),
             _buildMenuActionBento(
               context,
               title: '关于小岛',
@@ -174,6 +177,54 @@ class BentoMenuGrid extends StatelessWidget {
           ],
         ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0);
       },
+    );
+  }
+
+  Widget _buildHomeCardConfigBento(BuildContext context) {
+    final fontFamily = _getFontFamily();
+    final textColor = _getThemeTextColor(isNight);
+
+    return GestureDetector(
+      onTap: () {
+        HomeCardManagerSheet.show(context, isNight: isNight, fontFamily: fontFamily);
+      },
+      child: BentoBox(
+        isNight: isNight,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFAB47BC).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                size: 18,
+                color: Color(0xFFAB47BC),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                "首页卡片自定义",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: isNight ? Colors.white.withValues(alpha: 0.8) : textColor.withValues(alpha: 0.85),
+                  fontFamily: fontFamily,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: isNight ? Colors.white30 : Colors.black26,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

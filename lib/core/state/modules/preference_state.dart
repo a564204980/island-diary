@@ -40,7 +40,11 @@ mixin PreferenceMixin on ProfileMixin {
   final ValueNotifier<double> chunshanAspectRatio = ValueNotifier<double>(2.35);
   final ValueNotifier<bool> chunshanHasBackground = ValueNotifier<bool>(true);
 
+  // 首页模块配置列表
+  final ValueNotifier<List<HomeModuleItem>> homeModuleConfigs = ValueNotifier<List<HomeModuleItem>>([]);
+
   void loadPreference(SharedPreferences prefs) {
+    _loadHomeModuleConfigs(prefs);
     isImageCompressEnabled.value = prefs.getBool(UserState().n(_K.isImageCompressEnabled)) ?? true;
     imageCompressQuality.value = prefs.getInt(UserState().n(_K.imageCompressQuality)) ?? 82;
 
@@ -325,5 +329,51 @@ mixin PreferenceMixin on ProfileMixin {
       chunshanHasBackground.value = hasBackground;
       await p.setBool(UserState().n(_K.chunshanHasBackground), hasBackground);
     }
+  }
+
+  void _loadHomeModuleConfigs(SharedPreferences prefs) {
+    final defaultModules = HomeModuleItem.getDefaultModules();
+    final jsonStr = prefs.getString(UserState().n(_K.homeModuleConfigs));
+    if (jsonStr == null || jsonStr.isEmpty) {
+      homeModuleConfigs.value = defaultModules;
+      return;
+    }
+
+    try {
+      final List<dynamic> jsonList = jsonDecode(jsonStr);
+      final Map<String, Map<String, dynamic>> savedMap = {
+        for (var item in jsonList) (item as Map<String, dynamic>)['id'] as String: item
+      };
+
+      List<HomeModuleItem> result = [];
+      for (var template in defaultModules) {
+        if (savedMap.containsKey(template.id)) {
+          result.add(HomeModuleItem.fromJson(savedMap[template.id]!, template));
+        } else {
+          result.add(template.copyWith(order: result.length));
+        }
+      }
+      result.sort((a, b) => a.order.compareTo(b.order));
+      homeModuleConfigs.value = result;
+    } catch (_) {
+      homeModuleConfigs.value = defaultModules;
+    }
+  }
+
+  Future<void> saveHomeModuleConfigs(List<HomeModuleItem> newConfigs) async {
+    final updatedList = List<HomeModuleItem>.from(newConfigs);
+    for (int i = 0; i < updatedList.length; i++) {
+      updatedList[i] = updatedList[i].copyWith(order: i);
+    }
+    homeModuleConfigs.value = updatedList;
+
+    final jsonList = updatedList.map((e) => e.toJson()).toList();
+    final jsonStr = jsonEncode(jsonList);
+    final p = await SharedPreferences.getInstance();
+    await p.setString(UserState().n(_K.homeModuleConfigs), jsonStr);
+  }
+
+  Future<void> resetHomeModuleConfigs() async {
+    await saveHomeModuleConfigs(HomeModuleItem.getDefaultModules());
   }
 }

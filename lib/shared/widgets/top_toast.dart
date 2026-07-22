@@ -70,11 +70,11 @@ class _TopToastState extends State<TopToast> with SingleTickerProviderStateMixin
     );
 
     _offsetAnimation = Tween<Offset>(
-      begin: const Offset(0.0, -1.2),
+      begin: const Offset(0.0, 0.5),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _controller,
-      curve: Curves.easeOutBack,
+      curve: Curves.easeOutCubic,
     ));
 
     _opacityAnimation = Tween<double>(
@@ -114,77 +114,77 @@ class _TopToastState extends State<TopToast> with SingleTickerProviderStateMixin
     final isNight = UserState().isNight;
     final themeId = UserState().selectedIslandThemeId.value;
     final String fontFamily = themeId == 'lego' ? 'SweiFistLeg' : 'LXGWWenKai';
+    final screenHeight = MediaQuery.of(context).size.height;
 
     final Color defaultIconColor = isNight ? const Color(0xFF818CF8) : const Color(0xFF6366F1);
 
-    return SafeArea(
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 12, left: 24, right: 24),
-          child: SlideTransition(
-            position: _offsetAnimation,
-            child: FadeTransition(
-              opacity: _opacityAnimation,
-              child: Dismissible(
-                key: UniqueKey(),
-                direction: DismissDirection.up,
-                onDismissed: (_) {
-                  _isDismissed = true;
-                  widget.onDismiss();
-                },
-                child: Material(
-                  color: Colors.transparent,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    decoration: BoxDecoration(
+    return Positioned(
+      bottom: screenHeight * 0.21,
+      left: 24,
+      right: 24,
+      child: Center(
+        child: SlideTransition(
+          position: _offsetAnimation,
+          child: FadeTransition(
+            opacity: _opacityAnimation,
+            child: Dismissible(
+              key: UniqueKey(),
+              direction: DismissDirection.down,
+              onDismissed: (_) {
+                _isDismissed = true;
+                widget.onDismiss();
+              },
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isNight
+                        ? const Color(0xFF1E293B).withValues(alpha: 0.95)
+                        : Colors.white.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
                       color: isNight
-                          ? const Color(0xFF1E293B).withValues(alpha: 0.95)
-                          : Colors.white.withValues(alpha: 0.95),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: isNight
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.black.withValues(alpha: 0.04),
-                        width: 1.0,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: isNight ? 0.25 : 0.06),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.black.withValues(alpha: 0.04),
+                      width: 1.0,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          widget.icon,
-                          color: widget.iconColor ?? defaultIconColor,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            widget.message,
-                            style: TextStyle(
-                              color: isNight ? Colors.white : const Color(0xFF1F2937),
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: fontFamily,
-                            ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isNight ? 0.25 : 0.06),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(
+                        widget.icon,
+                        color: widget.iconColor ?? defaultIconColor,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          widget.message,
+                          style: TextStyle(
+                            color: isNight ? Colors.white : const Color(0xFF1F2937),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: fontFamily,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.pets,
-                          color: Color(0xFFD4A373),
-                          size: 14,
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.pets,
+                        color: Color(0xFFD4A373),
+                        size: 14,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -194,4 +194,5 @@ class _TopToastState extends State<TopToast> with SingleTickerProviderStateMixin
       ),
     );
   }
+
 }
