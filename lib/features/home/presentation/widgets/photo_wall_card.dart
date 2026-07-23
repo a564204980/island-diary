@@ -340,7 +340,7 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                             ),
                           );
                         },
-                        scaleFactor: 0.92,
+                        scaleFactor: 1.06,
                         child: Stack(
                           clipBehavior: Clip.none,
                           alignment: Alignment.topCenter,
@@ -349,7 +349,7 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                             Container(
                               width: cardWidth,
                               height: cardHeight,
-                              padding: const EdgeInsets.only(top: 4, left: 4, right: 4, bottom: 8),
+                              padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(5),

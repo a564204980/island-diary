@@ -11,6 +11,7 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/core/plugins/plugin_manager.dart';
 import 'package:island_diary/core/plugins/island_plugin.dart';
+import 'package:island_diary/core/widgets/island_floating_bottom_bar.dart';
 // import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_text_context_menu.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
@@ -381,80 +382,51 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         ? (isNight ? const Color(0x992C2E30) : const Color(0xB3FFFFFF))
         : paperBaseColor.withValues(alpha: 0.85);
 
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 30,
-      child: Center(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              decoration: BoxDecoration(
-                color: barBgColor,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: isNight
-                      ? const Color(0xFFD4A373).withValues(alpha: 0.15)
-                      : inkColor.withValues(alpha: 0.08),
-                  width: 0.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildActionButton(
-                    icon: Icons.arrow_back_ios_new_rounded,
-                    color: iconColor,
-                    onTap: widget.onBack ?? () => Navigator.pop(context),
-                    label: "返回",
-                    width: 36,
-                    iconSize: 22,
-                  ),
-                  const SizedBox(width: 24),
-                  _buildActionButton(
-                    icon: Icons.chat_bubble_outline_rounded,
-                    color: iconColor,
-                    onTap: _showReplySheet,
-                    label: "回应",
-                    iconSize: 22,
-                    width: 36,
-                  ),
-                  const SizedBox(width: 24),
-                  _buildActionButton(
-                    icon: Icons.edit_note_rounded,
-                    color: iconColor,
-                    onTap: _handleEdit,
-                    label: "编辑",
-                    iconSize: 26,
-                    width: 36,
-                  ),
-                  const SizedBox(width: 24),
-                  _buildActionButton(
-                    icon: Icons.delete_outline_rounded,
-                    // 删除图标也使用统一的墨水色（或非常柔和的莫兰迪红），体现克制的高级感
-                    color: isNight ? const Color(0xFFC47B7B) : inkColor.withValues(alpha: 0.8),
-                    onTap: _handleDelete,
-                    label: "删除",
-                    iconSize: 22,
-                    width: 36,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.95, 0.95)),
-      ),
+    return IslandFloatingBottomBar(
+      isDark: isNight,
+      backgroundColor: barBgColor,
+      borderColor: isNight
+          ? const Color(0xFFD4A373).withValues(alpha: 0.15)
+          : inkColor.withValues(alpha: 0.08),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      enableEntranceAnimation: true,
+      children: [
+        IslandFloatingBottomBarItem(
+          icon: Icons.arrow_back_ios_new_rounded,
+          color: iconColor,
+          onTap: widget.onBack ?? () => Navigator.pop(context),
+          tooltip: "返回",
+          width: 36,
+          iconSize: 22,
+        ),
+        const SizedBox(width: 24),
+        IslandFloatingBottomBarItem(
+          icon: Icons.chat_bubble_outline_rounded,
+          color: iconColor,
+          onTap: _showReplySheet,
+          tooltip: "回应",
+          width: 36,
+          iconSize: 22,
+        ),
+        const SizedBox(width: 24),
+        IslandFloatingBottomBarItem(
+          icon: Icons.edit_note_rounded,
+          color: iconColor,
+          onTap: _handleEdit,
+          tooltip: "编辑",
+          width: 36,
+          iconSize: 26,
+        ),
+        const SizedBox(width: 24),
+        IslandFloatingBottomBarItem(
+          icon: Icons.delete_outline_rounded,
+          color: isNight ? const Color(0xFFC47B7B) : inkColor.withValues(alpha: 0.8),
+          onTap: _handleDelete,
+          tooltip: "删除",
+          width: 36,
+          iconSize: 22,
+        ),
+      ],
     );
   }
 
@@ -487,25 +459,6 @@ class _DiaryDetailPageState extends State<DiaryDetailPage> {
         _currentEntry = updated;
       });
     }
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-    required String label,
-    double iconSize = 24,
-    double width = 72,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: width,
-        height: 54,
-        child: Icon(icon, color: color, size: iconSize),
-      ),
-    );
   }
 
   Widget _buildHeader() {
