@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:island_diary/shared/animations/bouncing_button.dart';
 
 /// 岛屿全局通用悬浮胶囊底部菜单组件 (IslandFloatingBottomBar)
 /// 适用于日记详情页、照片墙详情页等沉浸式页面，保证全局统一的毛玻璃样式与定位规范
@@ -115,22 +116,17 @@ class IslandFloatingBottomBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final button = GestureDetector(
+    return BouncingButton(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
+      scaleFactor: 0.82,
+      child: Container(
         width: width,
         height: height,
-        child: Icon(icon, color: color, size: iconSize),
+        color: Colors.transparent,
+        child: Center(
+          child: Icon(icon, color: color, size: iconSize),
+        ),
       ),
     );
-
-    if (tooltip != null && tooltip!.isNotEmpty) {
-      return Tooltip(
-        message: tooltip!,
-        child: button,
-      );
-    }
-    return button;
   }
 }

@@ -5,6 +5,8 @@ import 'package:island_diary/features/profile/presentation/widgets/profile_heade
 import 'package:island_diary/features/profile/presentation/widgets/premium_bento_card.dart';
 import 'package:island_diary/features/profile/presentation/widgets/bento_menu_grid.dart';
 import 'package:island_diary/features/profile/presentation/pages/plugin_store_page.dart';
+import 'package:island_diary/shared/widgets/island_page_background.dart';
+import 'package:island_diary/shared/animations/cupertino_slide_page_route.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:async';
 
@@ -105,40 +107,17 @@ class _ProfilePageState extends State<ProfilePage> {
         userState.isVip,
         userState.selectedTitles,
         userState.selectedIslandThemeId,
+        userState.currentBackgroundPath,
       ]),
       builder: (context, child) {
         final bool isNight = userState.isNight;
         final bool isVip = userState.isVip.value;
-        final String themeId = userState.selectedIslandThemeId.value;
 
         return Stack(
           children: [
-            // 节日与主题特定背景
-            if (themeId == 'cotton_candy' || themeId == 'lego')
-              Positioned.fill(
-                child: Image.asset(
-                  themeId == 'lego'
-                      ? 'assets/images/theme/legao/legao_my_bg.png'
-                      : (isNight
-                          ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
-                          : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-
-            // 背景模糊（特定主题下保持清晰）
-            Positioned.fill(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: (themeId == 'cotton_candy' || themeId == 'lego') ? 0 : 10,
-                  sigmaY: (themeId == 'cotton_candy' || themeId == 'lego') ? 0 : 10,
-                ),
-                child: Container(
-                  color: Colors.black.withValues(
-                    alpha: 0.0,
-                  ),
-                ),
-              ),
+            // 背景层 (使用统一透光海岛背景组件)
+            const Positioned.fill(
+              child: IslandPageBackground(),
             ),
 
             SafeArea(
@@ -181,13 +160,8 @@ class _ProfilePageState extends State<ProfilePage> {
       onTap: () {
         Navigator.push(
           context,
-          PageRouteBuilder(
-            opaque: true,
-            barrierColor: isNight ? Colors.black : const Color(0xFFFDFCF7),
-            pageBuilder: (context, animation, secondaryAnimation) => const PluginStorePage(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+          CupertinoSlidePageRoute(
+            page: const PluginStorePage(),
           ),
         );
       },

@@ -16,6 +16,7 @@ import 'package:island_diary/features/record/presentation/widgets/diary_featured
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_card.dart';
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
+import 'package:island_diary/shared/widgets/island_page_background.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_date_picker_sheet.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
 
@@ -82,6 +83,7 @@ class _RecordPageState extends State<RecordPage> {
         UserState().themeMode,
         UserState().diaryLayoutMode,
         UserState().selectedIslandThemeId,
+        UserState().currentBackgroundPath,
       ],
       builder: (context, values, _) {
         final int layoutIndex = values[1] as int;
@@ -97,44 +99,9 @@ class _RecordPageState extends State<RecordPage> {
               : const Color(0xFFE6F3F5),
           body: Stack(
             children: [
-              // 背景层 (适配不同模式)
-              Positioned.fill(
-                child: Builder(
-                  builder: (context) {
-                    final themeId = UserState().selectedIslandThemeId.value;
-                    if (themeId == 'cotton_candy') {
-                      return Image.asset(
-                        isNight
-                            ? 'assets/images/theme/miamhuadao/mianhuadao_page_night_bg.png'
-                            : 'assets/images/theme/miamhuadao/mianhuadao_page_bg.png',
-                        fit: BoxFit.cover,
-                      );
-                    } else if (themeId == 'lego') {
-                      return Image.asset(
-                        'assets/images/theme/legao/legao_page_bg.png',
-                        fit: BoxFit.cover,
-                      );
-                    }
-                    return AnimatedContainer(
-                      duration: 500.ms,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: isNight
-                              ? [
-                                  const Color(0xFF0D1B2A),
-                                  const Color(0xFF13131F),
-                                ]
-                              : [
-                                  const Color(0xFFE6F3F5),
-                                  const Color(0xFFEDF8FA),
-                                ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+              // 背景层 (使用统一透光海岛背景组件)
+              const Positioned.fill(
+                child: IslandPageBackground(),
               ),
 
               // ... rest of the stack

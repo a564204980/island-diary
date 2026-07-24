@@ -252,7 +252,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // 彻底不渲染成就解锁动画，下线成就系统
   }
 
-  /// 带淡入淡出动画的页面切换，保留页面状态
+  /// 带 iOS 共享轴微缩放与淡入淡出动画的页面切换，保留页面状态
   Widget _buildAnimatedPage(int pageIndex, Widget child) {
     // 将导航 index 映射到 pageIndex
     final int mappedIndex = _currentNavIndex == 4
@@ -263,11 +263,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final bool isVisible = mappedIndex == pageIndex;
     return IgnorePointer(
       ignoring: !isVisible,
-      child: AnimatedOpacity(
-        opacity: isVisible ? 1.0 : 0.0,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeInOut,
-        child: child,
+      child: AnimatedScale(
+        scale: isVisible ? 1.0 : 0.96,
+        duration: const Duration(milliseconds: 280),
+        curve: const Cubic(0.2, 0.9, 0.1, 1.0),
+        child: AnimatedOpacity(
+          opacity: isVisible ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 280),
+          curve: const Cubic(0.2, 0.9, 0.1, 1.0),
+          child: child,
+        ),
       ),
     );
   }

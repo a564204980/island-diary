@@ -18,7 +18,7 @@ import 'package:island_diary/features/statistics/presentation/widgets/bento/reco
 import 'package:island_diary/features/statistics/presentation/widgets/mood_poster_widget.dart';
 import 'package:island_diary/features/statistics/presentation/widgets/glass_bento.dart';
 
-import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
+import 'package:island_diary/shared/widgets/island_page_background.dart';
 import 'package:island_diary/core/services/ai_service.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_detail_page.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
@@ -748,32 +748,17 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    return MultiValueListenableBuilder(
-      listenables: [
-        UserState().themeMode,
-        UserState().selectedIslandThemeId,
-      ],
-      builder: (context, values, _) {
-        final bool isNight = UserState().isNight;
-        final String themeId = values[1] as String;
-        final filteredDiaries = _getFilteredDiaries();
-        
-        return Scaffold(
-          backgroundColor: Colors.transparent,
+    final bool isNight = UserState().isNight;
+    final filteredDiaries = _getFilteredDiaries();
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
           body: Stack(
             children: [
-              // 0. 节日特定背景/主题特定背景
-              if (themeId == 'cotton_candy' || themeId == 'lego')
-                Positioned.fill(
-                  child: Image.asset(
-                    themeId == 'lego'
-                        ? 'assets/images/theme/legao/legao_data_bg.png'
-                        : (isNight
-                            ? 'assets/images/theme/miamhuadao/mianhuadao_home_night_bg.png'
-                            : 'assets/images/theme/miamhuadao/mianhaudao_home_bg.png'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
+              // 0. 全屏透光渐变海岛背景组件
+              const Positioned.fill(
+                child: IslandPageBackground(),
+              ),
 
               SafeArea(
                 child: Padding(
@@ -857,8 +842,6 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
             ],
           ),
         );
-      },
-    );
   }
 
   Widget _buildHeader(bool isNight, List<DiaryEntry> filtered) {

@@ -8,23 +8,23 @@ import 'package:island_diary/shared/animations/bouncing_button.dart';
 import 'package:island_diary/shared/widgets/top_toast.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/redbook_asset_picker.dart';
 import 'package:island_diary/features/home/domain/models/photo_wall_collection.dart';
-import 'package:island_diary/features/home/presentation/widgets/photo_wall/wall_background_painter.dart';
+import 'package:island_diary/features/home/presentation/widgets/photo_wall/wall_layout_mode.dart';
 import 'package:island_diary/features/home/presentation/widgets/photo_wall/treemap_splitter.dart';
 import 'package:island_diary/core/widgets/island_floating_bottom_bar.dart';
 import 'package:island_diary/core/services/wind_service.dart';
 import 'package:island_diary/shared/animations/wind_dissolve_effect.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
+import 'package:island_diary/shared/widgets/island_page_background.dart';
 
 /// 照片墙集合详情页 (中央实体展板相框样式，对齐图2)
 class PhotoWallDetailPage extends StatefulWidget {
   final PhotoWallCollection collection;
   final bool isNight;
-  final WallTheme currentTheme;
 
   const PhotoWallDetailPage({
     super.key,
     required this.collection,
     required this.isNight,
-    required this.currentTheme,
   });
 
   @override
@@ -49,9 +49,9 @@ class _ActiveWindDissolveEffect {
 
 class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
   late PhotoWallCollection _collection;
-  WallLayoutMode _layoutMode = WallLayoutMode.scatter;
+  WallLayoutMode _layoutMode = WallLayoutMode.treemap;
   int _randomSeed = 42;
-  bool _isPureViewMode = false;
+  bool _showWashiTape = true;
   String? _selectedPhotoId;
   int _nextId = 0;
   late List<String> _photoIds;
@@ -132,12 +132,27 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
     required bool enabled,
     required Color activeBgColor,
     required Color activeIconColor,
+    required bool isDark,
   }) {
-    final bgColor = enabled ? activeBgColor : const Color(0xFFF8FAFC);
-    final iconColor = enabled ? activeIconColor : Colors.grey.shade400;
-    final textColor = enabled ? const Color(0xFF1E293B) : Colors.grey.shade400;
-    final badgeBgColor = enabled ? activeBgColor.withValues(alpha: 0.7) : const Color(0xFFF1F5F9);
-    final badgeTextColor = enabled ? activeIconColor : Colors.grey.shade400;
+    final bgColor = enabled
+        ? (isDark ? activeIconColor.withValues(alpha: 0.22) : activeBgColor)
+        : (isDark ? const Color(0xFF334155).withValues(alpha: 0.4) : const Color(0xFFF1F5F9));
+
+    final iconColor = enabled
+        ? activeIconColor
+        : (isDark ? const Color(0xFF64748B) : Colors.grey.shade400);
+
+    final textColor = enabled
+        ? (isDark ? Colors.white : const Color(0xFF1E293B))
+        : (isDark ? const Color(0xFF64748B) : Colors.grey.shade400);
+
+    final badgeBgColor = enabled
+        ? (isDark ? activeIconColor.withValues(alpha: 0.25) : activeBgColor.withValues(alpha: 0.7))
+        : (isDark ? const Color(0xFF334155).withValues(alpha: 0.4) : const Color(0xFFF1F5F9));
+
+    final badgeTextColor = enabled
+        ? activeIconColor
+        : (isDark ? const Color(0xFF64748B) : Colors.grey.shade400);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -145,16 +160,22 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
         Row(
           children: [
             Container(
-              width: 26,
-              height: 26,
+              width: 28,
+              height: 28,
               decoration: BoxDecoration(
                 color: bgColor,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: enabled
+                      ? activeIconColor.withValues(alpha: isDark ? 0.3 : 0.15)
+                      : Colors.transparent,
+                  width: 1,
+                ),
               ),
               child: Center(
                 child: Icon(
                   icon,
-                  size: 15,
+                  size: 16,
                   color: iconColor,
                 ),
               ),
@@ -171,7 +192,7 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
           ],
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
           decoration: BoxDecoration(
             color: badgeBgColor,
             borderRadius: BorderRadius.circular(6),
@@ -217,6 +238,7 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
 
     final isTop = (index == total - 1);
     final isBottom = (index == 0);
+    final bool isDark = widget.isNight;
 
     final selected = await showMenu<String>(
       context: buttonContext,
@@ -224,56 +246,73 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
         targetRect,
         Offset.zero & overlay.size,
       ),
-      elevation: 12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Colors.white.withValues(alpha: 0.98),
+      elevation: 16,
+      shadowColor: isDark ? Colors.black.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.15),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isDark ? Colors.white.withValues(alpha: 0.18) : const Color(0xFFE2E8F0),
+          width: 1.2,
+        ),
+      ),
+      color: isDark
+          ? const Color(0xFF1E293B)
+          : Colors.white,
       items: [
         PopupMenuItem<String>(
           value: 'front',
           enabled: !isTop,
+          height: 44,
           child: _buildLayerMenuItem(
             icon: Icons.flip_to_front_rounded,
             label: '移至置顶',
             badgeText: 'TOP',
             enabled: !isTop,
-            activeBgColor: const Color(0xFFEEF2FF), // 薰衣草紫柔光框
-            activeIconColor: const Color(0xFF4F46E5),
+            activeBgColor: const Color(0xFFEEF2FF),
+            activeIconColor: const Color(0xFF6366F1), // 靓丽靛蓝
+            isDark: isDark,
           ),
         ),
         PopupMenuItem<String>(
           value: 'forward',
           enabled: !isTop,
+          height: 44,
           child: _buildLayerMenuItem(
             icon: Icons.arrow_upward_rounded,
             label: '上移一层',
             badgeText: '+1',
             enabled: !isTop,
-            activeBgColor: const Color(0xFFECFDF5), // 薄荷绿柔光框
-            activeIconColor: const Color(0xFF059669),
+            activeBgColor: const Color(0xFFECFDF5),
+            activeIconColor: const Color(0xFF10B981), // 靓丽翡翠绿
+            isDark: isDark,
           ),
         ),
         PopupMenuItem<String>(
           value: 'backward',
           enabled: !isBottom,
+          height: 44,
           child: _buildLayerMenuItem(
             icon: Icons.arrow_downward_rounded,
             label: '下移一层',
             badgeText: '-1',
             enabled: !isBottom,
-            activeBgColor: const Color(0xFFFFF7ED), // 暖橙色柔光框
-            activeIconColor: const Color(0xFFEA580C),
+            activeBgColor: const Color(0xFFFFF7ED),
+            activeIconColor: const Color(0xFFF97316), // 靓丽暖橙
+            isDark: isDark,
           ),
         ),
         PopupMenuItem<String>(
           value: 'back',
           enabled: !isBottom,
+          height: 44,
           child: _buildLayerMenuItem(
             icon: Icons.flip_to_back_rounded,
             label: '移至置底',
             badgeText: 'BOT',
             enabled: !isBottom,
-            activeBgColor: const Color(0xFFF1F5F9), // 燕麦灰柔光框
-            activeIconColor: const Color(0xFF64748B),
+            activeBgColor: const Color(0xFFF1F5F9),
+            activeIconColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), // 暖灰
+            isDark: isDark,
           ),
         ),
       ],
@@ -521,7 +560,7 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
     );
   }
 
-  Widget _buildPhotoWidget(String path, int index, {double? height}) {
+  Widget _buildPhotoWidget(String path, int seed, {double? height}) {
     final double h = height ?? double.infinity;
     if (path.startsWith('assets/')) {
       return Image.asset(
@@ -530,7 +569,7 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
         height: h,
         width: double.infinity,
         errorBuilder: (context, error, stackTrace) => Image.asset(
-          _presetPhotos[index % _presetPhotos.length],
+          _presetPhotos[seed.abs() % _presetPhotos.length],
           fit: BoxFit.cover,
           height: h,
           width: double.infinity,
@@ -545,7 +584,7 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
         height: h,
         width: double.infinity,
         errorBuilder: (context, error, stackTrace) => Image.asset(
-          _presetPhotos[index % _presetPhotos.length],
+          _presetPhotos[seed.abs() % _presetPhotos.length],
           fit: BoxFit.cover,
           height: h,
           width: double.infinity,
@@ -553,7 +592,7 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
       );
     }
     return Image.asset(
-      _presetPhotos[index % _presetPhotos.length],
+      _presetPhotos[seed.abs() % _presetPhotos.length],
       fit: BoxFit.cover,
       height: h,
       width: double.infinity,
@@ -562,151 +601,136 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = (widget.currentTheme == WallTheme.darkPaper);
+    final bool isDark = widget.isNight;
     final Color textColor = isDark ? Colors.white : const Color(0xFF1E293B);
 
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        _saveCollectionState();
-        Navigator.of(context).pop(_collection);
-      },
-      child: Scaffold(
-        backgroundColor: widget.currentTheme.bgColor,
-        extendBodyBehindAppBar: false,
-        appBar: _isPureViewMode
-            ? null
-            : AppBar(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                surfaceTintColor: Colors.transparent,
-                leading: IconButton(
-                  icon: Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    color: textColor,
-                    size: 20,
-                  ),
-                  onPressed: () {
-                    _saveCollectionState();
-                    Navigator.of(context).pop(_collection);
-                  },
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _saveCollectionState();
+            Navigator.of(context).pop(_collection);
+          },
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            extendBodyBehindAppBar: true,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              surfaceTintColor: Colors.transparent,
+              leading: IconButton(
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: textColor,
+                  size: 20,
                 ),
-                title: Text(
-                  _collection.title,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-        body: Stack(
-          children: [
-            // 1. 全屏工作台背景 (点阵/木纹底纹 Canvas)
-            Positioned.fill(
-              child: CustomPaint(
-                painter: WallBackgroundPainter(theme: widget.currentTheme),
-              ),
-            ),
-
-            // 2. 中央实体展板相框区 (对齐图2：深色/手帐画板相框约束)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () {
-                  if (_isPureViewMode) {
-                    setState(() => _isPureViewMode = false);
-                  }
+                onPressed: () {
+                  _saveCollectionState();
+                  Navigator.of(context).pop(_collection);
                 },
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final screenW = constraints.maxWidth;
-
-                    // 中央胡桃木画板边距与确切长宽比 (精确映射比例：宽:高 = 0.58，即高 = 宽 / 0.58)
-                    const boardMarginH = 16.0;
-                    const boardMarginTop = 6.0;
-                    const double boardAspectRatio = 0.58;
-
-                    final boardWidth = screenW - boardMarginH * 2;
-                    final boardHeight = boardWidth / boardAspectRatio;
-
-                    return Align(
-                      alignment: Alignment.topCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          left: boardMarginH,
-                          right: boardMarginH,
-                          top: boardMarginTop,
-                        ),
-                        child: Container(
-                          width: boardWidth,
-                          height: boardHeight,
-                          padding: const EdgeInsets.all(14.0), // 14px 宽幅立体加粗胡桃木外框
-                          decoration: BoxDecoration(
-                            // 复古胡桃木实木外框（深咖啡木色）
-                            color: isDark
-                                ? const Color(0xFF291A10)
-                                : const Color(0xFF4A2E1B),
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: isDark
-                                  ? const Color(0xFF3D2314)
-                                  : const Color(0xFF382012),
-                              width: 2.0,
-                            ),
-                            boxShadow: [
-                              // 实木相框落地重度弥散落地影
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: isDark ? 0.65 : 0.30),
-                                blurRadius: 32,
-                                offset: const Offset(0, 14),
-                              ),
-                            ],
-                          ),
-                          child: Container(
-                            // 软木/燕麦手帐衬布板 (Cork Board Canvas)
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? const Color(0xFF1E1610)
-                                  : const Color(0xFFE8D5C4), // 暖燕麦/软木纸纹衬底
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.08)
-                                    : const Color(0xFFD4C2B0),
-                                width: 1.2,
-                              ),
-                              boxShadow: [
-                                // 内凹沉降微阴影
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: isDark ? 0.5 : 0.12),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(17),
-                              child: _buildConstrainingBoardContent(
-                                boardWidth - 28.0,
-                                boardHeight - 28.0,
-                                isDark,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+              ),
+              title: Text(
+                _collection.title,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
+            body: Stack(
+              children: [
+                // 0. 全屏透光渐变海岛背景组件
+                const Positioned.fill(
+                  child: IslandPageBackground(),
+                ),
+
+                // 1. 中央实体展板相框区 (保留图1双层精美边框结构 + 接入图2高斯模糊透光质感)
+                Positioned.fill(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final screenW = constraints.maxWidth;
+
+                      const boardMarginH = 16.0;
+                      final boardMarginTop = MediaQuery.of(context).padding.top + kToolbarHeight - 38.0;
+                      const double boardAspectRatio = 0.58;
+
+                      final boardWidth = screenW - boardMarginH * 2;
+                      final boardHeight = boardWidth / boardAspectRatio;
+
+                      return Align(
+                        alignment: Alignment.topCenter,
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            left: boardMarginH,
+                            right: boardMarginH,
+                            top: boardMarginTop,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(28),
+                            child: BackdropFilter(
+                              filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                              child: Container(
+                                width: boardWidth,
+                                height: boardHeight,
+                                padding: const EdgeInsets.all(12.0), // 图1保留：12px 双层立体外框层
+                                decoration: BoxDecoration(
+                                  // 图2高斯模糊透光外框：透光晶莹玻璃与柔光磨砂边框
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.08)
+                                      : Colors.white.withValues(alpha: 0.30),
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.22)
+                                        : Colors.white.withValues(alpha: 0.60),
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.18),
+                                      blurRadius: 32,
+                                      offset: const Offset(0, 14),
+                                    ),
+                                  ],
+                                ),
+                                child: Container(
+                                  // 图1保留：内层画布边框与柔和透光底纹
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.black.withValues(alpha: 0.20)
+                                        : Colors.white.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.15)
+                                          : Colors.white.withValues(alpha: 0.40),
+                                      width: 1.2,
+                                    ),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(17),
+                                    child: _buildConstrainingBoardContent(
+                                      boardWidth - 24.0,
+                                      boardHeight - 24.0,
+                                      isDark,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
 
             // 3. 引入公共悬浮胶囊底部菜单组件 (IslandFloatingBottomBar)
             IslandFloatingBottomBar(
               isDark: isDark,
-              offset: _isPureViewMode ? const Offset(0, 2.5) : Offset.zero,
+              offset: Offset.zero,
               padding: const EdgeInsets.symmetric(horizontal: 24),
               children: [
                 IslandFloatingBottomBarItem(
@@ -734,33 +758,13 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
                   width: 36,
                   iconSize: 22,
                 ),
+
                 const SizedBox(width: 24),
                 IslandFloatingBottomBarItem(
-                  icon: Icons.casino_rounded,
+                  icon: Icons.tune_rounded,
                   color: textColor,
-                  onTap: () {
-                    HapticFeedback.mediumImpact();
-                    setState(() {
-                      _randomSeed = math.Random().nextInt(10000);
-                      _photoCustomPositions.clear();
-                      _photoCustomScales.clear();
-                      _photoCustomAngles.clear();
-                      _saveCollectionState();
-                    });
-                  },
-                  tooltip: "随机重排",
-                  width: 36,
-                  iconSize: 22,
-                ),
-                const SizedBox(width: 24),
-                IslandFloatingBottomBarItem(
-                  icon: Icons.fullscreen_rounded,
-                  color: textColor,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    setState(() => _isPureViewMode = true);
-                  },
-                  tooltip: "纯享",
+                  onTap: _showSettingsSheet,
+                  tooltip: "展板设置",
                   width: 36,
                   iconSize: 22,
                 ),
@@ -849,12 +853,14 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
                       padding: const EdgeInsets.all(3),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(6),
-                        child: _buildPhotoWidget(path, leaf.index),
+                        child: _buildPhotoWidget(path, _photoIds[leaf.index].hashCode),
                       ),
                     ),
+                    // 复古和纸胶带装饰 (斜贴于照片顶部角角)
+                    _buildWashiTapeWidget(_photoIds[leaf.index].hashCode, 0.0),
                     Positioned(
-                      top: 1,
-                      child: _buildPushPinWidget(leaf.index, false),
+                      top: -6,
+                      child: _buildPushPinWidget(_photoIds[leaf.index].hashCode, false),
                     ),
                   ],
                 ),
@@ -1015,16 +1021,19 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(4.5),
                                 child: SizedBox.expand(
-                                  child: _buildPhotoWidget(path, index),
+                                  child: _buildPhotoWidget(path, id.hashCode),
                                 ),
                               ),
                             ),
                           ),
 
-                          // 顶部钉在展板上的极简小圆钉 (包含拔起与钉入动态物理反馈)
+                          // 复古和纸胶带装饰 (斜贴于照片顶部角角)
+                          _buildWashiTapeWidget(id.hashCode, handlePadding),
+
+                          // 顶部钉在展板上的拟真半球水晶图钉 (包含拔起与钉入动态物理反馈)
                           Positioned(
-                            top: handlePadding + 1,
-                            child: _buildPushPinWidget(index, isSelected),
+                            top: handlePadding - 6,
+                            child: _buildPushPinWidget(id.hashCode, isSelected),
                           ),
 
                           // 选中状态：在悬浮放大的同时同步显现虚线框与四角调控手柄
@@ -1195,16 +1204,20 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
     return buttonWidget;
   }
 
-  /// 极简治愈系手帐小圆钉组件 (包含拔起与钉入动态物理反馈)
-  Widget _buildPushPinWidget(int index, bool isSelected) {
+  /// 拟真半球水晶图钉组件 (包含球体光泽高光、金属银座圈与真实沉降下落阴影)
+  Widget _buildPushPinWidget(int seed, bool isSelected) {
     const pinColors = [
-      Color(0xFFFFB7B2), // 马卡龙柔粉
-      Color(0xFFB5EAD7), // 薄荷绿
-      Color(0xFFFFE5B4), // 奶油暖黄
-      Color(0xFFE2D4F0), // 薰衣草浅紫
-      Color(0xFFC7CEEA), // 天空柔蓝
+      Color(0xFFFF8B8B), // 马卡龙柔粉（加深立体沉浸质感）
+      Color(0xFF6BD2B0), // 薄荷绿
+      Color(0xFFFFC04D), // 奶油暖黄
+      Color(0xFFB89FE1), // 薰衣草浅紫
+      Color(0xFF88A3EC), // 天空柔蓝
     ];
-    final color = pinColors[index % pinColors.length];
+    final color = pinColors[seed.abs() % pinColors.length];
+    final highlightColor = Color.lerp(color, Colors.white, 0.70)!;
+    final shadowColor = Color.lerp(color, const Color(0xFF2C1A1D), 0.50)!;
+
+    const double pinSize = 16.0; // 拟真大头钉直径
 
     return AnimatedScale(
       scale: isSelected ? 1.35 : 1.0,
@@ -1216,26 +1229,351 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
         transform: Matrix4.translationValues(0, isSelected ? -10.0 : 0.0, 0)
           ..rotateZ(isSelected ? -0.12 : 0.0),
         transformAlignment: Alignment.center,
-        width: 9,
-        height: 9,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.95),
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isSelected ? 0.35 : 0.15),
-              blurRadius: isSelected ? 6 : 2,
-              offset: isSelected ? const Offset(0, 5) : const Offset(0, 1),
+        width: pinSize,
+        height: pinSize,
+        child: Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            // 1. 底层立体下落软阴影 (带斜向倾斜与拔起拉长)
+            Positioned(
+              top: isSelected ? 6.0 : 2.5,
+              left: isSelected ? 3.0 : 1.5,
+              child: Container(
+                width: pinSize - 2,
+                height: pinSize - 2,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black.withValues(alpha: isSelected ? 0.35 : 0.22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isSelected ? 0.30 : 0.18),
+                      blurRadius: isSelected ? 7 : 3,
+                      spreadRadius: isSelected ? 2 : 0.5,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // 2. 金属底座微圈 (模拟大头针压在相纸上的银色金属环)
+            Container(
+              width: pinSize,
+              height: pinSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const SweepGradient(
+                  colors: [
+                    Color(0xFFE0E0E0),
+                    Color(0xFF9E9E9E),
+                    Color(0xFFF5F5F5),
+                    Color(0xFF757575),
+                    Color(0xFFE0E0E0),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 1,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+            ),
+
+            // 3. 半球水晶主质感体 (径向渐变，高光偏左上，阴影偏右下)
+            Container(
+              margin: const EdgeInsets.all(1.2), // 露出一圈细微银色金属边框
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  center: const Alignment(-0.35, -0.45),
+                  radius: 0.78,
+                  colors: [
+                    highlightColor,
+                    color,
+                    shadowColor,
+                  ],
+                  stops: const [0.0, 0.55, 1.0],
+                ),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  width: 0.6,
+                ),
+              ),
+            ),
+
+            // 4. 顶部极细高分子水晶弧面亮斑 (Top Specular Highlight)
+            Positioned(
+              top: 3.0,
+              left: 3.8,
+              child: Container(
+                width: 4.8,
+                height: 3.0,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  borderRadius: const BorderRadius.all(Radius.elliptical(2.4, 1.5)),
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
   }
+  /// 拟真复古撕裂和纸胶带装饰组件 (Washi Tape)
+  Widget _buildWashiTapeWidget(int seed, double handlePadding) {
+    if (!_showWashiTape) return const SizedBox.shrink();
+
+    const tapeConfigs = [
+      _WashiTapeConfig(Color(0xFFE6C594), -0.28, true, 34.0, 12.0),  // 暖琥珀/牛皮纸 左上
+      _WashiTapeConfig(Color(0xFFA3C9A8), 0.30, false, 36.0, 11.5),  // 鼠尾草绿 右上
+      _WashiTapeConfig(Color(0xFFF2B5D4), -0.24, true, 32.0, 12.0),  // 柔粉和纸 左上
+      _WashiTapeConfig(Color(0xFFC4B2E6), 0.26, false, 34.0, 11.0),  // 薰衣草紫 右上
+      _WashiTapeConfig(Color(0xFFA5C4D4), -0.32, true, 38.0, 12.5),  // 丹宁浅蓝 左上
+    ];
+    final config = tapeConfigs[seed.abs() % tapeConfigs.length];
+
+    return Positioned(
+      top: handlePadding + 2,
+      left: config.isLeft ? handlePadding - 4 : null,
+      right: !config.isLeft ? handlePadding - 4 : null,
+      child: Transform.rotate(
+        angle: config.angle,
+        child: SizedBox(
+          width: config.width,
+          height: config.height,
+          child: CustomPaint(
+            painter: WashiTapePainter(color: config.color),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 弹出展板设置控制弹窗 (使用项目统一 DiaryBottomSheet 组件)
+  void _showSettingsSheet() {
+    HapticFeedback.mediumImpact();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (modalContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final bool isDark = widget.isNight;
+
+            return DiaryBottomSheet(
+              paperStyle: 'default',
+              isDiary: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. 标题栏
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.tune_rounded,
+                        color: isDark ? Colors.amber.shade200 : const Color(0xFF78350F),
+                        size: 22,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "展板设置",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                          fontFamily: 'LXGWWenKai',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 2. 饰品开关：手撕和纸胶带
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.style_rounded,
+                              size: 20,
+                              color: isDark ? Colors.amber.shade200 : const Color(0xFF78350F),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              "显示手撕和纸胶带",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white70 : const Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Switch.adaptive(
+                          value: _showWashiTape,
+                          activeTrackColor: isDark ? Colors.amber.shade300 : const Color(0xFF4A2E1B),
+                          onChanged: (val) {
+                            HapticFeedback.selectionClick();
+                            setModalState(() {
+                              _showWashiTape = val;
+                            });
+                            setState(() {
+                              _showWashiTape = val;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 4. 重置散落排版
+                  InkWell(
+                    onTap: () {
+                      HapticFeedback.mediumImpact();
+                      Navigator.pop(modalContext);
+                      setState(() {
+                        _photoCustomPositions.clear();
+                        _photoCustomScales.clear();
+                        _photoCustomAngles.clear();
+                        _saveCollectionState();
+                      });
+                      showTopToast(context, "已重置照片排版与角度");
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.redAccent.withValues(alpha: 0.15) : const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isDark ? Colors.redAccent.withValues(alpha: 0.3) : const Color(0xFFFCA5A5),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.restart_alt_rounded,
+                            size: 18,
+                            color: isDark ? Colors.redAccent.shade100 : const Color(0xFFDC2626),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "重置照片散落位置与角度",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.redAccent.shade100 : const Color(0xFFDC2626),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _WashiTapeConfig {
+  final Color color;
+  final double angle;
+  final bool isLeft;
+  final double width;
+  final double height;
+
+  const _WashiTapeConfig(this.color, this.angle, this.isLeft, this.width, this.height);
+}
+
+/// 手撕撕裂和纸胶带 CustomPainter (包含锯齿边缘、半透明滤质与微光纤维)
+class WashiTapePainter extends CustomPainter {
+  final Color color;
+
+  WashiTapePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.72)
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    const int numTeeth = 4;
+    final toothH = size.height / numTeeth;
+
+    path.moveTo(0, 0);
+    path.lineTo(size.width, 0);
+
+    // 右侧锯齿撕裂边
+    for (int i = 0; i < numTeeth; i++) {
+      final yMid = (i + 0.5) * toothH;
+      final yEnd = (i + 1) * toothH;
+      final dx = (i % 2 == 0) ? -2.5 : 0.0;
+      path.lineTo(size.width + dx, yMid);
+      path.lineTo(size.width, yEnd);
+    }
+
+    path.lineTo(0, size.height);
+
+    // 左侧锯齿撕裂边
+    for (int i = numTeeth - 1; i >= 0; i--) {
+      final yMid = (i + 0.5) * toothH;
+      final yStart = i * toothH;
+      final dx = (i % 2 == 0) ? 2.5 : 0.0;
+      path.lineTo(dx, yMid);
+      path.lineTo(0, yStart);
+    }
+
+    path.close();
+
+    // 1. 底层接触下落微阴影
+    final shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.12)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
+    canvas.drawPath(path.shift(const Offset(0.8, 1.2)), shadowPaint);
+
+    // 2. 胶带主体填充
+    canvas.drawPath(path, paint);
+
+    // 3. 顶部微光亮线
+    final shinePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.40)
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(const Offset(2, 1), Offset(size.width - 2, 1), shinePaint);
+
+    // 4. 和纸纵向纤维微纹
+    final fiberPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.22)
+      ..strokeWidth = 0.6
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(Offset(size.width * 0.3, 2), Offset(size.width * 0.3 + 3, size.height - 2), fiberPaint);
+    canvas.drawLine(Offset(size.width * 0.7, 2), Offset(size.width * 0.7 - 3, size.height - 2), fiberPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant WashiTapePainter oldDelegate) =>
+      color != oldDelegate.color;
 }
 
 /// 手帐选中虚线框绘制类
@@ -1286,3 +1624,4 @@ class DashedBorderPainter extends CustomPainter {
   bool shouldRepaint(covariant DashedBorderPainter oldDelegate) =>
       color != oldDelegate.color;
 }
+

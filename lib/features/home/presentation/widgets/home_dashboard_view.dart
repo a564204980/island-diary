@@ -15,6 +15,7 @@ import 'package:island_diary/features/home/presentation/widgets/home_card_regist
 import 'package:island_diary/features/home/presentation/widgets/card_repository_sheet.dart';
 import 'package:island_diary/features/home/presentation/widgets/wind_bend_card_wrapper.dart';
 import 'package:island_diary/shared/widgets/top_toast.dart';
+import 'package:island_diary/features/home/presentation/widgets/random_memory_overlay.dart';
 
 
 class HomeDashboardView extends StatefulWidget {
@@ -1360,76 +1361,83 @@ class _PhotoThrowbackWidgetState extends State<_PhotoThrowbackWidget> {
         ? Colors.white.withValues(alpha: 0.12)
         : Colors.white.withValues(alpha: 0.45);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-      width: double.infinity, // 始终撑满父容器宽度，无论是长方块还是矮方块插槽
-      height: widget.isTall ? 296 : 140, // 296 时为长方块，140 时自动变成矮方块！
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: borderColor,
-          width: 1.0,
+    return BouncingButton(
+      scaleFactor: 0.96,
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        RandomMemoryOverlay.show(context, isNight: widget.isNight);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        width: double.infinity, // 始终撑满父容器宽度，无论是长方块还是矮方块插槽
+        height: widget.isTall ? 296 : 140, // 296 时为长方块，140 时自动变成矮方块！
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: borderColor,
+            width: 1.0,
+          ),
         ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(23),
-        child: imagePath != null
-            ? Stack(
-                children: [
-                  // 相片层
-                  Positioned.fill(
-                    child: imagePath.startsWith('assets/')
-                        ? Image.asset(
-                            imagePath,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _buildFallbackContent(),
-                          )
-                        : Image.file(
-                            File(imagePath),
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _buildFallbackContent(),
-                          ),
-                  ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(23),
+          child: imagePath != null
+              ? Stack(
+                  children: [
+                    // 相片层
+                    Positioned.fill(
+                      child: imagePath.startsWith('assets/')
+                          ? Image.asset(
+                              imagePath,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => _buildFallbackContent(),
+                            )
+                          : Image.file(
+                              File(imagePath),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => _buildFallbackContent(),
+                            ),
+                    ),
 
-                  // 渐变阴影层：在有用户照片时叠加黑色渐变遮罩以保证白色文字可读性
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.0),
-                            Colors.black.withValues(alpha: 0.65),
-                          ],
-                          stops: const [0.3, 1.0],
+                    // 渐变阴影层：在有用户照片时叠加黑色渐变遮罩以保证白色文字可读性
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.0),
+                              Colors.black.withValues(alpha: 0.65),
+                            ],
+                            stops: const [0.3, 1.0],
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // 内容层（有照片时）
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          "随机掉落的记忆碎片",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontFamily: widget.fontFamily,
-                            color: Colors.white.withValues(alpha: 0.8),
+                    // 内容层（有照片时）
+                    Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            "随机掉落的记忆碎片",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontFamily: widget.fontFamily,
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              )
-            : _buildFallbackContent(),
+                  ],
+                )
+              : _buildFallbackContent(),
+        ),
       ),
     );
   }

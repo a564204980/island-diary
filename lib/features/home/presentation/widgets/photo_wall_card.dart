@@ -2,13 +2,18 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/animations/bouncing_button.dart';
 import 'package:island_diary/shared/widgets/top_toast.dart';
-import 'package:island_diary/features/home/presentation/widgets/random_memory_overlay.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:island_diary/features/home/domain/models/photo_wall_collection.dart';
 import 'package:island_diary/features/home/presentation/pages/photo_wall_page.dart';
-import 'package:island_diary/core/services/wind_service.dart';
+import 'package:island_diary/features/home/presentation/widgets/photo_wall/treemap_splitter.dart';
+import 'package:island_diary/shared/animations/shared_axis_page_route.dart';
+import 'package:island_diary/core/state/user_state.dart';
 
 class PhotoWallItemData {
   final String imagePath;
@@ -51,6 +56,7 @@ class PhotoWallCard extends StatefulWidget {
 
 class _PhotoWallCardState extends State<PhotoWallCard> {
   final List<PhotoWallItemData> _photoItems = [];
+  PhotoWallCollection? _activeCollection;
 
   // 纸胶带色板 (马卡龙半透明色)
   final List<Color> _washiTapeColors = const [
@@ -75,29 +81,56 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
     }
   }
 
-  void _extractPhotoItems() {
+  Future<void> _extractPhotoItems() async {
     _photoItems.clear();
-    for (var group in widget.groupedEntries) {
-      for (var entryList in group.values) {
-        for (var entry in entryList) {
-          final contentBlocks = entry.blocks;
-          for (var block in contentBlocks) {
-            if (block['type'] == 'image' && block['path'] != null) {
-              final path = block['path'].toString();
-              if (File(path).existsSync()) {
-                _photoItems.add(
-                  PhotoWallItemData(
-                    imagePath: path,
-                    date: entry.dateTime,
-                    tag: entry.tag,
-                    entry: entry,
-                  ),
-                );
-              }
+    List<String> photoPaths = [];
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rawJson = prefs.getString('photo_wall_collections_v2');
+      if (rawJson != null && rawJson.isNotEmpty) {
+        final List list = json.decode(rawJson);
+        for (var item in list) {
+          final col = PhotoWallCollection.fromMap(item);
+          if (col.photoPaths.isNotEmpty) {
+            _activeCollection = col;
+            photoPaths = List.from(col.photoPaths);
+            break;
+          }
+        }
+      }
+    } catch (_) {}
+
+    if (photoPaths.isEmpty) {
+      final savedDiaries = UserState().savedDiaries.value;
+      for (var entry in savedDiaries) {
+        final contentBlocks = entry.blocks;
+        for (var block in contentBlocks) {
+          if (block['type'] == 'image' && block['path'] != null) {
+            final path = block['path'].toString();
+            if (path.startsWith('assets/') || File(path).existsSync()) {
+              photoPaths.add(path);
             }
           }
         }
       }
+    }
+
+    for (var path in photoPaths) {
+      if (path.startsWith('assets/') || File(path).existsSync()) {
+        _photoItems.add(
+          PhotoWallItemData(
+            imagePath: path,
+            date: DateTime.now(),
+            tag: null,
+            entry: null,
+          ),
+        );
+      }
+    }
+
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -105,10 +138,19 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
   Widget build(BuildContext context) {
     final bool hasPhotos = _photoItems.isNotEmpty;
 
-    return GestureDetector(
+    return BouncingButton(
+      scaleFactor: 0.96,
       onTap: () {
+        HapticFeedback.mediumImpact();
         if (hasPhotos) {
-          RandomMemoryOverlay.show(context, isNight: widget.isNight);
+          Navigator.of(context).push(
+            SharedAxisPageRoute(
+              page: PhotoWallPage(
+                isNight: widget.isNight,
+                themeId: 'default',
+              ),
+            ),
+          );
         } else {
           showTopToast(context, '📸 记录带照片的日记，即可制作专属手帐照片墙', icon: Icons.photo_library_rounded);
         }
@@ -190,244 +232,298 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
     );
   }
 
-  /// 真实感手帐情绪板（风速物理联动版：根据海岛风速驱动拍立得晃荡频率与顺风偏角）
+  /// 真实感手帐情绪板 (100% 响应 layoutMode: scatter 或 treemap)
   Widget _buildScrapbookBoard() {
-    // 长条形态下最多可显示 30 张照片，矮形态下显示 5 张
     final int maxCount = widget.isTall ? 30 : 5;
     final displayItems = _photoItems.take(maxCount).toList();
     final int count = displayItems.length;
 
-    // 针对 30 张高密度照片准备的自然多姿态偏角矩阵
-    final baseAngles = [-0.18, 0.16, -0.08, 0.22, -0.14, 0.12, -0.16, 0.18, -0.10, 0.20, -0.15, 0.10, -0.12, 0.16, -0.08, -0.20, 0.15, -0.09, 0.18, -0.14, 0.10, -0.16, 0.14, -0.08, 0.19, -0.12, 0.15, -0.10, 0.16, -0.08];
+    if (count == 0) {
+      return const SizedBox.shrink();
+    }
 
-    final shortTopOffsets = [6.0, 22.0, 8.0, 24.0, 10.0];
+    final bool isScatter = _activeCollection?.layoutMode == 'scatter';
 
-    return ValueListenableBuilder<WindMode>(
-      valueListenable: WindService.currentWind,
-      builder: (context, wind, _) {
-        // 根据风速等级计算摆动振幅、周期与顺风倾角
-        double swingRange;
-        int baseDurationMs;
-        double windTilt;
+    if (isScatter) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final double availableWidth = constraints.maxWidth;
+          final double boardW = availableWidth - 4;
+          final double boardH = boardW / 0.58;
 
-        switch (wind) {
-          case WindMode.none:
-            swingRange = 0.008;
-            baseDurationMs = 3600;
-            windTilt = 0.0;
-            break;
-          case WindMode.breeze:
-            swingRange = 0.04;
-            baseDurationMs = 2400;
-            windTilt = -0.01;
-            break;
-          case WindMode.moderate:
-            swingRange = 0.08;
-            baseDurationMs = 1300;
-            windTilt = -0.035;
-            break;
-          case WindMode.gale:
-            swingRange = 0.15;
-            baseDurationMs = 650;
-            windTilt = -0.08; // 狂风从右往左吹，顺风向左摇曳
-            break;
-        }
+          const int cols = 3;
+          const int maxRows = 3;
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final double availableWidth = constraints.maxWidth;
-            // 设定为 42x56，使相框与相邻相框产生 20%~30% 的自然边角叠压
-            final double cardWidth = widget.isTall ? (count > 8 ? 42.0 : 48.0) : 56.0;
-            final double cardHeight = widget.isTall ? (count > 8 ? 56.0 : 64.0) : 74.0;
-            
-            final step = count > 1 ? (availableWidth - cardWidth) / (count - 1) : 0.0;
+          final maxAvailableW = (boardW - 12.0) / cols;
+          final cardW = (maxAvailableW * 0.90).clamp(24.0, 72.0);
+          final cardH = (cardW * 1.15).clamp(28.0, 85.0);
 
-            return Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // 1. 高密度层叠拍立得照片层 (后一张适度覆盖在前一张之上)
-                ...List.generate(count, (index) {
-                  final item = displayItems[index];
-                  final staticAngle = baseAngles[index % baseAngles.length];
-                  final double finalAngle;
-                  if (wind == WindMode.gale) {
-                    // 狂风大作（自右向左强风）：所有相框偏角在视觉上 100% 真正向左侧歪倒 (0.02 ~ 0.35 弧度)
-                    final double indexPhase = (index % 5) * 0.032;
-                    finalAngle = (staticAngle * 0.65 + 0.12 + indexPhase).clamp(0.02, 0.35);
-                  } else {
-                    finalAngle = staticAngle + windTilt; // 静态角 + 顺风偏移
-                  }
+          final rowStep = (boardH - cardH - 12.0) / math.max(1, maxRows - 1);
+          final colStep = (boardW - cardW - 12.0) / math.max(1, cols - 1);
 
-                  final double top;
-                  final double left;
+          const double refW = 330.0;
+          const double refH = 568.0;
 
-                  if (widget.isTall) {
-                    if (count <= 1) {
-                      top = 10.0;
-                      left = (availableWidth - cardWidth) / 2;
-                    } else if (count <= 8) {
-                      // 少量照片时：双列大拍立得全幅交错
-                      const double minTop = 8.0;
-                      const double maxTop = 195.0;
-                      final double topStep = (maxTop - minTop) / (count - 1);
-                      top = (minTop + index * topStep + math.sin(index * 1.5) * 3.0);
-                      
-                      const double minLeft = -2.0;
-                      final double maxLeft = availableWidth - cardWidth + 2.0;
-                      final double ratio = (index % 2 == 0) ? 0.05 : 0.95;
-                      left = minLeft + ratio * (maxLeft - minLeft);
-                    } else {
-                      // 1:1 参考示范图：4 列高密度交错重叠拼贴 (双向无缝错位，且严格保护底部标语)
-                      const int cols = 4;
-                      final int row = index ~/ cols;
-                      final int col = index % cols;
+          return Stack(
+            clipBehavior: Clip.hardEdge,
+            children: List.generate(count, (index) {
+              final item = displayItems[index];
+              final id = 'photo_$index';
 
-                      const double minTop = 6.0;
-                      const double maxTop = 182.0;
-                      final int totalRows = ((count + cols - 1) ~/ cols);
-                      final double rowStep = totalRows > 1 ? (maxTop - minTop) / (totalRows - 1) : 0.0;
-                      
-                      // 奇偶行与奇偶列的双向无缝错位，创造 20%~30% 的自然边角叠压
-                      final double rowOffset = ((col % 2 == 1) ? 8.0 : -3.0) + math.sin(index * 2.1) * 2.5;
-                      top = (minTop + row * rowStep + rowOffset).clamp(minTop, maxTop);
+              double left;
+              double top;
+              double angle;
 
-                      const double minLeft = 4.0;
-                      final double maxLeft = availableWidth - cardWidth - 4.0;
-                      final double colStep = (maxLeft - minLeft) / (cols - 1);
-                      final double colOffset = ((row % 2 == 1) ? 4.0 : -4.0) + math.cos(index * 1.8) * 2.5;
-                      left = (minLeft + col * colStep + colOffset).clamp(2.0, availableWidth - cardWidth - 2.0);
-                    }
-                  } else {
-                    // 矮形态：单行横向交错
-                    top = shortTopOffsets[index % shortTopOffsets.length];
-                    left = count > 1 
-                        ? index * step 
-                        : (availableWidth - cardWidth) / 2;
-                  }
+              if (_activeCollection?.customPositions != null &&
+                  _activeCollection!.customPositions!.containsKey(id)) {
+                final posList = _activeCollection!.customPositions![id]!;
+                left = (posList[0] / refW) * boardW;
+                top = (posList[1] / refH) * boardH;
+              } else {
+                final rand = math.Random(42 + id.hashCode);
+                final col = id.hashCode.abs() % cols;
+                final row = (id.hashCode.abs() ~/ cols) % maxRows;
+                final offsetX = (rand.nextDouble() - 0.5) * 12.0;
+                final offsetY = (rand.nextDouble() - 0.5) * 12.0;
+                left = (6.0 + col * colStep + offsetX * (boardW / refW)).clamp(2.0, boardW - cardW - 2.0);
+                top = (6.0 + row * rowStep + offsetY * (boardH / refH)).clamp(2.0, boardH - cardH - 2.0);
+              }
 
-                  return Positioned(
-                    left: left,
-                    top: top,
-                    child: Transform.rotate(
-                      angle: finalAngle,
-                      child: BouncingButton(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            PageRouteBuilder(
-                              transitionDuration: const Duration(milliseconds: 320),
-                              reverseTransitionDuration: const Duration(milliseconds: 260),
-                              pageBuilder: (context, animation, secondaryAnimation) {
-                                return PhotoWallPage(
-                                  isNight: widget.isNight,
-                                  themeId: 'default',
-                                );
-                              },
-                              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-                                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-                                );
-                                final scaleAnimation = Tween<double>(begin: 0.92, end: 1.0).animate(
-                                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-                                );
-                                return FadeTransition(
-                                  opacity: fadeAnimation,
-                                  child: ScaleTransition(
-                                    scale: scaleAnimation,
-                                    child: child,
-                                  ),
-                                );
-                              },
+              angle = _activeCollection?.customAngles?[id] ??
+                  ((math.Random(42 + id.hashCode).nextDouble() - 0.5) * 0.32);
+
+              return Positioned(
+                left: left.clamp(0.0, boardW - cardW),
+                top: top.clamp(0.0, boardH - cardH),
+                width: cardW,
+                height: cardH,
+                child: Transform.rotate(
+                  angle: angle,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.topCenter,
+                    children: [
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: widget.isNight ? 0.38 : 0.16),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.all(2.5),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: Image.file(
+                              File(item.imagePath),
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Container(color: Colors.grey.shade200),
                             ),
-                          );
-                        },
-                        scaleFactor: 1.06,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          alignment: Alignment.topCenter,
-                          children: [
-                            // 拍立得主卡片
-                            Container(
-                              width: cardWidth,
-                              height: cardHeight,
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(5),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: widget.isNight ? 0.38 : 0.16),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(3.5),
-                                child: Image.file(
-                                  File(item.imagePath),
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
+                          ),
+                        ),
+                      ),
+                      _buildWashiTapeWidget(index),
+                      Positioned(
+                        top: -4,
+                        child: _buildMiniPushPinWidget(index),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          );
+        },
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double availableWidth = constraints.maxWidth;
+
+        // 100% 采用与编辑界面 (PhotoWallDetailPage) 相同的 0.58 画板宽高比，保证切分逻辑 1:1 完全一致
+        final double boardW = availableWidth - 4;
+        final double boardH = boardW / 0.58;
+        final bounds = Rect.fromLTWH(2, 2, boardW, boardH);
+        final indices = List.generate(count, (i) => i);
+        final leaves = TreemapSplitter.computeLeaves(bounds, indices, 42);
+
+        return Stack(
+          clipBehavior: Clip.hardEdge,
+          children: [
+            ...leaves.map((leaf) {
+              final item = displayItems[leaf.index % displayItems.length];
+              const gap = 1.5;
+              final cardRect = leaf.rect.deflate(gap);
+
+              return Positioned(
+                left: cardRect.left,
+                top: cardRect.top,
+                width: cardRect.width,
+                height: cardRect.height,
+                child: BouncingButton(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      SharedAxisPageRoute(
+                        page: PhotoWallPage(
+                          isNight: widget.isNight,
+                          themeId: 'default',
+                        ),
+                      ),
+                    );
+                  },
+                  scaleFactor: 1.05,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.topCenter,
+                    children: [
+                      // 拍立得主卡片
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: widget.isNight ? 0.38 : 0.16),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
-                      ),
-                    )
-                    .animate(
-                      key: ValueKey(wind),
-                      onPlay: (controller) => controller.repeat(reverse: true),
-                    )
-                    .rotate(
-                      begin: -swingRange / 2,
-                      end: swingRange / 2,
-                      duration: Duration(milliseconds: baseDurationMs + index * 120),
-                      curve: Curves.easeInOutSine,
-                    )
-                    .moveY(
-                      begin: 0,
-                      end: (index % 2 == 0) ? -3.0 : 3.0,
-                      duration: Duration(milliseconds: (baseDurationMs * 1.1).toInt()),
-                      curve: Curves.easeInOutSine,
-                    ),
-                  );
-                }),
-
-                // 底部手帐诗意标语栏
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.auto_awesome,
-                          size: 11,
-                          color: widget.accentColor.withValues(alpha: 0.85),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          "收集时光里的温柔碎片",
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: widget.fontFamily,
-                            color: widget.subtitleColor,
-                            letterSpacing: 0.2,
+                        padding: const EdgeInsets.all(2.5),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: Image.file(
+                            File(item.imagePath),
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => Container(color: Colors.grey.shade200),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+
+                      // 和纸胶带
+                      _buildWashiTapeWidget(leaf.index),
+
+                      // 3D 水晶图钉
+                      Positioned(
+                        top: -4,
+                        child: _buildMiniPushPinWidget(leaf.index),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            );
-          },
+              );
+            }),
+          ],
         );
       },
+    );
+  }
+
+  /// 微缩 3D 水晶图钉
+  Widget _buildMiniPushPinWidget(int index) {
+    const pinColors = [
+      Color(0xFFFF8B8B),
+      Color(0xFF6BD2B0),
+      Color(0xFFFFC04D),
+      Color(0xFFB89FE1),
+      Color(0xFF88A3EC),
+    ];
+    final color = pinColors[index % pinColors.length];
+    final highlightColor = Color.lerp(color, Colors.white, 0.70)!;
+    final shadowColor = Color.lerp(color, const Color(0xFF2C1A1D), 0.50)!;
+
+    const double pinSize = 10.0;
+
+    return SizedBox(
+      width: pinSize,
+      height: pinSize,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: 1.8,
+            left: 1.0,
+            child: Container(
+              width: pinSize - 2,
+              height: pinSize - 2,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black.withValues(alpha: 0.25),
+              ),
+            ),
+          ),
+          Container(
+            width: pinSize,
+            height: pinSize,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFFB0B0B0),
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.all(0.8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                center: const Alignment(-0.35, -0.45),
+                radius: 0.78,
+                colors: [highlightColor, color, shadowColor],
+                stops: const [0.0, 0.55, 1.0],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 2.0,
+            left: 2.4,
+            child: Container(
+              width: 2.8,
+              height: 1.8,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.85),
+                borderRadius: const BorderRadius.all(Radius.elliptical(1.4, 0.9)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 微缩手撕和纸胶带
+  Widget _buildWashiTapeWidget(int index) {
+    const tapeConfigs = [
+      _TapeConfig(Color(0xFFE6C594), -0.28, true),
+      _TapeConfig(Color(0xFFA3C9A8), 0.30, false),
+      _TapeConfig(Color(0xFFF2B5D4), -0.24, true),
+      _TapeConfig(Color(0xFFC4B2E6), 0.26, false),
+    ];
+    final config = tapeConfigs[index % tapeConfigs.length];
+
+    return Positioned(
+      top: 2,
+      left: config.isLeft ? -2 : null,
+      right: !config.isLeft ? -2 : null,
+      child: Transform.rotate(
+        angle: config.angle,
+        child: SizedBox(
+          width: 22.0,
+          height: 7.5,
+          child: CustomPaint(
+            painter: WashiTapePainter(color: config.color),
+          ),
+        ),
+      ),
     );
   }
 
@@ -532,39 +628,82 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                 curve: Curves.easeInOutSine,
               );
             }),
-
-            // 底部手帐诗意标语栏
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.auto_awesome,
-                      size: 11,
-                      color: widget.accentColor.withValues(alpha: 0.85),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      "收集时光里的温柔碎片",
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: widget.fontFamily,
-                        color: widget.subtitleColor,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           ],
         );
       },
     );
   }
+}
+
+class _TapeConfig {
+  final Color color;
+  final double angle;
+  final bool isLeft;
+
+  const _TapeConfig(this.color, this.angle, this.isLeft);
+}
+
+/// 手撕撕裂和纸胶带 CustomPainter
+class WashiTapePainter extends CustomPainter {
+  final Color color;
+
+  WashiTapePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.72)
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    const int numTeeth = 4;
+    final toothH = size.height / numTeeth;
+
+    path.moveTo(0, 0);
+    path.lineTo(size.width, 0);
+
+    for (int i = 0; i < numTeeth; i++) {
+      final yMid = (i + 0.5) * toothH;
+      final yEnd = (i + 1) * toothH;
+      final dx = (i % 2 == 0) ? -2.5 : 0.0;
+      path.lineTo(size.width + dx, yMid);
+      path.lineTo(size.width, yEnd);
+    }
+
+    path.lineTo(0, size.height);
+
+    for (int i = numTeeth - 1; i >= 0; i--) {
+      final yMid = (i + 0.5) * toothH;
+      final yStart = i * toothH;
+      final dx = (i % 2 == 0) ? 2.5 : 0.0;
+      path.lineTo(dx, yMid);
+      path.lineTo(0, yStart);
+    }
+
+    path.close();
+
+    final shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.12)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
+    canvas.drawPath(path.shift(const Offset(0.8, 1.2)), shadowPaint);
+
+    canvas.drawPath(path, paint);
+
+    final shinePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.40)
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(const Offset(2, 1), Offset(size.width - 2, 1), shinePaint);
+
+    final fiberPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.22)
+      ..strokeWidth = 0.6
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(Offset(size.width * 0.3, 2), Offset(size.width * 0.3 + 3, size.height - 2), fiberPaint);
+    canvas.drawLine(Offset(size.width * 0.7, 2), Offset(size.width * 0.7 - 3, size.height - 2), fiberPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant WashiTapePainter oldDelegate) =>
+      color != oldDelegate.color;
 }

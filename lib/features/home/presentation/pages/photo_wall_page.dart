@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/animations/bouncing_button.dart';
@@ -10,7 +10,8 @@ import 'package:island_diary/shared/widgets/island_dialog.dart';
 import 'package:island_diary/features/home/domain/models/photo_wall_collection.dart';
 import 'package:island_diary/features/home/presentation/pages/photo_wall_detail_page.dart';
 import 'package:island_diary/features/home/presentation/widgets/photo_wall/collection_box_card.dart';
-import 'package:island_diary/features/home/presentation/widgets/photo_wall/wall_background_painter.dart';
+import 'package:island_diary/shared/widgets/island_page_background.dart';
+import 'package:island_diary/shared/animations/cupertino_slide_page_route.dart';
 
 /// “照片墙集合”网格主页面
 class PhotoWallPage extends StatefulWidget {
@@ -29,7 +30,6 @@ class PhotoWallPage extends StatefulWidget {
 
 class _PhotoWallPageState extends State<PhotoWallPage> {
   static const String _storageKey = 'photo_wall_collections_v2';
-  late WallTheme _currentTheme;
   final List<PhotoWallCollection> _collections = [];
   bool _isLoading = true;
 
@@ -41,7 +41,6 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
   @override
   void initState() {
     super.initState();
-    _currentTheme = widget.isNight ? WallTheme.darkPaper : WallTheme.dotGrid;
     _loadCollections();
   }
 
@@ -50,9 +49,7 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
     final List<String> valid = [];
     for (var path in paths) {
       if (path.startsWith('assets/')) {
-        if (!path.contains('miamhuadao') && !path.contains('home_card')) {
-          valid.add(path);
-        }
+        valid.add(path);
       } else {
         if (File(path).existsSync()) {
           valid.add(path);
@@ -75,7 +72,9 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
       for (var block in diary.blocks) {
         if (block['type'] == 'image' && block['path'] != null) {
           final pathStr = block['path'].toString();
-          if (File(pathStr).existsSync()) {
+          if (pathStr.startsWith('assets/')) {
+            userDiaryPhotos.add(pathStr);
+          } else if (File(pathStr).existsSync()) {
             userDiaryPhotos.add(pathStr);
           }
         }
@@ -113,7 +112,7 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
   void _initDefaultCollections(List<String> userPhotos) {
     _collections.clear();
 
-    final validUserPhotos = userPhotos.where((p) => File(p).existsSync()).toList();
+    final validUserPhotos = _filterValidPhotoPaths(userPhotos);
 
     if (validUserPhotos.isNotEmpty) {
       _collections.add(
@@ -254,41 +253,15 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
     );
   }
 
-  /// 切换背景衬底
-  void _cycleTheme() {
-    HapticFeedback.lightImpact();
-    setState(() {
-      final nextIndex = (_currentTheme.index + 1) % WallTheme.values.length;
-      _currentTheme = WallTheme.values[nextIndex];
-    });
-    showTopToast(context, '🎨 已切换为：${_currentTheme.label}');
-  }
 
   /// 进入某个照片墙集合详情
   void _openCollectionDetail(PhotoWallCollection col) async {
     final updatedCol = await Navigator.of(context).push<PhotoWallCollection>(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 320),
-        reverseTransitionDuration: const Duration(milliseconds: 260),
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return PhotoWallDetailPage(
-            collection: col,
-            isNight: widget.isNight,
-            currentTheme: _currentTheme,
-          );
-        },
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-          );
-          final scaleAnimation = Tween<double>(begin: 0.94, end: 1.0).animate(
-            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-          );
-          return FadeTransition(
-            opacity: fadeAnimation,
-            child: ScaleTransition(scale: scaleAnimation, child: child),
-          );
-        },
+      CupertinoSlidePageRoute(
+        page: PhotoWallDetailPage(
+          collection: col,
+          isNight: widget.isNight,
+        ),
       ),
     );
 
@@ -305,72 +278,43 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = (_currentTheme == WallTheme.darkPaper);
+    final bool isDark = widget.isNight;
     final Color textColor = isDark ? Colors.white : const Color(0xFF1E293B);
 
     return Scaffold(
-      backgroundColor: _currentTheme.bgColor,
-      extendBodyBehindAppBar: false,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: textColor,
-            size: 20,
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          "照片墙集合",
-          style: TextStyle(
-            color: textColor,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: BouncingButton(
-              onTap: _cycleTheme,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.15)
-                      : Colors.white.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? Colors.white24 : Colors.white,
-                  ),
-                ),
-                child: Text(
-                  _currentTheme.label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: textColor,
-                  ),
-                ),
+          backgroundColor: Colors.transparent,
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            surfaceTintColor: Colors.transparent,
+            leading: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: textColor,
+                size: 20,
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: Text(
+              "照片墙集合",
+              style: TextStyle(
+                color: textColor,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
+            actions: const [],
           ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // 1. 底纹绘图层
-          Positioned.fill(
-            child: CustomPaint(
-              painter: WallBackgroundPainter(theme: _currentTheme),
-            ),
-          ),
+          body: Stack(
+            children: [
+              // 0. 全屏透光渐变海岛背景组件
+              const Positioned.fill(
+                child: IslandPageBackground(),
+              ),
 
-          // 2. 主体网格区
+          // 1. 主体网格区
           Positioned.fill(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -379,7 +323,11 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
                     child: CustomScrollView(
                       physics: const BouncingScrollPhysics(),
                       slivers: [
-                        const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            height: MediaQuery.of(context).padding.top + kToolbarHeight - 6,
+                          ),
+                        ),
                         SliverGrid(
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
@@ -417,70 +365,73 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
     );
   }
 
-  /// 新建集合暖米白手帐插槽卡片 (Warm Cream Paper Slot Card)
+  /// 新建集合透光晶莹玻璃卡片 (Translucent Frosted Glass Slot Card)
   Widget _buildCreateCollectionCard(bool isDark, Color textColor) {
-    final Color cardBgColor = isDark
-        ? const Color(0xFF1E293B)
-        : const Color(0xFFFAFAFA);
-    final Color cardBorderColor = isDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : const Color(0xFFE2E8F0);
-
     return BouncingButton(
       onTap: _showCreateCollectionDialog,
       scaleFactor: 1.04,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: cardBgColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: cardBorderColor,
-            width: 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.white.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : const Color(0xFFE0F2FE),
-                shape: BoxShape.circle,
+                    ? Colors.white.withValues(alpha: 0.22)
+                    : Colors.white.withValues(alpha: 0.60),
+                width: 1.5,
               ),
-              child: Icon(
-                Icons.add_photo_alternate_rounded,
-                size: 28,
-                color: isDark ? Colors.lightBlueAccent : const Color(0xFF0284C7),
-              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-            const SizedBox(height: 14),
-            Text(
-              "新建照片墙集合",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: textColor,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : const Color(0xFFE0F2FE),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.add_photo_alternate_rounded,
+                    size: 28,
+                    color: isDark ? Colors.lightBlueAccent : const Color(0xFF0284C7),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  "新建照片墙集合",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "创建专属主题相册",
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    color: textColor.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              "创建专属主题相册",
-              style: TextStyle(
-                fontSize: 10.5,
-                color: textColor.withValues(alpha: 0.55),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
