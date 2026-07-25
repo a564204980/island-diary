@@ -354,11 +354,29 @@ mixin PreferenceMixin on ProfileMixin {
         }
       }
       result.sort((a, b) => a.order.compareTo(b.order));
+
+      // 数据完整性校验：
+      // 默认小块模块集合（这三个模块正常情况下至少有一个应为 isFullWidth=false）
+      // 若所有已启用的默认小块模块全部变成了通栏（isFullWidth=true），
+      // 这只能是 bug 污染的结果，自动将它们还原为 isFullWidth=false
+      const defaultSmallIds = {'photo_throwback', 'photo_wall', 'gravity_box'};
+      final enabledSmall = result.where((m) => defaultSmallIds.contains(m.id) && m.enabled).toList();
+      final allCorrupted = enabledSmall.length >= 2 && enabledSmall.every((m) => m.isFullWidth);
+      if (allCorrupted) {
+        result = result.map((m) {
+          if (defaultSmallIds.contains(m.id)) {
+            return m.copyWith(isFullWidth: false);
+          }
+          return m;
+        }).toList();
+      }
+
       homeModuleConfigs.value = result;
     } catch (_) {
       homeModuleConfigs.value = defaultModules;
     }
   }
+
 
   Future<void> saveHomeModuleConfigs(List<HomeModuleItem> newConfigs) async {
     final updatedList = List<HomeModuleItem>.from(newConfigs);

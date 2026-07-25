@@ -122,18 +122,25 @@ class _InspirationQuoteCardState extends State<InspirationQuoteCard> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            "“${item['quote']}”",
-            style: TextStyle(
-              fontSize: 13.5,
-              height: 1.5,
-              fontFamily: widget.fontFamily,
-              color: widget.textColor.withValues(alpha: 0.9),
-              fontStyle: FontStyle.italic,
+          const SizedBox(height: 6),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "“${item['quote']}”",
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13.0,
+                  height: 1.4,
+                  fontFamily: widget.fontFamily,
+                  color: widget.textColor.withValues(alpha: 0.9),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Align(
             alignment: Alignment.centerRight,
             child: Text(

@@ -147,57 +147,57 @@ class _CameraCardWidgetState extends State<CameraCardWidget> with SingleTickerPr
                     ),
                   ],
                 ),
-                
-                const Spacer(),
 
                 // 核心拍照视觉中心 (镜头取景框/快门)
-                Center(
-                  child: AnimatedBuilder(
-                    animation: _pulseController,
-                    builder: (context, child) {
-                      final scale = 1.0 + (_pulseController.value * 0.04);
-                      return Transform.scale(
-                        scale: scale,
-                        child: child,
-                      );
-                    },
-                    child: Container(
-                      width: widget.isTall ? 90 : 52,
-                      height: widget.isTall ? 90 : 52,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            widget.accentColor.withValues(alpha: 0.25),
-                            widget.accentColor.withValues(alpha: 0.08),
+                Expanded(
+                  child: Center(
+                    child: AnimatedBuilder(
+                      animation: _pulseController,
+                      builder: (context, child) {
+                        final scale = 1.0 + (_pulseController.value * 0.04);
+                        return Transform.scale(
+                          scale: scale,
+                          child: child,
+                        );
+                      },
+                      child: Container(
+                        width: widget.isTall ? 90 : 44,
+                        height: widget.isTall ? 90 : 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              widget.accentColor.withValues(alpha: 0.25),
+                              widget.accentColor.withValues(alpha: 0.08),
+                            ],
+                          ),
+                          border: Border.all(
+                            color: widget.accentColor.withValues(alpha: 0.4),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: widget.accentColor.withValues(alpha: 0.15),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                            ),
                           ],
                         ),
-                        border: Border.all(
-                          color: widget.accentColor.withValues(alpha: 0.4),
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: widget.accentColor.withValues(alpha: 0.15),
-                            blurRadius: 12,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: widget.isTall ? 60 : 34,
-                          height: widget.isTall ? 60 : 34,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: widget.accentColor.withValues(alpha: 0.85),
-                          ),
-                          child: const Icon(
-                            Icons.photo_camera_rounded,
-                            color: Colors.white,
-                            size: 18,
+                        child: Center(
+                          child: Container(
+                            width: widget.isTall ? 60 : 28,
+                            height: widget.isTall ? 60 : 28,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: widget.accentColor.withValues(alpha: 0.85),
+                            ),
+                            child: Icon(
+                              Icons.photo_camera_rounded,
+                              color: Colors.white,
+                              size: widget.isTall ? 18 : 15,
+                            ),
                           ),
                         ),
                       ),
@@ -205,16 +205,14 @@ class _CameraCardWidgetState extends State<CameraCardWidget> with SingleTickerPr
                   ),
                 ),
 
-                const Spacer(),
-
-                // 底部提示标签
+                // 底部提示标签 (按需微调空间)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       "点击一键开启相机",
                       style: TextStyle(
-                        fontSize: 11.5,
+                        fontSize: widget.isTall ? 11.5 : 10.5,
                         fontFamily: widget.fontFamily,
                         color: widget.subtitleColor,
                       ),
@@ -222,7 +220,7 @@ class _CameraCardWidgetState extends State<CameraCardWidget> with SingleTickerPr
                     const SizedBox(width: 3),
                     Icon(
                       Icons.arrow_forward_ios_rounded,
-                      size: 10,
+                      size: 9,
                       color: widget.subtitleColor,
                     ),
                   ],
