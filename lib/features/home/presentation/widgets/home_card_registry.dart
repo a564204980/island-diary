@@ -5,6 +5,7 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/features/home/presentation/widgets/photo_wall_card.dart';
 import 'package:island_diary/features/home/presentation/widgets/treasure_gravity_box.dart';
 import 'package:island_diary/features/home/presentation/widgets/random_memory_overlay.dart';
+import 'package:island_diary/features/home/presentation/widgets/camera_card_widget.dart';
 import 'package:island_diary/features/home/presentation/widgets/inspiration_quote_card.dart';
 
 /// 卡片构建参数管道
@@ -88,6 +89,17 @@ class HomeCardRegistry {
               );
             },
           ),
+        );
+
+      case 'camera_widget':
+        return CameraCardWidget(
+          textColor: ctx.textColor,
+          subtitleColor: ctx.subtitleColor,
+          accentColor: ctx.accentColor,
+          fontFamily: ctx.fontFamily,
+          isNight: ctx.isNight,
+          isTall: isTall,
+          isEditMode: isEditMode,
         );
 
       case 'piano_mood':

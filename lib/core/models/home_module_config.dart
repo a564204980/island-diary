@@ -24,6 +24,7 @@ class HomeModuleItem {
         'id': id,
         'enabled': enabled,
         'order': order,
+        'isFullWidth': isFullWidth,
       };
 
   factory HomeModuleItem.fromJson(Map<String, dynamic> json, HomeModuleItem defaultTemplate) {
@@ -32,13 +33,14 @@ class HomeModuleItem {
       title: defaultTemplate.title,
       subtitle: defaultTemplate.subtitle,
       icon: defaultTemplate.icon,
-      isFullWidth: defaultTemplate.isFullWidth,
+      isFullWidth: json['isFullWidth'] as bool? ?? defaultTemplate.isFullWidth,
       enabled: json['enabled'] as bool? ?? defaultTemplate.enabled,
       order: json['order'] as int? ?? defaultTemplate.order,
     );
   }
 
   HomeModuleItem copyWith({
+    bool? isFullWidth,
     bool? enabled,
     int? order,
   }) {
@@ -47,7 +49,7 @@ class HomeModuleItem {
       title: title,
       subtitle: subtitle,
       icon: icon,
-      isFullWidth: isFullWidth,
+      isFullWidth: isFullWidth ?? this.isFullWidth,
       enabled: enabled ?? this.enabled,
       order: order ?? this.order,
     );
@@ -84,13 +86,22 @@ class HomeModuleItem {
         order: 2,
       ),
       HomeModuleItem(
+        id: 'camera_widget',
+        title: '岛屿快照',
+        subtitle: '一键定格当下瞬间',
+        icon: Icons.camera_alt_rounded,
+        isFullWidth: false,
+        enabled: false, // 放在卡片仓库中做初始备选
+        order: 3,
+      ),
+      HomeModuleItem(
         id: 'piano_mood',
         title: '近七日心情',
         subtitle: '琴键与音律联动弹奏',
         icon: Icons.music_note_rounded,
         isFullWidth: true,
         enabled: true,
-        order: 3,
+        order: 4,
       ),
       HomeModuleItem(
         id: 'inspiration_quote',
@@ -99,7 +110,7 @@ class HomeModuleItem {
         icon: Icons.format_quote_rounded,
         isFullWidth: true,
         enabled: false, // 放在卡片仓库中做初始备选
-        order: 4,
+        order: 5,
       ),
     ];
   }

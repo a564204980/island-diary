@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/models/home_module_config.dart';
 import 'package:island_diary/core/state/user_state.dart';
-import 'package:island_diary/shared/widgets/top_toast.dart';
 
 /// 岛屿卡片仓库底部抽屉 (显示未在首页展示的备选卡片)
 class CardRepositorySheet extends StatelessWidget {
@@ -372,7 +371,6 @@ class HomeCardManagerSheet extends StatelessWidget {
                   TextButton.icon(
                     onPressed: () {
                       UserState().resetHomeModuleConfigs();
-                      showTopToast(context, '已恢复默认首页排版');
                     },
                     icon: Icon(Icons.restore_rounded, size: 16, color: subtitleColor),
                     label: Text(
@@ -597,7 +595,6 @@ class HomeCardManagerSheet extends StatelessWidget {
                   return m;
                 }).toList();
                 UserState().saveHomeModuleConfigs(updated);
-                showTopToast(context, '已将「${module.title}」移至卡片仓库');
               },
             ),
           ] else ...[
@@ -605,11 +602,10 @@ class HomeCardManagerSheet extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: () {
                 final updated = allModules.map((m) {
-                  if (m.id == module.id) return m.copyWith(enabled: true);
+                  if (m.id == module.id) return m.copyWith(enabled: true, isFullWidth: true);
                   return m;
                 }).toList();
                 UserState().saveHomeModuleConfigs(updated);
-                showTopToast(context, '✨ 已将「${module.title}」添加至首页');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: accentColor,

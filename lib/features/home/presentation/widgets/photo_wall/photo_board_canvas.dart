@@ -74,6 +74,7 @@ class PhotoBoardCanvas extends StatefulWidget {
 
 class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
   String? _selectedPhotoId;
+  int? _draggingTreemapIndex;
   Offset? _dragStartPos;
   double? _rotateStartTouchAngle;
   double? _rotateStartCardAngle;
@@ -484,7 +485,10 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
               leaf.rect.bottom * scaleY,
             ).deflate(gap);
 
-            Widget buildTreemapCardWidget({bool isFeedback = false, bool isHovered = false}) {
+            final bool isDraggingAny = _draggingTreemapIndex != null;
+            final bool isThisDragging = _draggingTreemapIndex == leaf.index;
+
+            Widget buildTreemapCardWidget({bool isFeedback = false, bool isHovered = false, bool isDraggingOther = false}) {
               final hoverBorderColor = widget.isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
 
               return Stack(
@@ -493,7 +497,8 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
                 children: [
                   Positioned.fill(
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutCubic,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
@@ -509,6 +514,12 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
                               color: hoverBorderColor.withValues(alpha: 0.55),
                               blurRadius: 12,
                               spreadRadius: 2,
+                            )
+                          else if (isDraggingOther)
+                            BoxShadow(
+                              color: hoverBorderColor.withValues(alpha: 0.20),
+                              blurRadius: 10,
+                              spreadRadius: 1,
                             )
                           else
                             BoxShadow(
@@ -563,11 +574,13 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
                 },
                 builder: (context, candidateData, rejectedData) {
                   final isHovered = candidateData.isNotEmpty;
+                  final isDraggingOther = isDraggingAny && !isThisDragging && !isHovered;
+                  final double scaleTarget = isHovered ? 0.93 : (isDraggingOther ? 0.965 : 1.0);
 
                   return AnimatedScale(
-                    scale: isHovered ? 0.93 : 1.0,
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOutBack,
+                    scale: scaleTarget,
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
                     child: LongPressDraggable<int>(
                       data: leaf.index,
                       feedback: Material(
@@ -585,7 +598,22 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
                         opacity: 0.35,
                         child: buildTreemapCardWidget(),
                       ),
-                      onDragStarted: () => HapticFeedback.heavyImpact(),
+                      onDragStarted: () {
+                        HapticFeedback.heavyImpact();
+                        setState(() {
+                          _draggingTreemapIndex = leaf.index;
+                        });
+                      },
+                      onDragEnd: (_) {
+                        setState(() {
+                          _draggingTreemapIndex = null;
+                        });
+                      },
+                      onDraggableCanceled: (_, _) {
+                        setState(() {
+                          _draggingTreemapIndex = null;
+                        });
+                      },
                       child: BouncingButton(
                         onTap: () {
                           if (_selectedPhotoId != null) {
@@ -593,7 +621,7 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
                           }
                         },
                         scaleFactor: 1.05,
-                        child: buildTreemapCardWidget(isHovered: isHovered),
+                        child: buildTreemapCardWidget(isHovered: isHovered, isDraggingOther: isDraggingOther),
                       ),
                     ),
                   );

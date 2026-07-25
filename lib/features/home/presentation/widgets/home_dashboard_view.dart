@@ -14,7 +14,6 @@ import 'package:island_diary/core/models/home_module_config.dart';
 import 'package:island_diary/features/home/presentation/widgets/home_card_registry.dart';
 import 'package:island_diary/features/home/presentation/widgets/card_repository_sheet.dart';
 import 'package:island_diary/features/home/presentation/widgets/wind_bend_card_wrapper.dart';
-import 'package:island_diary/shared/widgets/top_toast.dart';
 import 'package:island_diary/features/home/presentation/widgets/random_memory_overlay.dart';
 
 
@@ -89,9 +88,6 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
       }).toList();
       UserState().saveHomeModuleConfigs(updated);
       _removingModuleId.value = null;
-      if (mounted) {
-        showTopToast(context, '✨ 已将「${module.title}」吹回卡片仓库～');
-      }
     });
   }
 
@@ -442,9 +438,19 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
     final idx2 = updatedAll.indexWhere((m) => m.id == item2.id);
 
     if (idx1 != -1 && idx2 != -1 && idx1 != idx2) {
-      final temp = updatedAll[idx1];
-      updatedAll[idx1] = updatedAll[idx2];
-      updatedAll[idx2] = temp;
+      final bool item1WasFull = item1.isFullWidth;
+      final bool item2WasFull = item2.isFullWidth;
+
+      HomeModuleItem newItem1 = item1;
+      HomeModuleItem newItem2 = item2;
+
+      if (item1WasFull != item2WasFull) {
+        newItem1 = item1.copyWith(isFullWidth: true);
+        newItem2 = item2.copyWith(isFullWidth: false);
+      }
+
+      updatedAll[idx1] = newItem2;
+      updatedAll[idx2] = newItem1;
       UserState().saveHomeModuleConfigs(updatedAll);
     }
   }
@@ -464,9 +470,9 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
   }) {
     List<Widget> cardWidgets = [];
 
-    // 识别属于网格组的卡片集合 ('photo_throwback', 'photo_wall', 'gravity_box')
-    final processedIds = {'photo_throwback', 'photo_wall', 'gravity_box'};
-    final gridModules = activeModules.where((m) => processedIds.contains(m.id)).toList();
+    // 识别属于网格组的卡片集合（所有未设置为通栏的半宽小模块）
+    final gridModules = activeModules.where((m) => !m.isFullWidth).toList();
+    final processedIds = gridModules.map((m) => m.id).toSet();
 
     if (gridModules.length >= 2) {
 
@@ -627,9 +633,8 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
   double _calculateDashboardContentHeight(List<HomeModuleItem> modules) {
     if (modules.isEmpty) return 0.0;
 
-    final processedIds = {'photo_throwback', 'photo_wall', 'gravity_box'};
-    final gridModules = modules.where((m) => processedIds.contains(m.id)).toList();
-    final otherModules = modules.where((m) => !processedIds.contains(m.id)).toList();
+    final gridModules = modules.where((m) => !m.isFullWidth).toList();
+    final otherModules = modules.where((m) => m.isFullWidth).toList();
 
     double totalHeight = 0.0;
     int groupCount = 0;
@@ -698,10 +703,6 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
       scaleFactor: 0.96,
       onTap: () {
         HapticFeedback.mediumImpact();
-        if (inactiveModules.isEmpty) {
-          showTopToast(context, '✨ 所有的岛屿特色卡片都已经展示在主页啦～');
-          return;
-        }
 
         final activeModules = allModules.where((m) => m.enabled).toList();
 
@@ -715,21 +716,18 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
           inactiveModules: inactiveModules,
           onAddModule: (item) {
             if (!_canAddModule(context, activeModules, item)) {
-              showTopToast(context, '✨ 屏幕空间有限，请先移除部分卡片后再添加「${item.title}」哦～');
               return;
             }
 
             final updatedAll = List<HomeModuleItem>.from(allModules);
             final idx = updatedAll.indexWhere((m) => m.id == item.id);
             if (idx != -1) {
-              updatedAll[idx].enabled = true;
+              updatedAll[idx] = updatedAll[idx].copyWith(enabled: true, isFullWidth: true);
               UserState().saveHomeModuleConfigs(updatedAll);
-              showTopToast(context, '🎉 已将「${item.title}」添加到主页');
             }
           },
           onResetDefault: () {
             UserState().saveHomeModuleConfigs(HomeModuleItem.getDefaultModules());
-            showTopToast(context, '🔄 已恢复默认卡片排版');
           },
         );
       },
@@ -913,16 +911,16 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
               ),
             ),
           ),
-          // 左上角锁头角标 - 固定通栏指示器 (编辑模式下显示)
+          // 左上角锁头角标 - 固定通栏指示器 (仅固定锁定的通栏模块显示，例如 piano_mood)
           Positioned(
             top: -6,
             left: 12,
             child: AnimatedScale(
-              scale: isEditMode && module.isFullWidth ? 1.0 : 0.0,
+              scale: isEditMode && module.id == 'piano_mood' ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 380),
               curve: Curves.easeOutBack,
               child: AnimatedOpacity(
-                opacity: isEditMode && module.isFullWidth ? 1.0 : 0.0,
+                opacity: isEditMode && module.id == 'piano_mood' ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 220),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
@@ -977,8 +975,8 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
       key: ValueKey(module.id),
       onWillAcceptWithDetails: (details) {
         if (isEditMode && details.data.id != module.id) {
-          // 上锁固定通栏模块不参与拖拽放置与位置交换
-          if (details.data.isFullWidth || module.isFullWidth) {
+          // 仅固定通栏模块 (如 piano_mood) 上锁不参与拖拽放置与位置交换
+          if (details.data.id == 'piano_mood' || module.id == 'piano_mood') {
             return false;
           }
           _hoveredSlotModuleId.value = details.data.id;
@@ -1100,7 +1098,7 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
           ),
         );
 
-        final double targetWidth = (module.id == 'photo_throwback' || module.id == 'photo_wall' || module.id == 'gravity_box')
+        final double targetWidth = !module.isFullWidth
             ? (MediaQuery.of(context).size.width - 48.0) / 2
             : (MediaQuery.of(context).size.width - 48.0);
 
@@ -1178,16 +1176,33 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
                 width: targetWidth,
                 child: TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 0.0, end: 1.0),
-                  duration: const Duration(milliseconds: 260),
-                  curve: Curves.easeOutBack,
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
                   builder: (context, animValue, innerChild) {
                     final double currentScale = lerpDouble(startScale, 1.05, animValue)!;
                     final double currentAngle = lerpDouble(startAngle, targetAngle, animValue)!;
+                    final double shadowOpacity = lerpDouble(0.12, 0.35, animValue)!;
+                    final double shadowBlur = lerpDouble(8.0, 24.0, animValue)!;
+
                     return Transform.rotate(
                       angle: currentAngle,
                       child: Transform.scale(
                         scale: currentScale,
-                        child: innerChild,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (widget.isNight ? const Color(0xFF38BDF8) : const Color(0xFF0284C7))
+                                    .withValues(alpha: shadowOpacity),
+                                blurRadius: shadowBlur,
+                                spreadRadius: 2.0 * animValue,
+                                offset: Offset(0, 4.0 * animValue),
+                              ),
+                            ],
+                          ),
+                          child: innerChild,
+                        ),
                       ),
                     );
                   },
@@ -1205,10 +1220,10 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
           },
         );
 
-        // 固定通栏模块 (isFullWidth) 处于上锁状态：
+        // 仅固定锁定的通栏模块 (如 piano_mood) 处于上锁不可拖拽状态：
         // 1. 禁止拖拽位移
-        // 2. 但在非编辑模式下长按依然可以触发进入编辑模式 (图1状态)
-        if (module.isFullWidth) {
+        // 2. 但在非编辑模式下长按依然可以触发进入编辑模式
+        if (module.id == 'piano_mood') {
           if (!isEditMode) {
             return GestureDetector(
               onLongPress: () {
