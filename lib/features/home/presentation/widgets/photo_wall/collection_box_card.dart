@@ -68,12 +68,6 @@ class CollectionBoxCard extends StatelessWidget {
                     ? Colors.black.withValues(alpha: 0.12)
                     : Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.15)
-                      : Colors.white.withValues(alpha: 0.35),
-                  width: 1.0,
-                ),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(15),

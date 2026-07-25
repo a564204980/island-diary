@@ -105,7 +105,7 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
   @override
   void didUpdateWidget(covariant PhotoBoardCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!widget.isEditing && _selectedPhotoId != null) {
+    if ((!widget.isEditing || oldWidget.layoutMode != widget.layoutMode) && _selectedPhotoId != null) {
       setState(() {
         _selectedPhotoId = null;
       });
@@ -130,6 +130,23 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
     HapticFeedback.lightImpact();
     setState(() {
       widget.photoCustomAngles[id] = (widget.photoCustomAngles[id] ?? currentAngle) + (math.pi / 4);
+    });
+    widget.onStateChanged();
+  }
+
+  void _swapTreemapPhotos(int srcIndex, int targetIndex) {
+    if (srcIndex < 0 || srcIndex >= widget.photoIds.length) return;
+    if (targetIndex < 0 || targetIndex >= widget.photoIds.length) return;
+
+    HapticFeedback.heavyImpact();
+    setState(() {
+      final tempId = widget.photoIds[srcIndex];
+      widget.photoIds[srcIndex] = widget.photoIds[targetIndex];
+      widget.photoIds[targetIndex] = tempId;
+
+      final tempPath = widget.collection.photoPaths[srcIndex];
+      widget.collection.photoPaths[srcIndex] = widget.collection.photoPaths[targetIndex];
+      widget.collection.photoPaths[targetIndex] = tempPath;
     });
     widget.onStateChanged();
   }
@@ -443,9 +460,14 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
       );
     } else if (widget.layoutMode == WallLayoutMode.treemap) {
       final count = widget.collection.photoPaths.length;
-      final bounds = Rect.fromLTWH(10, 10, boardWidth - 20, boardHeight - 20);
+      const double refW = 330.0;
+      const double refH = 568.0;
+      final double scaleX = boardWidth / refW;
+      final double scaleY = boardHeight / refH;
+
+      final refBounds = Rect.fromLTWH(10, 10, refW - 20, refH - 20);
       final indices = List.generate(count, (i) => i);
-      final leaves = TreemapSplitter.computeLeaves(bounds, indices, widget.randomSeed);
+      final leaves = TreemapSplitter.computeLeaves(refBounds, indices, widget.randomSeed);
 
       canvasContent = SizedBox(
         height: boardHeight,
@@ -455,30 +477,45 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
           children: leaves.map((leaf) {
             final path = widget.collection.photoPaths[leaf.index];
             const gap = 3.0;
-            final cardRect = leaf.rect.deflate(gap);
+            final cardRect = Rect.fromLTRB(
+              leaf.rect.left * scaleX,
+              leaf.rect.top * scaleY,
+              leaf.rect.right * scaleX,
+              leaf.rect.bottom * scaleY,
+            ).deflate(gap);
 
-            return Positioned(
-              left: cardRect.left,
-              top: cardRect.top,
-              width: cardRect.width,
-              height: cardRect.height,
-              child: BouncingButton(
-                onTap: () => widget.onPreviewPhoto(path, leaf.index),
-                scaleFactor: 1.05,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.topCenter,
-                  children: [
-                    Container(
+            Widget buildTreemapCardWidget({bool isFeedback = false, bool isHovered = false}) {
+              final hoverBorderColor = widget.isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
+
+              return Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.topCenter,
+                children: [
+                  Positioned.fill(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black38,
-                            blurRadius: 6,
-                            offset: Offset(0, 3),
-                          ),
+                        border: isHovered
+                            ? Border.all(
+                                color: hoverBorderColor,
+                                width: 3.0,
+                              )
+                            : null,
+                        boxShadow: [
+                          if (isHovered)
+                            BoxShadow(
+                              color: hoverBorderColor.withValues(alpha: 0.55),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                            )
+                          else
+                            BoxShadow(
+                              color: isFeedback ? Colors.black.withValues(alpha: 0.45) : Colors.black38,
+                              blurRadius: isFeedback ? 14 : 6,
+                              offset: isFeedback ? const Offset(0, 6) : const Offset(0, 3),
+                            ),
                         ],
                       ),
                       padding: const EdgeInsets.all(3),
@@ -487,32 +524,83 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
                         child: _buildPhotoWidget(path, widget.photoIds[leaf.index].hashCode),
                       ),
                     ),
-                    _buildWashiTapeWidget(widget.photoIds[leaf.index].hashCode, 0.0),
-                    Positioned(
-                      top: -6,
-                      child: PushPinWidget(index: widget.photoIds[leaf.index].hashCode).animate(
-                        key: ValueKey('anim_treemap_pin_${leaf.index}'),
-                      ).fadeIn(
-                        duration: 1.ms,
-                        delay: (leaf.index * 140 + 460).ms,
-                      ).scale(
-                        begin: const Offset(1.8, 1.8),
-                        end: const Offset(1.0, 1.0),
-                        duration: 260.ms,
-                        curve: Curves.bounceOut,
-                        delay: (leaf.index * 140 + 460).ms,
-                      ).slideY(
-                        begin: -1.5,
-                        end: 0,
-                        duration: 260.ms,
-                        curve: Curves.easeOutCubic,
-                        delay: (leaf.index * 140 + 460).ms,
+                  ),
+                  _buildWashiTapeWidget(widget.photoIds[leaf.index].hashCode, 0.0),
+                  Positioned(
+                    top: -6,
+                    child: PushPinWidget(index: widget.photoIds[leaf.index].hashCode).animate(
+                      key: ValueKey('anim_treemap_pin_${leaf.index}'),
+                    ).fadeIn(
+                      duration: 1.ms,
+                      delay: (leaf.index * 140 + 460).ms,
+                    ).scale(
+                      begin: const Offset(1.8, 1.8),
+                      end: const Offset(1.0, 1.0),
+                      duration: 260.ms,
+                      curve: Curves.bounceOut,
+                      delay: (leaf.index * 140 + 460).ms,
+                    ).slideY(
+                      begin: -1.5,
+                      end: 0,
+                      duration: 260.ms,
+                      curve: Curves.easeOutCubic,
+                      delay: (leaf.index * 140 + 460).ms,
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return Positioned(
+              left: cardRect.left,
+              top: cardRect.top,
+              width: cardRect.width,
+              height: cardRect.height,
+              child: DragTarget<int>(
+                onWillAcceptWithDetails: (details) => details.data != leaf.index,
+                onAcceptWithDetails: (details) {
+                  _swapTreemapPhotos(details.data, leaf.index);
+                },
+                builder: (context, candidateData, rejectedData) {
+                  final isHovered = candidateData.isNotEmpty;
+
+                  return AnimatedScale(
+                    scale: isHovered ? 0.93 : 1.0,
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutBack,
+                    child: LongPressDraggable<int>(
+                      data: leaf.index,
+                      feedback: Material(
+                        color: Colors.transparent,
+                        child: Transform.rotate(
+                          angle: -0.06,
+                          child: SizedBox(
+                            width: cardRect.width * 1.05,
+                            height: cardRect.height * 1.05,
+                            child: buildTreemapCardWidget(isFeedback: true),
+                          ),
+                        ),
+                      ),
+                      childWhenDragging: Opacity(
+                        opacity: 0.35,
+                        child: buildTreemapCardWidget(),
+                      ),
+                      onDragStarted: () => HapticFeedback.heavyImpact(),
+                      child: BouncingButton(
+                        onTap: () {
+                          if (_selectedPhotoId != null) {
+                            setState(() => _selectedPhotoId = null);
+                          }
+                        },
+                        scaleFactor: 1.05,
+                        child: buildTreemapCardWidget(isHovered: isHovered),
                       ),
                     ),
-                  ],
-                ),
+                  );
+                },
               ).animate(
                 key: ValueKey('anim_treemap_card_${leaf.index}'),
+                target: _isAnimationDone ? 1.0 : null,
               ).slideX(
                 begin: (leaf.index % 2 == 0 ? -6.0 : 6.0),
                 end: 0,

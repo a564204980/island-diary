@@ -477,17 +477,32 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
         final double boardW = constraints.maxWidth;
         final double boardH = constraints.maxHeight;
 
-        final bounds = Rect.fromLTWH(2, 2, boardW - 4, boardH - 4);
+        const double refW = 330.0;
+        const double refH = 568.0;
+        final double scaleX = boardW / refW;
+        final double scaleY = boardH / refH;
+
+        final refBounds = Rect.fromLTWH(10, 10, refW - 20, refH - 20);
         final indices = List.generate(count, (i) => i);
-        final leaves = TreemapSplitter.computeLeaves(bounds, indices, 42);
+        final seed = _activeCollection?.id.hashCode.abs() ?? 42;
+        final leaves = TreemapSplitter.computeLeaves(refBounds, indices, seed);
+
+        final double scaleFactor = (boardW / refW).clamp(0.4, 1.0);
+        final double outerRadius = (16.0 * scaleFactor).clamp(8.0, 16.0);
+        final double innerRadius = (14.0 * scaleFactor).clamp(6.0, 14.0);
+        final double gap = (3.0 * scaleFactor).clamp(1.5, 3.5);
 
         return Stack(
           clipBehavior: Clip.hardEdge,
           children: [
             ...leaves.map((leaf) {
               final item = displayItems[leaf.index % displayItems.length];
-              const gap = 1.5;
-              final cardRect = leaf.rect.deflate(gap);
+              final cardRect = Rect.fromLTRB(
+                leaf.rect.left * scaleX,
+                leaf.rect.top * scaleY,
+                leaf.rect.right * scaleX,
+                leaf.rect.bottom * scaleY,
+              ).deflate(gap);
 
               return Positioned(
                 left: cardRect.left,
@@ -495,8 +510,8 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                 width: cardRect.width,
                 height: cardRect.height,
                 child: BouncingButton(
-                  onTap: () {
-                    Navigator.of(context).push(
+                  onTap: () async {
+                    await Navigator.of(context).push(
                       SharedAxisPageRoute(
                         page: PhotoWallPage(
                           isNight: widget.isNight,
@@ -504,6 +519,7 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                         ),
                       ),
                     );
+                    _extractPhotoItems();
                   },
                   scaleFactor: 1.05,
                   child: Stack(
@@ -511,27 +527,29 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                     alignment: Alignment.topCenter,
                     children: [
                       // 拍立得主卡片
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: widget.isNight ? 0.38 : 0.16),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(2.5),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(3),
-                          child: Image.file(
-                            File(item.imagePath),
-                            width: double.infinity,
-                            height: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => Container(color: Colors.grey.shade200),
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(outerRadius),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: widget.isNight ? 0.38 : 0.16),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.all(2.5),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(innerRadius),
+                            child: item.imagePath.startsWith('assets/')
+                                ? Image.asset(item.imagePath, fit: BoxFit.cover)
+                                : Image.file(
+                                    File(item.imagePath),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => Container(color: Colors.grey.shade200),
+                                  ),
                           ),
                         ),
                       ),

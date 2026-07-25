@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 /// 二叉切分树叶子节点
@@ -13,7 +12,6 @@ class TreemapLeaf {
 class TreemapSplitter {
   static List<TreemapLeaf> computeLeaves(Rect bounds, List<int> indices, int seed) {
     final List<TreemapLeaf> leaves = [];
-    final rand = math.Random(seed);
 
     void splitNode(Rect currentRect, List<int> currentIndices) {
       if (currentIndices.isEmpty) return;
@@ -23,14 +21,14 @@ class TreemapSplitter {
       }
 
       final aspect = currentRect.width / currentRect.height;
-      final splitVertically = aspect > 1.1 ? true : (aspect < 0.9 ? false : rand.nextBool());
+      final splitVertically = aspect > 0.68;
 
       final half = (currentIndices.length / 2).round();
       final leftIndices = currentIndices.sublist(0, half);
       final rightIndices = currentIndices.sublist(half);
 
-      final ratio = (leftIndices.length / currentIndices.length) + (rand.nextDouble() - 0.5) * 0.12;
-      final clampedRatio = ratio.clamp(0.35, 0.65);
+      final ratio = leftIndices.length / currentIndices.length;
+      final clampedRatio = ratio.clamp(0.40, 0.60);
 
       if (splitVertically) {
         final leftW = currentRect.width * clampedRatio;

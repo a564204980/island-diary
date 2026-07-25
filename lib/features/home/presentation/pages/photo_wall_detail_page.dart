@@ -537,12 +537,6 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
                                             ? Colors.black.withValues(alpha: 0.12)
                                             : Colors.white.withValues(alpha: 0.06),
                                         borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(
-                                          color: isDark
-                                              ? Colors.white.withValues(alpha: 0.15)
-                                              : Colors.white.withValues(alpha: 0.35),
-                                          width: 1.0,
-                                        ),
                                       ),
                                     ),
                                   ),
@@ -607,6 +601,7 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
                   color: textColor,
                   onTap: () {
                     HapticFeedback.mediumImpact();
+                    _canvasKey.currentState?.clearSelection();
                     setState(() {
                       _layoutMode = _layoutMode == WallLayoutMode.scatter
                           ? WallLayoutMode.treemap
