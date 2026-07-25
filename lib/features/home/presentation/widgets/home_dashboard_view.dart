@@ -70,7 +70,6 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
     });
     if (_isEditMode) {
       _editModeAnim.forward(); // 驱动所有卡片平滑进入编辑态
-      showTopToast(context, '✨ 已进入编辑模式，可点击 - 移除卡片或拖拽调整顺序');
     } else {
       _editModeAnim.reverse(); // 反向播放退出编辑态
     }
@@ -94,6 +93,14 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
         showTopToast(context, '✨ 已将「${module.title}」吹回卡片仓库～');
       }
     });
+  }
+
+  IconData _getGreetingIcon() {
+    final hour = DateTime.now().hour;
+    if (hour < 6 || hour >= 18 || widget.isNight) {
+      return Icons.nights_stay_outlined;
+    }
+    return Icons.wb_sunny_outlined;
   }
 
   String _getGreeting() {
@@ -234,7 +241,7 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
                                       ),
                                       const SizedBox(width: 6),
                                       Icon(
-                                        widget.isNight ? Icons.nights_stay_outlined : Icons.wb_sunny_outlined,
+                                        _getGreetingIcon(),
                                         size: 22,
                                         color: accentColor,
                                       ),
@@ -252,11 +259,9 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
                                         if (isGale) {
                                           WindService.currentWind.value = WindMode.breeze;
                                           UserState().cloudSpeedMultiplier.value = WindMode.breeze.speedMultiplier;
-                                          showTopToast(context, '🍃 已恢复微风');
                                         } else {
                                           WindService.currentWind.value = WindMode.gale;
                                           UserState().cloudSpeedMultiplier.value = WindMode.gale.speedMultiplier;
-                                          showTopToast(context, '🌬️ 狂风大作！竹子弯腰啦');
                                         }
                                       },
                                       child: Container(
@@ -803,7 +808,8 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
   }) {
     // 用 AnimatedBuilder 直接监听 _editModeAnim controller，
     // 确保每帧都能可靠驱动缩放/倾斜/阴影动画，完全不依赖 widget 树协调
-    final double tiltSign = activeIndex % 2 == 0 ? 1.0 : -1.0;
+    // 取消编辑模式下的左右交替倾斜（保留缩放和阴影），避免大卡片倾斜产生“左右偏”的错位感
+    final double tiltSign = 0.0;
     final shadowColor = widget.isNight ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
 
     Widget cardBody = AnimatedBuilder(
@@ -812,26 +818,34 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
         final double t = _editModeAnim.value;
         // easeOutBack 手感曲线
         final double curved = Curves.easeOutBack.transform(t.clamp(0.0, 1.0));
-        return Transform.rotate(
-          angle: curved * 0.035 * tiltSign,
-          child: Transform.scale(
-            scale: 1.0 - curved * 0.035, // 1.0 → 0.965
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: t > 0.01
-                    ? [
-                        BoxShadow(
-                          color: shadowColor.withValues(alpha: 0.25 * t),
-                          blurRadius: 20 * t,
-                          spreadRadius: 2 * t,
-                        ),
-                      ]
-                    : [],
+        return TweenAnimationBuilder<double>(
+          key: ValueKey('tilt_${module.id}'),
+          tween: Tween<double>(begin: tiltSign, end: tiltSign),
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+          builder: (context, animatedTilt, _) {
+            return Transform.rotate(
+              angle: curved * 0.035 * animatedTilt,
+              child: Transform.scale(
+                scale: 1.0 - curved * 0.035, // 1.0 → 0.965
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: t > 0.01
+                        ? [
+                            BoxShadow(
+                              color: shadowColor.withValues(alpha: 0.25 * t),
+                              blurRadius: 20 * t,
+                              spreadRadius: 2 * t,
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: innerChild,
+                ),
               ),
-              child: innerChild,
-            ),
-          ),
+            );
+          },
         );
       },
       child: Stack(
@@ -842,6 +856,7 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
             ignoring: isEditMode,
             child: WindBendCardWrapper(
               isTall: isLeftColumn || module.isFullWidth,
+              isEditMode: isEditMode,
               child: child,
             ),
           ),
@@ -1063,7 +1078,7 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
           child: cardBodyWithWind,
         );
 
-        // 卡片交换时的软弹簧平滑位移与放手落座动画
+        // 卡片交换时的放手落座动画 (移除 activeIndex 避免在 AnimatedPositioned 飞行过程中引发不必要的原位鬼影闪烁)
         final Widget animatedCard = AnimatedSwitcher(
           duration: const Duration(milliseconds: 320),
           switchInCurve: Curves.easeOutBack,
@@ -1077,14 +1092,16 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
               ),
             );
           },
-          child: KeyedSubtree(
-            key: ValueKey('${module.id}_$activeIndex'),
-            child: innerCard,
+          child: RepaintBoundary(
+            child: KeyedSubtree(
+              key: ValueKey('${module.id}_card'),
+              child: innerCard,
+            ),
           ),
         );
 
         final double targetWidth = (module.id == 'photo_throwback' || module.id == 'photo_wall' || module.id == 'gravity_box')
-            ? 165.0
+            ? (MediaQuery.of(context).size.width - 48.0) / 2
             : (MediaQuery.of(context).size.width - 48.0);
 
         final double startScale = isEditMode ? 0.965 : 1.0;
@@ -1094,7 +1111,7 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
         final Widget feedbackWidget = ValueListenableBuilder<String?>(
           valueListenable: _hoveredSlotModuleId,
           builder: (context, hoveredId, _) {
-            final bool effectiveIsTall = (hoveredId == module.id)
+            final bool effectiveIsTall = (hoveredId != null && hoveredId == module.id)
                 ? _hoveredSlotIsTall.value
                 : isLeftColumn;
 
@@ -1120,6 +1137,41 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
               );
             }
 
+            Widget feedbackWithMinus = Stack(
+              fit: StackFit.passthrough,
+              clipBehavior: Clip.none,
+              children: [
+                dynamicFeedbackChild,
+                if (!module.isFullWidth)
+                  Positioned(
+                    top: -6,
+                    right: -6,
+                    child: Container(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(4.5),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFE63946),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 8,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.remove_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+
             return Material(
               color: Colors.transparent,
               child: SizedBox(
@@ -1139,11 +1191,13 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
                       ),
                     );
                   },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    height: effectiveIsTall ? 296.0 : 140.0,
-                    child: dynamicFeedbackChild,
+                  child: RepaintBoundary(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic,
+                      height: effectiveIsTall ? 296.0 : 140.0,
+                      child: feedbackWithMinus,
+                    ),
                   ),
                 ),
               ),
@@ -1174,15 +1228,18 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
           delay: isEditMode ? const Duration(milliseconds: 100) : const Duration(milliseconds: 500),
           onDragStarted: () {
             HapticFeedback.mediumImpact();
+            _hoveredSlotModuleId.value = null;
             // 拖拽开始时同步激活编辑模式，AnimatedBuilder 驱动所有卡片平滑进场动画
             if (!_isEditMode) {
               _toggleEditMode();
             }
           },
           onDragEnd: (details) {
+            _hoveredSlotModuleId.value = null;
             _justDroppedModuleId.value = module.id;
           },
           onDraggableCanceled: (velocity, offset) {
+            _hoveredSlotModuleId.value = null;
             _justDroppedModuleId.value = module.id;
           },
           feedback: feedbackWidget,

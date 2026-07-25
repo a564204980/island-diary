@@ -1,20 +1,25 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/features/home/presentation/widgets/floating_clouds.dart';
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 
 /// 统一的海岛页面透光渐变背景组件 (IslandPageBackground)
-/// 内置背景图片交叉淡入淡出 (Cross-Fade) 与渐变遮罩平滑色彩过渡动画，支持高斯模糊 (blurSigma)
+/// 内置背景图片交叉淡入淡出 (Cross-Fade)、云朵漂浮动效与渐变遮罩平滑色彩过渡动画，支持高斯模糊 (blurSigma)
 class IslandPageBackground extends StatelessWidget {
   final Widget? child;
   final Alignment backgroundAlignment;
   final double? blurSigma;
+  final bool showClouds;
+  final bool shouldAnimateClouds;
 
   const IslandPageBackground({
     super.key,
     this.child,
     this.backgroundAlignment = Alignment.topCenter,
     this.blurSigma,
+    this.showClouds = true,
+    this.shouldAnimateClouds = true,
   });
 
   @override
@@ -75,7 +80,17 @@ class IslandPageBackground extends StatelessWidget {
               ),
             ),
 
-            // 1. 全屏透光渐变遮罩层 (带 AnimatedContainer 柔和渐变过渡)
+            // 1. 全屏云朵漂浮层
+            if (showClouds && themeId != 'lego')
+              Positioned.fill(
+                child: FloatingClouds(
+                  isNight: isNight,
+                  themeId: themeId,
+                  shouldAnimate: shouldAnimateClouds,
+                ),
+              ),
+
+            // 2. 全屏透光渐变遮罩层 (带 AnimatedContainer 柔和渐变过渡)
             if (!isSpecialTheme)
               Positioned.fill(
                 child: AnimatedContainer(
@@ -111,3 +126,4 @@ class IslandPageBackground extends StatelessWidget {
     );
   }
 }
+

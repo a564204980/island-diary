@@ -1,22 +1,25 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:wechat_assets_picker/wechat_assets_picker.dart';
-import 'package:island_diary/shared/animations/bouncing_button.dart';
-import 'package:island_diary/shared/widgets/top_toast.dart';
-import 'package:island_diary/shared/widgets/diary_entry/components/redbook_asset_picker.dart';
-import 'package:island_diary/features/home/domain/models/photo_wall_collection.dart';
-import 'package:island_diary/features/home/presentation/widgets/photo_wall/wall_layout_mode.dart';
-import 'package:island_diary/features/home/presentation/widgets/photo_wall/treemap_splitter.dart';
-import 'package:island_diary/core/widgets/island_floating_bottom_bar.dart';
-import 'package:island_diary/core/services/wind_service.dart';
-import 'package:island_diary/shared/animations/wind_dissolve_effect.dart';
-import 'package:island_diary/shared/widgets/diary_entry/components/diary_bottom_sheet.dart';
-import 'package:island_diary/shared/widgets/island_page_background.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// 照片墙集合详情页 (中央实体展板相框样式，对齐图2)
+import 'package:island_diary/core/widgets/island_floating_bottom_bar.dart';
+import 'package:island_diary/features/home/domain/models/photo_wall_collection.dart';
+import 'package:island_diary/features/home/presentation/widgets/photo_wall/photo_board_canvas.dart';
+import 'package:island_diary/features/home/presentation/widgets/photo_wall/photo_wall_settings_sheet.dart';
+import 'package:island_diary/features/home/presentation/widgets/photo_wall/wall_layout_mode.dart';
+import 'package:island_diary/features/home/presentation/widgets/photo_wall_card.dart';
+import 'package:island_diary/shared/animations/bouncing_button.dart';
+import 'package:island_diary/shared/widgets/diary_entry/components/redbook_asset_picker.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import 'package:island_diary/shared/widgets/island_dialog.dart';
+import 'package:island_diary/shared/widgets/island_page_background.dart';
+import 'package:island_diary/shared/widgets/top_toast.dart';
+
+/// 展板详情与自由缩影手帐编辑页面 (PhotoWallDetailPage)
 class PhotoWallDetailPage extends StatefulWidget {
   final PhotoWallCollection collection;
   final bool isNight;
@@ -31,480 +34,234 @@ class PhotoWallDetailPage extends StatefulWidget {
   State<PhotoWallDetailPage> createState() => _PhotoWallDetailPageState();
 }
 
-class _ActiveWindDissolveEffect {
-  final String id;
-  final Offset position;
-  final Size size;
-  final double angle;
-  final WindMode windMode;
-
-  _ActiveWindDissolveEffect({
-    required this.id,
-    required this.position,
-    required this.size,
-    required this.angle,
-    required this.windMode,
-  });
-}
-
 class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
   late PhotoWallCollection _collection;
-  WallLayoutMode _layoutMode = WallLayoutMode.treemap;
-  int _randomSeed = 42;
+  late WallLayoutMode _layoutMode;
   bool _showWashiTape = true;
-  String? _selectedPhotoId;
-  int _nextId = 0;
-  late List<String> _photoIds;
-  String _generateId() => 'photo_${_nextId++}';
-  Offset? _dragStartPos;
+  bool _isEditing = true;
+
   final Map<String, Offset> _photoCustomPositions = {};
-  final Map<String, double> _photoCustomScales = {};
   final Map<String, double> _photoCustomAngles = {};
-  final List<_ActiveWindDissolveEffect> _activeDissolves = [];
+  final Map<String, double> _photoCustomScales = {};
+  final GlobalKey _canvasBoundaryKey = GlobalKey();
+  final GlobalKey<PhotoBoardCanvasState> _canvasKey = GlobalKey<PhotoBoardCanvasState>();
+
+  final List<String> _photoIds = [];
 
   static const List<String> _presetPhotos = [
-    'assets/images/home_card/me_day.jpg',
-    'assets/images/home_card/me_night.jpg',
+    'assets/images/icons/mood1.png',
+    'assets/images/icons/mood2.png',
+    'assets/images/icons/mood3.png',
+    'assets/images/icons/mood4.png',
+    'assets/images/icons/mood5.png',
   ];
+
+  late int _randomSeed;
 
   @override
   void initState() {
     super.initState();
     _collection = widget.collection;
-    _photoIds = List.generate(_collection.photoPaths.length, (_) => _generateId());
+    _layoutMode = WallLayoutModeX.fromString(_collection.layoutMode ?? 'scatter');
+    _randomSeed = _collection.id.hashCode.abs();
+    _syncPhotoIds();
+    _loadCustomPositions();
+  }
 
-    // 恢复先前保存的布局模式
-    if (_collection.layoutMode == 'treemap') {
-      _layoutMode = WallLayoutMode.treemap;
-    } else if (_collection.layoutMode == 'scatter') {
-      _layoutMode = WallLayoutMode.scatter;
+  void _syncPhotoIds() {
+    _photoIds.clear();
+    for (int i = 0; i < _collection.photoPaths.length; i++) {
+      _photoIds.add('photo_$i');
     }
+  }
 
-    // 恢复先前保存的照片手帐散落坐标
+  void _loadCustomPositions() {
     if (_collection.customPositions != null) {
-      _collection.customPositions!.forEach((id, list) {
-        if (list.length >= 2) {
-          _photoCustomPositions[id] = Offset(list[0], list[1]);
+      _collection.customPositions!.forEach((key, val) {
+        if (val.length >= 2) {
+          _photoCustomPositions[key] = Offset(val[0], val[1]);
         }
       });
     }
-
-    // 恢复先前保存的照片缩放比例
-    if (_collection.customScales != null) {
-      _photoCustomScales.addAll(_collection.customScales!);
-    }
-
-    // 恢复先前保存的照片旋转角度
     if (_collection.customAngles != null) {
       _photoCustomAngles.addAll(_collection.customAngles!);
     }
-  }
-
-  /// 将当前所有排版位置、旋转角度、缩放、图层顺序与布局模式同步写回 _collection
-  void _saveCollectionState() {
-    final posMap = <String, List<double>>{};
-    _photoCustomPositions.forEach((id, pos) {
-      posMap[id] = [pos.dx, pos.dy];
-    });
-
-    _collection = _collection.copyWith(
-      photoPaths: List.from(_collection.photoPaths),
-      customPositions: posMap,
-      customScales: Map.from(_photoCustomScales),
-      customAngles: Map.from(_photoCustomAngles),
-      layoutMode: _layoutMode == WallLayoutMode.scatter ? 'scatter' : 'treemap',
-    );
-  }
-
-  /// 选中照片（保持现有层级顺序不变）
-  void _selectPhoto(String id) {
-    HapticFeedback.selectionClick();
-    setState(() {
-      _selectedPhotoId = id;
-    });
-  }
-
-  /// 构建精致图层气泡菜单项 (包含马卡龙 Icon 徽章 + 右侧图层阶梯标)
-  Widget _buildLayerMenuItem({
-    required IconData icon,
-    required String label,
-    required String badgeText,
-    required bool enabled,
-    required Color activeBgColor,
-    required Color activeIconColor,
-    required bool isDark,
-  }) {
-    final bgColor = enabled
-        ? (isDark ? activeIconColor.withValues(alpha: 0.22) : activeBgColor)
-        : (isDark ? const Color(0xFF334155).withValues(alpha: 0.4) : const Color(0xFFF1F5F9));
-
-    final iconColor = enabled
-        ? activeIconColor
-        : (isDark ? const Color(0xFF64748B) : Colors.grey.shade400);
-
-    final textColor = enabled
-        ? (isDark ? Colors.white : const Color(0xFF1E293B))
-        : (isDark ? const Color(0xFF64748B) : Colors.grey.shade400);
-
-    final badgeBgColor = enabled
-        ? (isDark ? activeIconColor.withValues(alpha: 0.25) : activeBgColor.withValues(alpha: 0.7))
-        : (isDark ? const Color(0xFF334155).withValues(alpha: 0.4) : const Color(0xFFF1F5F9));
-
-    final badgeTextColor = enabled
-        ? activeIconColor
-        : (isDark ? const Color(0xFF64748B) : Colors.grey.shade400);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(9),
-                border: Border.all(
-                  color: enabled
-                      ? activeIconColor.withValues(alpha: isDark ? 0.3 : 0.15)
-                      : Colors.transparent,
-                  width: 1,
-                ),
-              ),
-              child: Center(
-                child: Icon(
-                  icon,
-                  size: 16,
-                  color: iconColor,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: textColor,
-              ),
-            ),
-          ],
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-          decoration: BoxDecoration(
-            color: badgeBgColor,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            badgeText,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: badgeTextColor,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 弹出精准跟随按钮物理位置的图层切换气泡菜单（移至置顶 / 上移一层 / 下移一层 / 移至置底）
-  void _showLayerMenu(BuildContext buttonContext, String id) async {
-    HapticFeedback.selectionClick();
-    final index = _photoIds.indexOf(id);
-    if (index == -1) return;
-    final total = _photoIds.length;
-    if (total <= 1) return;
-
-    final RenderBox? buttonBox = buttonContext.findRenderObject() as RenderBox?;
-    final RenderBox? overlay = Overlay.of(buttonContext).context.findRenderObject() as RenderBox?;
-    if (buttonBox == null || overlay == null) return;
-
-    // 精准实时换算 44x44 图层按钮在全屏上的物理 Bounds，并将菜单锚点偏移至图标正下方 6px 处（避开覆盖图标）
-    final Rect buttonRect = buttonBox.localToGlobal(Offset.zero, ancestor: overlay) & buttonBox.size;
-
-    const double menuWidth = 168.0;
-    final double menuLeft = buttonRect.left.clamp(12.0, overlay.size.width - menuWidth - 12.0);
-
-    final Rect targetRect = Rect.fromLTWH(
-      menuLeft,
-      buttonRect.bottom + 6.0,
-      buttonRect.width,
-      buttonRect.height,
-    );
-
-    final isTop = (index == total - 1);
-    final isBottom = (index == 0);
-    final bool isDark = widget.isNight;
-
-    final selected = await showMenu<String>(
-      context: buttonContext,
-      position: RelativeRect.fromRect(
-        targetRect,
-        Offset.zero & overlay.size,
-      ),
-      elevation: 16,
-      shadowColor: isDark ? Colors.black.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.15),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: isDark ? Colors.white.withValues(alpha: 0.18) : const Color(0xFFE2E8F0),
-          width: 1.2,
-        ),
-      ),
-      color: isDark
-          ? const Color(0xFF1E293B)
-          : Colors.white,
-      items: [
-        PopupMenuItem<String>(
-          value: 'front',
-          enabled: !isTop,
-          height: 44,
-          child: _buildLayerMenuItem(
-            icon: Icons.flip_to_front_rounded,
-            label: '移至置顶',
-            badgeText: 'TOP',
-            enabled: !isTop,
-            activeBgColor: const Color(0xFFEEF2FF),
-            activeIconColor: const Color(0xFF6366F1), // 靓丽靛蓝
-            isDark: isDark,
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'forward',
-          enabled: !isTop,
-          height: 44,
-          child: _buildLayerMenuItem(
-            icon: Icons.arrow_upward_rounded,
-            label: '上移一层',
-            badgeText: '+1',
-            enabled: !isTop,
-            activeBgColor: const Color(0xFFECFDF5),
-            activeIconColor: const Color(0xFF10B981), // 靓丽翡翠绿
-            isDark: isDark,
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'backward',
-          enabled: !isBottom,
-          height: 44,
-          child: _buildLayerMenuItem(
-            icon: Icons.arrow_downward_rounded,
-            label: '下移一层',
-            badgeText: '-1',
-            enabled: !isBottom,
-            activeBgColor: const Color(0xFFFFF7ED),
-            activeIconColor: const Color(0xFFF97316), // 靓丽暖橙
-            isDark: isDark,
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'back',
-          enabled: !isBottom,
-          height: 44,
-          child: _buildLayerMenuItem(
-            icon: Icons.flip_to_back_rounded,
-            label: '移至置底',
-            badgeText: 'BOT',
-            enabled: !isBottom,
-            activeBgColor: const Color(0xFFF1F5F9),
-            activeIconColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), // 暖灰
-            isDark: isDark,
-          ),
-        ),
-      ],
-    );
-
-    if (selected != null) {
-      _applyLayerAction(id, selected);
+    if (_collection.customScales != null) {
+      _photoCustomScales.addAll(_collection.customScales!);
     }
   }
 
-  /// 执行精准图层位置调整
-  void _applyLayerAction(String id, String action) {
-    HapticFeedback.mediumImpact();
-    setState(() {
-      final index = _photoIds.indexOf(id);
-      if (index == -1) return;
-      final total = _photoIds.length;
-
-      final p = _collection.photoPaths.removeAt(index);
-      final removedId = _photoIds.removeAt(index);
-
-      switch (action) {
-        case 'front':
-          _collection.photoPaths.add(p);
-          _photoIds.add(removedId);
-          break;
-        case 'forward':
-          final newIndex = (index + 1).clamp(0, total - 1);
-          _collection.photoPaths.insert(newIndex, p);
-          _photoIds.insert(newIndex, removedId);
-          break;
-        case 'backward':
-          final newIndex = (index - 1).clamp(0, total - 1);
-          _collection.photoPaths.insert(newIndex, p);
-          _photoIds.insert(newIndex, removedId);
-          break;
-        case 'back':
-          _collection.photoPaths.insert(0, p);
-          _photoIds.insert(0, removedId);
-          break;
-      }
-      _saveCollectionState();
+  Future<void> _saveCollectionState() async {
+    final posMap = <String, List<double>>{};
+    _photoCustomPositions.forEach((k, v) {
+      posMap[k] = [v.dx, v.dy];
     });
-  }
 
-  /// 顺时针旋转照片
-  void _rotatePhoto(String id, double initialAngle) {
-    HapticFeedback.selectionClick();
-    setState(() {
-      final currentAngle = _photoCustomAngles[id] ?? initialAngle;
-      _photoCustomAngles[id] = currentAngle + (math.pi / 12);
-      _saveCollectionState();
-    });
-  }
+    final updated = _collection.copyWith(
+      layoutMode: _layoutMode.name,
+      customPositions: posMap,
+      customAngles: Map.from(_photoCustomAngles),
+      customScales: Map.from(_photoCustomScales),
+    );
 
-  /// 循环缩放照片卡片 (0.8x -> 1.0x -> 1.25x -> 1.5x)
-  void _scalePhoto(String id) {
-    HapticFeedback.selectionClick();
-    setState(() {
-      final currentScale = _photoCustomScales[id] ?? 1.0;
-      if (currentScale < 0.9) {
-        _photoCustomScales[id] = 1.0;
-      } else if (currentScale < 1.1) {
-        _photoCustomScales[id] = 1.25;
-      } else if (currentScale < 1.3) {
-        _photoCustomScales[id] = 1.5;
-      } else {
-        _photoCustomScales[id] = 0.8;
-      }
-      _saveCollectionState();
-    });
-  }
+    _collection = updated;
 
-  /// 移除照片 (带有随风消逝粒子特效)
-  void _removePhoto(String id, {Size? cardSize}) {
-    HapticFeedback.lightImpact();
-
-    final currentPos = _photoCustomPositions[id] ?? Offset.zero;
-    final currentAngle = _photoCustomAngles[id] ?? 0.0;
-    final currentWindMode = WindService.currentWind.value;
-    final size = cardSize ?? const Size(80, 92);
-
-    setState(() {
-      _activeDissolves.add(
-        _ActiveWindDissolveEffect(
-          id: id,
-          position: currentPos,
-          size: size,
-          angle: currentAngle,
-          windMode: currentWindMode,
-        ),
-      );
-
-      final index = _photoIds.indexOf(id);
-      if (index != -1) {
-        _collection.photoPaths.removeAt(index);
-        _photoIds.removeAt(index);
-        if (_selectedPhotoId == id) {
-          _selectedPhotoId = null;
+    final prefs = await SharedPreferences.getInstance();
+    final rawJson = prefs.getString('photo_wall_collections_v2');
+    if (rawJson != null && rawJson.isNotEmpty) {
+      try {
+        final List<dynamic> rawList = jsonDecode(rawJson);
+        final List<Map<String, dynamic>> list = [];
+        for (var item in rawList) {
+          if (item is Map) {
+            list.add(Map<String, dynamic>.from(item));
+          } else if (item is String) {
+            try {
+              final decoded = jsonDecode(item);
+              if (decoded is Map) {
+                list.add(Map<String, dynamic>.from(decoded));
+              }
+            } catch (_) {}
+          }
         }
-        _photoCustomPositions.remove(id);
-        _photoCustomScales.remove(id);
-        _photoCustomAngles.remove(id);
+
+        final index = list.indexWhere((item) => item['id'] == updated.id);
+        if (index != -1) {
+          list[index] = updated.toMap();
+          await prefs.setString('photo_wall_collections_v2', jsonEncode(list));
+          PhotoWallCard.updateStaticCache(updated);
+        }
+      } catch (e) {
+        debugPrint("保存照片墙状态失败: $e");
       }
-      _saveCollectionState();
-    });
+    }
   }
 
-  /// 向此集合钉入照片 (调用公共 RedBookAssetPicker 相册组件)
   Future<void> _pickPhoto() async {
     try {
-      final List<AssetEntity>? results = await RedBookAssetPicker.pick(
+      final List<AssetEntity>? result = await RedBookAssetPicker.pick(
         context,
         maxAssets: 9,
         requestType: RequestType.image,
       );
-      if (results != null && results.isNotEmpty) {
-        final List<String> newPaths = [];
-        for (var entity in results) {
-          final file = await entity.file;
+      if (result != null && result.isNotEmpty) {
+        final List<String> addedPaths = [];
+        for (var asset in result) {
+          final file = await asset.file;
           if (file != null) {
-            newPaths.add(file.path);
+            addedPaths.add(file.path);
           }
         }
-        if (newPaths.isNotEmpty) {
-          final newIds = List<String>.generate(newPaths.length, (_) => _generateId());
-          final updatedPhotos = List<String>.from(_collection.photoPaths)
-            ..insertAll(0, newPaths);
-          final updatedIds = List<String>.from(_photoIds)
-            ..insertAll(0, newIds);
+
+        if (addedPaths.isNotEmpty) {
+          final newPaths = List<String>.from(_collection.photoPaths)..addAll(addedPaths);
+          final existingCount = _photoIds.length;
+
           setState(() {
-            _collection = _collection.copyWith(photoPaths: updatedPhotos);
-            _photoIds = updatedIds;
-            _randomSeed += 1;
+            _collection = _collection.copyWith(
+              photoPaths: newPaths,
+              layoutMode: 'scatter',
+            );
+            _layoutMode = WallLayoutMode.scatter;
+
+            final rand = math.Random();
+            const cols = 3;
+            const maxRows = 3;
+
+            for (int i = 0; i < addedPaths.length; i++) {
+              final newId = 'photo_${_photoIds.length}';
+              _photoIds.add(newId);
+
+              final totalIndex = existingCount + i;
+              final colIndex = totalIndex % cols;
+              final rowIndex = (totalIndex ~/ cols) % maxRows;
+
+              final double baseX = 18.0 + colIndex * 88.0;
+              final double baseY = 24.0 + rowIndex * 115.0;
+              final double randomX = (rand.nextDouble() - 0.5) * 36.0;
+              final double randomY = (rand.nextDouble() - 0.5) * 36.0;
+
+              final double finalX = (baseX + randomX).clamp(10.0, 210.0);
+              final double finalY = (baseY + randomY).clamp(14.0, 350.0);
+
+              final double randomAngle = (rand.nextDouble() - 0.5) * 0.44;
+
+              _photoCustomPositions[newId] = Offset(finalX, finalY);
+              _photoCustomAngles[newId] = randomAngle;
+              _photoCustomScales[newId] = 1.0;
+            }
           });
+
+          await _saveCollectionState();
+          if (mounted) {
+            showTopToast(context, "📸 成功钉入 ${addedPaths.length} 张照片", icon: Icons.push_pin_rounded);
+          }
         }
       }
     } catch (e) {
       if (mounted) {
-        showTopToast(context, '无法打开相册，请重试');
+        showTopToast(context, "选图失败: $e");
       }
     }
   }
 
-  /// 预览放大写真照片
-  void _previewPhoto(String path, int index) {
-    HapticFeedback.lightImpact();
+  void _removePhoto(String photoId) {
+    final index = _photoIds.indexOf(photoId);
+    if (index != -1) {
+      setState(() {
+        _collection.photoPaths.removeAt(index);
+        _photoIds.removeAt(index);
+        _photoCustomPositions.remove(photoId);
+        _photoCustomAngles.remove(photoId);
+        _photoCustomScales.remove(photoId);
+      });
+      _saveCollectionState();
+    }
+  }
+
+  void _clearAllPhotos() {
+    if (_collection.photoPaths.isEmpty) {
+      showTopToast(context, '展板已经是空的啦');
+      return;
+    }
+
+    IslandDialog.show(
+      context,
+      title: '清空展板照片',
+      content: const Text(
+        '确定要清空展板上的所有照片吗？清空后可以重新添加写真。',
+        style: TextStyle(fontSize: 14),
+      ),
+      confirmText: '确认清空',
+      onConfirm: () {
+        setState(() {
+          _collection = _collection.copyWith(photoPaths: []);
+          _photoIds.clear();
+          _photoCustomPositions.clear();
+          _photoCustomAngles.clear();
+          _photoCustomScales.clear();
+        });
+        _saveCollectionState();
+        showTopToast(context, '🧹 已清空展板所有照片', icon: Icons.cleaning_services_rounded);
+      },
+    );
+  }
+
+  void _showPhotoPreviewDialog(String path, int index) {
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black87,
-      builder: (context) => Dialog(
+      builder: (dialogCtx) => Dialog(
         backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(20),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black38, blurRadius: 24, offset: Offset(0, 10)),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: _buildPhotoWidget(path, index, height: 360),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "${_collection.title} #${index + 1}",
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF334155),
-                        ),
-                      ),
-                      Text(
-                        "海岛记忆 · 珍藏",
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ],
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: AspectRatio(
+                aspectRatio: 3 / 4,
+                child: _buildPhotoWidget(path, index),
               ),
             ),
             const SizedBox(height: 16),
@@ -518,7 +275,8 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
                       _collection = _collection.copyWith(photoPaths: newPhotos);
                       _photoIds.removeAt(index);
                     });
-                    Navigator.of(context).pop();
+                    _saveCollectionState();
+                    Navigator.of(dialogCtx).pop();
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -538,7 +296,7 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
                 ),
                 const SizedBox(width: 12),
                 BouncingButton(
-                  onTap: () => Navigator.of(context).pop(),
+                  onTap: () => Navigator.of(dialogCtx).pop(),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     decoration: BoxDecoration(
@@ -599,135 +357,235 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
     );
   }
 
+  void _openSettingsSheet() {
+    PhotoWallSettingsSheet.show(
+      context,
+      isNight: widget.isNight,
+      showWashiTape: _showWashiTape,
+      onShowWashiTapeChanged: (val) {
+        setState(() {
+          _showWashiTape = val;
+        });
+      },
+      onResetLayout: () {
+        setState(() {
+          _photoCustomPositions.clear();
+          _photoCustomScales.clear();
+          _photoCustomAngles.clear();
+        });
+        _saveCollectionState();
+      },
+    );
+  }
+
+  void _safeExitDetailPage() {
+    _canvasKey.currentState?.clearSelection();
+    if (_isEditing) {
+      setState(() => _isEditing = false);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.of(context).pop(_collection);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDark = widget.isNight;
     final Color textColor = isDark ? Colors.white : const Color(0xFF1E293B);
 
     return PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (didPop, result) {
-            if (didPop) return;
-            _saveCollectionState();
-            Navigator.of(context).pop(_collection);
-          },
-          child: Scaffold(
+      onPopInvokedWithResult: (didPop, result) {
+        _canvasKey.currentState?.clearSelection();
+        if (_isEditing) {
+          setState(() => _isEditing = false);
+        }
+        if (didPop) return;
+        Navigator.of(context).pop(_collection);
+      },
+      child: Scaffold(
+          backgroundColor: Colors.transparent,
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
             backgroundColor: Colors.transparent,
-            extendBodyBehindAppBar: true,
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              surfaceTintColor: Colors.transparent,
-              leading: IconButton(
-                icon: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: textColor,
-                  size: 20,
-                ),
-                onPressed: () {
-                  _saveCollectionState();
-                  Navigator.of(context).pop(_collection);
-                },
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            surfaceTintColor: Colors.transparent,
+            leading: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: textColor,
+                size: 20,
               ),
-              title: Text(
-                _collection.title,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              onPressed: _safeExitDetailPage,
+            ),
+          centerTitle: false,
+          titleSpacing: 0,
+          title: Text(
+            "照片墙编辑",
+            style: TextStyle(
+              color: textColor,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: BouncingButton(
+                onTap: _clearAllPhotos,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.delete_sweep_rounded,
+                        color: textColor.withValues(alpha: 0.85),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '清空',
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.9),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            body: Stack(
-              children: [
-                // 0. 全屏透光渐变海岛背景组件
-                const Positioned.fill(
-                  child: IslandPageBackground(),
-                ),
+          ],
+        ),
+        body: Stack(
+          children: [
+            // 0. 全屏透光渐变海岛背景组件
+            const Positioned.fill(
+              child: IslandPageBackground(),
+            ),
 
-                // 1. 中央实体展板相框区 (保留图1双层精美边框结构 + 接入图2高斯模糊透光质感)
-                Positioned.fill(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final screenW = constraints.maxWidth;
+            // 1. 中央实体展板相框区
+            Positioned.fill(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final screenW = constraints.maxWidth;
+                  const boardMarginH = 16.0;
+                  final boardMarginTop =
+                      MediaQuery.of(context).padding.top + kToolbarHeight - 38.0;
+                  const double boardAspectRatio = 0.58;
 
-                      const boardMarginH = 16.0;
-                      final boardMarginTop = MediaQuery.of(context).padding.top + kToolbarHeight - 38.0;
-                      const double boardAspectRatio = 0.58;
+                  final boardWidth = screenW - boardMarginH * 2;
+                  final boardHeight = boardWidth / boardAspectRatio;
 
-                      final boardWidth = screenW - boardMarginH * 2;
-                      final boardHeight = boardWidth / boardAspectRatio;
-
-                      return Align(
-                        alignment: Alignment.topCenter,
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            left: boardMarginH,
-                            right: boardMarginH,
-                            top: boardMarginTop,
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(28),
-                            child: BackdropFilter(
-                              filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                              child: Container(
-                                width: boardWidth,
-                                height: boardHeight,
-                                padding: const EdgeInsets.all(12.0), // 图1保留：12px 双层立体外框层
-                                decoration: BoxDecoration(
-                                  // 图2高斯模糊透光外框：透光晶莹玻璃与柔光磨砂边框
-                                  color: isDark
-                                      ? Colors.white.withValues(alpha: 0.08)
-                                      : Colors.white.withValues(alpha: 0.30),
-                                  borderRadius: BorderRadius.circular(28),
-                                  border: Border.all(
-                                    color: isDark
-                                        ? Colors.white.withValues(alpha: 0.22)
-                                        : Colors.white.withValues(alpha: 0.60),
-                                    width: 1.5,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.18),
-                                      blurRadius: 32,
-                                      offset: const Offset(0, 14),
-                                    ),
-                                  ],
-                                ),
-                                child: Container(
-                                  // 图1保留：内层画布边框与柔和透光底纹
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? Colors.black.withValues(alpha: 0.20)
-                                        : Colors.white.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: boardMarginH,
+                        right: boardMarginH,
+                        top: boardMarginTop,
+                      ),
+                      child: SizedBox(
+                        width: boardWidth,
+                        height: boardHeight,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            // 1. 玻璃质感底座容器 (背景层)
+                            Positioned.fill(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(26),
+                                child: BackdropFilter(
+                                  filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(7.0),
+                                    decoration: BoxDecoration(
                                       color: isDark
-                                          ? Colors.white.withValues(alpha: 0.15)
-                                          : Colors.white.withValues(alpha: 0.40),
-                                      width: 1.2,
+                                          ? Colors.white.withValues(alpha: 0.08)
+                                          : Colors.white.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(26),
+                                      border: Border.all(
+                                        color: isDark
+                                            ? Colors.white.withValues(alpha: 0.22)
+                                            : Colors.white.withValues(alpha: 0.50),
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: isDark ? 0.35 : 0.12),
+                                          blurRadius: 18,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(17),
-                                    child: _buildConstrainingBoardContent(
-                                      boardWidth - 24.0,
-                                      boardHeight - 24.0,
-                                      isDark,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? Colors.black.withValues(alpha: 0.12)
+                                            : Colors.white.withValues(alpha: 0.06),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: isDark
+                                              ? Colors.white.withValues(alpha: 0.15)
+                                              : Colors.white.withValues(alpha: 0.35),
+                                          width: 1.0,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
+                            // 2. 照片展板画布区 (允许照片无阻挡跨越屏幕左右边界)
+                            Positioned(
+                              left: 7.0,
+                              top: 7.0,
+                              right: 7.0,
+                              bottom: 7.0,
+                              child: PhotoBoardCanvas(
+                                key: _canvasKey,
+                                isEditing: _isEditing,
+                                canvasBoundaryKey: _canvasBoundaryKey,
+                                collection: _collection,
+                                layoutMode: _layoutMode,
+                                showWashiTape: _showWashiTape,
+                                isDark: isDark,
+                                boardWidth: boardWidth - 14.0,
+                                boardHeight: boardHeight - 14.0,
+                                photoIds: _photoIds,
+                                photoCustomPositions: _photoCustomPositions,
+                                photoCustomAngles: _photoCustomAngles,
+                                photoCustomScales: _photoCustomScales,
+                                randomSeed: _randomSeed,
+                                presetPhotos: _presetPhotos,
+                                onPreviewPhoto: _showPhotoPreviewDialog,
+                                onRemovePhoto: _removePhoto,
+                                onStateChanged: _saveCollectionState,
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
 
-            // 3. 引入公共悬浮胶囊底部菜单组件 (IslandFloatingBottomBar)
+            // 2. 引入公共悬浮胶囊底部菜单组件 (IslandFloatingBottomBar)
             IslandFloatingBottomBar(
               isDark: isDark,
               offset: Offset.zero,
@@ -743,7 +601,9 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
                 ),
                 const SizedBox(width: 24),
                 IslandFloatingBottomBarItem(
-                  icon: Icons.dashboard_customize_rounded,
+                  icon: _layoutMode == WallLayoutMode.scatter
+                      ? Icons.style_rounded
+                      : Icons.grid_view_rounded,
                   color: textColor,
                   onTap: () {
                     HapticFeedback.mediumImpact();
@@ -754,16 +614,16 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
                       _saveCollectionState();
                     });
                   },
-                  tooltip: _layoutMode == WallLayoutMode.scatter ? "二叉切分" : "手帐散落",
+                  tooltip:
+                      _layoutMode == WallLayoutMode.scatter ? "二叉切分" : "手帐散落",
                   width: 36,
                   iconSize: 22,
                 ),
-
                 const SizedBox(width: 24),
                 IslandFloatingBottomBarItem(
                   icon: Icons.tune_rounded,
                   color: textColor,
-                  onTap: _showSettingsSheet,
+                  onTap: _openSettingsSheet,
                   tooltip: "展板设置",
                   width: 36,
                   iconSize: 22,
@@ -775,853 +635,4 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
       ),
     );
   }
-
-  /// 在相框内部约束渲染照片 (对齐图2 Moodboard 相框内约束)
-  Widget _buildConstrainingBoardContent(double boardWidth, double boardHeight, bool isDark) {
-    if (_collection.photoPaths.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.collections_outlined,
-              size: 40,
-              color: isDark ? Colors.amber.shade200.withValues(alpha: 0.4) : const Color(0xFF78350F).withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              "暂无写真照片",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white70 : const Color(0xFF522B14),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "点击下方「钉入照片」放入画框",
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark ? Colors.white38 : const Color(0xFF78350F).withValues(alpha: 0.7),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_layoutMode == WallLayoutMode.treemap) {
-      final count = _collection.photoPaths.length;
-      final bounds = Rect.fromLTWH(6, 6, boardWidth - 12, boardHeight - 12);
-      final indices = List.generate(count, (i) => i);
-      final leaves = TreemapSplitter.computeLeaves(bounds, indices, _randomSeed);
-
-      return SizedBox(
-        height: boardHeight,
-        width: boardWidth,
-        child: Stack(
-          clipBehavior: Clip.hardEdge,
-          children: leaves.map((leaf) {
-            final path = _collection.photoPaths[leaf.index];
-            const gap = 3.0;
-            final cardRect = leaf.rect.deflate(gap);
-
-            return Positioned(
-              left: cardRect.left,
-              top: cardRect.top,
-              width: cardRect.width,
-              height: cardRect.height,
-              child: BouncingButton(
-                onTap: () => _previewPhoto(path, leaf.index),
-                scaleFactor: 1.05,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.topCenter,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black38,
-                            blurRadius: 6,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(3),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: _buildPhotoWidget(path, _photoIds[leaf.index].hashCode),
-                      ),
-                    ),
-                    // 复古和纸胶带装饰 (斜贴于照片顶部角角)
-                    _buildWashiTapeWidget(_photoIds[leaf.index].hashCode, 0.0),
-                    Positioned(
-                      top: -6,
-                      child: _buildPushPinWidget(_photoIds[leaf.index].hashCode, false),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      );
-    } else {
-      // 散落手帐 Moodboard 模 (固定画板物理网格，自适应散落且删除/增改不乱跳)
-      final count = _collection.photoPaths.length;
-      
-      // 使用固定的 3 列 3 行画板参准网格，确保算法步长与物理长宽解耦，不受总卡片数增减影响
-      const int cols = 3;
-      const int maxRows = 3;
-
-      final maxAvailableW = (boardWidth - 24.0) / cols;
-      final cardW = (maxAvailableW * 0.90).clamp(48.0, 96.0);
-      final cardH = (cardW * 1.15).clamp(55.0, 110.0);
-
-      final rowStep = (boardHeight - cardH - 24.0) / (maxRows - 1);
-      final colStep = (boardWidth - cardW - 24.0) / (cols - 1);
-
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => setState(() => _selectedPhotoId = null),
-        child: SizedBox(
-          height: boardHeight,
-          width: boardWidth,
-          child: Stack(
-            key: ValueKey(_photoIds.join(',')),
-            clipBehavior: Clip.none,
-            children: [
-              ...List.generate(count, (index) {
-              final path = _collection.photoPaths[index];
-              final id = _photoIds[index];
-
-              // 若该 ID 尚无保存的散落坐标，则根据稳定规则进行一次性计算并自动缓存锁定
-              if (!_photoCustomPositions.containsKey(id)) {
-                final rand = math.Random(_randomSeed + id.hashCode);
-                final col = id.hashCode.abs() % cols;
-                final row = (id.hashCode.abs() ~/ cols) % maxRows;
-
-                final offsetX = (rand.nextDouble() - 0.5) * 12.0;
-                final offsetY = (rand.nextDouble() - 0.5) * 12.0;
-
-                final defaultLeft = (12.0 + col * colStep + offsetX).clamp(6.0, boardWidth - cardW - 6.0);
-                final defaultTop = (12.0 + row * rowStep + offsetY).clamp(6.0, boardHeight - cardH - 6.0);
-                _photoCustomPositions[id] = Offset(defaultLeft, defaultTop);
-
-                final defaultAngle = (rand.nextDouble() - 0.5) * 0.32;
-                _photoCustomAngles[id] ??= defaultAngle;
-              }
-
-              final currentPos = _photoCustomPositions[id]!;
-              final currentAngle = _photoCustomAngles[id] ?? 0.0;
-              final userScale = _photoCustomScales[id] ?? 1.0;
-
-              final left = currentPos.dx;
-              final top = currentPos.dy;
-
-              final isSelected = _selectedPhotoId == id;
-
-              const double handlePadding = 20.0;
-
-              return Positioned(
-                key: ValueKey(id),
-                left: left - handlePadding,
-                top: top - handlePadding,
-                child: GestureDetector(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    if (_selectedPhotoId == id) {
-                      setState(() => _selectedPhotoId = null);
-                    } else {
-                      _selectPhoto(id);
-                    }
-                  },
-                  onLongPressStart: (details) {
-                    HapticFeedback.heavyImpact();
-                    _selectPhoto(id);
-                    _dragStartPos = _photoCustomPositions[id] ?? Offset(left, top);
-                  },
-                  onLongPressMoveUpdate: (details) {
-                    if (_selectedPhotoId == id) {
-                      final basePos = _dragStartPos ?? Offset(left, top);
-                      final double newX = (basePos.dx + details.offsetFromOrigin.dx)
-                          .clamp(-cardW * 0.2, boardWidth - cardW * 0.8);
-                      final double newY = (basePos.dy + details.offsetFromOrigin.dy)
-                          .clamp(-cardH * 0.2, boardHeight - cardH * 0.8);
-
-                      setState(() {
-                        _photoCustomPositions[id] = Offset(newX, newY);
-                      });
-                    }
-                  },
-                  onLongPressEnd: (_) {
-                    _dragStartPos = null;
-                    _saveCollectionState();
-                  },
-                  onLongPressUp: () {
-                    _dragStartPos = null;
-                    _saveCollectionState();
-                  },
-                  onPanStart: (details) {
-                    _selectPhoto(id);
-                    if (!_photoCustomPositions.containsKey(id)) {
-                      _photoCustomPositions[id] = Offset(left, top);
-                    }
-                  },
-                  onPanUpdate: (details) {
-                    if (_selectedPhotoId == id) {
-                      final currentOffset = _photoCustomPositions[id] ?? Offset(left, top);
-                      final double newX = (currentOffset.dx + details.delta.dx)
-                          .clamp(-cardW * 0.2, boardWidth - cardW * 0.8);
-                      final double newY = (currentOffset.dy + details.delta.dy)
-                          .clamp(-cardH * 0.2, boardHeight - cardH * 0.8);
-
-                      setState(() {
-                        _photoCustomPositions[id] = Offset(newX, newY);
-                      });
-                    }
-                  },
-                  onPanEnd: (_) {
-                    _saveCollectionState();
-                  },
-                  child: AnimatedScale(
-                    scale: isSelected ? 1.08 * userScale : 1.0 * userScale,
-                    duration: const Duration(milliseconds: 160),
-                    curve: Curves.easeOutBack,
-                    child: Transform.rotate(
-                      angle: currentAngle,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        alignment: Alignment.topCenter,
-                        children: [
-                          // Base padding provider so Stack is large enough for hit testing
-                          Padding(
-                            padding: const EdgeInsets.all(handlePadding),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 160),
-                              width: cardW,
-                              height: cardH,
-                              padding: const EdgeInsets.all(4.5),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(7),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: isSelected
-                                        ? Colors.black.withValues(alpha: 0.45)
-                                        : Colors.black38,
-                                    blurRadius: isSelected ? 14 : 6,
-                                    offset: isSelected ? const Offset(0, 6) : const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(4.5),
-                                child: SizedBox.expand(
-                                  child: _buildPhotoWidget(path, id.hashCode),
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // 复古和纸胶带装饰 (斜贴于照片顶部角角)
-                          _buildWashiTapeWidget(id.hashCode, handlePadding),
-
-                          // 顶部钉在展板上的拟真半球水晶图钉 (包含拔起与钉入动态物理反馈)
-                          Positioned(
-                            top: handlePadding - 6,
-                            child: _buildPushPinWidget(id.hashCode, isSelected),
-                          ),
-
-                          // 选中状态：在悬浮放大的同时同步显现虚线框与四角调控手柄
-                          if (isSelected) ...[
-                            // 1. 选中虚线框
-                            Positioned(
-                              left: handlePadding,
-                              top: handlePadding,
-                              right: handlePadding,
-                              bottom: handlePadding,
-                              child: CustomPaint(
-                                painter: DashedBorderPainter(
-                                  color: Colors.white.withValues(alpha: 0.95),
-                                ),
-                              ),
-                            ),
-                            // 2. 左上角：图层管理 (气泡菜单)
-                            Positioned(
-                              top: handlePadding - 21,
-                              left: handlePadding - 21,
-                              child: _buildHandleButton(
-                                icon: Icons.layers_rounded,
-                                onTapWithContext: (btnCtx) => _showLayerMenu(btnCtx, id),
-                              ),
-                            ),
-                            // 3. 左下角：放大缩小 (切换卡片尺寸)
-                            Positioned(
-                              bottom: handlePadding - 21,
-                              left: handlePadding - 21,
-                              child: _buildHandleButton(
-                                icon: Icons.aspect_ratio_rounded,
-                                onTap: () => _scalePhoto(id),
-                                onPanUpdate: (details) {
-                                  setState(() {
-                                    final currentScale = _photoCustomScales[id] ?? 1.0;
-                                    // 左下角往外拉(向左dx<0,向下dy>0)为放大
-                                    final delta = (details.delta.dy - details.delta.dx) * 0.005;
-                                    _photoCustomScales[id] = (currentScale + delta).clamp(0.4, 3.0);
-                                  });
-                                },
-                              ),
-                            ),
-                            // 4. 右上角：移除/删除照片 (触发随风消逝粒子特效)
-                            Positioned(
-                              top: handlePadding - 21,
-                              right: handlePadding - 21,
-                              child: _buildHandleButton(
-                                icon: Icons.close_rounded,
-                                onTap: () => _removePhoto(id, cardSize: Size(cardW, cardH)),
-                              ),
-                            ),
-                            // 5. 右下角：旋转照片
-                            Positioned(
-                              bottom: handlePadding - 21,
-                              right: handlePadding - 21,
-                              child: _buildHandleButton(
-                                icon: Icons.rotate_right_rounded,
-                                onTap: () => _rotatePhoto(id, currentAngle),
-                                onPanUpdate: (details) {
-                                  setState(() {
-                                    // 根据物理力矩原理：右下角，向下滑动(dy>0)或向左滑动(dx<0)时，产生顺时针旋转(角度增加)
-                                    // 因此旋转增量应该正比于 (dy - dx)
-                                    _photoCustomAngles[id] = (_photoCustomAngles[id] ?? currentAngle) + (details.delta.dy - details.delta.dx) * 0.008;
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-
-            // 渲染随风消逝粒子动画动效层 (读取 WindService 海岛风速)
-            ..._activeDissolves.map((dissolve) {
-              return Positioned(
-                key: ValueKey('dissolve_${dissolve.id}'),
-                left: dissolve.position.dx,
-                top: dissolve.position.dy,
-                child: WindDissolveEffectWidget(
-                  position: Offset.zero,
-                  size: dissolve.size,
-                  angle: dissolve.angle,
-                  windMode: dissolve.windMode,
-                  onComplete: () {
-                    if (mounted) {
-                      setState(() {
-                        _activeDissolves.removeWhere((d) => d.id == dissolve.id);
-                      });
-                    }
-                  },
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-    }
-  }
-
-  /// 选中卡片调控手柄圆按钮组件 (包含 44x44px 触摸热区与防手势冲突处理)
-  Widget _buildHandleButton({
-    required IconData icon,
-    VoidCallback? onTap,
-    void Function(BuildContext context)? onTapWithContext,
-    GestureDragUpdateCallback? onPanUpdate,
-  }) {
-    final Widget buttonWidget = Builder(
-      builder: (btnContext) {
-        return BouncingButton(
-          onTap: () {
-            if (onTapWithContext != null) {
-              onTapWithContext(btnContext);
-            } else if (onTap != null) {
-              onTap();
-            }
-          },
-          scaleFactor: 1.18,
-          child: Container(
-            width: 44,
-            height: 44,
-            color: Colors.transparent,
-            child: Center(
-              child: Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFF64748B).withValues(alpha: 0.25),
-                    width: 1.0,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Icon(
-                    icon,
-                    size: 14,
-                    color: const Color(0xFF334155),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-
-    if (onPanUpdate != null) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onPanUpdate: onPanUpdate,
-        child: buttonWidget,
-      );
-    }
-
-    return buttonWidget;
-  }
-
-  /// 拟真半球水晶图钉组件 (包含球体光泽高光、金属银座圈与真实沉降下落阴影)
-  Widget _buildPushPinWidget(int seed, bool isSelected) {
-    const pinColors = [
-      Color(0xFFFF8B8B), // 马卡龙柔粉（加深立体沉浸质感）
-      Color(0xFF6BD2B0), // 薄荷绿
-      Color(0xFFFFC04D), // 奶油暖黄
-      Color(0xFFB89FE1), // 薰衣草浅紫
-      Color(0xFF88A3EC), // 天空柔蓝
-    ];
-    final color = pinColors[seed.abs() % pinColors.length];
-    final highlightColor = Color.lerp(color, Colors.white, 0.70)!;
-    final shadowColor = Color.lerp(color, const Color(0xFF2C1A1D), 0.50)!;
-
-    const double pinSize = 16.0; // 拟真大头钉直径
-
-    return AnimatedScale(
-      scale: isSelected ? 1.35 : 1.0,
-      duration: const Duration(milliseconds: 220),
-      curve: isSelected ? Curves.easeOutBack : Curves.bounceOut,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: isSelected ? Curves.easeOutBack : Curves.bounceOut,
-        transform: Matrix4.translationValues(0, isSelected ? -10.0 : 0.0, 0)
-          ..rotateZ(isSelected ? -0.12 : 0.0),
-        transformAlignment: Alignment.center,
-        width: pinSize,
-        height: pinSize,
-        child: Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            // 1. 底层立体下落软阴影 (带斜向倾斜与拔起拉长)
-            Positioned(
-              top: isSelected ? 6.0 : 2.5,
-              left: isSelected ? 3.0 : 1.5,
-              child: Container(
-                width: pinSize - 2,
-                height: pinSize - 2,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black.withValues(alpha: isSelected ? 0.35 : 0.22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isSelected ? 0.30 : 0.18),
-                      blurRadius: isSelected ? 7 : 3,
-                      spreadRadius: isSelected ? 2 : 0.5,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // 2. 金属底座微圈 (模拟大头针压在相纸上的银色金属环)
-            Container(
-              width: pinSize,
-              height: pinSize,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const SweepGradient(
-                  colors: [
-                    Color(0xFFE0E0E0),
-                    Color(0xFF9E9E9E),
-                    Color(0xFFF5F5F5),
-                    Color(0xFF757575),
-                    Color(0xFFE0E0E0),
-                  ],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 1,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-            ),
-
-            // 3. 半球水晶主质感体 (径向渐变，高光偏左上，阴影偏右下)
-            Container(
-              margin: const EdgeInsets.all(1.2), // 露出一圈细微银色金属边框
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  center: const Alignment(-0.35, -0.45),
-                  radius: 0.78,
-                  colors: [
-                    highlightColor,
-                    color,
-                    shadowColor,
-                  ],
-                  stops: const [0.0, 0.55, 1.0],
-                ),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  width: 0.6,
-                ),
-              ),
-            ),
-
-            // 4. 顶部极细高分子水晶弧面亮斑 (Top Specular Highlight)
-            Positioned(
-              top: 3.0,
-              left: 3.8,
-              child: Container(
-                width: 4.8,
-                height: 3.0,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  borderRadius: const BorderRadius.all(Radius.elliptical(2.4, 1.5)),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  /// 拟真复古撕裂和纸胶带装饰组件 (Washi Tape)
-  Widget _buildWashiTapeWidget(int seed, double handlePadding) {
-    if (!_showWashiTape) return const SizedBox.shrink();
-
-    const tapeConfigs = [
-      _WashiTapeConfig(Color(0xFFE6C594), -0.28, true, 34.0, 12.0),  // 暖琥珀/牛皮纸 左上
-      _WashiTapeConfig(Color(0xFFA3C9A8), 0.30, false, 36.0, 11.5),  // 鼠尾草绿 右上
-      _WashiTapeConfig(Color(0xFFF2B5D4), -0.24, true, 32.0, 12.0),  // 柔粉和纸 左上
-      _WashiTapeConfig(Color(0xFFC4B2E6), 0.26, false, 34.0, 11.0),  // 薰衣草紫 右上
-      _WashiTapeConfig(Color(0xFFA5C4D4), -0.32, true, 38.0, 12.5),  // 丹宁浅蓝 左上
-    ];
-    final config = tapeConfigs[seed.abs() % tapeConfigs.length];
-
-    return Positioned(
-      top: handlePadding + 2,
-      left: config.isLeft ? handlePadding - 4 : null,
-      right: !config.isLeft ? handlePadding - 4 : null,
-      child: Transform.rotate(
-        angle: config.angle,
-        child: SizedBox(
-          width: config.width,
-          height: config.height,
-          child: CustomPaint(
-            painter: WashiTapePainter(color: config.color),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// 弹出展板设置控制弹窗 (使用项目统一 DiaryBottomSheet 组件)
-  void _showSettingsSheet() {
-    HapticFeedback.mediumImpact();
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (modalContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final bool isDark = widget.isNight;
-
-            return DiaryBottomSheet(
-              paperStyle: 'default',
-              isDiary: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. 标题栏
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.tune_rounded,
-                        color: isDark ? Colors.amber.shade200 : const Color(0xFF78350F),
-                        size: 22,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        "展板设置",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF1E293B),
-                          fontFamily: 'LXGWWenKai',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 2. 饰品开关：手撕和纸胶带
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.style_rounded,
-                              size: 20,
-                              color: isDark ? Colors.amber.shade200 : const Color(0xFF78350F),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              "显示手撕和纸胶带",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.white70 : const Color(0xFF1E293B),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Switch.adaptive(
-                          value: _showWashiTape,
-                          activeTrackColor: isDark ? Colors.amber.shade300 : const Color(0xFF4A2E1B),
-                          onChanged: (val) {
-                            HapticFeedback.selectionClick();
-                            setModalState(() {
-                              _showWashiTape = val;
-                            });
-                            setState(() {
-                              _showWashiTape = val;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // 4. 重置散落排版
-                  InkWell(
-                    onTap: () {
-                      HapticFeedback.mediumImpact();
-                      Navigator.pop(modalContext);
-                      setState(() {
-                        _photoCustomPositions.clear();
-                        _photoCustomScales.clear();
-                        _photoCustomAngles.clear();
-                        _saveCollectionState();
-                      });
-                      showTopToast(context, "已重置照片排版与角度");
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.redAccent.withValues(alpha: 0.15) : const Color(0xFFFEF2F2),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isDark ? Colors.redAccent.withValues(alpha: 0.3) : const Color(0xFFFCA5A5),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.restart_alt_rounded,
-                            size: 18,
-                            color: isDark ? Colors.redAccent.shade100 : const Color(0xFFDC2626),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            "重置照片散落位置与角度",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.redAccent.shade100 : const Color(0xFFDC2626),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 }
-
-class _WashiTapeConfig {
-  final Color color;
-  final double angle;
-  final bool isLeft;
-  final double width;
-  final double height;
-
-  const _WashiTapeConfig(this.color, this.angle, this.isLeft, this.width, this.height);
-}
-
-/// 手撕撕裂和纸胶带 CustomPainter (包含锯齿边缘、半透明滤质与微光纤维)
-class WashiTapePainter extends CustomPainter {
-  final Color color;
-
-  WashiTapePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color.withValues(alpha: 0.72)
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    const int numTeeth = 4;
-    final toothH = size.height / numTeeth;
-
-    path.moveTo(0, 0);
-    path.lineTo(size.width, 0);
-
-    // 右侧锯齿撕裂边
-    for (int i = 0; i < numTeeth; i++) {
-      final yMid = (i + 0.5) * toothH;
-      final yEnd = (i + 1) * toothH;
-      final dx = (i % 2 == 0) ? -2.5 : 0.0;
-      path.lineTo(size.width + dx, yMid);
-      path.lineTo(size.width, yEnd);
-    }
-
-    path.lineTo(0, size.height);
-
-    // 左侧锯齿撕裂边
-    for (int i = numTeeth - 1; i >= 0; i--) {
-      final yMid = (i + 0.5) * toothH;
-      final yStart = i * toothH;
-      final dx = (i % 2 == 0) ? 2.5 : 0.0;
-      path.lineTo(dx, yMid);
-      path.lineTo(0, yStart);
-    }
-
-    path.close();
-
-    // 1. 底层接触下落微阴影
-    final shadowPaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.12)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
-    canvas.drawPath(path.shift(const Offset(0.8, 1.2)), shadowPaint);
-
-    // 2. 胶带主体填充
-    canvas.drawPath(path, paint);
-
-    // 3. 顶部微光亮线
-    final shinePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.40)
-      ..strokeWidth = 0.8
-      ..style = PaintingStyle.stroke;
-    canvas.drawLine(const Offset(2, 1), Offset(size.width - 2, 1), shinePaint);
-
-    // 4. 和纸纵向纤维微纹
-    final fiberPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.22)
-      ..strokeWidth = 0.6
-      ..style = PaintingStyle.stroke;
-    canvas.drawLine(Offset(size.width * 0.3, 2), Offset(size.width * 0.3 + 3, size.height - 2), fiberPaint);
-    canvas.drawLine(Offset(size.width * 0.7, 2), Offset(size.width * 0.7 - 3, size.height - 2), fiberPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant WashiTapePainter oldDelegate) =>
-      color != oldDelegate.color;
-}
-
-/// 手帐选中虚线框绘制类
-class DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double dash;
-  final double gap;
-
-  DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 2.0,
-    this.dash = 6.0,
-    this.gap = 4.0,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final RRect rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(-3, -3, size.width + 6, size.height + 6),
-      const Radius.circular(9),
-    );
-
-    final Path path = Path()..addRRect(rrect);
-    final Path dashPath = Path();
-
-    for (final ui.PathMetric metric in path.computeMetrics()) {
-      double distance = 0.0;
-      while (distance < metric.length) {
-        final double length = math.min(dash, metric.length - distance);
-        dashPath.addPath(
-          metric.extractPath(distance, distance + length),
-          Offset.zero,
-        );
-        distance += dash + gap;
-      }
-    }
-
-    canvas.drawPath(dashPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant DashedBorderPainter oldDelegate) =>
-      color != oldDelegate.color;
-}
-

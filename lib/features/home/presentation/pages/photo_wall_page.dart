@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/animations/bouncing_button.dart';
@@ -10,8 +10,9 @@ import 'package:island_diary/shared/widgets/island_dialog.dart';
 import 'package:island_diary/features/home/domain/models/photo_wall_collection.dart';
 import 'package:island_diary/features/home/presentation/pages/photo_wall_detail_page.dart';
 import 'package:island_diary/features/home/presentation/widgets/photo_wall/collection_box_card.dart';
+import 'package:island_diary/features/home/presentation/widgets/photo_wall_card.dart';
+import 'package:island_diary/features/home/presentation/services/photo_wall_image_cache.dart';
 import 'package:island_diary/shared/widgets/island_page_background.dart';
-import 'package:island_diary/shared/animations/cupertino_slide_page_route.dart';
 
 /// “照片墙集合”网格主页面
 class PhotoWallPage extends StatefulWidget {
@@ -24,12 +25,61 @@ class PhotoWallPage extends StatefulWidget {
     required this.themeId,
   });
 
+  /// 导航前提前预热：同步加载集合数据 + 图片字节进内存缓存，消除进入列表页时的白屏
+  /// 由外部在 Navigator.push 前调用，因此定义在公开类上
+  static Future<void> prewarmCache() async {
+    // 如果静态缓存已存在，只需补充预热图片字节即可
+    if (_PhotoWallPageState._staticCollectionsCache != null &&
+        _PhotoWallPageState._staticCollectionsCache!.isNotEmpty) {
+      final List<String> allPaths = [];
+      for (var col in _PhotoWallPageState._staticCollectionsCache!) {
+        allPaths.addAll(col.photoPaths);
+      }
+      PhotoWallImageCache.preloadSync(allPaths);
+      return;
+    }
+
+    // 静态缓存为空时，从磁盘读取并填充
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rawJson = prefs.getString(_PhotoWallPageState._storageKey);
+      if (rawJson == null || rawJson.isEmpty) return;
+
+      final List rawList = json.decode(rawJson);
+      final List<PhotoWallCollection> cols = [];
+      for (var item in rawList) {
+        Map<String, dynamic>? map;
+        if (item is Map) {
+          map = Map<String, dynamic>.from(item);
+        } else if (item is String) {
+          try {
+            final decoded = json.decode(item);
+            if (decoded is Map) map = Map<String, dynamic>.from(decoded);
+          } catch (_) {}
+        }
+        if (map != null) cols.add(PhotoWallCollection.fromMap(map));
+      }
+
+      if (cols.isEmpty) return;
+
+      _PhotoWallPageState._staticCollectionsCache = cols;
+
+      // 同步预热所有集合的图片字节
+      final List<String> allPaths = [];
+      for (var col in cols) {
+        allPaths.addAll(col.photoPaths);
+      }
+      PhotoWallImageCache.preloadSync(allPaths);
+    } catch (_) {}
+  }
+
   @override
   State<PhotoWallPage> createState() => _PhotoWallPageState();
 }
 
 class _PhotoWallPageState extends State<PhotoWallPage> {
   static const String _storageKey = 'photo_wall_collections_v2';
+  static List<PhotoWallCollection>? _staticCollectionsCache;
   final List<PhotoWallCollection> _collections = [];
   bool _isLoading = true;
 
@@ -41,27 +91,48 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
   @override
   void initState() {
     super.initState();
+    if (_staticCollectionsCache != null && _staticCollectionsCache!.isNotEmpty) {
+      _collections.addAll(_staticCollectionsCache!);
+      _isLoading = false;
+    }
     _loadCollections();
   }
 
-  /// 过滤并保留真正存在的有效照片路径
+  /// 过滤并补充有效照片路径（无效或已被清理的本地图片自动用预设写真补位，消除死白框）
   List<String> _filterValidPhotoPaths(List<String> paths) {
-    final List<String> valid = [];
-    for (var path in paths) {
+    const fallbackBgs = [
+      'assets/images/home_card/me_day.jpg',
+      'assets/images/home_card/me_night.jpg',
+      'assets/images/emoji/modules_bg/4.png',
+      'assets/images/emoji/modules_bg/5.png',
+      'assets/images/emoji/modules_bg/6.png',
+      'assets/images/emoji/modules_bg/7.png',
+      'assets/images/emoji/modules_bg/8.png',
+      'assets/images/emoji/modules_bg/9.png',
+      'assets/images/emoji/modules_bg/10.png',
+      'assets/images/emoji/modules_bg/11.png',
+      'assets/images/emoji/modules_bg/12.png',
+    ];
+
+    final List<String> result = [];
+    for (int i = 0; i < paths.length; i++) {
+      final path = paths[i];
       if (path.startsWith('assets/')) {
-        valid.add(path);
+        result.add(path);
+      } else if (File(path).existsSync()) {
+        result.add(path);
       } else {
-        if (File(path).existsSync()) {
-          valid.add(path);
-        }
+        result.add(fallbackBgs[i.abs() % fallbackBgs.length]);
       }
     }
-    return valid;
+    return result;
   }
 
   /// 加载照片墙集合列表
   Future<void> _loadCollections() async {
-    setState(() => _isLoading = true);
+    if (_collections.isEmpty) {
+      setState(() => _isLoading = true);
+    }
     final prefs = await SharedPreferences.getInstance();
     final rawJson = prefs.getString(_storageKey);
 
@@ -81,31 +152,77 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
       }
     }
 
+    final List<PhotoWallCollection> loadedCols = [];
     if (rawJson != null && rawJson.isNotEmpty) {
       try {
-        final List list = json.decode(rawJson);
-        _collections.clear();
-        for (var item in list) {
-          final col = PhotoWallCollection.fromMap(item);
-          final validPaths = _filterValidPhotoPaths(col.photoPaths);
-          if (validPaths.isNotEmpty) {
-            _collections.add(col.copyWith(photoPaths: validPaths));
+        final List rawList = json.decode(rawJson);
+        for (var item in rawList) {
+          Map<String, dynamic>? map;
+          if (item is Map) {
+            map = Map<String, dynamic>.from(item);
+          } else if (item is String) {
+            try {
+              final decoded = json.decode(item);
+              if (decoded is Map) map = Map<String, dynamic>.from(decoded);
+            } catch (_) {}
+          }
+          if (map != null) {
+            var col = PhotoWallCollection.fromMap(map);
+            if (col.coverImagePath != null &&
+                col.coverImagePath!.isNotEmpty &&
+                !col.coverImagePath!.endsWith('_v4.png')) {
+              try {
+                final oldF = File(col.coverImagePath!);
+                if (oldF.existsSync()) oldF.deleteSync();
+              } catch (_) {}
+              col = col.copyWith(coverImagePath: '');
+            }
+            final validPaths = _filterValidPhotoPaths(col.photoPaths);
+            loadedCols.add(col.copyWith(photoPaths: validPaths));
           }
         }
       } catch (_) {
         _initDefaultCollections(userDiaryPhotos);
+        return;
       }
     } else {
       _initDefaultCollections(userDiaryPhotos);
+      return;
     }
 
-    // 若过滤后无任何有效集合且有日记照片，则重新生成日记照片集合
-    if (_collections.isEmpty && userDiaryPhotos.isNotEmpty) {
-      _initDefaultCollections(userDiaryPhotos);
+    if (loadedCols.isNotEmpty) {
+      final hasActive = loadedCols.any((c) => c.isActive);
+      if (!hasActive) {
+        loadedCols[0] = loadedCols[0].copyWith(isActive: true);
+      }
+      _collections.clear();
+      _collections.addAll(loadedCols);
     }
 
+    // 预载入全量照片解包字节到内存缓存中，防止图片解码闪落
+    final List<String> allPhotosToPreload = [];
+    for (var col in _collections) {
+      allPhotosToPreload.addAll(col.photoPaths);
+    }
+    PhotoWallImageCache.preload(allPhotosToPreload);
+
+    _staticCollectionsCache = List.from(_collections);
     await _saveCollections();
-    setState(() => _isLoading = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  /// 切换首页展示的激活照片墙集合 (保持卡片原地不动，不弹出 Toast 消息提醒)
+  void _setActiveCollection(PhotoWallCollection target) async {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      for (int i = 0; i < _collections.length; i++) {
+        final isCurrentTarget = _collections[i].id == target.id;
+        _collections[i] = _collections[i].copyWith(isActive: isCurrentTarget);
+      }
+    });
+    await _saveCollections();
   }
 
   /// 初始化默认照片墙集合框（仅当存在真实照片时才包含）
@@ -114,56 +231,80 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
 
     final validUserPhotos = _filterValidPhotoPaths(userPhotos);
 
-    if (validUserPhotos.isNotEmpty) {
-      _collections.add(
-        PhotoWallCollection(
-          id: 'col_daily',
-          title: '拾光·日记记录',
-          description: '随手记下的生活片段',
-          photoPaths: validUserPhotos,
-          createdAt: DateTime.now(),
-          isDefault: true,
-        ),
-      );
-    }
+    _collections.add(
+      PhotoWallCollection(
+        id: 'col_daily',
+        title: '拾光·日记记录',
+        description: '随手记下的生活片段',
+        photoPaths: validUserPhotos,
+        createdAt: DateTime.now(),
+        isDefault: true,
+        isActive: true,
+      ),
+    );
 
     _saveCollections();
   }
 
   /// 保存照片墙集合
   Future<void> _saveCollections() async {
+    _staticCollectionsCache = List.from(_collections);
     final prefs = await SharedPreferences.getInstance();
     final rawJson = json.encode(_collections.map((c) => c.toMap()).toList());
     await prefs.setString(_storageKey, rawJson);
+
+    if (_collections.isNotEmpty) {
+      final activeCol = _collections.firstWhere(
+        (c) => c.isActive,
+        orElse: () => _collections.first,
+      );
+      PhotoWallCard.updateStaticCache(activeCol);
+    }
   }
 
   /// 创建新照片墙集合
   void _showCreateCollectionDialog() {
     final TextEditingController titleController = TextEditingController();
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     IslandDialog.show(
       context,
       title: '新建照片墙集合',
       content: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '为您的写真相册框起一个治愈的名字：',
-            style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? Colors.white60 : const Color(0xFF8D827A),
+              fontFamily: 'LXGWWenKai',
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           TextField(
             controller: titleController,
             autofocus: true,
+            style: TextStyle(
+              fontSize: 14,
+              fontFamily: 'LXGWWenKai',
+              color: isDark ? Colors.white : const Color(0xFF3E2723),
+            ),
             decoration: InputDecoration(
               hintText: '如：7月海岛度假、浪漫晚霞...',
-              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white38 : const Color(0xFFA89F91),
+                fontSize: 13,
+                fontFamily: 'LXGWWenKai',
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               filled: true,
-              fillColor: const Color(0xFFF1F5F9),
+              fillColor: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : const Color(0xFFEDF2F7),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(18),
                 borderSide: BorderSide.none,
               ),
             ),
@@ -187,7 +328,7 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
         );
 
         setState(() {
-          _collections.insert(0, newCol);
+          _collections.add(newCol);
         });
         await _saveCollections();
 
@@ -218,6 +359,7 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
   /// 重命名集合
   void _renameCollection(PhotoWallCollection col) {
     final titleController = TextEditingController(text: col.title);
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     IslandDialog.show(
       context,
@@ -225,13 +367,25 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
       content: TextField(
         controller: titleController,
         autofocus: true,
+        style: TextStyle(
+          fontSize: 14,
+          fontFamily: 'LXGWWenKai',
+          color: isDark ? Colors.white : const Color(0xFF3E2723),
+        ),
         decoration: InputDecoration(
           hintText: '请输入新名称',
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          hintStyle: TextStyle(
+            color: isDark ? Colors.white38 : const Color(0xFFA89F91),
+            fontSize: 13,
+            fontFamily: 'LXGWWenKai',
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           filled: true,
-          fillColor: const Color(0xFFF1F5F9),
+          fillColor: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : const Color(0xFFEDF2F7),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(18),
             borderSide: BorderSide.none,
           ),
         ),
@@ -254,25 +408,36 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
   }
 
 
-  /// 进入某个照片墙集合详情
+  /// 进入某个照片墙集合详情 (顺滑快速转场，瞬间隐藏列表页)
   void _openCollectionDetail(PhotoWallCollection col) async {
-    final updatedCol = await Navigator.of(context).push<PhotoWallCollection>(
-      CupertinoSlidePageRoute(
-        page: PhotoWallDetailPage(
+    await Navigator.of(context).push<PhotoWallCollection>(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 250),
+        reverseTransitionDuration: const Duration(milliseconds: 120), // 加快退出速度，杜绝残影
+        pageBuilder: (context, animation, secondaryAnimation) => PhotoWallDetailPage(
           collection: col,
           isNight: widget.isNight,
         ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curvedAnim = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            // 退出时改用 easeOut 或线性，使透明度迅速下降，避免虚影滞留
+            reverseCurve: Curves.easeOut,
+          );
+          return FadeTransition(
+            opacity: curvedAnim,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.97, end: 1.0).animate(curvedAnim),
+              child: child,
+            ),
+          );
+        },
       ),
     );
 
-    if (updatedCol != null) {
-      final idx = _collections.indexWhere((c) => c.id == updatedCol.id);
-      if (idx != -1) {
-        setState(() {
-          _collections[idx] = updatedCol;
-        });
-        _saveCollections();
-      }
+    if (mounted) {
+      _loadCollections();
     }
   }
 
@@ -282,8 +447,8 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
     final Color textColor = isDark ? Colors.white : const Color(0xFF1E293B);
 
     return Scaffold(
-          backgroundColor: Colors.transparent,
-          extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -305,7 +470,35 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            actions: const [],
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: BouncingButton(
+                  onTap: _showCreateCollectionDialog,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : Colors.white.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.20)
+                            : Colors.white.withValues(alpha: 0.60),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.add_rounded,
+                      color: textColor,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           body: Stack(
             children: [
@@ -317,7 +510,7 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
           // 1. 主体网格区
           Positioned.fill(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const SizedBox.shrink() // 加载中透明占位（背景可透出，避免纯白转圈）
                 : Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: CustomScrollView(
@@ -325,7 +518,7 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
                       slivers: [
                         SliverToBoxAdapter(
                           child: SizedBox(
-                            height: MediaQuery.of(context).padding.top + kToolbarHeight - 6,
+                            height: MediaQuery.of(context).padding.top + kToolbarHeight + 12,
                           ),
                         ),
                         SliverGrid(
@@ -337,22 +530,18 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
                           ),
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
-                              if (index == _collections.length) {
-                                // 最后一个网格框：新建集合入口按钮框
-                                return _buildCreateCollectionCard(isDark, textColor);
-                              }
-                              final col = _collections[index];
                               return CollectionBoxCard(
-                                collection: col,
+                                collection: _collections[index],
                                 isDark: isDark,
                                 textColor: textColor,
                                 presetPhotos: _presetPhotos,
-                                onTap: () => _openCollectionDetail(col),
-                                onRename: () => _renameCollection(col),
-                                onDelete: () => _deleteCollection(col),
+                                onTap: () => _openCollectionDetail(_collections[index]),
+                                onRename: () => _renameCollection(_collections[index]),
+                                onDelete: () => _deleteCollection(_collections[index]),
+                                onSetActive: () => _setActiveCollection(_collections[index]),
                               );
                             },
-                            childCount: _collections.length + 1,
+                            childCount: _collections.length,
                           ),
                         ),
                         const SliverToBoxAdapter(child: SizedBox(height: 40)),
@@ -365,75 +554,4 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
     );
   }
 
-  /// 新建集合透光晶莹玻璃卡片 (Translucent Frosted Glass Slot Card)
-  Widget _buildCreateCollectionCard(bool isDark, Color textColor) {
-    return BouncingButton(
-      onTap: _showCreateCollectionDialog,
-      scaleFactor: 1.04,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.22)
-                    : Colors.white.withValues(alpha: 0.60),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.12)
-                        : const Color(0xFFE0F2FE),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.add_photo_alternate_rounded,
-                    size: 28,
-                    color: isDark ? Colors.lightBlueAccent : const Color(0xFF0284C7),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  "新建照片墙集合",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "创建专属主题相册",
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    color: textColor.withValues(alpha: 0.55),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

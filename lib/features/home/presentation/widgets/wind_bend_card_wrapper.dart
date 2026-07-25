@@ -11,11 +11,13 @@ class WindBendCardWrapper extends StatefulWidget {
 
   /// 是否为竖长条卡片 (如重力盒、照片墙等高卡片，弯腰效果更显著)
   final bool isTall;
+  final bool isEditMode;
 
   const WindBendCardWrapper({
     super.key,
     required this.child,
     this.isTall = false,
+    this.isEditMode = false,
   });
 
   @override
@@ -46,62 +48,80 @@ class _WindBendCardWrapperState extends State<WindBendCardWrapper>
   Widget build(BuildContext context) {
     return ValueListenableBuilder<WindMode>(
       valueListenable: WindService.currentWind,
-      builder: (context, wind, child) {
-        return AnimatedBuilder(
-          animation: _animController,
-          builder: (context, _) {
-            final double time = _animController.value * 2 * math.pi;
+      builder: (context, wind, _) {
+        // 如果在编辑模式下，强制使卡片停止风吹变形，避免拖拽瞬间出现视觉跳跃
+        final activeWind = widget.isEditMode ? WindMode.none : wind;
 
-            double baseSkew = 0.0;
-            double swingRange = 0.0;
-            double windTilt = 0.0;
+        double targetBaseSkew = 0.0;
+        double targetSwingRange = 0.0;
+        double targetWindTilt = 0.0;
 
-            switch (wind) {
-              case WindMode.none:
-                baseSkew = 0.0;
-                swingRange = 0.0;
-                windTilt = 0.0;
-                break;
-              case WindMode.breeze:
-                baseSkew = widget.isTall ? 0.015 : 0.008;
-                swingRange = 0.005;
-                windTilt = 0.008;
-                break;
-              case WindMode.moderate:
-                baseSkew = widget.isTall ? 0.05 : 0.025;
-                swingRange = 0.015;
-                windTilt = 0.02;
-                break;
-              case WindMode.gale:
-                // 风从右往左吹：顶部向屏幕左侧自然弯腰屈服 (baseSkew > 0, windTilt > 0)
-                baseSkew = widget.isTall ? 0.18 : 0.08;
-                swingRange = widget.isTall ? 0.045 : 0.02;
-                windTilt = widget.isTall ? 0.05 : 0.025;
-                break;
-            }
+        switch (activeWind) {
+          case WindMode.none:
+          case WindMode.breeze:
+            // 在无风与微风状态下，模块保持完全静止，不受风吹动
+            targetBaseSkew = 0.0;
+            targetSwingRange = 0.0;
+            targetWindTilt = 0.0;
+            break;
+          case WindMode.moderate:
+            targetBaseSkew = widget.isTall ? 0.05 : 0.025;
+            targetSwingRange = 0.015;
+            targetWindTilt = 0.02;
+            break;
+          case WindMode.gale:
+            // 风从右往左吹：顶部向屏幕左侧自然弯腰屈服
+            targetBaseSkew = widget.isTall ? 0.18 : 0.08;
+            targetSwingRange = widget.isTall ? 0.045 : 0.02;
+            targetWindTilt = widget.isTall ? 0.05 : 0.025;
+            break;
+        }
 
-            // 正弦波震荡模拟阵风一阵阵刮过的软萌回弹
-            final double gustOscillation = math.sin(time) * swingRange;
-            final double finalSkew = baseSkew + gustOscillation;
-            final double finalTilt = windTilt + (gustOscillation * 0.5);
-
-            // 构造底部扎根 (Alignment.bottomCenter) 的切变变形矩阵
-            final Matrix4 bendTransform = Matrix4.identity()
-              ..setEntry(3, 2, 0.001) // 3D 透视视差
-              ..rotateZ(finalTilt) // 整体顺风轻微倾斜
-              ..setEntry(0, 1, math.tan(finalSkew)); // 核心：底部扎根、顶部被吹弯腰切变！
-
-            return AnimatedContainer(
+        return TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: targetBaseSkew, end: targetBaseSkew),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+          builder: (context, animBaseSkew, _) {
+            return TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: targetSwingRange, end: targetSwingRange),
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,
-              transform: bendTransform,
-              transformAlignment: Alignment.bottomCenter, // 底部锚点：底部固定，顶部弯腰
-              child: widget.child,
+              builder: (context, animSwingRange, _) {
+                return TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: targetWindTilt, end: targetWindTilt),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, animWindTilt, _) {
+                    return AnimatedBuilder(
+                      animation: _animController,
+                      builder: (context, _) {
+                        final double time = _animController.value * 2 * math.pi;
+
+                        // 正弦波震荡模拟阵风一阵阵刮过的软萌回弹
+                        final double gustOscillation = math.sin(time) * animSwingRange;
+                        final double finalSkew = animBaseSkew + gustOscillation;
+                        final double finalTilt = animWindTilt + (gustOscillation * 0.5);
+
+                        // 构造底部扎根 (Alignment.bottomCenter) 的切变变形矩阵
+                        final Matrix4 bendTransform = Matrix4.identity()
+                          ..setEntry(3, 2, 0.001) // 3D 透视视差
+                          ..rotateZ(finalTilt) // 整体顺风轻微倾斜
+                          ..setEntry(0, 1, math.tan(finalSkew)); // 核心：底部扎根、顶部被吹弯腰切变！
+
+                        return Transform(
+                          transform: bendTransform,
+                          alignment: Alignment.bottomCenter, // 底部锚点：底部固定，顶部弯腰
+                          child: widget.child,
+                        );
+                      },
+                    );
+                  },
+                );
+              },
             );
           },
         );
       },
-      child: widget.child,
     );
   }
 }

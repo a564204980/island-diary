@@ -47,6 +47,14 @@ class _BouncingButtonState extends State<BouncingButton>
   }
 
   @override
+  void didUpdateWidget(covariant BouncingButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_controller.value > 0.0) {
+      _controller.reverse();
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -62,17 +70,19 @@ class _BouncingButtonState extends State<BouncingButton>
     if (widget.onTap != null) {
       if (_controller.value < 0.1) {
         // 应对 ScrollView 中的快速点击：强制执行一小段缩放动画再回弹
-        await _controller.animateTo(1.0, duration: const Duration(milliseconds: 50));
+        await _controller.animateTo(1.0, duration: const Duration(milliseconds: 40));
       }
       if (mounted) {
-        _controller.reverse();
-        widget.onTap!();
+        await _controller.reverse();
+        if (mounted) {
+          widget.onTap!();
+        }
       }
     }
   }
 
   void _onTapCancel() {
-    if (widget.onTap != null) {
+    if (widget.onTap != null && mounted) {
       _controller.reverse();
     }
   }

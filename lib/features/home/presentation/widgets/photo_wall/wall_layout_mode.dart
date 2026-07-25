@@ -10,3 +10,11 @@ enum WallLayoutMode {
   final IconData icon;
   const WallLayoutMode(this.label, this.icon);
 }
+
+extension WallLayoutModeX on WallLayoutMode {
+  static WallLayoutMode fromString(String val) {
+    if (val == 'scatter') return WallLayoutMode.scatter;
+    if (val == 'free') return WallLayoutMode.free;
+    return WallLayoutMode.treemap;
+  }
+}

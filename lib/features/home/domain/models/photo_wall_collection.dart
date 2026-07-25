@@ -8,10 +8,13 @@ class PhotoWallCollection {
   final List<String> photoPaths;
   final DateTime createdAt;
   final bool isDefault;
+  final bool isActive;
   final Map<String, List<double>>? customPositions;
   final Map<String, double>? customScales;
   final Map<String, double>? customAngles;
   final String? layoutMode;
+
+  final String? coverImagePath;
 
   PhotoWallCollection({
     required this.id,
@@ -20,10 +23,12 @@ class PhotoWallCollection {
     required this.photoPaths,
     required this.createdAt,
     this.isDefault = false,
+    this.isActive = false,
     this.customPositions,
     this.customScales,
     this.customAngles,
     this.layoutMode,
+    this.coverImagePath,
   });
 
   Map<String, dynamic> toMap() {
@@ -34,10 +39,12 @@ class PhotoWallCollection {
       'photoPaths': photoPaths,
       'createdAt': createdAt.toIso8601String(),
       'isDefault': isDefault,
+      'isActive': isActive,
       'customPositions': customPositions,
       'customScales': customScales,
       'customAngles': customAngles,
       'layoutMode': layoutMode,
+      'coverImagePath': coverImagePath,
     };
   }
 
@@ -75,10 +82,12 @@ class PhotoWallCollection {
           ? DateTime.parse(map['createdAt'])
           : DateTime.now(),
       isDefault: map['isDefault'] ?? false,
+      isActive: map['isActive'] ?? false,
       customPositions: positions,
       customScales: scales,
       customAngles: angles,
       layoutMode: map['layoutMode'],
+      coverImagePath: map['coverImagePath'],
     );
   }
 
@@ -94,10 +103,12 @@ class PhotoWallCollection {
     List<String>? photoPaths,
     DateTime? createdAt,
     bool? isDefault,
+    bool? isActive,
     Map<String, List<double>>? customPositions,
     Map<String, double>? customScales,
     Map<String, double>? customAngles,
     String? layoutMode,
+    String? coverImagePath,
   }) {
     return PhotoWallCollection(
       id: id ?? this.id,
@@ -106,10 +117,12 @@ class PhotoWallCollection {
       photoPaths: photoPaths ?? this.photoPaths,
       createdAt: createdAt ?? this.createdAt,
       isDefault: isDefault ?? this.isDefault,
+      isActive: isActive ?? this.isActive,
       customPositions: customPositions ?? this.customPositions,
       customScales: customScales ?? this.customScales,
       customAngles: customAngles ?? this.customAngles,
       layoutMode: layoutMode ?? this.layoutMode,
+      coverImagePath: coverImagePath ?? this.coverImagePath,
     );
   }
 }

@@ -50,6 +50,13 @@ class PhotoWallCard extends StatefulWidget {
     this.isTall = false,
   });
 
+  static PhotoWallCollection? _staticActiveCollection;
+
+  /// 更新照片墙卡片组件引用的静态激活集合缓存
+  static void updateStaticCache(PhotoWallCollection collection) {
+    _staticActiveCollection = collection;
+  }
+
   @override
   State<PhotoWallCard> createState() => _PhotoWallCardState();
 }
@@ -82,24 +89,63 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
   }
 
   Future<void> _extractPhotoItems() async {
-    _photoItems.clear();
-    List<String> photoPaths = [];
+    // 1. 第一阶段：同步从内存静态缓存或日记数据提取 (首帧渲染 0 延迟生效，解决长按编辑模式弹出空占位符问题)
+    _populateFromSyncSources();
 
+    // 2. 第二阶段：异步从持久化数据 SharedPreferences 读取并校验最新激活集合
     try {
       final prefs = await SharedPreferences.getInstance();
       final rawJson = prefs.getString('photo_wall_collections_v2');
       if (rawJson != null && rawJson.isNotEmpty) {
         final List list = json.decode(rawJson);
+        PhotoWallCollection? activeCol;
+        PhotoWallCollection? fallbackCol;
+
         for (var item in list) {
-          final col = PhotoWallCollection.fromMap(item);
-          if (col.photoPaths.isNotEmpty) {
-            _activeCollection = col;
-            photoPaths = List.from(col.photoPaths);
-            break;
+          Map<String, dynamic>? map;
+          if (item is Map) {
+            map = Map<String, dynamic>.from(item);
+          } else if (item is String) {
+            try {
+              final decoded = json.decode(item);
+              if (decoded is Map) map = Map<String, dynamic>.from(decoded);
+            } catch (_) {}
           }
+          if (map != null) {
+            final col = PhotoWallCollection.fromMap(map);
+            if (col.photoPaths.isNotEmpty) {
+              fallbackCol ??= col;
+              if (col.isActive) {
+                activeCol = col;
+                break;
+              }
+            }
+          }
+        }
+
+        final targetCol = activeCol ?? fallbackCol;
+        if (targetCol != null) {
+          _activeCollection = targetCol;
+          PhotoWallCard._staticActiveCollection = targetCol;
+          _populatePhotoItems(targetCol.photoPaths);
         }
       }
     } catch (_) {}
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  /// 同步提取内存静态缓存或日记中的图片
+  void _populateFromSyncSources() {
+    List<String> photoPaths = [];
+
+    if (PhotoWallCard._staticActiveCollection != null &&
+        PhotoWallCard._staticActiveCollection!.photoPaths.isNotEmpty) {
+      _activeCollection = PhotoWallCard._staticActiveCollection;
+      photoPaths = List.from(_activeCollection!.photoPaths);
+    }
 
     if (photoPaths.isEmpty) {
       final savedDiaries = UserState().savedDiaries.value;
@@ -116,6 +162,12 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
       }
     }
 
+    _populatePhotoItems(photoPaths);
+  }
+
+  /// 转换照片路径列表为视图数据
+  void _populatePhotoItems(List<String> photoPaths) {
+    _photoItems.clear();
     for (var path in photoPaths) {
       if (path.startsWith('assets/') || File(path).existsSync()) {
         _photoItems.add(
@@ -128,10 +180,6 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
         );
       }
     }
-
-    if (mounted) {
-      setState(() {});
-    }
   }
 
   @override
@@ -140,10 +188,10 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
 
     return BouncingButton(
       scaleFactor: 0.96,
-      onTap: () {
+      onTap: () async {
         HapticFeedback.mediumImpact();
         if (hasPhotos) {
-          Navigator.of(context).push(
+          await Navigator.of(context).push(
             SharedAxisPageRoute(
               page: PhotoWallPage(
                 isNight: widget.isNight,
@@ -151,6 +199,7 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
               ),
             ),
           );
+          _extractPhotoItems();
         } else {
           showTopToast(context, '📸 记录带照片的日记，即可制作专属手帐照片墙', icon: Icons.photo_library_rounded);
         }
@@ -247,111 +296,188 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
     if (isScatter) {
       return LayoutBuilder(
         builder: (context, constraints) {
-          final double availableWidth = constraints.maxWidth;
-          final double boardW = availableWidth - 4;
-          final double boardH = boardW / 0.58;
-
-          const int cols = 3;
-          const int maxRows = 3;
-
-          final maxAvailableW = (boardW - 12.0) / cols;
-          final cardW = (maxAvailableW * 0.90).clamp(24.0, 72.0);
-          final cardH = (cardW * 1.15).clamp(28.0, 85.0);
-
-          final rowStep = (boardH - cardH - 12.0) / math.max(1, maxRows - 1);
-          final colStep = (boardW - cardW - 12.0) / math.max(1, cols - 1);
+          final double boardW = constraints.maxWidth;
+          final double boardH = constraints.maxHeight;
 
           const double refW = 330.0;
           const double refH = 568.0;
 
-          return Stack(
-            clipBehavior: Clip.hardEdge,
-            children: List.generate(count, (index) {
-              final item = displayItems[index];
-              final id = 'photo_$index';
+          if (widget.isTall) {
+            // 长方形大卡片模式：沿用编辑页 (PhotoWallDetailPage) 的完整自定义排版/坐标映射
+            const int cols = 3;
+            const int maxRows = 3;
 
-              double left;
-              double top;
-              double angle;
+            final maxAvailableW = (boardW - 12.0) / cols;
+            final cardW = (maxAvailableW * 0.90).clamp(24.0, 72.0);
+            final cardH = (cardW * 1.15).clamp(28.0, 85.0);
 
-              if (_activeCollection?.customPositions != null &&
-                  _activeCollection!.customPositions!.containsKey(id)) {
-                final posList = _activeCollection!.customPositions![id]!;
-                left = (posList[0] / refW) * boardW;
-                top = (posList[1] / refH) * boardH;
-              } else {
-                final rand = math.Random(42 + id.hashCode);
-                final col = id.hashCode.abs() % cols;
-                final row = (id.hashCode.abs() ~/ cols) % maxRows;
-                final offsetX = (rand.nextDouble() - 0.5) * 12.0;
-                final offsetY = (rand.nextDouble() - 0.5) * 12.0;
-                left = (6.0 + col * colStep + offsetX * (boardW / refW)).clamp(2.0, boardW - cardW - 2.0);
-                top = (6.0 + row * rowStep + offsetY * (boardH / refH)).clamp(2.0, boardH - cardH - 2.0);
-              }
+            final rowStep = (boardH - cardH - 12.0) / math.max(1, maxRows - 1);
+            final colStep = (boardW - cardW - 12.0) / math.max(1, cols - 1);
 
-              angle = _activeCollection?.customAngles?[id] ??
-                  ((math.Random(42 + id.hashCode).nextDouble() - 0.5) * 0.32);
+            return Stack(
+              clipBehavior: Clip.hardEdge,
+              children: List.generate(count, (index) {
+                final item = displayItems[index];
+                final id = 'photo_$index';
 
-              return Positioned(
-                left: left.clamp(0.0, boardW - cardW),
-                top: top.clamp(0.0, boardH - cardH),
-                width: cardW,
-                height: cardH,
-                child: Transform.rotate(
-                  angle: angle,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.topCenter,
-                    children: [
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: widget.isNight ? 0.38 : 0.16),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.all(2.5),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(3),
-                            child: Image.file(
-                              File(item.imagePath),
-                              width: double.infinity,
-                              height: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Container(color: Colors.grey.shade200),
+                double left;
+                double top;
+                double angle;
+
+                if (_activeCollection?.customPositions != null &&
+                    _activeCollection!.customPositions!.containsKey(id)) {
+                  final posList = _activeCollection!.customPositions![id]!;
+                  left = (posList[0] / refW) * boardW;
+                  top = (posList[1] / refH) * boardH;
+                  angle = _activeCollection?.customAngles?[id] ?? 0.0;
+                } else {
+                  final rand = math.Random(42 + id.hashCode);
+                  final col = id.hashCode.abs() % cols;
+                  final row = (id.hashCode.abs() ~/ cols) % maxRows;
+                  final offsetX = (rand.nextDouble() - 0.5) * 12.0;
+                  final offsetY = (rand.nextDouble() - 0.5) * 12.0;
+                  left = (6.0 + col * colStep + offsetX * (boardW / refW)).clamp(2.0, boardW - cardW - 2.0);
+                  top = (6.0 + row * rowStep + offsetY * (boardH / refH)).clamp(2.0, boardH - cardH - 2.0);
+                  angle = _activeCollection?.customAngles?[id] ??
+                      ((rand.nextDouble() - 0.5) * 0.32);
+                }
+
+                return Positioned(
+                  left: left.clamp(0.0, math.max(0.0, boardW - cardW)).toDouble(),
+                  top: top.clamp(0.0, math.max(0.0, boardH - cardH)).toDouble(),
+                  width: cardW,
+                  height: cardH,
+                  child: Transform.rotate(
+                    angle: angle,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.topCenter,
+                      children: [
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: widget.isNight ? 0.38 : 0.16),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.all(2.5),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(3),
+                              child: item.imagePath.startsWith('assets/')
+                                  ? Image.asset(item.imagePath, fit: BoxFit.cover)
+                                  : Image.file(
+                                      File(item.imagePath),
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => Container(color: Colors.grey.shade200),
+                                    ),
                             ),
                           ),
                         ),
-                      ),
-                      _buildWashiTapeWidget(index),
-                      Positioned(
-                        top: -4,
-                        child: _buildMiniPushPinWidget(index),
-                      ),
-                    ],
+                        _buildWashiTapeWidget(index),
+                        Positioned(
+                          top: -4,
+                          child: _buildMiniPushPinWidget(index),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            }),
-          );
+                );
+              }),
+            );
+          } else {
+            // 小卡片模式：不沿用大卡片的竖向排版，采用小卡片专属自适应高低落差微缩散落布局
+            final double cardW = (boardW * 0.42).clamp(40.0, 64.0);
+            final double cardH = (cardW * 1.15).clamp(46.0, 74.0);
+
+            final double maxLeft = math.max(4.0, boardW - cardW - 6.0);
+            final double maxTop = math.max(4.0, boardH - cardH - 6.0);
+            final double stepX = count > 1 ? (maxLeft - 6.0) / (count - 1) : 0.0;
+
+            return Stack(
+              clipBehavior: Clip.hardEdge,
+              children: List.generate(count, (index) {
+                final item = displayItems[index];
+                final id = 'photo_$index';
+                final seed = (_activeCollection?.id.hashCode.abs() ?? 42) + id.hashCode;
+                final rand = math.Random(seed);
+
+                final offsetX = (rand.nextDouble() - 0.5) * 4.0;
+                final offsetY = (rand.nextDouble() - 0.5) * 4.0;
+
+                final left = (6.0 + index * stepX + offsetX).clamp(2.0, maxLeft).toDouble();
+
+                // 奇偶错开形成高低落差：偶数靠上，奇数拉下填满下方空间
+                final double isEven = (index % 2 == 0) ? 0.0 : 1.0;
+                final double targetTop = (isEven * (maxTop * 0.75)) + 4.0 + offsetY;
+                final top = targetTop.clamp(2.0, maxTop).toDouble();
+
+                final angle = (index % 2 == 0 ? -0.10 : 0.09) + (rand.nextDouble() - 0.5) * 0.06;
+
+                return Positioned(
+                  left: left,
+                  top: top,
+                  width: cardW,
+                  height: cardH,
+                  child: Transform.rotate(
+                    angle: angle,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.topCenter,
+                      children: [
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: widget.isNight ? 0.38 : 0.16),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.all(2.5),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(3),
+                              child: item.imagePath.startsWith('assets/')
+                                  ? Image.asset(item.imagePath, fit: BoxFit.cover)
+                                  : Image.file(
+                                      File(item.imagePath),
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => Container(color: Colors.grey.shade200),
+                                    ),
+                            ),
+                          ),
+                        ),
+                        _buildWashiTapeWidget(index),
+                        Positioned(
+                          top: -4,
+                          child: _buildMiniPushPinWidget(index),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            );
+          }
         },
       );
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double availableWidth = constraints.maxWidth;
+        final double boardW = constraints.maxWidth;
+        final double boardH = constraints.maxHeight;
 
-        // 100% 采用与编辑界面 (PhotoWallDetailPage) 相同的 0.58 画板宽高比，保证切分逻辑 1:1 完全一致
-        final double boardW = availableWidth - 4;
-        final double boardH = boardW / 0.58;
-        final bounds = Rect.fromLTWH(2, 2, boardW, boardH);
+        final bounds = Rect.fromLTWH(2, 2, boardW - 4, boardH - 4);
         final indices = List.generate(count, (i) => i);
         final leaves = TreemapSplitter.computeLeaves(bounds, indices, 42);
 
