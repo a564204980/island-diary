@@ -34,6 +34,26 @@ scratch/
 /build/
 /coverage/
 
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
 # Symbolication related
 app.*.symbols
 
@@ -44,3 +64,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# HarmonyOS / DevEco Studio related
+ohos/.hvigor/
+ohos/.idea/
+ohos/oh_modules/
+ohos/entry/.preview/
+ohos/entry/build/
+ohos/entry/oh_modules/
+**/oh_modules/
+**/.preview/
+**/.hvigor/

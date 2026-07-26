@@ -33,6 +33,9 @@ class HomeDashboardView extends StatefulWidget {
 
 class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTickerProviderStateMixin {
   bool _isEditMode = false;
+  bool _tallSlotIsOnRight = false;
+  int? _hoveredColumnIndex;
+  int? _lastVibratedColumn;
   final ValueNotifier<String?> _hoveredSlotModuleId = ValueNotifier<String?>(null);
   final ValueNotifier<bool> _hoveredSlotIsTall = ValueNotifier<bool>(false);
   final ValueNotifier<String?> _justDroppedModuleId = ValueNotifier<String?>(null);
@@ -437,12 +440,10 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
     if (idx1 == -1 || idx2 == -1) return;
 
     // 普通情况：直接对调两张卡片在列表中的位置，各自保留 isFullWidth 不变
-    // 这样小←→小互换只是换顺序，不会破坏已有的布局状态
     HomeModuleItem newAt1 = item2;
     HomeModuleItem newAt2 = item1;
 
     // 相机卡片（camera_widget）特殊规则：
-    // 当相机（小块）被拖入小槽时 → 相机自动变通栏，被替换方降为小块
     if (item1.id == 'camera_widget' && !item1.isFullWidth && !item2.isFullWidth) {
       newAt1 = item2.copyWith(isFullWidth: false);
       newAt2 = item1.copyWith(isFullWidth: true);
@@ -452,6 +453,39 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
     updatedAll[idx2] = newAt2;
 
     _justDroppedModuleId.value = item1.id;
+    UserState().saveHomeModuleConfigs(updatedAll);
+  }
+
+  /// 长模块（高卡片）跨列与多小模块进行整列对调
+  void _swapColumnModules(HomeModuleItem tallModule, {required bool targetIsRightColumn, required List<HomeModuleItem> allModules}) {
+    final updatedAll = List<HomeModuleItem>.from(allModules);
+    final gridModules = updatedAll.where((m) => !m.isFullWidth).toList();
+    if (gridModules.length < 3) return;
+
+    final tallIndex = gridModules.indexWhere((m) => m.id == tallModule.id);
+    if (tallIndex == -1) return;
+
+    final smallModules = gridModules.where((m) => m.id != tallModule.id).toList();
+
+    List<HomeModuleItem> newGridOrder;
+    if (targetIsRightColumn) {
+      // 长模块移至右列：小模块1、小模块2放在左列，长模块放在右列
+      newGridOrder = [...smallModules, tallModule];
+      setState(() => _tallSlotIsOnRight = true);
+    } else {
+      // 长模块移至左列：长模块放在左列，小模块1、小模块2放在右列
+      newGridOrder = [tallModule, ...smallModules];
+      setState(() => _tallSlotIsOnRight = false);
+    }
+
+    int gridIdx = 0;
+    for (int i = 0; i < updatedAll.length; i++) {
+      if (!updatedAll[i].isFullWidth) {
+        updatedAll[i] = newGridOrder[gridIdx++];
+      }
+    }
+
+    _justDroppedModuleId.value = tallModule.id;
     UserState().saveHomeModuleConfigs(updatedAll);
   }
 
@@ -476,22 +510,187 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
     if (gridModules.length >= 2) {
 
       // 渲染双列网格基于 Stack + AnimatedPositioned 绝对坐标物理平移网格
-      // 关键：AnimatedPositioned 必须直接作为 Stack 的子节点且持有 key，
-      // Flutter 才能跨 rebuild 通过 key 匹配并驱动平移动画，Builder 包装会阻断此机制
       final classicGridWidget = LayoutBuilder(
         builder: (context, constraints) {
           final double halfWidth = (constraints.maxWidth - 16.0) / 2;
           final bool hasThreeGridModules = gridModules.length >= 3;
           final double gridHeight = hasThreeGridModules ? 296.0 : 140.0;
 
+          // 动态识别高槽位：绝对由槽位与 _tallSlotIsOnRight 决定，不与特定卡片 ID 绑死
+          final bool tallIsOnRight = _tallSlotIsOnRight;
+          final int tallModuleIndex = (hasThreeGridModules && tallIsOnRight) ? 2 : 0;
+          final HomeModuleItem? tallModule = hasThreeGridModules ? gridModules[tallModuleIndex] : null;
+
           // 预先计算每个模块的目标插槽坐标
           List<Widget> stackChildren = [];
+
+          // 【核心层级修正】：将列级 DragTarget 与 Ghost 预判框放在 Stack 最底层（index 较小处）
+          // 这样只有当拖拽未精准落在某张子卡片卡面上（如落在缝隙/空白区）时，才会降级由列级 DragTarget 捕获；
+          // 只要精准悬停在具体小卡面上，上层的子卡片 DragTarget 将优先响应 1对1 点对点交换（任意小卡片移入高槽自动伸展变长）
+          if (_isEditMode && hasThreeGridModules && tallModule != null) {
+            // 1. 左列 DragTarget (当长模块处于右列且拖至左半区缝隙时激活)
+            stackChildren.add(
+              Positioned(
+                left: 0,
+                top: 0,
+                width: halfWidth,
+                height: gridHeight,
+                child: DragTarget<HomeModuleItem>(
+                  onWillAcceptWithDetails: (details) {
+                    if (tallIsOnRight && details.data.id == tallModule.id) {
+                      if (_lastVibratedColumn != 0) {
+                        _lastVibratedColumn = 0;
+                        HapticFeedback.selectionClick();
+                      }
+                      if (_hoveredColumnIndex != 0) {
+                        setState(() => _hoveredColumnIndex = 0);
+                      }
+                      return true;
+                    }
+                    return false;
+                  },
+                  onLeave: (data) {
+                    if (_hoveredColumnIndex == 0) {
+                      setState(() {
+                        _hoveredColumnIndex = null;
+                        _lastVibratedColumn = null;
+                      });
+                    }
+                  },
+                  onAcceptWithDetails: (details) {
+                    setState(() {
+                      _hoveredColumnIndex = null;
+                      _lastVibratedColumn = null;
+                    });
+                    HapticFeedback.mediumImpact();
+                    _swapColumnModules(details.data, targetIsRightColumn: false, allModules: allModules);
+                  },
+                  builder: (context, candidateData, rejectedData) => const SizedBox.expand(),
+                ),
+              ),
+            );
+
+            // 2. 右列 DragTarget (当长模块处于左列且拖至右半区缝隙时激活)
+            stackChildren.add(
+              Positioned(
+                left: halfWidth + 16.0,
+                top: 0,
+                width: halfWidth,
+                height: gridHeight,
+                child: DragTarget<HomeModuleItem>(
+                  onWillAcceptWithDetails: (details) {
+                    if (!tallIsOnRight && details.data.id == tallModule.id) {
+                      if (_lastVibratedColumn != 1) {
+                        _lastVibratedColumn = 1;
+                        HapticFeedback.selectionClick();
+                      }
+                      if (_hoveredColumnIndex != 1) {
+                        setState(() => _hoveredColumnIndex = 1);
+                      }
+                      return true;
+                    }
+                    return false;
+                  },
+                  onLeave: (data) {
+                    if (_hoveredColumnIndex == 1) {
+                      setState(() {
+                        _hoveredColumnIndex = null;
+                        _lastVibratedColumn = null;
+                      });
+                    }
+                  },
+                  onAcceptWithDetails: (details) {
+                    setState(() {
+                      _hoveredColumnIndex = null;
+                      _lastVibratedColumn = null;
+                    });
+                    HapticFeedback.mediumImpact();
+                    _swapColumnModules(details.data, targetIsRightColumn: true, allModules: allModules);
+                  },
+                  builder: (context, candidateData, rejectedData) => const SizedBox.expand(),
+                ),
+              ),
+            );
+
+            // 3. 跨列拖拽吸附预判框 (Ghost Slot Preview)
+            if (_hoveredColumnIndex != null) {
+              final double ghostLeft = (_hoveredColumnIndex == 0) ? 0.0 : (halfWidth + 16.0);
+              stackChildren.add(
+                Positioned(
+                  left: ghostLeft,
+                  top: 0,
+                  width: halfWidth,
+                  height: 296.0,
+                  child: IgnorePointer(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutCubic,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: widget.isNight ? const Color(0xFFFFD54F) : const Color(0xFF2B7A9B),
+                          width: 2.5,
+                        ),
+                        color: (widget.isNight ? const Color(0xFFFFD54F) : const Color(0xFF2B7A9B))
+                            .withValues(alpha: 0.15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (widget.isNight ? const Color(0xFFFFD54F) : const Color(0xFF2B7A9B))
+                                .withValues(alpha: 0.25),
+                            blurRadius: 16,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+          }
+
+          // 接下来将具体的卡片 AnimatedPositioned 添加到 Stack 上层（index 较大处），优先获得 Hit Test 响应
           for (int i = 0; i < gridModules.length; i++) {
             final mod = gridModules[i];
-            final bool isLeft = (i == 0 && hasThreeGridModules);
-            final double left = (i == 0) ? 0.0 : (halfWidth + 16.0);
-            final double top = (i == 0 || i == 1) ? 0.0 : (140.0 + 16.0);
-            final double cardHeight = isLeft ? 296.0 : 140.0;
+
+            bool isLeft = false;
+            double left = 0.0;
+            double top = 0.0;
+            double cardHeight = 140.0;
+
+            if (hasThreeGridModules) {
+              if (tallIsOnRight) {
+                // 长模块在右列
+                if (i == tallModuleIndex) {
+                  isLeft = false;
+                  left = halfWidth + 16.0;
+                  top = 0.0;
+                  cardHeight = 296.0;
+                } else {
+                  isLeft = true;
+                  left = 0.0;
+                  top = (i == 0) ? 0.0 : (140.0 + 16.0);
+                  cardHeight = 140.0;
+                }
+              } else {
+                // 长模块在左列
+                if (i == 0) {
+                  isLeft = true;
+                  left = 0.0;
+                  top = 0.0;
+                  cardHeight = 296.0;
+                } else {
+                  isLeft = false;
+                  left = halfWidth + 16.0;
+                  top = (i == 1) ? 0.0 : (140.0 + 16.0);
+                  cardHeight = 140.0;
+                }
+              }
+            } else {
+              left = (i == 0) ? 0.0 : (halfWidth + 16.0);
+              top = 0.0;
+              cardHeight = 140.0;
+            }
 
             Widget contentChild;
             if (mod.id == 'photo_throwback') {
@@ -502,7 +701,7 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
                 accentColor: accentColor,
                 fontFamily: fontFamily,
                 isNight: widget.isNight,
-                isTall: isLeft,
+                isTall: (i == tallModuleIndex && hasThreeGridModules),
               );
             } else {
               contentChild = HomeCardRegistry.buildCard(
@@ -510,13 +709,12 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
                 cardCtx,
                 pianoMoodWidget,
                 photoThrowbackWidget,
-                isTall: isLeft,
+                isTall: (i == tallModuleIndex && hasThreeGridModules),
                 isEditMode: _isEditMode,
               );
             }
 
-            // AnimatedPositioned 直接进入 stackChildren，不套 Builder
-            // 这样 Flutter 可以通过 key 找到同一个模块的旧 AnimatedPositioned 并驱动动画
+            // AnimatedPositioned 直接进入 stackChildren
             stackChildren.add(
               AnimatedPositioned(
                 key: ValueKey(mod.id),

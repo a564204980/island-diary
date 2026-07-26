@@ -1,0 +1,40 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "岛屿日记"
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "用于网络请求"
+    },
+    {
+      "name": "sensor_permission_reason",
+      "value": "用于传感器交互"
+    },
+    {
+      "name": "mic_permission_reason",
+      "value": "用于语音记日记"
+    },
+    {
+      "name": "media_permission_reason",
+      "value": "用于选择日记插图"
+    },
+    {
+      "name": "vibrate_permission_reason",
+      "value": "用于按键触感反馈"
+    },
+    {
+      "name": "pasteboard_permission_reason",
+      "value": "用于复制粘贴文本"
+    }
+  ]
+}

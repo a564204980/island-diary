@@ -1,0 +1,18 @@
+{
+  "modelVersion": "6.1.0",
+  "name": "island_diary_ohos",
+  "version": "1.0.0",
+  "description": "Island Diary HarmonyOS Application",
+  "main": "",
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@ohos/flutter_ohos": "file:./entry/har/flutter_ohos.har"
+  },
+  "devDependencies": {
+    "@ohos/hypium": "1.0.18"
+  },
+  "overrides": {
+    "@ohos/flutter_ohos": "file:./entry/har/flutter_ohos.har"
+  }
+}
