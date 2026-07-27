@@ -1,4 +1,4 @@
-# Miscellaneous
+# 临时文件与系统杂项
 *.class
 *.log
 *.pyc
@@ -13,18 +13,22 @@
 migrate_working_dir/
 scratch/
 
-# IntelliJ related
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# IDE 配置 (IntelliJ / Android Studio)
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
+# VS Code 本地配置（如需团队共享 launch/tasks 可取消注释）
 #.vscode/
 
-# Flutter/Dart/Pub related
+# Flutter / Dart 产物及缓存
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
@@ -34,38 +38,18 @@ scratch/
 /build/
 /coverage/
 
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
-
-# Symbolication related
+# 崩溃堆栈还原符号表
 app.*.symbols
 
-# Obfuscation related
+# 代码混淆 mapping 文件
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android 原生构建产物
 /android/app/debug
 /android/app/profile
 /android/app/release
 
-# HarmonyOS / DevEco Studio related
+# 鸿蒙 DevEco Studio 编译缓存
 ohos/.hvigor/
 ohos/.idea/
 ohos/oh_modules/

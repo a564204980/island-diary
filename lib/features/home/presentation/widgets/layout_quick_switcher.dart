@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/core/theme/app_colors.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
 
 class LayoutQuickSwitcher extends StatelessWidget {
@@ -17,51 +18,13 @@ class LayoutQuickSwitcher extends StatelessWidget {
       valueListenable: UserState().diaryLayoutMode,
       builder: (context, currentModeIndex, _) {
         final themeId = UserState().selectedIslandThemeId.value;
+        final themeColors = AppColorsExtension.current(themeId: themeId, isNight: isNight);
 
-        Color activeColor;
-        Color selectedIconColor;
-        Color unselectedIconColor;
-        Color containerColor;
-        Color borderColor;
-
-        if (themeId == 'cotton_candy') {
-          activeColor = const Color(0xFFFF94B8);
-          selectedIconColor = Colors.white;
-          unselectedIconColor = isNight
-              ? Colors.white.withValues(alpha: 0.6)
-              : const Color(0xFF6F5E63).withValues(alpha: 0.6);
-          containerColor = isNight
-              ? const Color(0xFF8676FF).withValues(alpha: 0.25)
-              : const Color(0xFFFFCADB).withValues(alpha: 0.45);
-          borderColor = isNight
-              ? const Color(0xFFB19FFB).withValues(alpha: 0.3)
-              : const Color(0xFFFFD1E1).withValues(alpha: 0.45);
-        } else if (themeId == 'lego') {
-          activeColor = const Color(0xFFFFC100);
-          selectedIconColor = const Color(0xFF3B2E25);
-          unselectedIconColor = isNight
-              ? Colors.white.withValues(alpha: 0.6)
-              : Colors.black.withValues(alpha: 0.5);
-          containerColor = isNight
-              ? Colors.white.withValues(alpha: 0.12)
-              : Colors.black.withValues(alpha: 0.15);
-          borderColor = isNight
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.black.withValues(alpha: 0.08);
-        } else {
-          // 默认主题 (搭配星光计划/夜间琥珀金)
-          activeColor = isNight ? const Color(0xFFD4A373) : const Color(0xFFA68565);
-          selectedIconColor = isNight ? const Color(0xFF1F1F1F) : Colors.white;
-          unselectedIconColor = isNight
-              ? Colors.white.withValues(alpha: 0.45)
-              : const Color(0xFFA68565).withValues(alpha: 0.75);
-          containerColor = isNight
-              ? Colors.black.withValues(alpha: 0.35)
-              : const Color(0xFFFFFDF9).withValues(alpha: 0.85);
-          borderColor = isNight
-              ? Colors.white.withValues(alpha: 0.08)
-              : const Color(0xFFE6DEC9).withValues(alpha: 0.8);
-        }
+        Color activeColor = themeColors.controlActive;
+        Color selectedIconColor = (themeId == 'lego' || isNight) ? const Color(0xFF1F1F1F) : Colors.white;
+        Color unselectedIconColor = themeColors.controlUnselected;
+        Color containerColor = themeColors.controlContainer;
+        Color borderColor = themeColors.border;
 
         final List<DiaryLayoutMode> modes = [
           DiaryLayoutMode.masonry,

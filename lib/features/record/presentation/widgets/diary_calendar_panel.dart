@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
@@ -11,6 +10,7 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/emoji_mapping.dart
 import 'package:island_diary/features/record/presentation/pages/diary_detail_page.dart';
 import 'package:island_diary/features/record/presentation/widgets/calendar_day_cell.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_search_panel.dart';
+import 'package:island_diary/core/theme/app_colors.dart';
 import 'package:island_diary/core/plugins/plugin_manager.dart';
 import 'package:island_diary/core/plugins/island_plugin.dart';
 
@@ -41,7 +41,8 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
   bool _isSortDescending = true;
   String _searchQuery = '';
   int? _searchMoodIndex;
-  Drag? _drag;
+  bool _scrollStartedAtTop = false;
+  int _slideDirection = 1;
 
   @override
   void initState() {
@@ -80,13 +81,9 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
         final year = _focusedMonth.year;
         final month = _focusedMonth.month;
 
-        final bool isCottonCandy = themeId == 'cotton_candy';
-        final Color mainTextColor = widget.isNight
-            ? Colors.white.withValues(alpha: 0.9)
-            : (isCottonCandy ? const Color(0xFF4E3A46) : const Color(0xFF3B2E25));
-        final Color subTextColor = widget.isNight
-            ? Colors.white38
-            : (isCottonCandy ? const Color(0xFF8D7A84) : const Color(0xFF7E7570));
+        final themeColors = AppColorsExtension.current(themeId: themeId, isNight: widget.isNight);
+        final Color mainTextColor = themeColors.textPrimary;
+        final Color subTextColor = themeColors.textSecondary;
 
         // 当前月份所有日记
         final monthDiaries = allDiaries.where((d) => d.dateTime.toLocal().year == year && d.dateTime.toLocal().month == month).toList();
@@ -101,19 +98,21 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
           }
           precacheImage(AssetImage(bgAsset), context);
 
-          // 预加载日记中的本地或网络照片，避免日历折叠/展开时由于树结构切换导致图片重新加载的白屏闪烁
-          for (var block in entry.blocks) {
-            if (block['type'] == 'image' && block['path'] != null) {
-              final String path = block['path'];
-              if (path.startsWith('http') || path.startsWith('blob:')) {
-                precacheImage(NetworkImage(path), context);
-              } else if (path.startsWith('/') || path.contains('cache/') || path.contains('files/')) {
-                final file = File(path);
-                if (file.existsSync()) {
-                  precacheImage(FileImage(file), context);
+          // 预加载所有日记中的本地或网络照片，保证周视图左右滑动时秒开显示，零灰块零白屏
+          for (var entry in allDiaries) {
+            for (var block in entry.blocks) {
+              if (block['type'] == 'image' && block['path'] != null) {
+                final String path = block['path'];
+                if (path.startsWith('http') || path.startsWith('blob:')) {
+                  precacheImage(NetworkImage(path), context);
+                } else if (path.startsWith('assets/')) {
+                  precacheImage(AssetImage(path), context);
+                } else {
+                  final file = File(path);
+                  if (file.existsSync()) {
+                    precacheImage(FileImage(file), context);
+                  }
                 }
-              } else if (path.startsWith('assets/')) {
-                precacheImage(AssetImage(path), context);
               }
             }
           }
@@ -210,35 +209,29 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
           children: [
             // 固定在顶部的日记头部模块
             GestureDetector(
-              onVerticalDragStart: (details) {
-                if (_scrollController.hasClients) {
-                  _drag = _scrollController.position.drag(details, () {
-                    _drag = null;
-                  });
-                }
-              },
+              behavior: HitTestBehavior.opaque,
               onVerticalDragUpdate: (details) {
-                if (details.primaryDelta != null && details.primaryDelta! > 8) {
+                final delta = details.primaryDelta;
+                if (delta == null) return;
+                if (delta > 8) {
+                  // 向下拖拽：展开日历
                   if (_isCollapsed) {
                     setState(() {
                       _isCollapsed = false;
                     });
                   }
-                } else if (details.primaryDelta != null && details.primaryDelta! < -8) {
+                } else if (delta < -8) {
+                  // 向上拖拽：折叠日历为单周
                   if (!_isCollapsed && _selectedDay != null) {
                     setState(() {
                       _isCollapsed = true;
                       _collapsedWeekIndex = selectedWeekIndex;
                     });
+                    if (_scrollController.hasClients && _scrollController.offset > 0) {
+                      _scrollController.jumpTo(0);
+                    }
                   }
                 }
-                _drag?.update(details);
-              },
-              onVerticalDragEnd: (details) {
-                _drag?.end(details);
-              },
-              onVerticalDragCancel: () {
-                _drag?.cancel();
               },
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
@@ -405,112 +398,126 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                   // 3. 日历网格：始终用同一 Column 结构，折叠时仅靠高度动画隐藏非目标行
                   // 这样 CalendarDayCell 永远不会被销毁，图片不会重新加载
                   GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     // 折叠状态下支持左右滑动切换周行
                     onHorizontalDragEnd: _isCollapsed ? (details) {
                       if (details.primaryVelocity == null) return;
-                      if (details.primaryVelocity! < -200) {
-                        // 向左：下一周
-                        setState(() {
-                          _collapsedWeekIndex = ((_collapsedWeekIndex ?? activeWeekIndex) + 1).clamp(0, weeks.length - 1);
-                        });
-                      } else if (details.primaryVelocity! > 200) {
-                        // 向右：上一周
-                        setState(() {
-                          _collapsedWeekIndex = ((_collapsedWeekIndex ?? activeWeekIndex) - 1).clamp(0, weeks.length - 1);
-                        });
+                      if (details.primaryVelocity! < -120) {
+                        // 向左手势：下一周（从右向左划入，_slideDirection = 1）
+                        final nextIndex = ((_collapsedWeekIndex ?? activeWeekIndex) + 1).clamp(0, weeks.length - 1);
+                        if (nextIndex != (_collapsedWeekIndex ?? activeWeekIndex)) {
+                          setState(() {
+                            _slideDirection = 1;
+                            _collapsedWeekIndex = nextIndex;
+                          });
+                        }
+                      } else if (details.primaryVelocity! > 120) {
+                        // 向右手势：上一周（从左向右划入，_slideDirection = -1）
+                        final prevIndex = ((_collapsedWeekIndex ?? activeWeekIndex) - 1).clamp(0, weeks.length - 1);
+                        if (prevIndex != (_collapsedWeekIndex ?? activeWeekIndex)) {
+                          setState(() {
+                            _slideDirection = -1;
+                            _collapsedWeekIndex = prevIndex;
+                          });
+                        }
                       }
                     } : null,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(weeks.length, (wIndex) {
-                        final week = weeks[wIndex];
-                        final bool isTargetWeek = wIndex == activeWeekIndex;
-                        final bool shouldShow = !_isCollapsed || isTargetWeek;
+                    child: ClipRect(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOutCubic,
+                        height: _isCollapsed ? 62 : weeks.length * 62.0,
+                        child: _isCollapsed
+                            ? AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 220),
+                                switchInCurve: Curves.fastOutSlowIn,
+                                switchOutCurve: Curves.fastOutSlowIn,
+                                transitionBuilder: (Widget child, Animation<double> animation) {
+                                  final isIncoming = child.key == ValueKey(activeWeekIndex);
+                                  final slideAnimation = Tween<Offset>(
+                                    begin: isIncoming
+                                        ? Offset(_slideDirection * 0.35, 0.0)
+                                        : Offset(-_slideDirection * 0.35, 0.0),
+                                    end: Offset.zero,
+                                  ).animate(animation);
+                                  final fadeAnimation = Tween<double>(
+                                    begin: isIncoming ? 0.2 : 1.0,
+                                    end: isIncoming ? 1.0 : 0.0,
+                                  ).animate(animation);
 
-                        return ClipRect(
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeOutCubic,
-                            height: shouldShow ? 62 : 0,
-                            // OverflowBox 让子内容始终在完整 62px 约束下渲染，
-                            // 不受父容器高度压缩影响，图片永远不会因布局尺寸为 0 而损坏
-                            child: OverflowBox(
-                              alignment: Alignment.topCenter,
-                              minHeight: 62,
-                              maxHeight: 62,
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 4, bottom: 6),
-                                child: SizedBox(
-                                  height: 52,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: List.generate(7, (dIndex) {
-                                      final cellDate = week[dIndex];
-                                      final bool isCurrentMonth = cellDate.month == month && cellDate.year == year;
-
-                                      final entries = allDiaries.where((d) {
-                                        final local = d.dateTime.toLocal();
-                                        return local.year == cellDate.year &&
-                                            local.month == cellDate.month &&
-                                            local.day == cellDate.day;
-                                      }).toList();
-
-                                      final bool isToday = DateTime.now().year == cellDate.year &&
-                                          DateTime.now().month == cellDate.month &&
-                                          DateTime.now().day == cellDate.day;
-                                      final bool isSelected = _selectedDay != null &&
-                                          _selectedDay!.year == cellDate.year &&
-                                          _selectedDay!.month == cellDate.month &&
-                                          _selectedDay!.day == cellDate.day;
-
-                                      return Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 5),
-                                          child: !isCurrentMonth
-                                              ? const SizedBox()
-                                              : CalendarDayCell(
-                                                  date: cellDate,
-                                                  entries: entries,
-                                                  isToday: isToday,
-                                                  isSelected: isSelected,
-                                                  isNight: widget.isNight,
-                                                  onTap: () {
-                                                    setState(() {
-                                                      _selectedDay = cellDate;
-                                                      _collapsedWeekIndex = wIndex;
-                                                    });
-                                                  },
-                                                ),
-                                        ),
-                                      );
-                                    }),
+                                  return SlideTransition(
+                                    position: slideAnimation,
+                                    child: FadeTransition(
+                                      opacity: fadeAnimation,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: KeyedSubtree(
+                                  key: ValueKey(activeWeekIndex),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 4, bottom: 6),
+                                    child: _buildWeekRow(
+                                      wIndex: activeWeekIndex,
+                                      week: weeks[activeWeekIndex],
+                                      month: month,
+                                      year: year,
+                                      allDiaries: allDiaries,
+                                    ),
                                   ),
                                 ),
+                              )
+                            : OverflowBox(
+                                alignment: Alignment.topCenter,
+                                minHeight: 0,
+                                maxHeight: double.infinity,
+                                child: Column(
+                                  key: const ValueKey('full_month'),
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: List.generate(weeks.length, (wIndex) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 4, bottom: 6),
+                                      child: _buildWeekRow(
+                                        wIndex: wIndex,
+                                        week: weeks[wIndex],
+                                        month: month,
+                                        year: year,
+                                        allDiaries: allDiaries,
+                                      ),
+                                    );
+                                  }),
+                                ),
                               ),
-                            ),
-                          ),
-                        );
-                      }),
+                      ),
                     ),
                   ),
-                ],
+              ],
               ),
             ),
           ),
           Expanded(
             child: NotificationListener<ScrollNotification>(
               onNotification: (notification) {
-                if (notification is UserScrollNotification) {
+                if (notification is ScrollStartNotification) {
+                  // 记录本次滑动开始时，列表是否已经在最顶部
+                  _scrollStartedAtTop = notification.metrics.pixels <= 0;
+                } else if (notification is UserScrollNotification) {
                   if (notification.direction == ScrollDirection.reverse) {
                     if (!_isCollapsed && _selectedDay != null) {
                       setState(() {
                         _isCollapsed = true;
                       });
+                      // 使用 addPostFrameCallback 脱离当前 Notification 触发栈，彻底杜绝 StackOverflow 递归
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (_scrollController.hasClients && _scrollController.offset != 0) {
+                          _scrollController.jumpTo(0);
+                        }
+                      });
                     }
                   }
                 } else if (notification is ScrollUpdateNotification) {
-                  if (notification.metrics.pixels <= 0 && notification.scrollDelta != null && notification.scrollDelta! < 0) {
+                  if (_scrollStartedAtTop && notification.metrics.pixels < -12 && notification.scrollDelta != null && notification.scrollDelta! < 0) {
+                    // 折叠态：只有当手势是从列表顶部发起的，才响应下拉展开日历
                     if (_isCollapsed) {
                       setState(() {
                         _isCollapsed = false;
@@ -518,19 +525,23 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                     }
                   }
                 } else if (notification is OverscrollNotification) {
-                  if (notification.overscroll < 0) {
+                  if (_scrollStartedAtTop && notification.overscroll < -6) {
                     if (_isCollapsed) {
                       setState(() {
                         _isCollapsed = false;
                       });
                     }
                   }
+                } else if (notification is ScrollEndNotification) {
+                  _scrollStartedAtTop = false;
                 }
                 return false;
               },
               child: SingleChildScrollView(
                 controller: _scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -631,10 +642,8 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
   Widget _buildWeekHeader(bool isNight, String fontFamily) {
     final themeId = UserState().selectedIslandThemeId.value;
-    final bool isCottonCandy = themeId == 'cotton_candy';
-    final Color subTextColor = isNight
-        ? Colors.white38
-        : (isCottonCandy ? const Color(0xFF8D7A84) : const Color(0xFF7E7570));
+    final themeColors = AppColorsExtension.current(themeId: themeId, isNight: isNight);
+    final Color subTextColor = themeColors.textSecondary;
 
     final List<String> weekDays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
     return Row(
@@ -648,7 +657,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: subTextColor.withValues(alpha: 0.7),
+                    color: subTextColor,
                     fontFamily: fontFamily,
                   ),
                 ),
@@ -1175,6 +1184,62 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildWeekRow({
+    required int wIndex,
+    required List<DateTime> week,
+    required int month,
+    required int year,
+    required List<DiaryEntry> allDiaries,
+  }) {
+    return SizedBox(
+      height: 52,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: List.generate(7, (dIndex) {
+          final cellDate = week[dIndex];
+          final bool isCurrentMonth = cellDate.month == month && cellDate.year == year;
+
+          final entries = allDiaries.where((d) {
+            final local = d.dateTime.toLocal();
+            return local.year == cellDate.year &&
+                local.month == cellDate.month &&
+                local.day == cellDate.day;
+          }).toList();
+
+          final bool isToday = DateTime.now().year == cellDate.year &&
+              DateTime.now().month == cellDate.month &&
+              DateTime.now().day == cellDate.day;
+          final bool isSelected = _selectedDay != null &&
+              _selectedDay!.year == cellDate.year &&
+              _selectedDay!.month == cellDate.month &&
+              _selectedDay!.day == cellDate.day;
+
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              child: !isCurrentMonth
+                  ? const SizedBox()
+                  : CalendarDayCell(
+                      date: cellDate,
+                      entries: entries,
+                      isToday: isToday,
+                      isSelected: isSelected,
+                      isNight: widget.isNight,
+                      onTap: () {
+                        setState(() {
+                          _selectedDay = cellDate;
+                          _collapsedWeekIndex = wIndex;
+                        });
+                      },
+                    ),
+            ),
+          );
+        }),
       ),
     );
   }

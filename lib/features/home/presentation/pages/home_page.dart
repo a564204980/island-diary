@@ -22,6 +22,7 @@ import 'package:island_diary/features/statistics/presentation/pages/statistics_p
 import 'package:island_diary/shared/widgets/frosted_rainbow.dart';
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 
+import 'package:island_diary/core/theme/app_colors.dart';
 import 'package:island_diary/features/home/presentation/widgets/backup_reminder_dialog.dart';
 import 'package:island_diary/features/home/presentation/widgets/restore_overlays.dart';
 import 'package:island_diary/features/home/presentation/widgets/layout_quick_switcher.dart';
@@ -284,7 +285,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       builder: (context, values, child) {
         final String themeId = values[1] as String;
         final bool isNight = _isNight;
-        final bool isCottonCandy = themeId == 'cotton_candy';
         final isWide = MediaQuery.of(context).size.width > 600;
 
         // 动态设置状态栏与底部系统导航栏为全透明，并根据明暗主题自动切换图标颜色，消除安卓黑边与顶部遮罩，实现真正的沉浸式全面屏效果
@@ -342,6 +342,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                         builder: (context) {
                                           final isLego = UserState().selectedIslandThemeId.value == 'lego';
                                           final headerFont = isLego ? 'SweiFistLeg' : 'LXGWWenKai';
+                                          final themeColors = AppColorsExtension.current(
+                                            themeId: themeId,
+                                            isNight: isNight,
+                                          );
                                           return Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             mainAxisSize: MainAxisSize.min,
@@ -351,13 +355,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                 crossAxisAlignment: CrossAxisAlignment.center,
                                                 children: [
                                                   Text(
-                                                     "${UserState().userName.value.isEmpty ? '我' : UserState().userName.value} 的岛屿日记",
+                                                    "${UserState().userName.value.isEmpty ? '我' : UserState().userName.value} 的岛屿日记",
                                                     style: TextStyle(
-                                                      color: isCottonCandy
-                                                          ? (isNight ? Colors.white : const Color(0xFF4E3A46))
-                                                          : (isNight
-                                                              ? Colors.white
-                                                              : const Color(0xFF3B2E25)),
+                                                      color: themeColors.textPrimary,
                                                       fontSize: 22,
                                                       fontWeight: FontWeight.bold,
                                                       fontFamily: headerFont,
@@ -375,9 +375,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                               Text(
                                                 "登岛第 ${UserState().savedDiaries.value.length} 天",
                                                 style: TextStyle(
-                                                  color: isCottonCandy
-                                                      ? (isNight ? Colors.white54 : const Color(0xFF8D7A84))
-                                                      : (isNight ? Colors.white54 : const Color(0xFF7E7570)),
+                                                  color: themeColors.textSecondary,
                                                   fontSize: 12,
                                                   fontFamily: headerFont,
                                                   fontWeight: FontWeight.bold,

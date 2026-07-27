@@ -6,6 +6,7 @@ import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'lego_calendar_components.dart';
+import 'calendar_cover_painter.dart';
 
 class _LunarCacheData {
   final String lunarStr;
@@ -191,7 +192,7 @@ class CalendarDayCell extends StatelessWidget {
           // 图片背景或拼图组件
           if (allImages.isNotEmpty)
             Positioned.fill(
-              child: _buildGridImages(allImages),
+              child: CalendarCoverWidget(images: allImages, isNight: isNight),
             ),
 
           // 日期数字 + 心情图标（整合为同一列，避免图标被文字遮挡）
@@ -273,7 +274,7 @@ class CalendarDayCell extends StatelessWidget {
                         children: [
                           if (allImages.isNotEmpty)
                             Positioned.fill(
-                              child: _buildGridImages(allImages),
+                              child: CalendarCoverWidget(images: allImages, isNight: isNight),
                             ),
                           Center(
                             child: Padding(
@@ -398,111 +399,49 @@ class CalendarDayCell extends StatelessWidget {
     return Opacity(opacity: 0.9, child: img);
   }
 
-  Widget _buildGridImages(List<String> images) {
-    Widget tile(String path) => SizedBox.expand(
-      child: ClipRect(
-        child: DiaryUtils.buildImage(path, fit: BoxFit.cover),
-      ),
-    );
+}
 
-    final int count = images.length;
-    if (count == 1) {
-      return tile(images[0]);
-    } else if (count == 2) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: tile(images[0])),
-          const SizedBox(width: 1),
-          Expanded(child: tile(images[1])),
-        ],
-      );
-    } else if (count == 3) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: tile(images[0])),
-          const SizedBox(width: 1),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: tile(images[1])),
-                const SizedBox(height: 1),
-                Expanded(child: tile(images[2])),
-              ],
-            ),
-          ),
-        ],
-      );
-    } else {
-      final int remaining = count - 4;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: tile(images[0])),
-                const SizedBox(width: 1),
-                Expanded(child: tile(images[1])),
-              ],
-            ),
-          ),
-          const SizedBox(height: 1),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: tile(images[2])),
-                const SizedBox(width: 1),
-                Expanded(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      tile(images[3]),
-                      if (remaining > 0)
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: RadialGradient(
-                              center: Alignment.center,
-                              radius: 0.9,
-                              colors: [
-                                Colors.black.withValues(alpha: 0.72),
-                                Colors.black.withValues(alpha: 0.45),
-                              ],
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              "+$remaining",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 6,
-                                    color: Colors.black,
-                                    offset: Offset(0, 1.5),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
+/// 基于 CustomPaint 直接绘制离屏封面的极简 Widget
+class CalendarCoverWidget extends StatefulWidget {
+  final List<String> images;
+  final bool isNight;
+
+  const CalendarCoverWidget({
+    super.key,
+    required this.images,
+    required this.isNight,
+  });
+
+  @override
+  State<CalendarCoverWidget> createState() => _CalendarCoverWidgetState();
+}
+
+class _CalendarCoverWidgetState extends State<CalendarCoverWidget> {
+  bool _isRepaintScheduled = false;
+
+  void _scheduleRepaint() {
+    if (_isRepaintScheduled || !mounted) return;
+    _isRepaintScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _isRepaintScheduled = false;
+        });
+      } else {
+        _isRepaintScheduled = false;
+      }
+    });
   }
 
-
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size.infinite,
+      painter: CalendarCoverPainter(
+        images: widget.images,
+        isNight: widget.isNight,
+        onRequestRepaint: _scheduleRepaint,
+      ),
+    );
+  }
 }
