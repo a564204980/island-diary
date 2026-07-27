@@ -28,17 +28,16 @@ class LayoutQuickSwitcher extends StatelessWidget {
 
         final List<DiaryLayoutMode> modes = [
           DiaryLayoutMode.masonry,
-          DiaryLayoutMode.timeline,
           DiaryLayoutMode.calendar,
         ];
 
-        final selectedIndex = modes.indexOf(
+        int rawIndex = modes.indexOf(
           DiaryLayoutMode.values[currentModeIndex.clamp(0, DiaryLayoutMode.values.length - 1)],
-        ).clamp(0, 2);
+        );
+        final selectedIndex = rawIndex < 0 ? 0 : rawIndex;
 
         final List<IconData> icons = [
           Icons.view_quilt_rounded,
-          Icons.format_list_bulleted_rounded,
           Icons.calendar_month_rounded,
         ];
 
@@ -48,7 +47,7 @@ class LayoutQuickSwitcher extends StatelessWidget {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
               child: Container(
-                width: 120,
+                width: 84,
                 height: 36,
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
@@ -66,11 +65,9 @@ class LayoutQuickSwitcher extends StatelessWidget {
                       curve: Curves.easeInOut,
                       alignment: selectedIndex == 0
                           ? Alignment.centerLeft
-                          : (selectedIndex == 1
-                              ? Alignment.center
-                              : Alignment.centerRight),
+                          : Alignment.centerRight,
                       child: FractionallySizedBox(
-                        widthFactor: 0.33,
+                        widthFactor: 0.5,
                         child: Container(
                           decoration: BoxDecoration(
                             color: activeColor,

@@ -3,7 +3,7 @@ part of '../user_state.dart';
 /// 6. 用户偏好与个性化模块
 mixin PreferenceMixin on ProfileMixin {
 
-  final ValueNotifier<int> diaryLayoutMode = ValueNotifier<int>(0);
+  final ValueNotifier<int> diaryLayoutMode = ValueNotifier<int>(1);
   final ValueNotifier<bool> isSlimeInBottomMenu = ValueNotifier<bool>(true);
   final ValueNotifier<List<String>> moodTagHistory = ValueNotifier<List<String>>([]);
   final ValueNotifier<List<String>> statsOrderWeek = ValueNotifier<List<String>>([]);
@@ -48,7 +48,7 @@ mixin PreferenceMixin on ProfileMixin {
     isImageCompressEnabled.value = prefs.getBool(UserState().n(_K.isImageCompressEnabled)) ?? true;
     imageCompressQuality.value = prefs.getInt(UserState().n(_K.imageCompressQuality)) ?? 82;
 
-    diaryLayoutMode.value = prefs.getInt(UserState().n(_K.diaryLayoutMode)) ?? 0;
+    diaryLayoutMode.value = prefs.getInt(UserState().n(_K.diaryLayoutMode)) ?? 1;
     moodTagHistory.value = prefs.getStringList(UserState().n(_K.moodTagHistory)) ?? [];
     statsOrderWeek.value = prefs.getStringList(UserState().n(_K.statsOrderWeek)) ?? [];
     statsOrderMonth.value = prefs.getStringList(UserState().n(_K.statsOrderMonth)) ?? [];

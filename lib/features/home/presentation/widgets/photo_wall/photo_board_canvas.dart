@@ -725,233 +725,253 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
                 final top = currentPos.dy.clamp(14.0, math.max(14.0, boardHeight - scaledCardH - 14.0)).toDouble();
                 final isSelected = _selectedPhotoId == id;
                 const double handlePadding = 24.0;
+                final double totalW = scaledCardW + handlePadding * 2;
+                final double totalH = scaledCardH + handlePadding * 2;
+
+                // 计算旋转与放大后卡片的外接矩形，确保 Positioned 的 HitTest 区域完整包裹旋转后的四个角按钮
+                final double cosA = math.cos(currentAngle).abs();
+                final double sinA = math.sin(currentAngle).abs();
+                final double maxScale = isSelected ? 1.08 : 1.0;
+                final double boundingW = (totalW * cosA + totalH * sinA) * maxScale + 16.0;
+                final double boundingH = (totalW * sinA + totalH * cosA) * maxScale + 16.0;
+
+                final double centerX = left + scaledCardW / 2;
+                final double centerY = top + scaledCardH / 2;
 
                 return Positioned(
                   key: ValueKey(id),
-                  left: left - handlePadding,
-                  top: top - handlePadding,
-                  child: AnimatedScale(
-                    scale: isSelected ? 1.04 : 1.0,
-                    duration: const Duration(milliseconds: 160),
-                    curve: Curves.easeOutBack,
-                    child: Transform.rotate(
-                      angle: currentAngle,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        alignment: Alignment.topCenter,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(handlePadding),
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                _selectPhoto(id);
-                              },
-                              onLongPressStart: (details) {
-                                HapticFeedback.heavyImpact();
-                                _selectPhoto(id);
-                                _panStartGlobalPos = details.globalPosition;
-                                _panStartCardPos = widget.photoCustomPositions[id] ?? Offset(left, top);
-                              },
-                              onLongPressMoveUpdate: (details) {
-                                if (_selectedPhotoId == id && _panStartGlobalPos != null && _panStartCardPos != null) {
-                                  final double dx = details.globalPosition.dx - _panStartGlobalPos!.dx;
-                                  final double dy = details.globalPosition.dy - _panStartGlobalPos!.dy;
+                  left: centerX - boundingW / 2,
+                  top: centerY - boundingH / 2,
+                  width: boundingW,
+                  height: boundingH,
+                  child: Center(
+                    child: AnimatedScale(
+                      scale: isSelected ? 1.04 : 1.0,
+                      duration: const Duration(milliseconds: 160),
+                      curve: Curves.easeOutBack,
+                      child: Transform.rotate(
+                        angle: currentAngle,
+                        child: SizedBox(
+                          width: totalW,
+                          height: totalH,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.topCenter,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(handlePadding),
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    _selectPhoto(id);
+                                  },
+                                  onLongPressStart: (details) {
+                                    HapticFeedback.heavyImpact();
+                                    _selectPhoto(id);
+                                    _panStartGlobalPos = details.globalPosition;
+                                    _panStartCardPos = widget.photoCustomPositions[id] ?? Offset(left, top);
+                                  },
+                                  onLongPressMoveUpdate: (details) {
+                                    if (_selectedPhotoId == id && _panStartGlobalPos != null && _panStartCardPos != null) {
+                                      final double dx = details.globalPosition.dx - _panStartGlobalPos!.dx;
+                                      final double dy = details.globalPosition.dy - _panStartGlobalPos!.dy;
 
-                                  final double newX = (_panStartCardPos!.dx + dx)
-                                      .clamp(14.0, math.max(14.0, boardWidth - scaledCardW - 14.0))
-                                      .toDouble();
-                                  final double newY = (_panStartCardPos!.dy + dy)
-                                      .clamp(14.0, math.max(14.0, boardHeight - scaledCardH - 14.0))
-                                      .toDouble();
+                                      final double newX = (_panStartCardPos!.dx + dx)
+                                          .clamp(14.0, math.max(14.0, boardWidth - scaledCardW - 14.0))
+                                          .toDouble();
+                                      final double newY = (_panStartCardPos!.dy + dy)
+                                          .clamp(14.0, math.max(14.0, boardHeight - scaledCardH - 14.0))
+                                          .toDouble();
 
-                                  setState(() {
-                                    widget.photoCustomPositions[id] = Offset(newX, newY);
-                                  });
-                                }
-                              },
-                              onLongPressEnd: (_) {
-                                _panStartGlobalPos = null;
-                                _panStartCardPos = null;
-                                widget.onStateChanged();
-                              },
-                              onLongPressUp: () {
-                                _panStartGlobalPos = null;
-                                _panStartCardPos = null;
-                                widget.onStateChanged();
-                              },
-                              onPanStart: (details) {
-                                _selectPhoto(id);
-                                _panStartGlobalPos = details.globalPosition;
-                                _panStartCardPos = widget.photoCustomPositions[id] ?? Offset(left, top);
-                              },
-                              onPanUpdate: (details) {
-                                if (_selectedPhotoId == id && _panStartGlobalPos != null && _panStartCardPos != null) {
-                                  final double dx = details.globalPosition.dx - _panStartGlobalPos!.dx;
-                                  final double dy = details.globalPosition.dy - _panStartGlobalPos!.dy;
+                                      setState(() {
+                                        widget.photoCustomPositions[id] = Offset(newX, newY);
+                                      });
+                                    }
+                                  },
+                                  onLongPressEnd: (_) {
+                                    _panStartGlobalPos = null;
+                                    _panStartCardPos = null;
+                                    widget.onStateChanged();
+                                  },
+                                  onLongPressUp: () {
+                                    _panStartGlobalPos = null;
+                                    _panStartCardPos = null;
+                                    widget.onStateChanged();
+                                  },
+                                  onPanStart: (details) {
+                                    _selectPhoto(id);
+                                    _panStartGlobalPos = details.globalPosition;
+                                    _panStartCardPos = widget.photoCustomPositions[id] ?? Offset(left, top);
+                                  },
+                                  onPanUpdate: (details) {
+                                    if (_selectedPhotoId == id && _panStartGlobalPos != null && _panStartCardPos != null) {
+                                      final double dx = details.globalPosition.dx - _panStartGlobalPos!.dx;
+                                      final double dy = details.globalPosition.dy - _panStartGlobalPos!.dy;
 
-                                  final double newX = (_panStartCardPos!.dx + dx)
-                                      .clamp(14.0, math.max(14.0, boardWidth - scaledCardW - 14.0))
-                                      .toDouble();
-                                  final double newY = (_panStartCardPos!.dy + dy)
-                                      .clamp(14.0, math.max(14.0, boardHeight - scaledCardH - 14.0))
-                                      .toDouble();
+                                      final double newX = (_panStartCardPos!.dx + dx)
+                                          .clamp(14.0, math.max(14.0, boardWidth - scaledCardW - 14.0))
+                                          .toDouble();
+                                      final double newY = (_panStartCardPos!.dy + dy)
+                                          .clamp(14.0, math.max(14.0, boardHeight - scaledCardH - 14.0))
+                                          .toDouble();
 
-                                  setState(() {
-                                    widget.photoCustomPositions[id] = Offset(newX, newY);
-                                  });
-                                }
-                              },
-                              onPanEnd: (_) {
-                                _panStartGlobalPos = null;
-                                _panStartCardPos = null;
-                                widget.onStateChanged();
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 160),
-                                width: scaledCardW,
-                                height: scaledCardH,
-                                padding: const EdgeInsets.all(4.5),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: isSelected
-                                          ? Colors.black.withValues(alpha: 0.45)
-                                          : Colors.black38,
-                                      blurRadius: isSelected ? 14 : 6,
-                                      offset: isSelected ? const Offset(0, 6) : const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: SizedBox.expand(
-                                    child: _buildPhotoWidget(path, id.hashCode),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          _buildWashiTapeWidget(id.hashCode, handlePadding),
-
-                          Positioned(
-                            top: handlePadding - 6,
-                            child: PushPinWidget(index: id.hashCode).animate(
-                              key: ValueKey('anim_pin_$id'),
-                              target: _isAnimationDone ? 1.0 : null,
-                            ).fadeIn(
-                              duration: 1.ms,
-                              delay: (index * 140 + 460).ms,
-                            ).scale(
-                              begin: const Offset(1.8, 1.8),
-                              end: const Offset(1.0, 1.0),
-                              duration: 260.ms,
-                              curve: Curves.bounceOut,
-                              delay: (index * 140 + 460).ms,
-                            ).slideY(
-                              begin: -1.5,
-                              end: 0,
-                              duration: 260.ms,
-                              curve: Curves.easeOutCubic,
-                              delay: (index * 140 + 460).ms,
-                            ),
-                          ),
-
-                          if (isSelected && widget.isEditing) ...[
-                            Positioned(
-                              left: handlePadding,
-                              top: handlePadding,
-                              right: handlePadding,
-                              bottom: handlePadding,
-                              child: IgnorePointer(
-                                child: CustomPaint(
-                                  painter: DashedBorderPainter(
-                                    color: Colors.white.withValues(alpha: 0.95),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: 0,
-                              left: 0,
-                              child: _buildHandleButton(
-                                icon: Icons.layers_rounded,
-                                onTapWithContext: (btnCtx) => _showLayerMenu(btnCtx, id),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              left: 0,
-                              child: _buildHandleButton(
-                                icon: Icons.aspect_ratio_rounded,
-                                onTap: () => _scalePhoto(id),
-                                onPanUpdate: (details) {
-                                  setState(() {
-                                    final currentScale = widget.photoCustomScales[id] ?? 1.0;
-                                    final delta = (details.delta.dy - details.delta.dx) * 0.005;
-                                    widget.photoCustomScales[id] = (currentScale + delta).clamp(0.4, 3.0);
-                                  });
-                                },
-                              ),
-                            ),
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: _buildHandleButton(
-                                icon: Icons.close_rounded,
-                                onTap: () => _removePhotoWithDissolve(id, cardSize: Size(scaledCardW, scaledCardH)),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: _buildHandleButton(
-                                icon: Icons.rotate_right_rounded,
-                                onTap: () => _rotatePhoto(id, currentAngle),
-                                onPanStart: (details) {
-                                  final renderBox = context.findRenderObject() as RenderBox?;
-                                  if (renderBox != null) {
-                                    final cardCenterLocal = Offset(left + scaledCardW / 2 + handlePadding, top + scaledCardH / 2 + handlePadding);
-                                    final cardCenterGlobal = renderBox.localToGlobal(cardCenterLocal);
-                                    final touchPos = details.globalPosition;
-                                    _rotateStartTouchAngle = math.atan2(
-                                      touchPos.dy - cardCenterGlobal.dy,
-                                      touchPos.dx - cardCenterGlobal.dx,
-                                    );
-                                    _rotateStartCardAngle = widget.photoCustomAngles[id] ?? currentAngle;
-                                  }
-                                },
-                                onPanUpdate: (details) {
-                                    if (_rotateStartTouchAngle != null && _rotateStartCardAngle != null) {
-                                      final renderBox = context.findRenderObject() as RenderBox?;
-                                      if (renderBox != null) {
-                                        final cardCenterLocal = Offset(left + cardW / 2 + handlePadding, top + cardH / 2 + handlePadding);
-                                        final cardCenterGlobal = renderBox.localToGlobal(cardCenterLocal);
-                                        final touchPos = details.globalPosition;
-                                        final currentTouchAngle = math.atan2(
-                                          touchPos.dy - cardCenterGlobal.dy,
-                                          touchPos.dx - cardCenterGlobal.dx,
-                                        );
-                                        final deltaAngle = currentTouchAngle - _rotateStartTouchAngle!;
-                                        setState(() {
-                                          widget.photoCustomAngles[id] = _rotateStartCardAngle! + deltaAngle;
-                                        });
-                                      }
+                                      setState(() {
+                                        widget.photoCustomPositions[id] = Offset(newX, newY);
+                                      });
                                     }
                                   },
                                   onPanEnd: (_) {
-                                    _rotateStartTouchAngle = null;
-                                    _rotateStartCardAngle = null;
+                                    _panStartGlobalPos = null;
+                                    _panStartCardPos = null;
                                     widget.onStateChanged();
                                   },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 160),
+                                    width: scaledCardW,
+                                    height: scaledCardH,
+                                    padding: const EdgeInsets.all(4.5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: isSelected
+                                              ? Colors.black.withValues(alpha: 0.45)
+                                              : Colors.black38,
+                                          blurRadius: isSelected ? 14 : 6,
+                                          offset: isSelected ? const Offset(0, 6) : const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: SizedBox.expand(
+                                        child: _buildPhotoWidget(path, id.hashCode),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                            ),
-                          ],
-                        ],
+                              ),
+
+                              _buildWashiTapeWidget(id.hashCode, handlePadding),
+
+                              Positioned(
+                                top: handlePadding - 6,
+                                child: PushPinWidget(index: id.hashCode).animate(
+                                  key: ValueKey('anim_pin_$id'),
+                                  target: _isAnimationDone ? 1.0 : null,
+                                ).fadeIn(
+                                  duration: 1.ms,
+                                  delay: (index * 140 + 460).ms,
+                                ).scale(
+                                  begin: const Offset(1.8, 1.8),
+                                  end: const Offset(1.0, 1.0),
+                                  duration: 260.ms,
+                                  curve: Curves.bounceOut,
+                                  delay: (index * 140 + 460).ms,
+                                ).slideY(
+                                  begin: -1.5,
+                                  end: 0,
+                                  duration: 260.ms,
+                                  curve: Curves.easeOutCubic,
+                                  delay: (index * 140 + 460).ms,
+                                ),
+                              ),
+
+                              if (isSelected && widget.isEditing) ...[
+                                Positioned(
+                                  left: handlePadding,
+                                  top: handlePadding,
+                                  right: handlePadding,
+                                  bottom: handlePadding,
+                                  child: IgnorePointer(
+                                    child: CustomPaint(
+                                      painter: DashedBorderPainter(
+                                        color: Colors.white.withValues(alpha: 0.95),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  child: _buildHandleButton(
+                                    icon: Icons.layers_rounded,
+                                    onTapWithContext: (btnCtx) => _showLayerMenu(btnCtx, id),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  left: 0,
+                                  child: _buildHandleButton(
+                                    icon: Icons.aspect_ratio_rounded,
+                                    onTap: () => _scalePhoto(id),
+                                    onPanUpdate: (details) {
+                                      setState(() {
+                                        final currentScale = widget.photoCustomScales[id] ?? 1.0;
+                                        final delta = (details.delta.dy - details.delta.dx) * 0.005;
+                                        widget.photoCustomScales[id] = (currentScale + delta).clamp(0.4, 3.0);
+                                      });
+                                    },
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: _buildHandleButton(
+                                    icon: Icons.close_rounded,
+                                    onTap: () => _removePhotoWithDissolve(id, cardSize: Size(scaledCardW, scaledCardH)),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: _buildHandleButton(
+                                    icon: Icons.rotate_right_rounded,
+                                    onTap: () => _rotatePhoto(id, currentAngle),
+                                    onPanStart: (details) {
+                                      final renderBox = context.findRenderObject() as RenderBox?;
+                                      if (renderBox != null) {
+                                        final cardCenterLocal = Offset(left + scaledCardW / 2 + handlePadding, top + scaledCardH / 2 + handlePadding);
+                                        final cardCenterGlobal = renderBox.localToGlobal(cardCenterLocal);
+                                        final touchPos = details.globalPosition;
+                                        _rotateStartTouchAngle = math.atan2(
+                                          touchPos.dy - cardCenterGlobal.dy,
+                                          touchPos.dx - cardCenterGlobal.dx,
+                                        );
+                                        _rotateStartCardAngle = widget.photoCustomAngles[id] ?? currentAngle;
+                                      }
+                                    },
+                                    onPanUpdate: (details) {
+                                      if (_rotateStartTouchAngle != null && _rotateStartCardAngle != null) {
+                                        final renderBox = context.findRenderObject() as RenderBox?;
+                                        if (renderBox != null) {
+                                          final cardCenterLocal = Offset(left + scaledCardW / 2 + handlePadding, top + scaledCardH / 2 + handlePadding);
+                                          final cardCenterGlobal = renderBox.localToGlobal(cardCenterLocal);
+                                          final touchPos = details.globalPosition;
+                                          final currentTouchAngle = math.atan2(
+                                            touchPos.dy - cardCenterGlobal.dy,
+                                            touchPos.dx - cardCenterGlobal.dx,
+                                          );
+                                          final deltaAngle = currentTouchAngle - _rotateStartTouchAngle!;
+                                          setState(() {
+                                            widget.photoCustomAngles[id] = _rotateStartCardAngle! + deltaAngle;
+                                          });
+                                        }
+                                      }
+                                    },
+                                    onPanEnd: (_) {
+                                      _rotateStartTouchAngle = null;
+                                      _rotateStartCardAngle = null;
+                                      widget.onStateChanged();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),

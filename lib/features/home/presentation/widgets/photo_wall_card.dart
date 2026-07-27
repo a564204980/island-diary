@@ -368,6 +368,10 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                 final item = displayItems[index];
                 final id = 'photo_$index';
 
+                final double userScale = _activeCollection?.customScales?[id] ?? 1.0;
+                final double scaledW = (cardW * userScale).clamp(16.0, boardW * 0.95);
+                final double scaledH = (cardH * userScale).clamp(20.0, boardH * 0.95);
+
                 double left;
                 double top;
                 double angle;
@@ -384,17 +388,17 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                   final row = (id.hashCode.abs() ~/ cols) % maxRows;
                   final offsetX = (rand.nextDouble() - 0.5) * 12.0;
                   final offsetY = (rand.nextDouble() - 0.5) * 12.0;
-                  left = (6.0 + col * colStep + offsetX * (boardW / refW)).clamp(2.0, boardW - cardW - 2.0);
-                  top = (6.0 + row * rowStep + offsetY * (boardH / refH)).clamp(2.0, boardH - cardH - 2.0);
+                  left = (6.0 + col * colStep + offsetX * (boardW / refW)).clamp(2.0, boardW - scaledW - 2.0);
+                  top = (6.0 + row * rowStep + offsetY * (boardH / refH)).clamp(2.0, boardH - scaledH - 2.0);
                   angle = _activeCollection?.customAngles?[id] ??
                       ((rand.nextDouble() - 0.5) * 0.32);
                 }
 
                 return Positioned(
-                  left: left.clamp(0.0, math.max(0.0, boardW - cardW)).toDouble(),
-                  top: top.clamp(0.0, math.max(0.0, boardH - cardH)).toDouble(),
-                  width: cardW,
-                  height: cardH,
+                  left: left.clamp(0.0, math.max(0.0, boardW - scaledW)).toDouble(),
+                  top: top.clamp(0.0, math.max(0.0, boardH - scaledH)).toDouble(),
+                  width: scaledW,
+                  height: scaledH,
                   child: WindBlownPhotoWidget(
                     index: index,
                     baseAngle: angle,
@@ -406,7 +410,7 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular((14.0 * userScale).clamp(10.0, 20.0)),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: widget.isNight ? 0.38 : 0.16),
@@ -417,7 +421,7 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                             ),
                             padding: const EdgeInsets.all(2.5),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(3),
+                              borderRadius: BorderRadius.circular((12.0 * userScale).clamp(8.0, 18.0)),
                               child: item.imagePath.startsWith('assets/')
                                   ? Image.asset(item.imagePath, fit: BoxFit.cover)
                                   : Image.file(
@@ -453,26 +457,31 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
               children: List.generate(count, (index) {
                 final item = displayItems[index];
                 final id = 'photo_$index';
+
+                final double userScale = _activeCollection?.customScales?[id] ?? 1.0;
+                final double scaledW = (cardW * userScale).clamp(16.0, boardW * 0.95);
+                final double scaledH = (cardH * userScale).clamp(20.0, boardH * 0.95);
+
                 final seed = (_activeCollection?.id.hashCode.abs() ?? 42) + id.hashCode;
                 final rand = math.Random(seed);
 
                 final offsetX = (rand.nextDouble() - 0.5) * 4.0;
                 final offsetY = (rand.nextDouble() - 0.5) * 4.0;
 
-                final left = (6.0 + index * stepX + offsetX).clamp(2.0, maxLeft).toDouble();
+                final left = (6.0 + index * stepX + offsetX).clamp(2.0, math.max(2.0, boardW - scaledW - 2.0)).toDouble();
 
                 // 奇偶错开形成高低落差：偶数靠上，奇数拉下填满下方空间
                 final double isEven = (index % 2 == 0) ? 0.0 : 1.0;
                 final double targetTop = (isEven * (maxTop * 0.75)) + 4.0 + offsetY;
-                final top = targetTop.clamp(2.0, maxTop).toDouble();
+                final top = targetTop.clamp(2.0, math.max(2.0, boardH - scaledH - 2.0)).toDouble();
 
-                final angle = (index % 2 == 0 ? -0.10 : 0.09) + (rand.nextDouble() - 0.5) * 0.06;
+                final angle = _activeCollection?.customAngles?[id] ?? ((index % 2 == 0 ? -0.10 : 0.09) + (rand.nextDouble() - 0.5) * 0.06);
 
                 return Positioned(
                   left: left,
                   top: top,
-                  width: cardW,
-                  height: cardH,
+                  width: scaledW,
+                  height: scaledH,
                   child: WindBlownPhotoWidget(
                     index: index,
                     baseAngle: angle,
@@ -484,7 +493,7 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular((12.0 * userScale).clamp(8.0, 16.0)),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: widget.isNight ? 0.38 : 0.16),
@@ -495,7 +504,7 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                             ),
                             padding: const EdgeInsets.all(2.5),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(3),
+                              borderRadius: BorderRadius.circular((10.0 * userScale).clamp(6.0, 14.0)),
                               child: item.imagePath.startsWith('assets/')
                                   ? Image.asset(item.imagePath, fit: BoxFit.cover)
                                   : Image.file(

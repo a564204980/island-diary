@@ -17,8 +17,7 @@ import 'package:island_diary/features/record/presentation/widgets/diary_featured
 import 'package:island_diary/features/record/presentation/pages/decoration_page.dart';
 
 enum DiaryLayoutMode {
-  timeline, // 时间轴模式
-  masonry, // 小红书模式
+  masonry, // 瀑布流模式
   calendar, // 日历网格
 }
 
@@ -56,12 +55,6 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
     _selectedDate = null;
     // 从持久化状态加载
     int savedIndex = UserState().diaryLayoutMode.value;
-    // 防止旧数据保存的 index (如 1 为 moments) 超出新的范围或者定位错乱，这里做一个安全转换映射
-    if (savedIndex == 1) {
-      savedIndex = 0; // moments 回落至 timeline
-    } else if (savedIndex > 1) {
-      savedIndex -= 1; // 后续 index 均向前平移一位
-    }
     _layoutMode = DiaryLayoutMode.values[savedIndex.clamp(0, DiaryLayoutMode.values.length - 1)];
   }
 
@@ -80,10 +73,10 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
   }
 
   void _cycleLayoutMode() {
-    // 恢复为之前的双态切换：Timeline <-> Calendar
+    // 双态切换：Masonry <-> Calendar
     setState(() {
       if (_layoutMode == DiaryLayoutMode.calendar) {
-        _layoutMode = DiaryLayoutMode.timeline;
+        _layoutMode = DiaryLayoutMode.masonry;
       } else {
         _layoutMode = DiaryLayoutMode.calendar;
       }
@@ -92,9 +85,9 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
   }
 
   IconData _getLayoutIcon() {
-    // 只在列表和日历间切换的图标提示
+    // 只在瀑布流和日历间切换的图标提示
     return _layoutMode == DiaryLayoutMode.calendar
-        ? Icons.format_list_bulleted_rounded
+        ? Icons.view_quilt_rounded
         : Icons.calendar_month_rounded;
   }
 
@@ -196,7 +189,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                         _selectedDate = date;
                                         _headerDate.value = date;
                                         _setLayoutMode(
-                                          DiaryLayoutMode.timeline,
+                                          DiaryLayoutMode.masonry,
                                         );
                                       });
                                     },
@@ -485,7 +478,7 @@ class _DiaryHistoryOverlayState extends State<DiaryHistoryOverlay> {
                                             isNight: isNight,
                                             isActive:
                                                 _layoutMode !=
-                                                DiaryLayoutMode.timeline,
+                                                DiaryLayoutMode.masonry,
                                           ),
                                         ],
                                       ),

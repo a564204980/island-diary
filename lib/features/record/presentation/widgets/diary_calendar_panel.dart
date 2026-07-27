@@ -704,8 +704,9 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
       // 棉花糖：粉嫩圆点
       color = isNight ? const Color(0xFFCE93D8) : const Color(0xFFF48FB1);
     } else {
-      // 默认：高级金棕
-      color = isNight ? const Color(0xFFE1AF78).withValues(alpha: 0.8) : const Color(0xFFD4A373);
+      // 默认：清爽水蓝/高级海蓝灰，匹配 AppColors
+      final themeColors = AppColorsExtension.current(themeId: themeId, isNight: isNight);
+      color = isNight ? const Color(0xFF81D4FA) : themeColors.textSecondary;
     }
 
     // 边框颜色与当前背景色一致，营造出“切断”时间轴线的现代视觉效果
@@ -885,6 +886,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
   Widget _buildDiaryDetailCard(DiaryEntry entry, bool isNight, String fontFamily, {required bool isFirst, required bool isLast}) {
     final themeId = UserState().selectedIslandThemeId.value;
+    final themeColors = AppColorsExtension.current(themeId: themeId, isNight: isNight);
     final bool isCottonCandy = themeId == 'cotton_candy';
 
     final Color mainTextColor = isNight
@@ -941,8 +943,8 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                     fontSize: 13.5,
                     fontWeight: FontWeight.bold,
                     color: isNight
-                        ? const Color(0xFFE1AF78)
-                        : const Color(0xFF8B7763),
+                        ? const Color(0xFF81D4FA)
+                        : themeColors.textSecondary,
                     fontFamily: fontFamily,
                   ),
                 ),
@@ -956,10 +958,22 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                 ],
                 if (entry.isPinned) ...[
                   const SizedBox(width: 6),
-                  const Icon(
-                    Icons.push_pin_rounded,
-                    size: 13,
-                    color: Color(0xFFF9A826),
+                  Container(
+                    padding: const EdgeInsets.all(3.5),
+                    decoration: BoxDecoration(
+                      color: isNight
+                          ? const Color(0xFFFF7043).withValues(alpha: 0.22)
+                          : const Color(0xFFFF7043).withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Transform.rotate(
+                      angle: 0.35,
+                      child: Icon(
+                        Icons.push_pin_rounded,
+                        size: 13.5,
+                        color: isNight ? const Color(0xFFFF8A65) : const Color(0xFFFF5722),
+                      ),
+                    ),
                   ),
                 ],
                 const Spacer(),
@@ -967,8 +981,9 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: isNight ? const Color(0xFF2C323A) : const Color(0xFFF6F7F9),
-                  elevation: 6,
+                  color: isNight ? const Color(0xFF1E293B) : Colors.white,
+                  elevation: 8,
+                  shadowColor: Colors.black.withValues(alpha: isNight ? 0.45 : 0.15),
                   offset: const Offset(0, 24),
                   child: Container(
                     padding: const EdgeInsets.only(left: 12, right: 4, top: 2, bottom: 2),

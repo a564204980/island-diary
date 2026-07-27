@@ -14,7 +14,7 @@ import 'package:island_diary/features/record/presentation/widgets/diary_masonry_
 import 'package:island_diary/features/record/presentation/widgets/diary_masonry_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_featured_card.dart';
 import 'package:island_diary/features/record/presentation/widgets/diary_history_overlay.dart';
-import 'package:island_diary/features/record/presentation/widgets/diary_history_card.dart';
+
 import 'package:island_diary/shared/widgets/multi_value_listenable_builder.dart';
 import 'package:island_diary/shared/widgets/island_page_background.dart';
 import 'package:island_diary/shared/widgets/diary_entry/components/diary_date_picker_sheet.dart';
@@ -89,7 +89,6 @@ class _RecordPageState extends State<RecordPage> {
         final int layoutIndex = values[1] as int;
 
         final bool isCalendar = layoutIndex == DiaryLayoutMode.calendar.index;
-        final bool isTimeline = layoutIndex == DiaryLayoutMode.timeline.index;
         final bool isNight = _isNight;
 
         return Scaffold(
@@ -185,23 +184,19 @@ class _RecordPageState extends State<RecordPage> {
                                               
                                               if (exactMatch && targetIndex != -1 && _scrollController.hasClients) {
                                                 double targetOffset = 0;
-                                                if (isTimeline) {
-                                                  targetOffset = targetIndex * 230.0;
-                                                } else {
-                                                  final bool showFeatured = filteredForScroll.isNotEmpty && filteredForScroll.first.blocks.any((b) => b['type'] == 'image');
-                                                  final int crossAxisCount = MediaQuery.of(pageContext).size.width > 800 ? 3 : 2;
-                                                  
-                                                  if (showFeatured) {
-                                                    if (targetIndex == 0) {
-                                                      targetOffset = 0;
-                                                    } else {
-                                                      int row = ((targetIndex - 1) / crossAxisCount).floor();
-                                                      targetOffset = 260.0 + row * 220.0;
-                                                    }
+                                                final bool showFeatured = filteredForScroll.isNotEmpty && filteredForScroll.first.blocks.any((b) => b['type'] == 'image');
+                                                final int crossAxisCount = MediaQuery.of(pageContext).size.width > 800 ? 3 : 2;
+                                                
+                                                if (showFeatured) {
+                                                  if (targetIndex == 0) {
+                                                    targetOffset = 0;
                                                   } else {
-                                                    int row = (targetIndex / crossAxisCount).floor();
-                                                    targetOffset = row * 220.0;
+                                                    int row = ((targetIndex - 1) / crossAxisCount).floor();
+                                                    targetOffset = 260.0 + row * 220.0;
                                                   }
+                                                } else {
+                                                  int row = (targetIndex / crossAxisCount).floor();
+                                                  targetOffset = row * 220.0;
                                                 }
                                                 
                                                 final double currentOffset = _scrollController.offset;
@@ -301,7 +296,7 @@ class _RecordPageState extends State<RecordPage> {
                                         _selectedDate = date;
                                         _headerDate.value = date;
                                         _setLayoutMode(
-                                          DiaryLayoutMode.timeline,
+                                          DiaryLayoutMode.masonry,
                                         );
                                       });
                                        if (exactMatch && targetIndex != -1) {
@@ -413,55 +408,7 @@ class _RecordPageState extends State<RecordPage> {
                                             (b) => b['type'] == 'image',
                                           );
 
-                                      Widget listContent;
-                                      if (isTimeline) {
-                                        listContent = NotificationListener<ScrollNotification>(
-                                          onNotification: (notification) {
-                                            if (filtered.isEmpty) return false;
-                                            final double offset = _scrollController.offset;
-                                            int index = (offset / 230).floor();
-                                            if (index >= filtered.length) {
-                                              index = filtered.length - 1;
-                                            }
-                                            if (index < 0) {
-                                              index = 0;
-                                            }
-                                            final targetDate = filtered[index].dateTime;
-                                            if (_headerDate.value.year != targetDate.year ||
-                                                _headerDate.value.month != targetDate.month ||
-                                                _headerDate.value.day != targetDate.day) {
-                                              _headerDate.value = targetDate;
-                                            }
-                                            return false;
-                                          },
-                                          child: ListView.builder(
-                                            key: const ValueKey('timeline_list'),
-                                            controller: _scrollController,
-                                            padding: const EdgeInsets.only(top: 16, bottom: 120),
-                                            itemCount: filtered.length,
-                                            itemBuilder: (context, index) {
-                                              return Center(
-                                                child: ConstrainedBox(
-                                                  constraints: const BoxConstraints(maxWidth: 800),
-                                                  child: DiaryHistoryCard(
-                                                    entry: filtered[index],
-                                                    index: index,
-                                                    isNight: isNight,
-                                                    showDate: index == 0 ||
-                                                        filtered[index].dateTime.day !=
-                                                            filtered[index - 1].dateTime.day ||
-                                                        filtered[index].dateTime.month !=
-                                                            filtered[index - 1].dateTime.month,
-                                                    isFirst: index == 0,
-                                                    isLast: index == filtered.length - 1,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        );
-                                      } else {
-                                        listContent = NotificationListener<ScrollNotification>(
+                                      final Widget listContent = NotificationListener<ScrollNotification>(
                                           key: const ValueKey('masonry_list'),
                                           onNotification: (notification) {
                                             if (filtered.isEmpty) return false;
@@ -542,7 +489,6 @@ class _RecordPageState extends State<RecordPage> {
                                             },
                                           ),
                                         );
-                                      }
 
                                       return RepaintBoundary(
                                         key: ValueKey('list_shader_$layoutIndex'),
