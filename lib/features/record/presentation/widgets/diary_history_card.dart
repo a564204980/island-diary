@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 // Analysis Flush: 强制刷新库摘要以解决 Bad state 错误
 import 'package:flutter_animate/flutter_animate.dart';
@@ -127,99 +128,80 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
     );
 
     return Stack(
-          children: [
-            // 贯穿全高的轴线 (处于底层) - 拆分为两段，并避开圆点区域
-            // 上半段：从顶部到新圆点顶缘 (3px)
-            if (!widget.isFirst)
-              Positioned(
-                left: 76,
-                top: 0,
-                height: 3,
-                child: _buildTimelineLine(isTop: true),
-              ),
-            // 下半段：从新圆点底缘 (3px padding + 16px 直径 = 19px) 向下延伸
-            if (!widget.isLast)
-              Positioned(
-                left: 76,
-                top: 19,
-                bottom: 0,
-                child: _buildTimelineLine(isTop: false),
-              ),
+      children: [
+        // 贯穿全高的轴线 (处于底层，对齐中心 x = 12)
+        if (!widget.isFirst)
+          Positioned(
+            left: 10.5,
+            top: 0,
+            height: 32,
+            child: _buildTimelineLine(isTop: true),
+          ),
+        if (!widget.isLast)
+          Positioned(
+            left: 10.5,
+            top: 46,
+            bottom: 0,
+            child: _buildTimelineLine(isTop: false),
+          ),
 
-            // 顶层内容
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => DiaryDetailPage(
-                      entry: widget.entry,
-                      isNight: widget.isNight,
-                    ),
-                  ),
-                );
-              },
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. 左侧：时刻 (字号加大)
-                    Container(
-                      width: 60,
-                      padding: const EdgeInsets.only(top: 6), // 稍微留白，更精致
-                      alignment: Alignment.topRight,
-                      child: RichText(
-                        textAlign: TextAlign.right,
-                        text: TextSpan(
-                          style: TextStyle(
-                            fontFamily: 'LXGWWenKai',
-                            fontWeight: FontWeight.w700,
-                          ),
-                          children: [
-                            if (widget.showDate) ...[
-                              TextSpan(
-                                text: "$dateStr\n",
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: widget.isNight
-                                      ? const Color(0xFFE1AF78).withValues(alpha: 0.8)
-                                      : const Color(0xFF8B7763),
-                                ),
-                              ),
-                            ],
-                            TextSpan(
-                              text: timeStr,
-                              style: TextStyle(
-                                fontSize: widget.showDate ? 14 : 15,
-                                color: widget.isNight
-                                    ? Colors.white70
-                                    : const Color(0xFF8B7763).withValues(alpha: 0.7),
-                                fontWeight: widget.showDate ? FontWeight.w500 : FontWeight.w700,
-                              ),
-                            ),
-                          ],
+        // 顶层内容
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DiaryDetailPage(
+                  entry: widget.entry,
+                  isNight: widget.isNight,
+                ),
+              ),
+            );
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. 节点正上方的时间戳标头 (带有醒目的时钟图标与精致文字)
+                Padding(
+                  padding: const EdgeInsets.only(left: 2, bottom: 6),
+                  child: Row(
+                    children: [
+                      Text(
+                        widget.showDate ? "$dateStr  $timeStr" : timeStr,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'LXGWWenKai',
+                          color: widget.isNight
+                              ? const Color(0xFFE1AF78)
+                              : const Color(0xFF8B7763),
                         ),
                       ),
-                    ),
-                    if (widget.entry.imageLayoutStyle == 'chunshan')
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4, top: 6),
-                        child: Icon(
+                      if (widget.entry.imageLayoutStyle == 'chunshan') ...[
+                        const SizedBox(width: 6),
+                        const Icon(
                           Icons.eco_rounded,
                           size: 12,
-                          color: const Color(0xFF66BB6A),
+                          color: Color(0xFF66BB6A),
                         ),
-                      ),
-                    const SizedBox(width: 6),
-                    // 2. 中间：书脊装订轴
+                      ],
+                    ],
+                  ),
+                ),
+
+                // 2. 时间轴节点与内容卡片 Row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 左侧同心圆节点 (宽度 24px)
                     SizedBox(
                       width: 24,
                       child: Column(
                         children: [
-                          const SizedBox(height: 3), // 对齐时刻 (同心圆直径 16)
-                          // 同心圆装订点
+                          const SizedBox(height: 12),
                           Container(
                             width: 16,
                             height: 16,
@@ -228,7 +210,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: widget.isNight
-                                    ? const Color(0xFFE1AF78).withValues(alpha: 0.8)
+                                    ? const Color(0xFFE1AF78).withValues(alpha: 0.9)
                                     : const Color(0xFFD4A373),
                                 width: 1.5,
                               ),
@@ -238,7 +220,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                               height: 8,
                               decoration: BoxDecoration(
                                 color: widget.isNight
-                                    ? const Color(0xFFE1AF78).withValues(alpha: 0.8)
+                                    ? const Color(0xFFE1AF78).withValues(alpha: 0.9)
                                     : const Color(0xFFD4A373),
                                 shape: BoxShape.circle,
                               ),
@@ -247,255 +229,266 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10), // 缩减间距，让卡片更靠近时间轴
+                    const SizedBox(width: 8),
+
                     // 右侧内容卡片
                     Expanded(
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 24, right: 16),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: widget.isNight
-                              ? const Color(0xFF212831)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: widget.isNight
-                                  ? Colors.white.withValues(alpha: 0.05)
-                                  : Colors.black.withValues(alpha: 0.03),
-                            ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 
-                                widget.isNight ? 0.18 : 0.055,
-                              ),
-                              blurRadius: 12,
-                              spreadRadius: -2,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                          image: DecorationImage(
-                            image: AssetImage(bgAsset),
-                            fit: BoxFit.cover,
-                            opacity: widget.isNight ? 0.40 : 0.82,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildMoodBadge(
-                                    widget.entry.moodIndex,
-                                    widget.entry.intensity,
-                                    isNight: widget.isNight,
-                                    tag: widget.entry.tag,
-                                  ),
+                        margin: const EdgeInsets.only(right: 16),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              decoration: BoxDecoration(
+                                color: widget.isNight
+                                    ? Colors.black.withValues(alpha: 0.18)
+                                    : Colors.white.withValues(alpha: 0.55),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: widget.isNight
+                                      ? Colors.white.withValues(alpha: 0.12)
+                                      : Colors.white.withValues(alpha: 0.6),
+                                  width: 0.8,
                                 ),
-                                if (widget.onShare != null)
-                                  GestureDetector(
-                                    onTap: widget.onShare,
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        left: 8,
-                                        bottom: 8,
-                                      ),
-                                      child: Icon(
-                                        Icons.ios_share_rounded,
-                                        size: 18,
-                                        color: widget.isNight
-                                            ? Colors.white24
-                                            : Colors.black.withValues(alpha: 0.15),
-                                      ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 
+                                      widget.isNight ? 0.12 : 0.04,
                                     ),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
                                   ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Builder(
-                              builder: (context) {
-                                final screenWidth = MediaQuery.of(
-                                  context,
-                                ).size.width;
-                                final estimateWidth = screenWidth - 165;
-
-                                final filteredContent =
-                                    DiaryUtils.getFilteredContent(
-                                      widget.entry.content,
-                                    );
-                                final richSpans = _buildRichTextSpans(
-                                  textStyle,
-                                  filteredContent: filteredContent,
-                                );
-                                final displaySpan = TextSpan(
-                                  children: richSpans,
-                                );
-
-                                final layoutSpan = TextSpan(
-                                  text: filteredContent,
-                                  style: textStyle,
-                                );
-
-                                final tp =
-                                    TextPainter(
-                                      text: layoutSpan,
-                                      maxLines: 2,
-                                      textDirection: TextDirection.ltr,
-                                    )..layout(
-                                      maxWidth: estimateWidth > 0
-                                          ? estimateWidth
-                                          : 200,
-                                    );
-
-                                final bool textOverflow = tp.didExceedMaxLines;
-                                final bool imagesOverflow = !widget.entry.isImageGrid && widget.entry.blocks.where((b) => b['type'] == 'image').length > 4;
-                                final bool hasOverflow = textOverflow || imagesOverflow;
-
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    AnimatedSize(
-                                      duration: const Duration(milliseconds: 250),
-                                      curve: Curves.easeInOut,
-                                      alignment: Alignment.topLeft,
-                                      child: RichText(
-                                        maxLines: (hasOverflow && _isExpanded) ? null : 2,
-                                        overflow: (hasOverflow && _isExpanded)
-                                            ? TextOverflow.visible
-                                            : TextOverflow.clip,
-                                        text: displaySpan,
+                                ],
+                                image: DecorationImage(
+                                  image: AssetImage(bgAsset),
+                                  fit: BoxFit.cover,
+                                  opacity: widget.isNight ? 0.25 : 0.65,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: _buildMoodBadge(
+                                          widget.entry.moodIndex,
+                                          widget.entry.intensity,
+                                          isNight: widget.isNight,
+                                          tag: widget.entry.tag,
+                                        ),
                                       ),
-                                    ),
-                                    if (hasOverflow) ...[
-                                      const SizedBox(height: 8),
-                                      Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              _isExpanded = !_isExpanded;
-                                            });
-                                          },
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                _isExpanded ? "收起" : "展开全文",
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: widget.isNight
-                                                      ? const Color(
-                                                          0xFFD4A373,
-                                                        ).withValues(alpha: 0.8)
-                                                      : const Color(0xFFD4A373),
-                                                  fontWeight: FontWeight.bold,
-                                                  fontFamily: 'LXGWWenKai',
-                                                ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              AnimatedRotation(
-                                                turns: _isExpanded ? 0.5 : 0.0,
-                                                duration: const Duration(milliseconds: 200),
-                                                child: Icon(
-                                                  Icons.keyboard_arrow_down,
-                                                  size: 16,
-                                                  color: widget.isNight
-                                                      ? const Color(
-                                                          0xFFD4A373,
-                                                        ).withValues(alpha: 0.8)
-                                                      : const Color(0xFFD4A373),
-                                                ),
-                                              ),
-                                            ],
+                                      if (widget.onShare != null)
+                                        GestureDetector(
+                                          onTap: widget.onShare,
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                              left: 8,
+                                              bottom: 8,
+                                            ),
+                                            child: Icon(
+                                              Icons.ios_share_rounded,
+                                              size: 18,
+                                              color: widget.isNight
+                                                  ? Colors.white24
+                                                  : Colors.black.withValues(alpha: 0.15),
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ],
-                                );
-                              },
-                            ),
-                            _buildPhotoGrid(context),
-                            const SizedBox(height: 12),
-                            // 底部信息行：日期+时刻 (左) & 回复数 (右)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Builder(
-                                  builder: (context) {
-                                    final dt = widget.entry.dateTime;
-                                    final weekDays = [
-                                      "星期一",
-                                      "星期二",
-                                      "星期三",
-                                      "星期四",
-                                      "星期五",
-                                      "星期六",
-                                      "星期日",
-                                    ];
-                                    final weekDay = weekDays[dt.weekday - 1];
-                                    final m = dt.month.toString().padLeft(
-                                      2,
-                                      '0',
-                                    );
-                                    final d = dt.day.toString().padLeft(2, '0');
-                                    final dateStr =
-                                        "${dt.year}/$m/$d $weekDay ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
-                                    return Text(
-                                      dateStr,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: widget.isNight
-                                            ? Colors.white24
-                                            : Colors.black26,
-                                        fontFamily: 'LXGWWenKai',
-                                      ),
-                                    );
-                                  },
-                                ),
-                                if (widget.entry.replies.isNotEmpty)
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.chat_bubble_outline_rounded,
-                                        size: 14,
-                                        color: widget.isNight
-                                            ? Colors.white24
-                                            : Colors.black26,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        widget.entry.replies.length.toString(),
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: widget.isNight
-                                              ? Colors.white24
-                                              : Colors.black26,
-                                          fontFamily: 'LXGWWenKai',
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
                                     ],
                                   ),
-                              ],
+                                  const SizedBox(height: 12),
+                                  Builder(
+                                    builder: (context) {
+                                      final screenWidth = MediaQuery.of(
+                                        context,
+                                      ).size.width;
+                                      final estimateWidth = screenWidth - 165;
+
+                                      final filteredContent =
+                                          DiaryUtils.getFilteredContent(
+                                            widget.entry.content,
+                                          );
+                                      final richSpans = _buildRichTextSpans(
+                                        textStyle,
+                                        filteredContent: filteredContent,
+                                      );
+                                      final displaySpan = TextSpan(
+                                        children: richSpans,
+                                      );
+
+                                      final layoutSpan = TextSpan(
+                                        text: filteredContent,
+                                        style: textStyle,
+                                      );
+
+                                      final tp =
+                                          TextPainter(
+                                            text: layoutSpan,
+                                            maxLines: 2,
+                                            textDirection: TextDirection.ltr,
+                                          )..layout(
+                                            maxWidth: estimateWidth > 0
+                                                ? estimateWidth
+                                                : 200,
+                                          );
+
+                                      final bool textOverflow = tp.didExceedMaxLines;
+                                      final bool imagesOverflow = !widget.entry.isImageGrid && widget.entry.blocks.where((b) => b['type'] == 'image').length > 4;
+                                      final bool hasOverflow = textOverflow || imagesOverflow;
+
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          AnimatedSize(
+                                            duration: const Duration(milliseconds: 250),
+                                            curve: Curves.easeInOut,
+                                            alignment: Alignment.topLeft,
+                                            child: RichText(
+                                              maxLines: (hasOverflow && _isExpanded) ? null : 2,
+                                              overflow: (hasOverflow && _isExpanded)
+                                                  ? TextOverflow.visible
+                                                  : TextOverflow.clip,
+                                              text: displaySpan,
+                                            ),
+                                          ),
+                                          if (hasOverflow) ...[
+                                            const SizedBox(height: 8),
+                                            Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    _isExpanded = !_isExpanded;
+                                                  });
+                                                },
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      _isExpanded ? "收起" : "展开全文",
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        color: widget.isNight
+                                                            ? const Color(
+                                                                0xFFD4A373,
+                                                              ).withValues(alpha: 0.8)
+                                                            : const Color(0xFFD4A373),
+                                                        fontWeight: FontWeight.bold,
+                                                        fontFamily: 'LXGWWenKai',
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    AnimatedRotation(
+                                                      turns: _isExpanded ? 0.5 : 0.0,
+                                                      duration: const Duration(milliseconds: 200),
+                                                      child: Icon(
+                                                        Icons.keyboard_arrow_down,
+                                                        size: 16,
+                                                        color: widget.isNight
+                                                            ? const Color(
+                                                                0xFFD4A373,
+                                                              ).withValues(alpha: 0.8)
+                                                            : const Color(0xFFD4A373),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                  _buildPhotoGrid(context),
+                                  const SizedBox(height: 12),
+                                  // 底部信息行：日期+时刻 (左) & 回复数 (右)
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Builder(
+                                        builder: (context) {
+                                          final dt = widget.entry.dateTime;
+                                          final weekDays = [
+                                            "星期一",
+                                            "星期二",
+                                            "星期三",
+                                            "星期四",
+                                            "星期五",
+                                            "星期六",
+                                            "星期日",
+                                          ];
+                                          final weekDay = weekDays[dt.weekday - 1];
+                                          final m = dt.month.toString().padLeft(
+                                            2,
+                                            '0',
+                                          );
+                                          final d = dt.day.toString().padLeft(2, '0');
+                                          final dateStr =
+                                              "${dt.year}/$m/$d $weekDay ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+                                          return Text(
+                                            dateStr,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: widget.isNight
+                                                  ? Colors.white24
+                                                  : Colors.black26,
+                                              fontFamily: 'LXGWWenKai',
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      if (widget.entry.replies.isNotEmpty)
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.chat_bubble_outline_rounded,
+                                              size: 14,
+                                              color: widget.isNight
+                                                  ? Colors.white24
+                                                  : Colors.black26,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              widget.entry.replies.length.toString(),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: widget.isNight
+                                                    ? Colors.white24
+                                                    : Colors.black26,
+                                                fontFamily: 'LXGWWenKai',
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                    ],
+                                  ),
+                                  // _buildFooterInfo 现在已经不再需要，因为天气和地点已作为标签展示
+                                ],
+                              ),
                             ),
-                            // _buildFooterInfo 现在已经不再需要，因为天气和地点已作为标签展示
-                          ],
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
-          ],
-        )
-        .animate()
-        .fadeIn(delay: (widget.index * 60).ms, duration: 350.ms)
-        .moveX(begin: 12, end: 0);
+          ),
+        ),
+      ],
+    )
+    .animate()
+    .fadeIn(delay: (widget.index * 60).ms, duration: 350.ms)
+    .moveX(begin: 12, end: 0);
   }
 
   Widget _buildPhotoGrid(BuildContext context) {
@@ -612,27 +605,46 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
 
     final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 
+    Widget buildGlassPill(Widget child) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(100),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+            decoration: BoxDecoration(
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.white.withValues(alpha: 0.42),
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(
+                color: isNight
+                    ? Colors.white.withValues(alpha: 0.22)
+                    : Colors.white.withValues(alpha: 0.55),
+                width: 0.8,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1.5),
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        ),
+      );
+    }
+
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         // 1. 心情标签 (表情图片 + 心情文字)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: isNight
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(100),
-            border: Border.all(
-              color: isNight
-                  ? Colors.white.withValues(alpha: 0.15)
-                  : Colors.black.withValues(alpha: 0.08),
-              width: 0.8,
-            ),
-          ),
-          child: Row(
+        buildGlassPill(
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               hasCustomIcon
@@ -643,7 +655,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                       errorBuilder: (c, e, s) => Icon(
                         Icons.mood,
                         size: 14,
-                        color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
+                        color: isNight ? Colors.white70 : const Color(0xFF5C5C5C),
                       ),
                     )
                   : Image.asset(
@@ -653,7 +665,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                       errorBuilder: (c, e, s) => Icon(
                         Icons.mood,
                         size: 14,
-                        color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
+                        color: isNight ? Colors.white70 : const Color(0xFF5C5C5C),
                       ),
                     ),
               const SizedBox(width: 4),
@@ -662,7 +674,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                  color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF4A3E37),
                   fontFamily: 'LXGWWenKai',
                 ),
               ),
@@ -672,26 +684,13 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
 
         // 3. 天气标签 (如果有)
         if (widget.entry.weather != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isNight
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(
-                color: isNight
-                    ? Colors.white.withValues(alpha: 0.15)
-                    : Colors.black.withValues(alpha: 0.08),
-                width: 0.8,
-              ),
-            ),
-            child: Text(
+          buildGlassPill(
+            Text(
               "${widget.entry.weather} ${widget.entry.temp ?? ''}",
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                color: isNight ? Colors.white.withValues(alpha: 0.85) : const Color(0xFF4A3E37),
                 fontFamily: 'LXGWWenKai',
               ),
             ),
@@ -699,27 +698,14 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
 
         // 4. 地点标签 (如果有)
         if (widget.entry.location != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isNight
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(
-                color: isNight
-                    ? Colors.white.withValues(alpha: 0.15)
-                    : Colors.black.withValues(alpha: 0.08),
-                width: 0.8,
-              ),
-            ),
-            child: Row(
+          buildGlassPill(
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   Icons.location_on_outlined,
-                  size: 10,
-                  color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
+                  size: 11,
+                  color: isNight ? Colors.white70 : const Color(0xFF4A3E37),
                 ),
                 const SizedBox(width: 2),
                 ConstrainedBox(
@@ -731,7 +717,7 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                      color: isNight ? Colors.white.withValues(alpha: 0.85) : const Color(0xFF4A3E37),
                       fontFamily: 'LXGWWenKai',
                     ),
                   ),
@@ -741,28 +727,15 @@ class _DiaryHistoryCardState extends State<DiaryHistoryCard> {
           ),
 
         // 5. 话题标签 (如果有)
-        ...parsed.tags.map((singleTag) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: isNight
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(
-                  color: isNight
-                      ? Colors.white.withValues(alpha: 0.15)
-                      : Colors.black.withValues(alpha: 0.08),
-                  width: 0.8,
-                ),
-              ),
-              child: Text(
+        ...parsed.tags.map((singleTag) => buildGlassPill(
+              Text(
                 '#$singleTag',
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                  color: isNight
+                      ? Colors.white.withValues(alpha: 0.85)
+                      : const Color(0xFF4A3E37),
                   fontFamily: 'LXGWWenKai',
                 ),
               ),

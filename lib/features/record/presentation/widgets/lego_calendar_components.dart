@@ -79,6 +79,9 @@ class LegoBorderPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (borderWidth <= 0 || borderColor == Colors.transparent || borderColor.a == 0) {
+      return;
+    }
     final paint = Paint()
       ..color = borderColor
       ..style = PaintingStyle.stroke

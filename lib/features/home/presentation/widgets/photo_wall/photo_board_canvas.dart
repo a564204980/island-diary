@@ -75,16 +75,23 @@ class PhotoBoardCanvas extends StatefulWidget {
 class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
   String? _selectedPhotoId;
   int? _draggingTreemapIndex;
-  Offset? _dragStartPos;
   double? _rotateStartTouchAngle;
   double? _rotateStartCardAngle;
+  Offset? _panStartGlobalPos;
+  Offset? _panStartCardPos;
   final List<PhotoDissolveData> _activeDissolves = [];
   bool _isAnimationDone = false;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 900), () {
+    _startAnimationTimer();
+  }
+
+  void _startAnimationTimer() {
+    _isAnimationDone = false;
+    final delayMs = widget.photoIds.length * 130 + 1000;
+    Future.delayed(Duration(milliseconds: delayMs), () {
       if (mounted) {
         setState(() => _isAnimationDone = true);
       }
@@ -110,6 +117,9 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
       setState(() {
         _selectedPhotoId = null;
       });
+    }
+    if (oldWidget.layoutMode != widget.layoutMode || oldWidget.photoIds.length != widget.photoIds.length) {
+      _startAnimationTimer();
     }
   }
 
@@ -629,24 +639,33 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
               ).animate(
                 key: ValueKey('anim_treemap_card_${leaf.index}'),
                 target: _isAnimationDone ? 1.0 : null,
-              ).slideX(
-                begin: (leaf.index % 2 == 0 ? -6.0 : 6.0),
-                end: 0,
-                duration: 480.ms,
-                curve: Curves.easeOutCubic,
-                delay: (leaf.index * 140).ms,
-              ).scale(
-                begin: const Offset(1.18, 1.18),
-                end: const Offset(1.0, 1.0),
-                duration: 480.ms,
-                curve: Curves.easeOutCubic,
-                delay: (leaf.index * 140).ms,
-              ).rotate(
-                begin: (leaf.index % 2 == 0 ? -0.12 : 0.12),
-                end: 0,
-                duration: 480.ms,
-                curve: Curves.easeOutCubic,
-                delay: (leaf.index * 140).ms,
+              ).custom(
+                duration: 850.ms,
+                delay: (leaf.index * 130).ms,
+                curve: Curves.easeOutBack,
+                builder: (context, value, child) {
+                  final double rotateY = (1.0 - value) * math.pi * 4.0;
+                  final double rotateX = (1.0 - value) * (leaf.index % 2 == 0 ? 0.35 : -0.35);
+                  final double scale = 1.0 + (1.0 - value) * 0.40;
+                  final double opacity = value.clamp(0.0, 1.0);
+
+                  final matrix = Matrix4.identity()
+                    ..setEntry(3, 2, 0.0018)
+                    ..rotateY(rotateY)
+                    ..rotateX(rotateX);
+
+                  return Transform(
+                    transform: matrix,
+                    alignment: Alignment.center,
+                    child: Transform.scale(
+                      scale: scale,
+                      child: Opacity(
+                        opacity: opacity,
+                        child: child,
+                      ),
+                    ),
+                  );
+                },
               ),
             );
           }).toList(),
@@ -732,15 +751,18 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
                               onLongPressStart: (details) {
                                 HapticFeedback.heavyImpact();
                                 _selectPhoto(id);
-                                _dragStartPos = widget.photoCustomPositions[id] ?? Offset(left, top);
+                                _panStartGlobalPos = details.globalPosition;
+                                _panStartCardPos = widget.photoCustomPositions[id] ?? Offset(left, top);
                               },
                               onLongPressMoveUpdate: (details) {
-                                if (_selectedPhotoId == id) {
-                                  final basePos = _dragStartPos ?? Offset(left, top);
-                                  final double newX = (basePos.dx + details.offsetFromOrigin.dx)
+                                if (_selectedPhotoId == id && _panStartGlobalPos != null && _panStartCardPos != null) {
+                                  final double dx = details.globalPosition.dx - _panStartGlobalPos!.dx;
+                                  final double dy = details.globalPosition.dy - _panStartGlobalPos!.dy;
+
+                                  final double newX = (_panStartCardPos!.dx + dx)
                                       .clamp(14.0, math.max(14.0, boardWidth - scaledCardW - 14.0))
                                       .toDouble();
-                                  final double newY = (basePos.dy + details.offsetFromOrigin.dy)
+                                  final double newY = (_panStartCardPos!.dy + dy)
                                       .clamp(14.0, math.max(14.0, boardHeight - scaledCardH - 14.0))
                                       .toDouble();
 
@@ -750,26 +772,29 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
                                 }
                               },
                               onLongPressEnd: (_) {
-                                _dragStartPos = null;
+                                _panStartGlobalPos = null;
+                                _panStartCardPos = null;
                                 widget.onStateChanged();
                               },
                               onLongPressUp: () {
-                                _dragStartPos = null;
+                                _panStartGlobalPos = null;
+                                _panStartCardPos = null;
                                 widget.onStateChanged();
                               },
                               onPanStart: (details) {
                                 _selectPhoto(id);
-                                if (!widget.photoCustomPositions.containsKey(id)) {
-                                  widget.photoCustomPositions[id] = Offset(left, top);
-                                }
+                                _panStartGlobalPos = details.globalPosition;
+                                _panStartCardPos = widget.photoCustomPositions[id] ?? Offset(left, top);
                               },
                               onPanUpdate: (details) {
-                                if (_selectedPhotoId == id) {
-                                  final currentOffset = widget.photoCustomPositions[id] ?? Offset(left, top);
-                                  final double newX = (currentOffset.dx + details.delta.dx)
+                                if (_selectedPhotoId == id && _panStartGlobalPos != null && _panStartCardPos != null) {
+                                  final double dx = details.globalPosition.dx - _panStartGlobalPos!.dx;
+                                  final double dy = details.globalPosition.dy - _panStartGlobalPos!.dy;
+
+                                  final double newX = (_panStartCardPos!.dx + dx)
                                       .clamp(14.0, math.max(14.0, boardWidth - scaledCardW - 14.0))
                                       .toDouble();
-                                  final double newY = (currentOffset.dy + details.delta.dy)
+                                  final double newY = (_panStartCardPos!.dy + dy)
                                       .clamp(14.0, math.max(14.0, boardHeight - scaledCardH - 14.0))
                                       .toDouble();
 
@@ -779,6 +804,8 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
                                 }
                               },
                               onPanEnd: (_) {
+                                _panStartGlobalPos = null;
+                                _panStartCardPos = null;
                                 widget.onStateChanged();
                               },
                               child: AnimatedContainer(
@@ -931,24 +958,33 @@ class PhotoBoardCanvasState extends State<PhotoBoardCanvas> {
                 ).animate(
                   key: ValueKey('anim_card_$id'),
                   target: _isAnimationDone ? 1.0 : null,
-                ).slideX(
-                  begin: (index % 2 == 0 ? -6.0 : 6.0),
-                  end: 0,
-                  duration: 480.ms,
-                  curve: Curves.easeOutCubic,
-                  delay: (index * 140).ms,
-                ).scale(
-                  begin: const Offset(1.18, 1.18),
-                  end: const Offset(1.0, 1.0),
-                  duration: 480.ms,
-                  curve: Curves.easeOutCubic,
-                  delay: (index * 140).ms,
-                ).rotate(
-                  begin: (index % 2 == 0 ? -0.12 : 0.12),
-                  end: 0,
-                  duration: 480.ms,
-                  curve: Curves.easeOutCubic,
-                  delay: (index * 140).ms,
+                ).custom(
+                  duration: 850.ms,
+                  delay: (index * 130).ms,
+                  curve: Curves.easeOutBack,
+                  builder: (context, value, child) {
+                    final double rotateY = (1.0 - value) * math.pi * 4.0;
+                    final double rotateX = (1.0 - value) * (index % 2 == 0 ? 0.35 : -0.35);
+                    final double scale = 1.0 + (1.0 - value) * 0.40;
+                    final double opacity = value.clamp(0.0, 1.0);
+
+                    final matrix = Matrix4.identity()
+                      ..setEntry(3, 2, 0.0018)
+                      ..rotateY(rotateY)
+                      ..rotateX(rotateX);
+
+                    return Transform(
+                      transform: matrix,
+                      alignment: Alignment.center,
+                      child: Transform.scale(
+                        scale: scale,
+                        child: Opacity(
+                          opacity: opacity,
+                          child: child,
+                        ),
+                      ),
+                    );
+                  },
                 );
               }),
 

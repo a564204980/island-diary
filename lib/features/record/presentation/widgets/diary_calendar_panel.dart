@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -13,6 +14,7 @@ import 'package:island_diary/features/record/presentation/widgets/diary_search_p
 import 'package:island_diary/core/theme/app_colors.dart';
 import 'package:island_diary/core/plugins/plugin_manager.dart';
 import 'package:island_diary/core/plugins/island_plugin.dart';
+import 'package:island_diary/features/home/presentation/services/photo_wall_storage_service.dart';
 
 /// 日历网格面板：单月视图带记录列表版
 class DiaryCalendarPanel extends StatefulWidget {
@@ -42,7 +44,6 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
   String _searchQuery = '';
   int? _searchMoodIndex;
   bool _scrollStartedAtTop = false;
-  int _slideDirection = 1;
 
   @override
   void initState() {
@@ -97,21 +98,25 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                 : 'assets/images/note/note_bg1.png';
           }
           precacheImage(AssetImage(bgAsset), context);
+        }
 
-          // 预加载所有日记中的本地或网络照片，保证周视图左右滑动时秒开显示，零灰块零白屏
-          for (var entry in allDiaries) {
-            for (var block in entry.blocks) {
-              if (block['type'] == 'image' && block['path'] != null) {
-                final String path = block['path'];
-                if (path.startsWith('http') || path.startsWith('blob:')) {
-                  precacheImage(NetworkImage(path), context);
-                } else if (path.startsWith('assets/')) {
-                  precacheImage(AssetImage(path), context);
-                } else {
-                  final file = File(path);
-                  if (file.existsSync()) {
-                    precacheImage(FileImage(file), context);
-                  }
+        // 预加载所有日记中的本地或网络照片，保证日历与列表秒开显示，零灰块零闪烁
+        for (var entry in allDiaries) {
+          for (var block in entry.blocks) {
+            if (block['type'] == 'image' && block['path'] != null) {
+              String path = block['path'];
+              if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:')) {
+                precacheImage(NetworkImage(path), context);
+              } else if (path.startsWith('assets/')) {
+                precacheImage(AssetImage(path), context);
+              } else {
+                var file = File(path);
+                if (!file.existsSync()) {
+                  path = PhotoWallStorageService.toValidAbsolutePathSync(path);
+                  file = File(path);
+                }
+                if (file.existsSync()) {
+                  precacheImage(FileImage(file), context);
                 }
               }
             }
@@ -222,7 +227,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                   }
                 } else if (delta < -8) {
                   // 向上拖拽：折叠日历为单周
-                  if (!_isCollapsed && _selectedDay != null) {
+                  if (!_isCollapsed) {
                     setState(() {
                       _isCollapsed = true;
                       _collapsedWeekIndex = selectedWeekIndex;
@@ -234,245 +239,232 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                 }
               },
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                  // 1. 月份切换与功能按钮栏
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.chevron_left_rounded,
-                              size: 18,
-                              color: mainTextColor.withValues(alpha: 0.8),
-                            ),
-                            style: IconButton.styleFrom(
-                              backgroundColor: subTextColor.withValues(alpha: 0.1),
-                              shape: const CircleBorder(),
-                              padding: EdgeInsets.zero,
-                              minimumSize: const Size(30, 30),
-                              fixedSize: const Size(30, 30),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
-                                _selectedDay = null;
-                                _isCollapsed = false;
-                                _collapsedWeekIndex = null;
-                              });
-                            },
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            "${_focusedMonth.year}.${_focusedMonth.month.toString().padLeft(2, '0')}",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: fontFamily,
-                              color: mainTextColor,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          IconButton(
-                            icon: Icon(
-                              Icons.chevron_right_rounded,
-                              size: 18,
-                              color: mainTextColor.withValues(alpha: 0.8),
-                            ),
-                            style: IconButton.styleFrom(
-                              backgroundColor: subTextColor.withValues(alpha: 0.1),
-                              shape: const CircleBorder(),
-                              padding: EdgeInsets.zero,
-                              minimumSize: const Size(30, 30),
-                              fixedSize: const Size(30, 30),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
-                                _selectedDay = null;
-                                _isCollapsed = false;
-                                _collapsedWeekIndex = null;
-                              });
-                            },
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic,
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+                      decoration: BoxDecoration(
+                        color: widget.isNight
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: widget.isNight
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.white.withValues(alpha: 0.35),
+                          width: 0.8,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.isNight
+                                ? Colors.black.withValues(alpha: 0.08)
+                                : Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
-                      Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.search_rounded,
-                              size: 19,
-                              color: subTextColor,
-                            ),
-                            style: IconButton.styleFrom(
-                              backgroundColor: subTextColor.withValues(alpha: 0.1),
-                              shape: const CircleBorder(),
-                              padding: EdgeInsets.zero,
-                              minimumSize: const Size(32, 32),
-                              fixedSize: const Size(32, 32),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            onPressed: () {
-                              Widget? cachedPanel;
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                backgroundColor: Colors.transparent,
-                                builder: (context) {
-                                  cachedPanel ??= DiarySearchPanel(
-                                    isNight: widget.isNight,
-                                    onSearch: (query, moodIndex) {
-                                      setState(() {
-                                        _searchQuery = query;
-                                        _searchMoodIndex = moodIndex;
-                                        if (query.isNotEmpty || moodIndex != null) {
-                                          try {
-                                            final firstMatch = allDiaries.firstWhere((d) {
-                                              if (moodIndex != null && d.moodIndex != moodIndex) return false;
-                                              if (query.isNotEmpty) {
-                                                return d.content.contains(query) ||
-                                                       (d.title?.contains(query) ?? false) ||
-                                                       (d.tag?.contains(query) ?? false);
-                                              }
-                                              return true;
-                                            });
-                                            _selectedDay = firstMatch.dateTime.toLocal();
-                                            _focusedMonth = DateTime(_selectedDay!.year, _selectedDay!.month, 1);
-                                          } catch (_) {
-                                            _selectedDay = null;
-                                          }
-                                        } else {
-                                          final now = DateTime.now();
-                                          _selectedDay = DateTime(now.year, now.month, now.day);
-                                          _focusedMonth = DateTime(now.year, now.month, 1);
-                                        }
-                                      });
-                                    },
-                                    onClear: () {
-                                      setState(() {
-                                        _searchQuery = '';
-                                        _searchMoodIndex = null;
-                                      });
-                                    },
-                                  );
-                                  return cachedPanel!;
-                                },
-                              );
-                            },
-                          ),
-                          if (widget.onShareMonth != null && monthDiaries.isNotEmpty) ...[
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: Icon(
-                                  Icons.ios_share_rounded,
-                                  size: 18,
-                                  color: subTextColor,
+                        // 1. 月份切换与功能按钮栏
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.chevron_left_rounded,
+                                    size: 18,
+                                    color: mainTextColor.withValues(alpha: 0.8),
+                                  ),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: subTextColor.withValues(alpha: 0.1),
+                                    shape: const CircleBorder(),
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(30, 30),
+                                    fixedSize: const Size(30, 30),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
+                                      _selectedDay = null;
+                                      _isCollapsed = false;
+                                      _collapsedWeekIndex = null;
+                                    });
+                                  },
                                 ),
-                                style: IconButton.styleFrom(
-                                  backgroundColor: subTextColor.withValues(alpha: 0.1),
-                                  shape: const CircleBorder(),
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: const Size(32, 32),
-                                  fixedSize: const Size(32, 32),
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                onPressed: () => widget.onShareMonth!(_focusedMonth),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  const SizedBox(height: 12),
-                  // 2. 星期标头
-                  _buildWeekHeader(widget.isNight, fontFamily),
-                  const SizedBox(height: 12),
-                  // 3. 日历网格：始终用同一 Column 结构，折叠时仅靠高度动画隐藏非目标行
-                  // 这样 CalendarDayCell 永远不会被销毁，图片不会重新加载
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    // 折叠状态下支持左右滑动切换周行
-                    onHorizontalDragEnd: _isCollapsed ? (details) {
-                      if (details.primaryVelocity == null) return;
-                      if (details.primaryVelocity! < -120) {
-                        // 向左手势：下一周（从右向左划入，_slideDirection = 1）
-                        final nextIndex = ((_collapsedWeekIndex ?? activeWeekIndex) + 1).clamp(0, weeks.length - 1);
-                        if (nextIndex != (_collapsedWeekIndex ?? activeWeekIndex)) {
-                          setState(() {
-                            _slideDirection = 1;
-                            _collapsedWeekIndex = nextIndex;
-                          });
-                        }
-                      } else if (details.primaryVelocity! > 120) {
-                        // 向右手势：上一周（从左向右划入，_slideDirection = -1）
-                        final prevIndex = ((_collapsedWeekIndex ?? activeWeekIndex) - 1).clamp(0, weeks.length - 1);
-                        if (prevIndex != (_collapsedWeekIndex ?? activeWeekIndex)) {
-                          setState(() {
-                            _slideDirection = -1;
-                            _collapsedWeekIndex = prevIndex;
-                          });
-                        }
-                      }
-                    } : null,
-                    child: ClipRect(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeOutCubic,
-                        height: _isCollapsed ? 62 : weeks.length * 62.0,
-                        child: _isCollapsed
-                            ? AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 220),
-                                switchInCurve: Curves.fastOutSlowIn,
-                                switchOutCurve: Curves.fastOutSlowIn,
-                                transitionBuilder: (Widget child, Animation<double> animation) {
-                                  final isIncoming = child.key == ValueKey(activeWeekIndex);
-                                  final slideAnimation = Tween<Offset>(
-                                    begin: isIncoming
-                                        ? Offset(_slideDirection * 0.35, 0.0)
-                                        : Offset(-_slideDirection * 0.35, 0.0),
-                                    end: Offset.zero,
-                                  ).animate(animation);
-                                  final fadeAnimation = Tween<double>(
-                                    begin: isIncoming ? 0.2 : 1.0,
-                                    end: isIncoming ? 1.0 : 0.0,
-                                  ).animate(animation);
-
-                                  return SlideTransition(
-                                    position: slideAnimation,
-                                    child: FadeTransition(
-                                      opacity: fadeAnimation,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                                child: KeyedSubtree(
-                                  key: ValueKey(activeWeekIndex),
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 4, bottom: 6),
-                                    child: _buildWeekRow(
-                                      wIndex: activeWeekIndex,
-                                      week: weeks[activeWeekIndex],
-                                      month: month,
-                                      year: year,
-                                      allDiaries: allDiaries,
-                                    ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  "${_focusedMonth.year}.${_focusedMonth.month.toString().padLeft(2, '0')}",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: fontFamily,
+                                    color: mainTextColor,
                                   ),
                                 ),
-                              )
-                            : OverflowBox(
-                                alignment: Alignment.topCenter,
-                                minHeight: 0,
-                                maxHeight: double.infinity,
+                                const SizedBox(width: 12),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: 18,
+                                    color: mainTextColor.withValues(alpha: 0.8),
+                                  ),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: subTextColor.withValues(alpha: 0.1),
+                                    shape: const CircleBorder(),
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(30, 30),
+                                    fixedSize: const Size(30, 30),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
+                                      _selectedDay = null;
+                                      _isCollapsed = false;
+                                      _collapsedWeekIndex = null;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.search_rounded,
+                                    size: 19,
+                                    color: subTextColor,
+                                  ),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: subTextColor.withValues(alpha: 0.1),
+                                    shape: const CircleBorder(),
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(32, 32),
+                                    fixedSize: const Size(32, 32),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  onPressed: () {
+                                    Widget? cachedPanel;
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (context) {
+                                        cachedPanel ??= DiarySearchPanel(
+                                          isNight: widget.isNight,
+                                          onSearch: (query, moodIndex) {
+                                            setState(() {
+                                              _searchQuery = query;
+                                              _searchMoodIndex = moodIndex;
+                                              if (query.isNotEmpty || moodIndex != null) {
+                                                try {
+                                                  final firstMatch = allDiaries.firstWhere((d) {
+                                                    if (moodIndex != null && d.moodIndex != moodIndex) return false;
+                                                    if (query.isNotEmpty) {
+                                                      return d.content.contains(query) ||
+                                                             (d.title?.contains(query) ?? false) ||
+                                                             (d.tag?.contains(query) ?? false);
+                                                    }
+                                                    return true;
+                                                  });
+                                                  _selectedDay = firstMatch.dateTime.toLocal();
+                                                  _focusedMonth = DateTime(_selectedDay!.year, _selectedDay!.month, 1);
+                                                } catch (_) {
+                                                  _selectedDay = null;
+                                                }
+                                              } else {
+                                                final now = DateTime.now();
+                                                _selectedDay = DateTime(now.year, now.month, now.day);
+                                                _focusedMonth = DateTime(now.year, now.month, 1);
+                                              }
+                                            });
+                                          },
+                                          onClear: () {
+                                            setState(() {
+                                              _searchQuery = '';
+                                              _searchMoodIndex = null;
+                                            });
+                                          },
+                                        );
+                                        return cachedPanel!;
+                                      },
+                                    );
+                                  },
+                                ),
+                                if (widget.onShareMonth != null && monthDiaries.isNotEmpty) ...[
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: Icon(
+                                        Icons.ios_share_rounded,
+                                        size: 18,
+                                        color: subTextColor,
+                                      ),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: subTextColor.withValues(alpha: 0.1),
+                                        shape: const CircleBorder(),
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: const Size(32, 32),
+                                        fixedSize: const Size(32, 32),
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      onPressed: () => widget.onShareMonth!(_focusedMonth),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        const SizedBox(height: 12),
+                        // 2. 星期标头
+                        _buildWeekHeader(widget.isNight, fontFamily),
+                        const SizedBox(height: 12),
+                        // 3. 日历网格：始终用同一 Column 结构，折叠时仅靠高度动画隐藏非目标行
+                        // 这样 CalendarDayCell 永远不会被销毁，图片不会重新加载
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          // 折叠状态下支持左右滑动切换周行
+                          onHorizontalDragEnd: !_isCollapsed ? (details) {
+                            if (details.primaryVelocity == null) return;
+                            if (details.primaryVelocity! < -120) {
+                              // 向左手势：下一个月
+                              setState(() {
+                                _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
+                                _selectedDay = null;
+                              });
+                            } else if (details.primaryVelocity! > 120) {
+                              // 向右手势：上一个月
+                              setState(() {
+                                _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
+                                _selectedDay = null;
+                              });
+                            }
+                          } : null,
+                          child: ClipRect(
+                            child: AnimatedCrossFade(
+                              duration: const Duration(milliseconds: 250),
+                              crossFadeState: _isCollapsed
+                                  ? CrossFadeState.showSecond
+                                  : CrossFadeState.showFirst,
+                              firstCurve: Curves.easeOutCubic,
+                              secondCurve: Curves.easeOutCubic,
+                              sizeCurve: Curves.easeOutCubic,
+                              alignment: Alignment.topCenter,
+                              firstChild: SizedBox(
+                                key: ValueKey('month_${_focusedMonth.year}_${_focusedMonth.month}'),
+                                height: weeks.length * 62.0,
                                 child: Column(
-                                  key: const ValueKey('full_month'),
                                   mainAxisSize: MainAxisSize.min,
                                   children: List.generate(weeks.length, (wIndex) {
                                     return Padding(
@@ -488,12 +480,43 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                                   }),
                                 ),
                               ),
+                              secondChild: SizedBox(
+                                height: 62,
+                                child: PageView.builder(
+                                  key: ValueKey('week_pv_${_focusedMonth.year}_${_focusedMonth.month}_$selectedWeekIndex'),
+                                  controller: PageController(initialPage: activeWeekIndex),
+                                  onPageChanged: (index) {
+                                    setState(() {
+                                      _collapsedWeekIndex = index;
+                                    });
+                                  },
+                                  itemCount: weeks.length,
+                                  itemBuilder: (context, wIndex) {
+                                    return Align(
+                                      alignment: Alignment.topCenter,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 4, bottom: 6),
+                                        child: _buildWeekRow(
+                                          wIndex: wIndex,
+                                          week: weeks[wIndex],
+                                          month: month,
+                                          year: year,
+                                          allDiaries: allDiaries,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                       ),
                     ),
                   ),
-              ],
+                ),
               ),
-            ),
           ),
           Expanded(
             child: NotificationListener<ScrollNotification>(
@@ -503,9 +526,10 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                   _scrollStartedAtTop = notification.metrics.pixels <= 0;
                 } else if (notification is UserScrollNotification) {
                   if (notification.direction == ScrollDirection.reverse) {
-                    if (!_isCollapsed && _selectedDay != null) {
+                    if (!_isCollapsed) {
                       setState(() {
                         _isCollapsed = true;
+                        _collapsedWeekIndex = selectedWeekIndex;
                       });
                       // 使用 addPostFrameCallback 脱离当前 Notification 触发栈，彻底杜绝 StackOverflow 递归
                       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -718,27 +742,46 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
     final bool hasCustomIcon = parsed.customMoodIconPath != null && parsed.customMoodIconPath!.isNotEmpty;
 
+    Widget buildGlassPill(Widget child) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(100),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+            decoration: BoxDecoration(
+              color: isNight
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.white.withValues(alpha: 0.42),
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(
+                color: isNight
+                    ? Colors.white.withValues(alpha: 0.22)
+                    : Colors.white.withValues(alpha: 0.55),
+                width: 0.8,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1.5),
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        ),
+      );
+    }
+
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         // 1. 心情标签 (表情图片 + 心情文字)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: isNight
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(100),
-            border: Border.all(
-              color: isNight
-                  ? Colors.white.withValues(alpha: 0.15)
-                  : Colors.black.withValues(alpha: 0.08),
-              width: 0.8,
-            ),
-          ),
-          child: Row(
+        buildGlassPill(
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               hasCustomIcon
@@ -749,7 +792,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                       errorBuilder: (c, e, s) => Icon(
                         Icons.mood,
                         size: 14,
-                        color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
+                        color: isNight ? Colors.white70 : const Color(0xFF5C5C5C),
                       ),
                     )
                   : Image.asset(
@@ -759,7 +802,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                       errorBuilder: (c, e, s) => Icon(
                         Icons.mood,
                         size: 14,
-                        color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
+                        color: isNight ? Colors.white70 : const Color(0xFF5C5C5C),
                       ),
                     ),
               const SizedBox(width: 4),
@@ -768,7 +811,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                  color: isNight ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF4A3E37),
                   fontFamily: 'LXGWWenKai',
                 ),
               ),
@@ -778,26 +821,13 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
         // 3. 天气标签 (如果有)
         if (entry.weather != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isNight
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(
-                color: isNight
-                    ? Colors.white.withValues(alpha: 0.15)
-                    : Colors.black.withValues(alpha: 0.08),
-                width: 0.8,
-              ),
-            ),
-            child: Text(
+          buildGlassPill(
+            Text(
               "${entry.weather} ${entry.temp ?? ''}",
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                color: isNight ? Colors.white.withValues(alpha: 0.85) : const Color(0xFF4A3E37),
                 fontFamily: 'LXGWWenKai',
               ),
             ),
@@ -805,27 +835,14 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
 
         // 4. 地点标签 (如果有)
         if (entry.location != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isNight
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(
-                color: isNight
-                    ? Colors.white.withValues(alpha: 0.15)
-                    : Colors.black.withValues(alpha: 0.08),
-                width: 0.8,
-              ),
-            ),
-            child: Row(
+          buildGlassPill(
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   Icons.location_on_outlined,
-                  size: 10,
-                  color: isNight ? Colors.white54 : const Color(0xFF5C5C5C),
+                  size: 11,
+                  color: isNight ? Colors.white70 : const Color(0xFF4A3E37),
                 ),
                 const SizedBox(width: 2),
                 ConstrainedBox(
@@ -837,7 +854,7 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
+                      color: isNight ? Colors.white.withValues(alpha: 0.85) : const Color(0xFF4A3E37),
                       fontFamily: 'LXGWWenKai',
                     ),
                   ),
@@ -847,32 +864,21 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
           ),
 
         // 5. 话题标签 (如果有)
-        ...parsed.tags.map((singleTag) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
+        ...parsed.tags.map(
+          (singleTag) => buildGlassPill(
+            Text(
+              '#$singleTag',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
                 color: isNight
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(
-                  color: isNight
-                      ? Colors.white.withValues(alpha: 0.15)
-                      : Colors.black.withValues(alpha: 0.08),
-                  width: 0.8,
-                ),
+                    ? Colors.white.withValues(alpha: 0.85)
+                    : const Color(0xFF4A3E37),
+                fontFamily: 'LXGWWenKai',
               ),
-              child: Text(
-                '#$singleTag',
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: isNight ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF5C5C5C),
-                  fontFamily: 'LXGWWenKai',
-                ),
-              ),
-            )),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -921,147 +927,156 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
           ),
         );
       },
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 左侧时间轴
-            SizedBox(
-              width: 36,
-              child: Stack(
-                alignment: Alignment.topCenter,
-                children: [
-                  // 竖线
-                  Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: 1.5,
-                      color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.08),
-                      margin: EdgeInsets.only(
-                        top: isFirst ? 22 : 0,
-                        bottom: isLast ? 22 : 0,
-                      ),
-                    ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. 节点正上方的时间戳标头栏 (带有优雅时钟图标与精致排版)
+          Padding(
+            padding: const EdgeInsets.only(left: 6, bottom: 4),
+            child: Row(
+              children: [
+                Text(
+                  timeStr,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: isNight
+                        ? const Color(0xFFE1AF78)
+                        : const Color(0xFF8B7763),
+                    fontFamily: fontFamily,
                   ),
-                  // 时间轴节点（圆形背景 + 心情图标）
-                  Positioned(
-                    top: 14,
-                    child: _buildTimelineNode(isNight, themeId),
+                ),
+                if (entry.imageLayoutStyle == 'chunshan') ...[
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.eco_rounded,
+                    size: 13,
+                    color: Color(0xFF66BB6A),
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            // 右侧内容区
-            Expanded(
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                padding: const EdgeInsets.only(bottom: 16, right: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 时间 + 心情标签
-                    Row(
-                      children: [
-                        Text(
-                          timeStr,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: mainTextColor,
-                            fontFamily: fontFamily,
-                          ),
-                        ),
-                        if (entry.imageLayoutStyle == 'chunshan') ...[
-                          const SizedBox(width: 6),
-                          Icon(
-                            Icons.eco_rounded, // 代表春天的图标
-                            size: 14,
-                            color: const Color(0xFF66BB6A), // 清新的春绿色
-                          ),
-                        ],
-                        if (entry.isPinned) ...[
-                          const SizedBox(width: 6),
-                          Icon(
-                            Icons.push_pin_rounded,
-                            size: 14,
-                            color: const Color(0xFFF9A826), // 暖橙色作为置顶强调色
-                          ),
-                        ],
-                        const Spacer(),
-                        PopupMenuButton<String>(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          color: isNight ? const Color(0xFF2C323A) : const Color(0xFFF6F7F9),
-                          elevation: 6,
-                          offset: const Offset(0, 24),
-                          child: Container(
-                            padding: const EdgeInsets.only(left: 12, right: 4, top: 4, bottom: 4),
-                            color: Colors.transparent, // expand hit area slightly
-                            child: Icon(
-                              Icons.more_horiz_rounded,
-                              size: 16,
-                              color: subTextColor.withValues(alpha: 0.7),
-                            ),
-                          ),
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'pin',
-                              height: 44,
-                              child: Text(
-                                entry.isPinned ? '取消置顶' : '置顶',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: mainTextColor,
-                                  fontFamily: fontFamily,
-                                ),
-                              ),
-                            ),
-                            _CustomMenuDivider(dividerColor: subTextColor.withValues(alpha: 0.2)),
-                            PopupMenuItem(
-                              value: 'sort',
-                              height: 44,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '按时间的排序',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: mainTextColor,
-                                      fontFamily: fontFamily,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Icon(
-                                    _isSortDescending ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-                                    size: 16,
-                                    color: mainTextColor,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                          onSelected: (value) {
-                            if (value == 'pin') {
-                              UserState().toggleDiaryPin(entry.id);
-                            } else if (value == 'sort') {
-                              setState(() {
-                                _isSortDescending = !_isSortDescending;
-                              });
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('开发中：$value 功能'),
-                                  duration: const Duration(seconds: 1),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      ],
+                if (entry.isPinned) ...[
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.push_pin_rounded,
+                    size: 13,
+                    color: Color(0xFFF9A826),
+                  ),
+                ],
+                const Spacer(),
+                PopupMenuButton<String>(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  color: isNight ? const Color(0xFF2C323A) : const Color(0xFFF6F7F9),
+                  elevation: 6,
+                  offset: const Offset(0, 24),
+                  child: Container(
+                    padding: const EdgeInsets.only(left: 12, right: 4, top: 2, bottom: 2),
+                    color: Colors.transparent,
+                    child: Icon(
+                      Icons.more_horiz_rounded,
+                      size: 16,
+                      color: subTextColor.withValues(alpha: 0.7),
                     ),
+                  ),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'pin',
+                      height: 44,
+                      child: Text(
+                        entry.isPinned ? '取消置顶' : '置顶',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: mainTextColor,
+                          fontFamily: fontFamily,
+                        ),
+                      ),
+                    ),
+                    _CustomMenuDivider(dividerColor: subTextColor.withValues(alpha: 0.2)),
+                    PopupMenuItem(
+                      value: 'sort',
+                      height: 44,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '按时间的排序',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: mainTextColor,
+                              fontFamily: fontFamily,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Icon(
+                            _isSortDescending ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                            size: 16,
+                            color: mainTextColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (value) {
+                    if (value == 'pin') {
+                      UserState().toggleDiaryPin(entry.id);
+                    } else if (value == 'sort') {
+                      setState(() {
+                        _isSortDescending = !_isSortDescending;
+                      });
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('开发中：$value 功能'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          // 2. 时间轴节点与右侧内容 Row
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 左侧时间轴
+                SizedBox(
+                  width: 36,
+                  child: Stack(
+                    alignment: Alignment.topCenter,
+                    children: [
+                      // 竖线
+                      Align(
+                        alignment: Alignment.center,
+                        child: Container(
+                          width: 1.5,
+                          color: isNight ? Colors.white10 : Colors.black.withValues(alpha: 0.08),
+                          margin: EdgeInsets.only(
+                            top: isFirst ? 10 : 0,
+                            bottom: isLast ? 10 : 0,
+                          ),
+                        ),
+                      ),
+                      // 时间轴节点（位于时间戳正下方）
+                      Positioned(
+                        top: 4,
+                        child: _buildTimelineNode(isNight, themeId),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 右侧内容区
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 2),
+                    padding: const EdgeInsets.only(bottom: 16, right: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                     const SizedBox(height: 6),
                     // 日记内容文字
                     Builder(builder: (context) {
@@ -1185,7 +1200,9 @@ class _DiaryCalendarPanelState extends State<DiaryCalendarPanel> {
           ],
         ),
       ),
-    );
+    ],
+  ),
+);
   }
 
   Widget _buildWeekRow({

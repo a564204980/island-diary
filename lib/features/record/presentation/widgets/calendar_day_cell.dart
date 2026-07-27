@@ -5,6 +5,7 @@ import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/shared/widgets/diary_entry/utils/diary_utils.dart';
 import 'package:island_diary/shared/widgets/mood_picker/config/mood_config.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/features/home/presentation/services/photo_wall_storage_service.dart';
 import 'lego_calendar_components.dart';
 import 'calendar_cover_painter.dart';
 
@@ -100,11 +101,16 @@ class CalendarDayCell extends StatelessWidget {
       for (var entry in entries!) {
         for (var block in entry.blocks) {
           if (block['type'] == 'image' && block['path'] != null) {
-            final String path = block['path'] as String;
+            String path = block['path'] as String;
             if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:') || path.startsWith('assets/')) {
               allImages.add(path);
-            } else if (File(path).existsSync()) {
-              allImages.add(path);
+            } else {
+              if (!File(path).existsSync()) {
+                path = PhotoWallStorageService.toValidAbsolutePathSync(path);
+              }
+              if (File(path).existsSync()) {
+                allImages.add(path);
+              }
             }
           }
         }
@@ -168,7 +174,7 @@ class CalendarDayCell extends StatelessWidget {
         ? const BorderSide(color: Color(0xFFE1AF78), width: 2.2)
         : (isToday
             ? BorderSide(color: const Color(0xFFE1AF78).withValues(alpha: 0.6), width: 1.5)
-            : BorderSide.none);
+            : const BorderSide(color: Colors.transparent, width: 0));
 
     final themeId = UserState().selectedIslandThemeId.value;
     final bool isLego = themeId == 'lego';

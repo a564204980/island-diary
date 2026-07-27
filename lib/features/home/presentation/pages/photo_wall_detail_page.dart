@@ -18,6 +18,7 @@ import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:island_diary/shared/widgets/island_dialog.dart';
 import 'package:island_diary/shared/widgets/island_page_background.dart';
 import 'package:island_diary/shared/widgets/top_toast.dart';
+import 'package:island_diary/features/home/presentation/services/photo_wall_storage_service.dart';
 
 /// 展板详情与自由缩影手帐编辑页面 (PhotoWallDetailPage)
 class PhotoWallDetailPage extends StatefulWidget {
@@ -145,15 +146,16 @@ class _PhotoWallDetailPageState extends State<PhotoWallDetailPage> {
         requestType: RequestType.image,
       );
       if (result != null && result.isNotEmpty) {
-        final List<String> addedPaths = [];
+        final List<String> rawPaths = [];
         for (var asset in result) {
           final file = await asset.file;
           if (file != null) {
-            addedPaths.add(file.path);
+            rawPaths.add(file.path);
           }
         }
 
-        if (addedPaths.isNotEmpty) {
+        if (rawPaths.isNotEmpty) {
+          final addedPaths = await PhotoWallStorageService.savePhotosToPermanentStorage(rawPaths);
           final newPaths = List<String>.from(_collection.photoPaths)..addAll(addedPaths);
           final existingCount = _photoIds.length;
 

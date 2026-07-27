@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/features/home/presentation/services/photo_wall_storage_service.dart';
 
 class DiaryUtils {
   static String? _documentsDirPath;
@@ -221,6 +222,16 @@ class DiaryUtils {
         ? null
         : (width != null ? (width * 3).toInt() : null);
 
+    Widget smoothFrameBuilder(BuildContext context, Widget child, int? frame, bool wasSynchronouslyLoaded) {
+      if (wasSynchronouslyLoaded) return child;
+      return AnimatedOpacity(
+        opacity: frame == null ? 0.0 : 1.0,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        child: child,
+      );
+    }
+
     if (normalizedPath.startsWith('http') ||
         normalizedPath.startsWith('blob:') ||
         normalizedPath.startsWith('data:')) {
@@ -229,13 +240,13 @@ class DiaryUtils {
         width: width,
         height: height,
         fit: fit,
+        frameBuilder: smoothFrameBuilder,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return Container(
             width: width,
             height: height,
-            color: Colors.black.withValues(alpha: 0.05),
-            child: const Center(child: CupertinoActivityIndicator(radius: 10)),
+            color: Colors.white.withValues(alpha: 0.05),
           );
         },
         errorBuilder: (context, error, stackTrace) {
@@ -244,21 +255,28 @@ class DiaryUtils {
         },
       );
     } else if (normalizedPath.startsWith('/') ||
+        RegExp(r'^[a-zA-Z]:[/\\]').hasMatch(normalizedPath) ||
         normalizedPath.contains('cache/') ||
         normalizedPath.contains('files/') ||
+        normalizedPath.contains('photo_wall_photos') ||
         normalizedPath.contains('custom_stickers')) {
-      // 移动端/本地贴纸文件路径
+      // 移动端/桌面端/本地贴纸文件路径
       if (kIsWeb) {
-        // 在 Web 平台上，所有的本地文件路径实际上是由浏览器代理的 blob 或相对路径，必须使用 Image.network
         image = Image.network(
           normalizedPath,
           width: width,
           height: height,
           fit: fit,
+          frameBuilder: smoothFrameBuilder,
         );
       } else {
-        // 关键修复：确保文件确实存在，否则返回错误占位符，防止 PathNotFoundException
-        final file = io.File(normalizedPath);
+        // 关键修复：判断文件是否存在，若旧路径失效自动尝试恢复
+        var file = io.File(normalizedPath);
+        if (!file.existsSync()) {
+          final repairedPath = PhotoWallStorageService.toValidAbsolutePathSync(normalizedPath);
+          file = io.File(repairedPath);
+        }
+
         if (!file.existsSync()) {
           debugPrint("Physical file not found ($normalizedPath), skipping...");
           return _buildErrorPlaceholder(width, height, borderRadius);
@@ -269,7 +287,9 @@ class DiaryUtils {
           width: width,
           height: height,
           fit: fit,
-          cacheWidth: cacheW, // 关键优化：限制本地原图解码尺寸
+          cacheWidth: cacheW, // 限制本地原图解码尺寸
+          frameBuilder: smoothFrameBuilder,
+          errorBuilder: (context, error, stackTrace) => _buildErrorPlaceholder(width, height, borderRadius),
         );
       }
     } else {
@@ -280,6 +300,7 @@ class DiaryUtils {
         height: height,
         fit: fit,
         cacheWidth: cacheW,
+        frameBuilder: smoothFrameBuilder,
         errorBuilder: (context, error, stackTrace) {
           debugPrint("Asset load error ($normalizedPath): $error");
           return _buildErrorPlaceholder(width, height, borderRadius);
@@ -324,18 +345,20 @@ class DiaryUtils {
   static String _normalizeImagePath(String path) {
     if (path.isEmpty) return path;
 
+    final bool isWindowsAbsolutePath = RegExp(r'^[a-zA-Z]:[/\\]').hasMatch(path);
+
     // 1. 如果已经是绝对路径、URL、Blob 或 Base64，则保持原样
     if (path.startsWith('http') ||
         path.startsWith('blob:') ||
         path.startsWith('data:') ||
         path.startsWith('/') ||
+        isWindowsAbsolutePath ||
         path.startsWith('assets/')) {
       return path;
     }
 
     // 2. 只有文件名的相对路径修复 (多见于 Mock 数据)
-    // 根据系统习惯，尝试优先匹配 note 目录，再匹配通用 images 目录
-    if (!path.contains('/')) {
+    if (!path.contains('/') && !path.contains('\\')) {
       return 'assets/images/note/$path';
     }
 

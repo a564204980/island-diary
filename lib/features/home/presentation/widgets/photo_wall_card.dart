@@ -10,10 +10,11 @@ import 'package:island_diary/shared/widgets/top_toast.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:island_diary/features/home/domain/models/photo_wall_collection.dart';
-import 'package:island_diary/features/home/presentation/pages/photo_wall_page.dart';
+import 'package:island_diary/features/home/presentation/pages/photo_wall_detail_page.dart';
 import 'package:island_diary/features/home/presentation/widgets/photo_wall/treemap_splitter.dart';
 import 'package:island_diary/shared/animations/shared_axis_page_route.dart';
 import 'package:island_diary/core/state/user_state.dart';
+import 'package:island_diary/core/services/wind_service.dart';
 
 class PhotoWallItemData {
   final String imagePath;
@@ -137,6 +138,61 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
     }
   }
 
+  /// 获取或初始化当前激活的照片墙集合
+  Future<PhotoWallCollection> _getOrInitActiveCollection() async {
+    if (_activeCollection != null) return _activeCollection!;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rawJson = prefs.getString('photo_wall_collections_v2');
+      if (rawJson != null && rawJson.isNotEmpty) {
+        final List list = json.decode(rawJson);
+        for (var item in list) {
+          Map<String, dynamic>? map;
+          if (item is Map) {
+            map = Map<String, dynamic>.from(item);
+          } else if (item is String) {
+            try {
+              final decoded = json.decode(item);
+              if (decoded is Map) map = Map<String, dynamic>.from(decoded);
+            } catch (_) {}
+          }
+          if (map != null) {
+            final col = PhotoWallCollection.fromMap(map);
+            if (col.isActive) return col;
+          }
+        }
+      }
+    } catch (_) {}
+
+    return PhotoWallCollection(
+      id: 'default_collection',
+      title: '拾光 · 日记记录',
+      photoPaths: [
+        'assets/images/home_xiatian.png',
+        'assets/images/home_wanshang.png',
+        'assets/images/record_daytime.png',
+      ],
+      isActive: true,
+      createdAt: DateTime.now(),
+    );
+  }
+
+  /// 点击首页照片墙直接步入照片编辑/详情界面 (跳过中间列表页)
+  Future<void> _openPhotoWallPage() async {
+    final targetCol = await _getOrInitActiveCollection();
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      SharedAxisPageRoute(
+        page: PhotoWallDetailPage(
+          collection: targetCol,
+          isNight: widget.isNight,
+        ),
+      ),
+    );
+    _extractPhotoItems();
+  }
+
   /// 同步提取内存静态缓存或日记中的图片
   void _populateFromSyncSources() {
     List<String> photoPaths = [];
@@ -191,15 +247,7 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
       onTap: () async {
         HapticFeedback.mediumImpact();
         if (hasPhotos) {
-          await Navigator.of(context).push(
-            SharedAxisPageRoute(
-              page: PhotoWallPage(
-                isNight: widget.isNight,
-                themeId: 'default',
-              ),
-            ),
-          );
-          _extractPhotoItems();
+          await _openPhotoWallPage();
         } else {
           showTopToast(context, '📸 记录带照片的日记，即可制作专属手帐照片墙', icon: Icons.photo_library_rounded);
         }
@@ -347,8 +395,9 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                   top: top.clamp(0.0, math.max(0.0, boardH - cardH)).toDouble(),
                   width: cardW,
                   height: cardH,
-                  child: Transform.rotate(
-                    angle: angle,
+                  child: WindBlownPhotoWidget(
+                    index: index,
+                    baseAngle: angle,
                     child: Stack(
                       clipBehavior: Clip.none,
                       alignment: Alignment.topCenter,
@@ -424,8 +473,9 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                   top: top,
                   width: cardW,
                   height: cardH,
-                  child: Transform.rotate(
-                    angle: angle,
+                  child: WindBlownPhotoWidget(
+                    index: index,
+                    baseAngle: angle,
                     child: Stack(
                       clipBehavior: Clip.none,
                       alignment: Alignment.topCenter,
@@ -510,17 +560,7 @@ class _PhotoWallCardState extends State<PhotoWallCard> {
                 width: cardRect.width,
                 height: cardRect.height,
                 child: BouncingButton(
-                  onTap: () async {
-                    await Navigator.of(context).push(
-                      SharedAxisPageRoute(
-                        page: PhotoWallPage(
-                          isNight: widget.isNight,
-                          themeId: 'default',
-                        ),
-                      ),
-                    );
-                    _extractPhotoItems();
-                  },
+                  onTap: _openPhotoWallPage,
                   scaleFactor: 1.05,
                   child: Stack(
                     clipBehavior: Clip.none,
@@ -850,4 +890,84 @@ class WashiTapePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant WashiTapePainter oldDelegate) =>
       color != oldDelegate.color;
+}
+
+/// 响应海岛风速系统 (WindService) 的拍立得照片随风摇拽与飘拂组件
+class WindBlownPhotoWidget extends StatefulWidget {
+  final Widget child;
+  final int index;
+  final double baseAngle;
+
+  const WindBlownPhotoWidget({
+    super.key,
+    required this.child,
+    required this.index,
+    required this.baseAngle,
+  });
+
+  @override
+  State<WindBlownPhotoWidget> createState() => _WindBlownPhotoWidgetState();
+}
+
+class _WindBlownPhotoWidgetState extends State<WindBlownPhotoWidget> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<WindMode>(
+      valueListenable: WindService.currentWind,
+      builder: (context, wind, child) {
+        return AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final double progress = _controller.value;
+            final double phase = (widget.index * 0.75) % (2.0 * math.pi);
+            final double time = progress * 2.0 * math.pi + phase;
+
+            final double speed = wind.speedMultiplier;
+
+            // 1. 闭合 2π 正弦与余弦波形，确保动画循环 100% 无缝流畅、零跳跃卡顿
+            final double sinWave = math.sin(time);
+            final double cosWave = math.cos(time);
+
+            // 2. 严格由右向左风向物理 (Right-to-Left Wind)
+            // 角度全程保持向左负向偏移 ([-1.0, 0] 区间)，相纸下摆绝不反向向右冒出
+            final double windForce = 0.035 * speed;
+            final double swingAngle = (-0.45 - sinWave * 0.45) * windForce;
+            final double totalAngle = widget.baseAngle + swingAngle;
+
+            // 3. X 轴向左 (offsetX < 0) 被吹动，Y 轴向上 (offsetY < 0) 被扬起
+            final double liftStrength = (1.0 + cosWave) * 0.5 * 1.6 * speed;
+            final double offsetX = -liftStrength * 1.0;
+            final double offsetY = -liftStrength * 0.75;
+
+            return Transform.translate(
+              offset: Offset(offsetX, offsetY),
+              child: Transform.rotate(
+                angle: totalAngle,
+                alignment: Alignment.topCenter,
+                child: widget.child,
+              ),
+            );
+          },
+          child: widget.child,
+        );
+      },
+    );
+  }
 }

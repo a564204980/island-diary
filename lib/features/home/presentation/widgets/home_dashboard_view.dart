@@ -5,7 +5,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/features/record/domain/models/diary_entry.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/features/record/presentation/pages/diary_editor_page.dart';
-import 'package:island_diary/shared/animations/bouncing_button.dart';
 import 'package:island_diary/core/services/wind_service.dart';
 import 'package:island_diary/core/models/home_module_config.dart';
 import 'package:island_diary/features/home/presentation/widgets/home_card_registry.dart';
@@ -244,66 +243,6 @@ class _HomeDashboardViewState extends State<HomeDashboardView> with SingleTicker
                                       ),
                                     ],
                                   ),
-                                ),
-                                const SizedBox(width: 6),
-                                ValueListenableBuilder<WindMode>(
-                                  valueListenable: WindService.currentWind,
-                                  builder: (context, currentWindMode, _) {
-                                    final bool isGale = (currentWindMode == WindMode.gale);
-                                    return BouncingButton(
-                                      onTap: () {
-                                        HapticFeedback.mediumImpact();
-                                        if (isGale) {
-                                          WindService.currentWind.value = WindMode.breeze;
-                                          UserState().cloudSpeedMultiplier.value = WindMode.breeze.speedMultiplier;
-                                        } else {
-                                          WindService.currentWind.value = WindMode.gale;
-                                          UserState().cloudSpeedMultiplier.value = WindMode.gale.speedMultiplier;
-                                        }
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 7.5, vertical: 3.5),
-                                        decoration: BoxDecoration(
-                                          color: isGale
-                                              ? (widget.isNight
-                                                  ? const Color(0xFF38BDF8).withValues(alpha: 0.3)
-                                                  : const Color(0xFF0284C7).withValues(alpha: 0.2))
-                                              : (widget.isNight
-                                                  ? Colors.white.withValues(alpha: 0.12)
-                                                  : Colors.white.withValues(alpha: 0.5)),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: isGale
-                                                ? (widget.isNight ? const Color(0xFF38BDF8) : const Color(0xFF0284C7))
-                                                : (widget.isNight
-                                                    ? Colors.white.withValues(alpha: 0.2)
-                                                    : Colors.white.withValues(alpha: 0.6)),
-                                            width: 1.0,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: isGale
-                                                  ? (widget.isNight ? const Color(0xFF38BDF8).withValues(alpha: 0.3) : const Color(0xFF0284C7).withValues(alpha: 0.2))
-                                                  : Colors.black.withValues(alpha: 0.05),
-                                              blurRadius: 6,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Text(
-                                          isGale ? "🌬️ 狂风中" : "🌬️ 狂风",
-                                          style: TextStyle(
-                                            fontSize: 10.5,
-                                            fontWeight: FontWeight.w600,
-                                            fontFamily: fontFamily,
-                                            color: isGale
-                                                ? (widget.isNight ? const Color(0xFF38BDF8) : const Color(0xFF0284C7))
-                                                : textColor,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
                                 ),
                               ],
                             ),

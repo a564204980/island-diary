@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:island_diary/core/state/user_state.dart';
 import 'package:island_diary/shared/animations/bouncing_button.dart';
@@ -12,6 +14,7 @@ import 'package:island_diary/features/home/presentation/pages/photo_wall_detail_
 import 'package:island_diary/features/home/presentation/widgets/photo_wall/collection_box_card.dart';
 import 'package:island_diary/features/home/presentation/widgets/photo_wall_card.dart';
 import 'package:island_diary/features/home/presentation/services/photo_wall_image_cache.dart';
+import 'package:island_diary/features/home/presentation/services/photo_wall_storage_service.dart';
 import 'package:island_diary/shared/widgets/island_page_background.dart';
 
 /// “照片墙集合”网格主页面
@@ -84,8 +87,12 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
   bool _isLoading = true;
 
   static const List<String> _presetPhotos = [
-    'assets/images/home_card/me_day.jpg',
-    'assets/images/home_card/me_night.jpg',
+    'assets/images/home_xiatian.png',
+    'assets/images/home_wanshang.png',
+    'assets/images/home_zhongwu.png',
+    'assets/images/record_daytime.png',
+    'assets/images/login_bg_1.png',
+    'assets/images/login_bg_2.png',
   ];
 
   @override
@@ -93,36 +100,75 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
     super.initState();
     if (_staticCollectionsCache != null && _staticCollectionsCache!.isNotEmpty) {
       _collections.addAll(_staticCollectionsCache!);
-      _isLoading = false;
     }
+    // 优雅延时 450ms 让全局小猫画画 Loading 呈现，给图像解包与预热提供充裕平滑过渡时间
+    Future.delayed(const Duration(milliseconds: 450), () {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    });
     _loadCollections();
   }
 
-  /// 过滤并补充有效照片路径（无效或已被清理的本地图片自动用预设写真补位，消除死白框）
+  /// 净化清洗磁盘上的历史脏数据（彻底擦除过去误注入的浅白信纸路径）
+  PhotoWallCollection _sanitizeCollection(PhotoWallCollection col, List<String> userPhotos) {
+    final List<String> cleanedPaths = [];
+    const vibrantFallbacks = [
+      'assets/images/home_xiatian.png',
+      'assets/images/home_wanshang.png',
+      'assets/images/home_zhongwu.png',
+      'assets/images/record_daytime.png',
+      'assets/images/record_daytime2.png',
+      'assets/images/login_bg_1.png',
+      'assets/images/login_bg_2.png',
+    ];
+
+    final List<String> pool = userPhotos.isNotEmpty ? userPhotos : vibrantFallbacks;
+
+    for (int i = 0; i < col.photoPaths.length; i++) {
+      final p = col.photoPaths[i];
+      final isDirty = p.contains('home_card/me_') ||
+          p.contains('emoji/modules_bg/') ||
+          p.contains('images/note/note_bg');
+
+      if (isDirty) {
+        cleanedPaths.add(pool[i.abs() % pool.length]);
+      } else {
+        cleanedPaths.add(p);
+      }
+    }
+
+    return col.copyWith(photoPaths: cleanedPaths);
+  }
+
+  /// 过滤并补充有效照片路径（自动还原路径，无效或失效图片平滑用唯美海岛写真大图补位）
   List<String> _filterValidPhotoPaths(List<String> paths) {
     const fallbackBgs = [
-      'assets/images/home_card/me_day.jpg',
-      'assets/images/home_card/me_night.jpg',
-      'assets/images/emoji/modules_bg/4.png',
-      'assets/images/emoji/modules_bg/5.png',
-      'assets/images/emoji/modules_bg/6.png',
-      'assets/images/emoji/modules_bg/7.png',
-      'assets/images/emoji/modules_bg/8.png',
-      'assets/images/emoji/modules_bg/9.png',
-      'assets/images/emoji/modules_bg/10.png',
-      'assets/images/emoji/modules_bg/11.png',
-      'assets/images/emoji/modules_bg/12.png',
+      'assets/images/home_xiatian.png',
+      'assets/images/home_wanshang.png',
+      'assets/images/home_zhongwu.png',
+      'assets/images/record_daytime.png',
+      'assets/images/record_daytime2.png',
+      'assets/images/login_bg_1.png',
+      'assets/images/login_bg_2.png',
     ];
 
     final List<String> result = [];
     for (int i = 0; i < paths.length; i++) {
-      final path = paths[i];
-      if (path.startsWith('assets/')) {
-        result.add(path);
-      } else if (File(path).existsSync()) {
-        result.add(path);
+      final rawPath = paths[i];
+      final validPath = PhotoWallStorageService.toValidAbsolutePathSync(rawPath);
+      if (validPath.startsWith('assets/')) {
+        result.add(validPath);
       } else {
-        result.add(fallbackBgs[i.abs() % fallbackBgs.length]);
+        try {
+          if (File(validPath).existsSync()) {
+            result.add(validPath);
+          } else {
+            result.add(fallbackBgs[i.abs() % fallbackBgs.length]);
+          }
+        } catch (_) {
+          result.add(fallbackBgs[i.abs() % fallbackBgs.length]);
+        }
       }
     }
     return result;
@@ -141,12 +187,19 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
     final savedDiaries = UserState().savedDiaries.value;
     for (var diary in savedDiaries) {
       for (var block in diary.blocks) {
-        if (block['type'] == 'image' && block['path'] != null) {
-          final pathStr = block['path'].toString();
-          if (pathStr.startsWith('assets/')) {
-            userDiaryPhotos.add(pathStr);
-          } else if (File(pathStr).existsSync()) {
-            userDiaryPhotos.add(pathStr);
+        if (block['type'] == 'image') {
+          final rawPath = (block['path'] ?? block['filePath'] ?? block['localPath'] ?? block['mattedPath'] ?? '').toString();
+          if (rawPath.isNotEmpty) {
+            final validPath = PhotoWallStorageService.toValidAbsolutePathSync(rawPath);
+            if (validPath.startsWith('assets/')) {
+              userDiaryPhotos.add(validPath);
+            } else {
+              try {
+                if (File(validPath).existsSync()) {
+                  userDiaryPhotos.add(validPath);
+                }
+              } catch (_) {}
+            }
           }
         }
       }
@@ -177,8 +230,9 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
               } catch (_) {}
               col = col.copyWith(coverImagePath: '');
             }
-            final validPaths = _filterValidPhotoPaths(col.photoPaths);
-            loadedCols.add(col.copyWith(photoPaths: validPaths));
+            col = _sanitizeCollection(col, userDiaryPhotos);
+            final permPaths = await PhotoWallStorageService.savePhotosToPermanentStorage(col.photoPaths);
+            loadedCols.add(col.copyWith(photoPaths: permPaths));
           }
         }
       } catch (_) {
@@ -507,51 +561,163 @@ class _PhotoWallPageState extends State<PhotoWallPage> {
                 child: IslandPageBackground(),
               ),
 
-          // 1. 主体网格区
+          // 1. 主体网格区与全局小猫画画 Loading
           Positioned.fill(
-            child: _isLoading
-                ? const SizedBox.shrink() // 加载中透明占位（背景可透出，避免纯白转圈）
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: CustomScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: SizedBox(
-                            height: MediaQuery.of(context).padding.top + kToolbarHeight + 12,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeIn,
+              child: _isLoading
+                  ? GlobalCatDrawingLoading(isDark: isDark)
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: CustomScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: MediaQuery.of(context).padding.top + kToolbarHeight + 12,
+                            ),
                           ),
-                        ),
-                        SliverGrid(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 14,
-                            childAspectRatio: 0.58,
+                          SliverGrid(
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 14,
+                              childAspectRatio: 0.58,
+                            ),
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                return CollectionBoxCard(
+                                  collection: _collections[index],
+                                  isDark: isDark,
+                                  textColor: textColor,
+                                  presetPhotos: _presetPhotos,
+                                  onTap: () => _openCollectionDetail(_collections[index]),
+                                  onRename: () => _renameCollection(_collections[index]),
+                                  onDelete: () => _deleteCollection(_collections[index]),
+                                  onSetActive: () => _setActiveCollection(_collections[index]),
+                                );
+                              },
+                              childCount: _collections.length,
+                            ),
                           ),
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              return CollectionBoxCard(
-                                collection: _collections[index],
-                                isDark: isDark,
-                                textColor: textColor,
-                                presetPhotos: _presetPhotos,
-                                onTap: () => _openCollectionDetail(_collections[index]),
-                                onRename: () => _renameCollection(_collections[index]),
-                                onDelete: () => _deleteCollection(_collections[index]),
-                                onSetActive: () => _setActiveCollection(_collections[index]),
-                              );
-                            },
-                            childCount: _collections.length,
-                          ),
-                        ),
-                        const SliverToBoxAdapter(child: SizedBox(height: 40)),
-                      ],
+                          const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                        ],
+                      ),
                     ),
-                  ),
+            ),
           ),
         ],
       ),
     );
   }
+}
 
+/// 全局照片墙模块手帐小猫画画 Loading 组件
+class GlobalCatDrawingLoading extends StatelessWidget {
+  final bool isDark;
+
+  const GlobalCatDrawingLoading({
+    super.key,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.35)
+                  : Colors.white.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : Colors.white.withValues(alpha: 0.65),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : const Color(0xFFFFF9F0),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/loading/loading_1.png',
+                      width: 52,
+                      height: 52,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.palette_rounded,
+                        size: 32,
+                        color: isDark ? Colors.white70 : const Color(0xFFD4A373),
+                      ),
+                    ),
+                  ),
+                )
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .scale(
+                  begin: const Offset(0.92, 0.92),
+                  end: const Offset(1.08, 1.08),
+                  duration: 900.ms,
+                  curve: Curves.easeInOutSine,
+                )
+                .rotate(
+                  begin: -0.04,
+                  end: 0.04,
+                  duration: 1200.ms,
+                  curve: Curves.easeInOutSine,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  "小猫咪正在为您绘制照片墙...",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'LXGWWenKai',
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.90)
+                        : const Color(0xFF334155),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "珍藏每一刻治愈时光",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontFamily: 'LXGWWenKai',
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.50)
+                        : const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

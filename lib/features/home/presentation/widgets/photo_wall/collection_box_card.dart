@@ -3,11 +3,13 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:island_diary/shared/animations/bouncing_button.dart';
 import 'package:island_diary/features/home/domain/models/photo_wall_collection.dart';
 import 'package:island_diary/features/home/presentation/widgets/photo_wall/treemap_splitter.dart';
 import 'package:island_diary/features/home/presentation/widgets/photo_wall/photo_board_decorations.dart';
 import 'package:island_diary/features/home/presentation/services/photo_wall_image_cache.dart';
+import 'package:island_diary/features/home/presentation/services/photo_wall_storage_service.dart';
 
 /// 记忆展板缩影相册卡片组件 (对齐 PhotoWallDetailPage 高斯模糊与双重边框样式)
 class CollectionBoxCard extends StatelessWidget {
@@ -410,12 +412,9 @@ class MiniPhotoBoardContent extends StatelessWidget {
       );
     }
 
-    // 在渲染前同步过滤路径，无效路径用预设写真补位（消除白框根源）
-    final List<String> effectivePhotos = collection.photoPaths.asMap().entries.map((e) {
-      final path = e.value;
-      if (path.startsWith('assets/')) return path;
-      if (File(path).existsSync()) return path;
-      return _defaultFallbackBgs[e.key.abs() % _defaultFallbackBgs.length];
+    // 在渲染前同步过滤路径，自动尝试智能恢复移动端/iOS/沙盒路径，未定位到的路径统一由小猫咪画画占位平滑呈显
+    final List<String> effectivePhotos = collection.photoPaths.map((rawPath) {
+      return PhotoWallStorageService.toValidAbsolutePathSync(rawPath);
     }).toList();
 
     return LayoutBuilder(
@@ -674,85 +673,93 @@ class MiniPhotoBoardContent extends StatelessWidget {
     );
   }
 
-  static const List<String> _defaultFallbackBgs = [
-    'assets/images/home_card/me_day.jpg',
-    'assets/images/home_card/me_night.jpg',
-    'assets/images/emoji/modules_bg/4.png',
-    'assets/images/emoji/modules_bg/5.png',
-    'assets/images/emoji/modules_bg/6.png',
-    'assets/images/emoji/modules_bg/7.png',
-    'assets/images/emoji/modules_bg/8.png',
-    'assets/images/emoji/modules_bg/9.png',
-    'assets/images/emoji/modules_bg/10.png',
-    'assets/images/emoji/modules_bg/11.png',
-    'assets/images/emoji/modules_bg/12.png',
-  ];
-
   Widget _buildImageWidget(String path, int index) {
-    /// 统一淡入包裹，让图片从透明浮现而不是突然出现（与首页卡片保持一致）
-    Widget withFadeIn(Widget child) {
-      return AnimatedOpacity(
-        opacity: 1.0,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        child: child,
-      );
-    }
-
+    // 终极安全兜底：使用精致手帐小猫画画占位与补位，杜绝任何纯白死框
     Widget buildErrorFallback() {
-      final String fallbackPath = _defaultFallbackBgs[index.abs() % _defaultFallbackBgs.length];
-      return withFadeIn(Image.asset(
-        fallbackPath,
-        width: double.infinity,
-        height: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFFFE0B2), Color(0xFFFFF3E0)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-      ));
+      return const CatFramePlaceholder();
     }
 
-    // 1. 优先尝试从全局内存字节高速缓存获取 (0 帧解码等待)
-    var cachedBytes = PhotoWallImageCache.get(path);
-    if (cachedBytes == null && !path.startsWith('assets/')) {
-      try {
-        final file = File(path);
-        if (file.existsSync()) {
-          cachedBytes = file.readAsBytesSync();
-          PhotoWallImageCache.put(path, cachedBytes);
-        }
-      } catch (_) {}
-    }
-
-    if (cachedBytes != null) {
-      return withFadeIn(Image.memory(
-        cachedBytes,
-        width: double.infinity,
-        height: double.infinity,
-        fit: BoxFit.cover,
-        gaplessPlayback: true,
-        errorBuilder: (context, error, stackTrace) => buildErrorFallback(),
-      ));
-    }
-
+    // 1. Assets 静态资源直接渲染
     if (path.startsWith('assets/')) {
-      return withFadeIn(Image.asset(
+      return Image.asset(
         path,
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover,
         gaplessPlayback: true,
         errorBuilder: (context, error, stackTrace) => buildErrorFallback(),
-      ));
+      );
     }
 
+    // 2. 尝试智能还原应用沙盒与文件绝对路径
+    final String repairedPath = PhotoWallStorageService.toValidAbsolutePathSync(path);
+
+    // 3. 内存解包字节缓存（若预热完成则 0 帧秒开）
+    final cachedBytes = PhotoWallImageCache.get(repairedPath) ?? PhotoWallImageCache.get(path);
+    if (cachedBytes != null) {
+      return Image.memory(
+        cachedBytes,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (context, error, stackTrace) => buildErrorFallback(),
+      );
+    }
+
+    // 4. 本地图片文件：标准 Image.file 后台异步解包
+    if (repairedPath.isNotEmpty) {
+      try {
+        final file = File(repairedPath);
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            width: double.infinity,
+            height: double.infinity,
+            fit: BoxFit.cover,
+            gaplessPlayback: true,
+            errorBuilder: (context, error, stackTrace) => buildErrorFallback(),
+          );
+        }
+      } catch (_) {}
+    }
+
+    // 5. 无效路径平滑降级至小猫画画治愈占位
     return buildErrorFallback();
+  }
+}
+
+/// 拍立得卡片专属：手帐小猫画画治愈占位与补位组件 (彻底告别白色死框)
+class CatFramePlaceholder extends StatelessWidget {
+  const CatFramePlaceholder({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFF8EE), // 治愈手帐暖调浅黄底
+      ),
+      child: Center(
+        child: Image.asset(
+          'assets/images/loading/loading_1.png',
+          width: 32,
+          height: 32,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => const Icon(
+            Icons.palette_rounded,
+            size: 16,
+            color: Color(0xFFD4A373),
+          ),
+        )
+        .animate(onPlay: (c) => c.repeat(reverse: true))
+        .scale(
+          begin: const Offset(0.90, 0.90),
+          end: const Offset(1.08, 1.08),
+          duration: 850.ms,
+          curve: Curves.easeInOutSine,
+        ),
+      ),
+    );
   }
 }
 

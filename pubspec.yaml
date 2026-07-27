@@ -71,6 +71,7 @@ flutter:
     - assets/launch_screen_tip.png
     - assets/app_icon.png
     - assets/images/
+    - assets/images/loading/
     - assets/images/note/
     - assets/images/icons/
     - assets/images/icons/5/

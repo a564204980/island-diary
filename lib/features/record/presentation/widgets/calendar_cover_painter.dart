@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:island_diary/features/home/presentation/services/photo_wall_storage_service.dart';
 
 /// 日历封面图内存 ImageCache 离屏缓存器
 class CalendarImageCache {
@@ -20,11 +22,28 @@ class CalendarImageCache {
     ImageProvider provider;
     if (path.startsWith('http') || path.startsWith('blob:')) {
       provider = NetworkImage(path);
+    } else if (path.startsWith('data:')) {
+      try {
+        final commaIdx = path.indexOf(',');
+        final base64Str = commaIdx != -1 ? path.substring(commaIdx + 1) : path;
+        final bytes = base64Decode(base64Str);
+        provider = MemoryImage(bytes);
+      } catch (e) {
+        _listeners.remove(path);
+        return;
+      }
     } else if (path.startsWith('assets/')) {
       provider = AssetImage(path);
     } else {
-      final file = File(path);
-      if (!file.existsSync()) return;
+      var file = File(path);
+      if (!file.existsSync()) {
+        final repairedPath = PhotoWallStorageService.toValidAbsolutePathSync(path);
+        file = File(repairedPath);
+      }
+      if (!file.existsSync()) {
+        _listeners.remove(path);
+        return;
+      }
       provider = FileImage(file);
     }
 
@@ -163,6 +182,6 @@ class CalendarCoverPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CalendarCoverPainter oldDelegate) {
-    return oldDelegate.images != images || oldDelegate.isNight != isNight;
+    return true;
   }
 }
